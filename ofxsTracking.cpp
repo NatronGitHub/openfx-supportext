@@ -136,7 +136,8 @@ void GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args, co
     
 }
 
-void genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
+void
+OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
 {
     desc.addSupportedContext(eContextGeneral);
     desc.addSupportedContext(eContextFilter);
@@ -176,7 +177,8 @@ void genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
 
 }
 
-OFX::PageParamDescriptor* genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context)
+OFX::PageParamDescriptor*
+OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context)
 {
     // Source clip only in the filter context
     // create the mandated source clip
@@ -207,7 +209,8 @@ OFX::PageParamDescriptor* genericTrackerDescribeInContextBegin(OFX::ImageEffectD
 }
 
 
-void genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page)
+void
+OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page)
 {
     ///Declare the name first so that in Natron it appears as the first column in the multi instance
     OFX::StringParamDescriptor* name = desc.defineStringParam(kTrackLabelParamName);
