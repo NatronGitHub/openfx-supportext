@@ -67,6 +67,8 @@
 #include <GL/gl.h>
 #endif
 
+namespace OFX {
+
 typedef struct tagSFG_Font SFG_Font;
 struct tagSFG_Font
 {
@@ -86,4 +88,5 @@ extern const SFG_Font fgFontHelvetica18;
 extern const SFG_Font fgFontTimesRoman10;
 extern const SFG_Font fgFontTimesRoman24;
 
+} // OFX
 #endif /* defined(__Misc__ofxsOGLFontUtils__) */

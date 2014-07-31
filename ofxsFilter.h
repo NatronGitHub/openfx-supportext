@@ -44,6 +44,8 @@
 
 #include "ofxsImageEffect.h"
 
+namespace OFX {
+
 // GENERIC
 #define kFilterTypeParamName "filter"
 #define kFilterTypeParamLabel "Filter"
@@ -564,5 +566,7 @@ ofxsFilterExpandRoI(const OfxRectD &roi, double pixelAspectRatio, const OfxPoint
     }
     assert(srcRoI->x1 < srcRoI->x2 && srcRoI->y1 < srcRoI->y2);
 }
+
+} // OFX
 
 #endif

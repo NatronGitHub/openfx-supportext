@@ -89,7 +89,6 @@ namespace OFX
         bool forward; //<! tracking direction
         InstanceChangeReason reason;
     };
-}
 
 class GenericTrackerPlugin : public OFX::ImageEffect
 {
@@ -289,5 +288,6 @@ private:
 
 class TrackerRegionOverlayDescriptor : public OFX::DefaultEffectOverlayDescriptor<TrackerRegionOverlayDescriptor, TrackerRegionInteract> {};
 
+} // OFX
 
 #endif /* defined(__Misc__ofxsTracking__) */

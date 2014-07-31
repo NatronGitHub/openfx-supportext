@@ -46,6 +46,7 @@
 
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
+#include "ofxsOGLTextRenderer.h"
 
 namespace OFX {
 
@@ -140,6 +141,7 @@ bool PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);
         glEnd();
+        OFX::TextRenderer::bitmapString(pos.x, pos.y, ParamName::name());
         if (l == 0) {
             glTranslated(-pscale.x, pscale.y, 0);
         }

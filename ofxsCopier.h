@@ -13,6 +13,8 @@
 #include "ofxsPixelProcessor.h"
 #include "ofxsMaskMix.h"
 
+namespace OFX {
+
 // Base class for the RGBA and the Alpha processor
 
 // template to do the RGBA processing
@@ -111,5 +113,7 @@ void copyPixels(const OfxRectI& renderWindow,
         std::memcpy(dstPixels, srcPixels, rowBytes);
     }
 }
+
+} // OFX
 
 #endif

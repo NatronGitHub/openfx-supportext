@@ -61,6 +61,7 @@
 #define __Misc__ofxsOGLTextRenderer__
 
 
+namespace OFX {
 
 namespace TextRenderer {
 
@@ -86,9 +87,8 @@ void bitmapString(const char *string,TextRenderer::Font font = FONT_HELVETICA_12
  **/
 void bitmapString(double x,double y,const char*string,TextRenderer::Font font = FONT_HELVETICA_12);
     
-}
-
-
+} // TextRendered
+} // OFX
 
 
 #endif /* defined(__Misc__ofxsOGLTextRenderer__) */

@@ -49,6 +49,7 @@
 #define kMaskInvertParamLabel "Invert Mask"
 #define kMaskInvertParamHint "When checked, the effect is fully applied where the mask is 0"
 
+namespace OFX {
 
 inline
 void
@@ -163,5 +164,6 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
     return ofxsMaskMixPix<PIX,nComponents,maxValue,masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
+} // OFX
 
 #endif
