@@ -42,7 +42,22 @@ public:
             if (!masked) {
                 const PIX *srcPix = (const PIX *) getSrcPixelAddress(procWindow.x1, y);
                 assert(srcPix);
-                std::memcpy(dstPix, srcPix, rowBytes);
+                if (_mix == 1) {
+                    std::memcpy(dstPix, srcPix, rowBytes);
+                } else {
+                    for (int x = procWindow.x1; x < procWindow.x2; x++) {
+                        const PIX *origPix = (const PIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(x, y);
+                        if (srcPix) {
+                            std::copy(srcPix, srcPix + nComponents, tmpPix);
+                        } else {
+                            std::fill(tmpPix, tmpPix + nComponents, 0.); // no src pixel here, be black and transparent
+                        }
+                        ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                        // increment the dst pixel
+                        dstPix += nComponents;
+                    }
+                }
             } else {
                 for (int x = procWindow.x1; x < procWindow.x2; x++) {
                     const PIX *origPix = (const PIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
@@ -52,7 +67,7 @@ public:
                     } else {
                         std::fill(tmpPix, tmpPix + nComponents, 0.); // no src pixel here, be black and transparent
                     }
-                    ofxsMaskMixPix<PIX, nComponents, maxValue, true>(tmpPix, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                    ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                     // increment the dst pixel
                     dstPix += nComponents;
                 }
