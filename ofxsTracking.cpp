@@ -365,87 +365,65 @@ bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if (l == 0) {
             // translate (1,-1) pixels
             glTranslated(pscale.x, -pscale.y, 0);
-            glColor3f(0., 0., 0.);
-        } else {
-            glColor3f(0.8, 0.8, 0.8);
         }
-        glBegin(GL_LINE_STRIP);
+        glColor3f(0.8*l, 0.8*l, 0.8*l);
+        glBegin(GL_LINE_LOOP);
         glVertex2d(xi1, yi1);
         glVertex2d(xi1, yi2);
         glVertex2d(xi2, yi2);
         glVertex2d(xi2, yi1);
-        glVertex2d(xi1, yi1);
         glEnd();
 
-        glBegin(GL_LINE_STRIP);
+        glBegin(GL_LINE_LOOP);
         glVertex2d(xo1, yo1);
         glVertex2d(xo1, yo2);
         glVertex2d(xo2, yo2);
         glVertex2d(xo2, yo1);
-        glVertex2d(xo1, yo1);
         glEnd();
 
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
 
         ///draw center
-        if (l == 1) {
-            if (_ds == eHoveringCenter || _ms == eDraggingCenter) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringCenter || _ms == eDraggingCenter) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yc);
         //////DRAWING INNER POINTS
         if (_ds == eHoveringInnerBtmLeft || _ms == eDraggingInnerBtmLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yi1);
         }
         if (_ds == eHoveringInnerBtmMid || _ms == eDraggingInnerBtmMid) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yi1);
         }
         if (_ds == eHoveringInnerBtmRight || _ms == eDraggingInnerBtmRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yi1);
         }
         if (_ds == eHoveringInnerMidLeft || _ms == eDraggingInnerMidLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yc);
         }
         if (_ds == eHoveringInnerMidRight || _ms == eDraggingInnerMidRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yc);
         }
         if (_ds == eHoveringInnerTopLeft || _ms == eDraggingInnerTopLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yi2);
         }
 
         if (_ds == eHoveringInnerTopMid || _ms == eDraggingInnerTopMid) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yi2);
         }
 
         if (_ds == eHoveringInnerTopRight || _ms == eDraggingInnerTopRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yi2);
         }
 
@@ -455,52 +433,36 @@ bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         //////DRAWING OUTTER POINTS
 
         if (_ds == eHoveringOuterBtmLeft || _ms == eDraggingOuterBtmLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yo1);
         }
         if (_ds == eHoveringOuterBtmMid || _ms == eDraggingOuterBtmMid) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yo1);
         }
         if (_ds == eHoveringOuterBtmRight || _ms == eDraggingOuterBtmRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yo1);
         }
         if (_ds == eHoveringOuterMidLeft || _ms == eDraggingOuterMidLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yc);
         }
         if (_ds == eHoveringOuterMidRight || _ms == eDraggingOuterMidRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yc);
         }
 
         if (_ds == eHoveringOuterTopLeft || _ms == eDraggingOuterTopLeft) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yo2);
         }
         if (_ds == eHoveringOuterTopMid || _ms == eDraggingOuterTopMid) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yo2);
         }
         if (_ds == eHoveringOuterTopRight || _ms == eDraggingOuterTopRight) {
-            if (l == 1) {
-                glColor3f(0., 1., 0.);
-            }
+            glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yo2);
         }
 
@@ -512,97 +474,79 @@ bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         ///now show small lines at handle positions
         glBegin(GL_LINES);
 
-        if (l == 1) {
-            if (_ds == eHoveringInnerMidLeft || _ms == eDraggingInnerMidLeft) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringInnerMidLeft || _ms == eDraggingInnerMidLeft) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xi1, yc);
         glVertex2d(xi1 - handleSizeX, yc);
 
-        if (l == 1) {
-            if (_ds == eHoveringInnerTopMid || _ms == eDraggingInnerTopMid) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringInnerTopMid || _ms == eDraggingInnerTopMid) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yi2);
         glVertex2d(xc, yi2 + handleSizeY);
 
-        if (l == 1) {
-            if (_ds == eHoveringInnerMidRight || _ms == eDraggingInnerMidRight) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringInnerMidRight || _ms == eDraggingInnerMidRight) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xi2, yc);
         glVertex2d(xi2 + handleSizeX, yc);
 
-        if (l == 1) {
-            if (_ds == eHoveringInnerBtmMid || _ms == eDraggingInnerBtmMid) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringInnerBtmMid || _ms == eDraggingInnerBtmMid) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yi1);
         glVertex2d(xc, yi1 - handleSizeY);
 
         //////DRAWING OUTTER HANDLES
 
-        if (l == 1) {
-            if (_ds == eHoveringOuterMidLeft || _ms == eDraggingOuterMidLeft) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringOuterMidLeft || _ms == eDraggingOuterMidLeft) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xo1, yc);
         glVertex2d(xo1 - handleSizeX, yc);
 
-        if (l == 1) {
-            if (_ds == eHoveringOuterTopMid || _ms == eDraggingOuterTopMid) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringOuterTopMid || _ms == eDraggingOuterTopMid) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yo2);
         glVertex2d(xc, yo2 + handleSizeY);
 
-        if (l == 1) {
-            if (_ds == eHoveringOuterMidRight || _ms == eDraggingOuterMidRight) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringOuterMidRight || _ms == eDraggingOuterMidRight) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xo2 + handleSizeX, yc);
         glVertex2d(xo2, yc);
 
-        if (l == 1) {
-            if (_ds == eHoveringOuterBtmMid || _ms == eDraggingOuterBtmMid) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringOuterBtmMid || _ms == eDraggingOuterBtmMid) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yo1);
         glVertex2d(xc, yo1 - handleSizeY);
         glEnd();
-        
-        
-        if (l == 1) {
-            glColor3f(0.8, 0.8, 0.8);
-        }
+
+
+        glColor3f(0.8*l, 0.8*l, 0.8*l);
         std::string name;
         _name->getValue(name);
         TextRenderer::bitmapString(xc, yc, name.c_str());
-        
+
         if (l == 0) {
             // translate (-1,1) pixels
             glTranslated(-pscale.x, pscale.y, 0);
@@ -610,7 +554,7 @@ bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     }
 
     glPopAttrib();
-    
+
     return true;
 }
 

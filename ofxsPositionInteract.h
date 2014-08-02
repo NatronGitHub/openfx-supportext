@@ -134,10 +134,8 @@ bool PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
             // Draw a shadow for the cross hair
             // shift by (1,1) pixel
             glTranslated(pscale.x, -pscale.y, 0);
-            glColor3f(0., 0., 0.);
-        } else {
-            glColor3f(col.r, col.g, col.b);
         }
+        glColor3f(col.r*l, col.g*l, col.b*l);
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);
         glEnd();

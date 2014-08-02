@@ -56,15 +56,13 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
     return std::fabs(p.x-x) <= tolerance*pscale.x &&  std::fabs(p.y-y) <= tolerance*pscale.y;
 }
 
-static void drawPoint(bool draw, double x, double y, RectangleInteract::DrawState id, RectangleInteract::DrawState ds, int foreground)
+static void drawPoint(bool draw, double x, double y, RectangleInteract::DrawState id, RectangleInteract::DrawState ds, int l)
 {
     if (draw) {
-        if (foreground == 1) {
-            if (ds == id) {
-                glColor3f(0., 1., 0.);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (ds == id) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(x, y);
     }
@@ -108,17 +106,14 @@ bool RectangleInteract::draw(const OFX::DrawArgs &args)
         if (l == 0) {
             // translate (1,-1) pixels
             glTranslated(pscale.x, -pscale.y, 0);
-            glColor3f(0., 0., 0.);
-        } else {
-            glColor3f(0.8, 0.8, 0.8);
         }
+        glColor3f(0.8*l, 0.8*l, 0.8*l);
 
-        glBegin(GL_LINE_STRIP);
+        glBegin(GL_LINE_LOOP);
         glVertex2d(x1, y1);
         glVertex2d(x1, y2);
         glVertex2d(x2, y2);
         glVertex2d(x2, y1);
-        glVertex2d(x1, y1);
         glEnd();
 
         glPointSize(POINT_SIZE);
@@ -137,14 +132,12 @@ bool RectangleInteract::draw(const OFX::DrawArgs &args)
 
         ///draw center cross hair
         glBegin(GL_LINES);
-        if (l == 1) {
-            if (_ds == eHoveringCenter) {
-                glColor3f(0., 1., 0.);
-            } else if (!allowCenterInteraction()) {
-                glColor3f(0.5, 0.5, 0.5);
-            } else {
-                glColor3f(0.8, 0.8, 0.8);
-            }
+        if (_ds == eHoveringCenter) {
+            glColor3f(0.*l, 1.*l, 0.*l);
+        } else if (!allowCenterInteraction()) {
+            glColor3f(0.5*l, 0.5*l, 0.5*l);
+        } else {
+            glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc - CROSS_SIZE*pscale.x, yc);
         glVertex2d(xc + CROSS_SIZE*pscale.x, yc);
