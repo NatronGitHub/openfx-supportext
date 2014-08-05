@@ -230,6 +230,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     center->setDoubleType(eDoubleTypeXYAbsolute);
     center->setDefaultCoordinateSystem(eCoordinatesNormalised);
     center->setDefault(0.5, 0.5);
+    center->setIncrement(1.);
     center->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*center);
     
@@ -240,6 +241,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     innerBtmLeft->setDoubleType(eDoubleTypeXY);
     innerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
     innerBtmLeft->setDefault(-15,-15);
+    innerBtmLeft->setIncrement(1.);
     //innerBtmLeft->setIsSecret(true);
     innerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*innerBtmLeft);
@@ -250,6 +252,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     innerTopRight->setDoubleType(eDoubleTypeXY);
     innerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
     innerTopRight->setDefault(15, 15);
+    innerTopRight->setIncrement(1.);
     //innerTopRight->setIsSecret(true);
     innerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*innerTopRight);
@@ -260,6 +263,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     outerBtmLeft->setDoubleType(eDoubleTypeXY);
     outerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
     outerBtmLeft->setDefault(-25,-25);
+    outerBtmLeft->setIncrement(1.);
     //outerBtmLeft->setIsSecret(true);
     outerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*outerBtmLeft);
@@ -270,6 +274,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     outerTopRight->setDoubleType(eDoubleTypeXY);
     outerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
     outerTopRight->setDefault(25, 25);
+    outerTopRight->setIncrement(1.);
     //outerTopRight->setIsSecret(true);
     outerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*outerTopRight);

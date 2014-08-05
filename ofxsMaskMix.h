@@ -62,6 +62,7 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
     mix->setHint(kMixParamHint);
     mix->setDefault(1.);
     mix->setRange(0.,1.);
+    mix->setIncrement(0.01);
     mix->setDisplayRange(0.,1.);
     page->addChild(*mix);
     OFX::BooleanParamDescriptor* maskInvert = desc.defineBooleanParam(kMaskInvertParamName);
