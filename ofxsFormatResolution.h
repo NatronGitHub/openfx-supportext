@@ -120,5 +120,3 @@ inline void getFormatResolution(const EParamFormat format, std::size_t *width, s
 
 #endif
 
-
-#endif
