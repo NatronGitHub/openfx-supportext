@@ -134,7 +134,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             maskPix = (const PIX *)maskImg->getPixelAddress(x, y);
             // figure the scale factor from that pixel
             if (maskPix == 0) {
-                maskScale = 0.;
+                maskScale = maskInvert ? 1. : 0.;
             } else {
                 maskScale = *maskPix/float(maxValue);
                 if (maskInvert) {
