@@ -51,6 +51,8 @@
 
 using namespace OFX;
 
+#define kSupportsRenderScale 0 // we need full-res images
+
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 : ImageEffect(handle)
 , dstClip_(0)
@@ -87,6 +89,10 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 
 bool GenericTrackerPlugin::isIdentity(const RenderArguments &args, Clip * &identityClip, double &identityTime)
 {
+    if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+
     identityClip = srcClip_;
     identityTime = args.time;
     return true;
@@ -95,7 +101,10 @@ bool GenericTrackerPlugin::isIdentity(const RenderArguments &args, Clip * &ident
 
 void GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName)
 {
-    
+    if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+
     if (paramName == kTrackBackwardParamName) {
         OFX::TrackArguments trackArgs;
         trackArgs.first = args.time;
@@ -167,12 +176,12 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
     // support tiles (anyway, the tracker always returns identity)
     desc.setSupportsTiles(true);
     
-    // in order to support multiresolution, render() must take into account the pixelaspectratio and the renderscale
+    // in order to support render scale, render() must take into account the pixelaspectratio and the renderscale
     // and scale the transform appropriately.
     // All other functions are usually in canonical coordinates.
     
-    ///We don't support multi-resolution
-    desc.setSupportsMultiResolution(false);
+    ///We support multi-resolution (which does not mean we support render scale)
+    desc.setSupportsMultiResolution(true);
     
 
 }
