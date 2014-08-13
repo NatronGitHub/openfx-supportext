@@ -39,6 +39,7 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxsTransform3x3Processor.h"
+#include "ofxsMacros.h"
 
 #define kTransform3x3InvertParamName "invert"
 #define kTransform3x3InvertParamLabel "Invert"
@@ -92,7 +93,7 @@ public:
     virtual ~Transform3x3Plugin();
 
     // a default implementation of isIdentity is provided, which may be overridden by the derived class
-    virtual bool isIdentity(double time) { return false; };
+    virtual bool isIdentity(double time) OVERRIDE { return false; };
 
     /** @brief recover a transform matrix from an effect */
     virtual bool getInverseTransformCanonical(double time, bool invert, OFX::Matrix3x3* invtransform) const = 0;
@@ -100,16 +101,16 @@ public:
 
 
     // override the rod call
-    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) /*OVERRIDE FINAL*/;
+    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
 
     // override the roi call
-    virtual void getRegionsOfInterest(const OFX::RegionsOfInterestArguments &args, OFX::RegionOfInterestSetter &rois) /*OVERRIDE FINAL*/;
+    virtual void getRegionsOfInterest(const OFX::RegionsOfInterestArguments &args, OFX::RegionOfInterestSetter &rois) OVERRIDE FINAL;
 
     /* Override the render */
-    virtual void render(const OFX::RenderArguments &args) /*OVERRIDE FINAL*/;
+    virtual void render(const OFX::RenderArguments &args) OVERRIDE FINAL;
 
     // override isIdentity
-    virtual bool isIdentity(const OFX::RenderArguments &args, OFX::Clip * &identityClip, double &identityTime) /*OVERRIDE FINAL*/;
+    virtual bool isIdentity(const OFX::RenderArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
 
 #ifdef OFX_EXTENSIONS_NUKE
     /** @brief recover a transform matrix from an effect */
@@ -117,10 +118,10 @@ public:
 #endif
 
     // override changedParam. note that the derived class MUST explicitely call this method after handling its own parameter changes
-    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName);
+    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
 
     // override purgeCaches.
-    virtual void purgeCaches();
+    virtual void purgeCaches() OVERRIDE FINAL;
 
     // this method must be called by the derived class when the transform was changed
     void changedTransform(const OFX::InstanceChangedArgs &args);
