@@ -1058,23 +1058,32 @@ bool TrackerRegionInteract::penUp(const OFX::PenArgs &args)
 bool TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
 {
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
-        _controlDown = true;
-        return !_altDown;
+        ++_controlDown;
     } else if (args.keySymbol == kOfxKey_Alt_L || args.keySymbol == kOfxKey_Alt_R) {
-        _altDown = true;
-        return false;
+        ++_altDown;
     }
+
     return false;
 }
 
 bool TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
 {
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
-        _controlDown = false;
-        return !_altDown;
+        if (_controlDown > 0) {
+            --_controlDown;
+        }
     } else if (args.keySymbol == kOfxKey_Alt_L || args.keySymbol == kOfxKey_Alt_R) {
-        _altDown = false;
-        return false;
+        if (_altDown > 0) {
+            --_altDown;
+        }
     }
     return false;
+}
+
+/** @brief Called when the interact is loses input focus */
+void TrackerRegionInteract::loseFocus(const FocusArgs &/*args*/)
+{
+    // reset the modifiers state
+    _controlDown = 0;
+    _altDown = 0;
 }

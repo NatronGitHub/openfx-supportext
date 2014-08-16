@@ -232,7 +232,7 @@ public:
     , _outerBtmLeftDragPos()
     , _outerTopRightDragPos()
     , _controlDown(false)
-    , _altDown(false)
+    , _altDown(0)
     {
         _center = effect->fetchDouble2DParam(kTrackCenterPointParamName);
         _innerBtmLeft = effect->fetchDouble2DParam(kTrackPatternBoxBtmLeftParamName);
@@ -255,7 +255,7 @@ public:
     virtual bool penUp(const OFX::PenArgs &args);
     virtual bool keyDown(const OFX::KeyArgs &args);
     virtual bool keyUp(const OFX::KeyArgs &args);
-    
+    virtual void loseFocus(const FocusArgs &args);
     
 private:
     bool isDraggingInnerPoint() const;
@@ -281,8 +281,8 @@ private:
     OfxPointD _outerBtmLeftDragPos;
     OfxPointD _outerTopRightDragPos;
     
-    bool _controlDown;
-    bool _altDown;
+    int _controlDown;
+    int _altDown;
     
 };
 
