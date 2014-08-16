@@ -255,7 +255,7 @@ public:
     virtual bool penUp(const OFX::PenArgs &args);
     virtual bool keyDown(const OFX::KeyArgs &args);
     virtual bool keyUp(const OFX::KeyArgs &args);
-    virtual void loseFocus(const FocusArgs &args);
+    virtual void loseFocus(const OFX::FocusArgs &args);
     
 private:
     bool isDraggingInnerPoint() const;
