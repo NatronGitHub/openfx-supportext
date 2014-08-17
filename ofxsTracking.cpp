@@ -87,7 +87,7 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     assert(_center && _innerTopRight && _innerBtmLeft && _outerTopRight && _outerBtmLeft && _backwardButton && _prevButton && _nextButton && _forwardButton && _instanceName);
 }
 
-bool GenericTrackerPlugin::isIdentity(const RenderArguments &args, Clip * &identityClip, double &identityTime)
+bool GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args, Clip * &identityClip, double &identityTime)
 {
     if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
