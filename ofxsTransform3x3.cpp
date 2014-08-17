@@ -890,7 +890,7 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
     }
 }
 
-bool Transform3x3Plugin::isIdentity(const RenderArguments &args, OFX::Clip * &identityClip, double &identityTime)
+bool Transform3x3Plugin::isIdentity(const IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime)
 {
     const double time = args.time;
 

@@ -93,7 +93,7 @@ public:
     virtual ~Transform3x3Plugin();
 
     // a default implementation of isIdentity is provided, which may be overridden by the derived class
-    virtual bool isIdentity(double time) OVERRIDE { return false; };
+    virtual bool isIdentity(double time) { return false; };
 
     /** @brief recover a transform matrix from an effect */
     virtual bool getInverseTransformCanonical(double time, bool invert, OFX::Matrix3x3* invtransform) const = 0;
@@ -110,7 +110,7 @@ public:
     virtual void render(const OFX::RenderArguments &args) OVERRIDE FINAL;
 
     // override isIdentity
-    virtual bool isIdentity(const OFX::RenderArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
+    virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
 
 #ifdef OFX_EXTENSIONS_NUKE
     /** @brief recover a transform matrix from an effect */
