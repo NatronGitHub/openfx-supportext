@@ -38,6 +38,7 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxNatron.h"
+#include "ofxsMacros.h"
 
 #define kTrackCenterPointParamName "center"
 #define kTrackCenterPointParamLabel "Center"
@@ -99,17 +100,17 @@ public:
     /** 
      * @brief Nothing to do since we're identity. The host should always render the image of the input.
      **/
-    virtual void render(const OFX::RenderArguments &/*args*/) /*OVERRIDE FINAL*/ {}
+    virtual void render(const OFX::RenderArguments &/*args*/) OVERRIDE FINAL {}
     
     /**
      * @brief Returns true always at the same time and for the source clip.
      **/
-    virtual bool isIdentity(const OFX::RenderArguments &args, OFX::Clip * &identityClip, double &identityTime) /*OVERRIDE FINAL*/;
+    virtual bool isIdentity(const OFX::RenderArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
     
     /**
      * @brief Handles the push buttons actions.
      **/
-    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName);
+    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE FINAL;
     
 
 protected:
