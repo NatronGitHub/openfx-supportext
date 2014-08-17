@@ -49,22 +49,22 @@
 #   define WARN(exp) ("WARNING: " exp)
 #endif
 
-// The following was grabbed from WTF/wtf/Compiler.h (where WTF was replaced by NATRON)
+// The following was grabbed from WTF/wtf/Compiler.h (where WTF was replaced by OFXS)
 
 /* COMPILER() - the compiler being used to build the project */
-#define COMPILER(NATRON_FEATURE) (defined NATRON_COMPILER_##NATRON_FEATURE && NATRON_COMPILER_##NATRON_FEATURE)
+#define COMPILER(OFXS_FEATURE) (defined OFXS_COMPILER_##OFXS_FEATURE && OFXS_COMPILER_##OFXS_FEATURE)
 
 /* COMPILER_SUPPORTS() - whether the compiler being used to build the project supports the given feature. */
-#define COMPILER_SUPPORTS(NATRON_COMPILER_FEATURE) (defined NATRON_COMPILER_SUPPORTS_##NATRON_COMPILER_FEATURE && NATRON_COMPILER_SUPPORTS_##NATRON_COMPILER_FEATURE)
+#define COMPILER_SUPPORTS(OFXS_COMPILER_FEATURE) (defined OFXS_COMPILER_SUPPORTS_##OFXS_COMPILER_FEATURE && OFXS_COMPILER_SUPPORTS_##OFXS_COMPILER_FEATURE)
 
 /* COMPILER_QUIRK() - whether the compiler being used to build the project requires a given quirk. */
-#define COMPILER_QUIRK(NATRON_COMPILER_QUIRK) (defined NATRON_COMPILER_QUIRK_##NATRON_COMPILER_QUIRK && NATRON_COMPILER_QUIRK_##NATRON_COMPILER_QUIRK)
+#define COMPILER_QUIRK(OFXS_COMPILER_QUIRK) (defined OFXS_COMPILER_QUIRK_##OFXS_COMPILER_QUIRK && OFXS_COMPILER_QUIRK_##OFXS_COMPILER_QUIRK)
 
 /* ==== COMPILER() - the compiler being used to build the project ==== */
 
 /* COMPILER(CLANG) - Clang */
 #if defined(__clang__)
-#define NATRON_COMPILER_CLANG 1
+#define OFXS_COMPILER_CLANG 1
 
 #ifndef __has_extension
 #define __has_extension __has_feature /* Compatibility with older versions of clang */
