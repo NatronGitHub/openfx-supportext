@@ -87,7 +87,8 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     assert(_center && _innerTopRight && _innerBtmLeft && _outerTopRight && _outerBtmLeft && _backwardButton && _prevButton && _nextButton && _forwardButton && _instanceName);
 }
 
-bool GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args, Clip * &identityClip, double &identityTime)
+bool
+GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args, Clip * &identityClip, double &identityTime)
 {
     if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
@@ -99,7 +100,9 @@ bool GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args, Clip * &i
 }
 
 
-void GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName)
+void
+GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
+                                   const std::string &paramName)
 {
     if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
@@ -143,6 +146,17 @@ void GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args, co
         }
     }
     
+}
+
+bool
+GenericTrackerPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args,
+                                            OfxRectD &rod)
+{
+    if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+
+    return false;
 }
 
 void
@@ -325,7 +339,8 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
 
 
 
-bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
+bool
+TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 {
     OfxPointD pscale;
     pscale.x = args.pixelScale.x / args.renderScale.x;
@@ -572,7 +587,8 @@ bool TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     return true;
 }
 
-bool TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
+bool
+TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 {
     OfxPointD pscale;
     pscale.x = args.pixelScale.x / args.renderScale.x;
@@ -886,7 +902,8 @@ bool TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     return didSomething;
 }
 
-bool TrackerRegionInteract::penDown(const OFX::PenArgs &args)
+bool
+TrackerRegionInteract::penDown(const OFX::PenArgs &args)
 {
     OfxPointD pscale;
     pscale.x = args.pixelScale.x / args.renderScale.x;
@@ -986,7 +1003,8 @@ bool TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     return didSomething;
 }
 
-bool TrackerRegionInteract::isDraggingInnerPoint() const
+bool
+TrackerRegionInteract::isDraggingInnerPoint() const
 {
     return _ms == eDraggingInnerTopLeft ||
             _ms == eDraggingInnerTopRight ||
@@ -998,7 +1016,8 @@ bool TrackerRegionInteract::isDraggingInnerPoint() const
             _ms == eDraggingInnerMidLeft;
 }
 
-bool TrackerRegionInteract::isDraggingOuterPoint() const
+bool
+TrackerRegionInteract::isDraggingOuterPoint() const
 {
     return _ms == eDraggingOuterTopLeft ||
     _ms == eDraggingOuterTopRight ||
@@ -1010,7 +1029,8 @@ bool TrackerRegionInteract::isDraggingOuterPoint() const
     _ms == eDraggingOuterMidLeft;
 }
 
-bool TrackerRegionInteract::penUp(const OFX::PenArgs &args)
+bool
+TrackerRegionInteract::penUp(const OFX::PenArgs &args)
 {
     if (_ms == eIdle) {
         return false;
@@ -1055,7 +1075,8 @@ bool TrackerRegionInteract::penUp(const OFX::PenArgs &args)
     return true;
 }
 
-bool TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
+bool
+TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
 {
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
         ++_controlDown;
@@ -1066,7 +1087,8 @@ bool TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
     return false;
 }
 
-bool TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
+bool
+TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
 {
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
         if (_controlDown > 0) {
@@ -1081,7 +1103,8 @@ bool TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
 }
 
 /** @brief Called when the interact is loses input focus */
-void TrackerRegionInteract::loseFocus(const FocusArgs &/*args*/)
+void
+TrackerRegionInteract::loseFocus(const FocusArgs &/*args*/)
 {
     // reset the modifiers state
     _controlDown = 0;
