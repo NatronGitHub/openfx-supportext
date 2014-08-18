@@ -388,7 +388,7 @@ bool RectangleInteract::penDown(const OFX::PenArgs &args)
     return didSomething;
 }
 
-bool RectangleInteract::penUp(const OFX::PenArgs &args)
+bool RectangleInteract::penUp(const OFX::PenArgs &/*args*/)
 {
     bool didSmthing = false;
     if (_ms != eIdle) {

@@ -150,7 +150,7 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 
 bool
 GenericTrackerPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args,
-                                            OfxRectD &rod)
+                                            OfxRectD &/*rod*/)
 {
     if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
@@ -201,7 +201,7 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
 }
 
 OFX::PageParamDescriptor*
-OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context)
+OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum /*context*/)
 {
     // Source clip only in the filter context
     // create the mandated source clip
@@ -910,9 +910,6 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     pscale.y = args.pixelScale.y / args.renderScale.y;
 
     bool didSomething = false;
-    OfxPointD delta;
-    delta.x = args.penPosition.x - _lastMousePos.x;
-    delta.y = args.penPosition.y - _lastMousePos.y;
 
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc;
     _innerBtmLeft->getValueAtTime( args.time, xi1, yi1);

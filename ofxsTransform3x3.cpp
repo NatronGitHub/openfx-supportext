@@ -982,7 +982,7 @@ Transform3x3Plugin::getInverseTransforms(double time,
     OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelaspectratio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 invtransformCanonical;
 
-    for (int i = 0; i < invtransformsize; ++i) {
+    for (size_t i = 0; i < invtransformsize; ++i) {
         double t = (i == 0) ? t_start : (t_start + i*(t_end-t_start)/(double)(invtransformsizealloc-1));
         bool success = getInverseTransformCanonical(t, invert, &invtransformCanonical); // virtual function
         if (success) {
