@@ -1052,6 +1052,8 @@ Transform3x3Plugin::changedTransform(const OFX::InstanceChangedArgs &args)
     if (valid && range.min <= args.time && args.time <= range.max) {
         _cache->purge();
     }
+#else
+    (void)args;
 #endif
 }
 
@@ -1143,7 +1145,7 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
     return page;
 }
 
-void OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked)
+void OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum /*context*/, OFX::PageParamDescriptor* page, bool masked)
 {
 
     BooleanParamDescriptor* invert = desc.defineBooleanParam(kTransform3x3InvertParamName);

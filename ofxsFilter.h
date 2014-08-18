@@ -259,17 +259,19 @@ ofxsFilterMitchell(double Ip, double Ic, double In, double Ia, double d, bool cl
 
 inline
 double
-ofxsFilterParzen(double Ip, double Ic, double In, double Ia, double d, bool clamp)
+ofxsFilterParzen(double Ip, double Ic, double In, double Ia, double d, bool /*clamp*/)
 {
     double I = (Ip +4*Ic +In + d*((-3*Ip +3*In ) + d*((3*Ip -6*Ic +3*In ) + d*(-Ip +3*Ic -3*In +Ia ))))/6;
+    // clamp is not necessary for Parzen
     return I;
 }
 
 inline
 double
-ofxsFilterNotch(double Ip, double Ic, double In, double Ia, double d, bool clamp)
+ofxsFilterNotch(double Ip, double Ic, double In, double Ia, double d, bool /*clamp*/)
 {
     double I = (Ip +2*Ic +In + d*((-2*Ip +2*In ) + d*((Ip -Ic -In +Ia ))))/4;
+    // clamp is not necessary for Notch
     return I;
 }
 
