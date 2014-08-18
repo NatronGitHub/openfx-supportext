@@ -149,6 +149,6 @@ void OFX::TextRenderer::bitmapString(double x, double y, const char*string, Text
 {
     glPushMatrix();
     glRasterPos2f(x, y);
-    bitmapString(string);
+    bitmapString(string, font);
     glPopMatrix();
 }
