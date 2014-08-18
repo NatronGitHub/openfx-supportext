@@ -105,7 +105,7 @@ void copyPixels(const OfxRectI& renderWindow,
                 const PIX *srcPixelData,
                 const OfxRectI& srcBounds,
                 OFX::PixelComponentEnum srcPixelComponents,
-                OFX::BitDepthEnum srcPixelDepth,
+                OFX::BitDepthEnum srcBitDepth,
                 int srcRowBytes,
                 PIX *dstPixelData,
                 const OfxRectI& dstBounds,
@@ -113,6 +113,12 @@ void copyPixels(const OfxRectI& renderWindow,
                 OFX::BitDepthEnum dstBitDepth,
                 int dstRowBytes)
 {
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    (void)srcPixelComponents;
+    (void)srcBitDepth;
+    (void)dstPixelComponents;
+    (void)dstBitDepth;
+
     int srcRowElements = srcRowBytes / sizeof(PIX);
     assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
     assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
