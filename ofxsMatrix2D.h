@@ -164,13 +164,13 @@ inline Matrix3x3 ofxsMatRotationAroundPoint(double rads, double pointX, double p
 inline Matrix3x3 ofxsMatTranslation(double translateX, double translateY);
 
 inline Matrix3x3 ofxsMatScale(double scaleX, double scaleY);
-static Matrix3x3 ofxsMatScale(double scale);
-static Matrix3x3 ofxsMatScaleAroundPoint(double scaleX, double scaleY, double pointX, double pointY);
+inline Matrix3x3 ofxsMatScale(double scale);
+inline Matrix3x3 ofxsMatScaleAroundPoint(double scaleX, double scaleY, double pointX, double pointY);
 
-static Matrix3x3 ofxsMatSkewXY(double skewX, double skewY, bool skewOrderYX);
+inline Matrix3x3 ofxsMatSkewXY(double skewX, double skewY, bool skewOrderYX);
 
 // matrix transform from destination to source, in canonical coordinates
-static Matrix3x3 ofxsMatInverseTransformCanonical(double translateX, double translateY, double scaleX, double scaleY, double skewX, double skewY, bool skewOrderYX, double rads, double centerX, double centerY);
+inline Matrix3x3 ofxsMatInverseTransformCanonical(double translateX, double translateY, double scaleX, double scaleY, double skewX, double skewY, bool skewOrderYX, double rads, double centerX, double centerY);
 
 // matrix transform from source to destination in canonical coordinates
 inline Matrix3x3 ofxsMatTransformCanonical(double translateX, double translateY, double scaleX, double scaleY, double skewX, double skewY, bool skewOrderYX, double rads, double centerX, double centerY);
