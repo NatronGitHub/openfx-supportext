@@ -153,7 +153,10 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
     }
 
     if (nComponents == 1) {
-        unpPix[0] = srcPix[0] / (double)maxValue;
+        unpPix[0] = 0.;
+        unpPix[1] = 0.;
+        unpPix[2] = 0.;
+        unpPix[3] = srcPix[0] / (double)maxValue;
 
         return;
     }
@@ -179,7 +182,7 @@ void
 ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
 {
     if (nComponents == 1) {
-        tmpPix[0] = unpPix[0] * maxValue;
+        tmpPix[0] = unpPix[3] * maxValue;
 
         return;
     }
