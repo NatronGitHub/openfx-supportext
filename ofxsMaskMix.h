@@ -48,7 +48,7 @@
 "Use if the input images are premultiplied."
 
 #define kParamPremultChannel "premultChannel"
-#define kParamPremultChannelLabel "Premult Channel"
+#define kParamPremultChannelLabel "By"
 #define kParamPremultChannelHint \
 "The channel to use for (un)premult."
 #define kParamPremultChannelR "R"
@@ -77,6 +77,7 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamPremult);
         param->setLabels(kParamPremultLabel, kParamPremultLabel, kParamPremultLabel);
         param->setHint(kParamPremultHint);
+        param->setLayoutHint(eLayoutHintNoNewLine);
         page->addChild(*param);
     }
     {
