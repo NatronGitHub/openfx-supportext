@@ -152,6 +152,12 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
         return;
     }
 
+    if (nComponents == 1) {
+        unpPix[0] = srcPix[0] / (double)maxValue;
+
+        return;
+    }
+
     if (!premult || (nComponents == 3) || (srcPix[3] <= 0.)) {
         unpPix[0] = srcPix[0] / (double)maxValue;
         unpPix[1] = srcPix[1] / (double)maxValue;
@@ -172,6 +178,12 @@ template <class PIX, int nComponents, int maxValue>
 void
 ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
 {
+    if (nComponents == 1) {
+        tmpPix[0] = unpPix[0] * maxValue;
+
+        return;
+    }
+
     if (!premult) {
         tmpPix[0] = unpPix[0] * maxValue;
         tmpPix[1] = unpPix[1] * maxValue;
