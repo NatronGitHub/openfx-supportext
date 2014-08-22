@@ -138,7 +138,7 @@ float ofxsClampIfInt(float v, int min, int max)
     return ofxsClamp(v, min, max);
 }
 
-// normalize and unpremultiply srcPix
+// normalize in [0,1] and unpremultiply srcPix
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultChannel*/)
@@ -153,9 +153,9 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
     }
 
     if (!premult || (nComponents == 3) || (srcPix[3] <= 0.)) {
-        unpPix[0] = srcPix[0] / (float)maxValue;
-        unpPix[1] = srcPix[1] / (float)maxValue;
-        unpPix[2] = srcPix[2] / (float)maxValue;
+        unpPix[0] = srcPix[0] / (double)maxValue;
+        unpPix[1] = srcPix[1] / (double)maxValue;
+        unpPix[2] = srcPix[2] / (double)maxValue;
         unpPix[3] = (nComponents == 4) ? srcPix[3] : 0.0;
 
         return;
@@ -164,32 +164,34 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
     unpPix[0] = srcPix[0] / srcPix[3];
     unpPix[1] = srcPix[1] / srcPix[3];
     unpPix[2] = srcPix[2] / srcPix[3];
-    unpPix[3] = srcPix[3] / (float)maxValue;
+    unpPix[3] = srcPix[3] / (double)maxValue;
 }
 
+// premultiply and denormalize in [0, maxValue]
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
 {
     if (!premult) {
-        tmpPix[0] = unpPix[0];
-        tmpPix[1] = unpPix[1];
-        tmpPix[2] = unpPix[2];
+        tmpPix[0] = unpPix[0] * maxValue;
+        tmpPix[1] = unpPix[1] * maxValue;
+        tmpPix[2] = unpPix[2] * maxValue;
         if (nComponents == 4) {
-            tmpPix[3] = unpPix[3];
+            tmpPix[3] = unpPix[3] * maxValue;
         }
 
         return;
     }
 
-    tmpPix[0] = unpPix[0] * unpPix[3];
-    tmpPix[1] = unpPix[1] * unpPix[3];
-    tmpPix[2] = unpPix[2] * unpPix[3];
+    tmpPix[0] = unpPix[0] * unpPix[3] * maxValue;
+    tmpPix[1] = unpPix[1] * unpPix[3] * maxValue;
+    tmpPix[2] = unpPix[2] * unpPix[3] * maxValue;
     if (nComponents == 4) {
-        tmpPix[3] = unpPix[3];
+        tmpPix[3] = unpPix[3] * maxValue;
     }
 }
 
+// tmpPix is not normalized, it is within [0,maxValue]
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
@@ -256,6 +258,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
     }
 }
 
+// unpPix is normalized between [0,1]
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
@@ -272,9 +275,13 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
 {
     float tmpPix[nComponents];
     ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
+    for (int c = 0; c < nComponents; ++c) {
+        tmpPix[c] *= maxValue;
+    }
     ofxsMaskMixPix<PIX, nComponents, maxValue, true>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
+// tmpPix is not normalized, it is within [0,maxValue]
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
