@@ -41,15 +41,58 @@
 
 #include <ofxsImageEffect.h>
 
-//#define kMaskParamName "Mask"
-#define kMixParamName "mix"
-#define kMixParamLabel "Mix"
-#define kMixParamHint "Mix factor between the original and the transformed image"
-#define kMaskInvertParamName "maskInvert"
-#define kMaskInvertParamLabel "Invert Mask"
-#define kMaskInvertParamHint "When checked, the effect is fully applied where the mask is 0"
+#define kParamPremult "premult"
+#define kParamPremultLabel "(Un)premult"
+#define kParamPremultHint \
+"Divide the image by the alpha channel before processing, and re-multiply it afterwards. " \
+"Use if the input images are premultiplied."
+
+#define kParamPremultChannel "premultChannel"
+#define kParamPremultChannelLabel "Premult Channel"
+#define kParamPremultChannelHint \
+"The channel to use for (un)premult."
+#define kParamPremultChannelR "R"
+#define kParamPremultChannelRHint "R channel from input"
+#define kParamPremultChannelG "G"
+#define kParamPremultChannelGHint "G channel from input"
+#define kParamPremultChannelB "B"
+#define kParamPremultChannelBHint "B channel from input"
+#define kParamPremultChannelA "A"
+#define kParamPremultChannelAHint "A channel from input"
+
+#define kParamMix "mix"
+#define kParamMixLabel "Mix"
+#define kParamMixHint "Mix factor between the original and the transformed image"
+#define kParamMaskInvert "maskInvert"
+#define kParamMaskInvertLabel "Invert Mask"
+#define kParamMaskInvertHint "When checked, the effect is fully applied where the mask is 0"
 
 namespace OFX {
+
+inline
+void
+ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+{
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamPremult);
+        param->setLabels(kParamPremultLabel, kParamPremultLabel, kParamPremultLabel);
+        param->setHint(kParamPremultHint);
+        page->addChild(*param);
+    }
+    {
+        // not yet implemented, for future use (whenever deep compositing is supported)
+        OFX::ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamPremultChannel);
+        param->setLabels(kParamPremultChannelLabel, kParamPremultChannelLabel, kParamPremultChannelLabel);
+        param->setHint(kParamPremultChannelHint);
+        param->appendOption(kParamPremultChannelR, kParamPremultChannelRHint);
+        param->appendOption(kParamPremultChannelG, kParamPremultChannelGHint);
+        param->appendOption(kParamPremultChannelB, kParamPremultChannelBHint);
+        param->appendOption(kParamPremultChannelA, kParamPremultChannelAHint);
+        param->setDefault(3); // alpha
+        param->setIsSecret(true); // not yet implemented
+        page->addChild(*param);
+    }
+}
 
 inline
 void
@@ -57,18 +100,22 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
 {
     // GENERIC (MASKED)
     //
-    OFX::DoubleParamDescriptor* mix = desc.defineDoubleParam(kMixParamName);
-    mix->setLabels(kMixParamLabel, kMixParamLabel, kMixParamLabel);
-    mix->setHint(kMixParamHint);
-    mix->setDefault(1.);
-    mix->setRange(0.,1.);
-    mix->setIncrement(0.01);
-    mix->setDisplayRange(0.,1.);
-    page->addChild(*mix);
-    OFX::BooleanParamDescriptor* maskInvert = desc.defineBooleanParam(kMaskInvertParamName);
-    maskInvert->setLabels(kMaskInvertParamLabel, kMaskInvertParamLabel, kMaskInvertParamLabel);
-    maskInvert->setHint(kMaskInvertParamHint);
-    page->addChild(*maskInvert);
+    {
+        OFX::DoubleParamDescriptor* param = desc.defineDoubleParam(kParamMix);
+        param->setLabels(kParamMixLabel, kParamMixLabel, kParamMixLabel);
+        param->setHint(kParamMixHint);
+        param->setDefault(1.);
+        param->setRange(0.,1.);
+        param->setIncrement(0.01);
+        param->setDisplayRange(0.,1.);
+        page->addChild(*param);
+    }
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
+        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
+        param->setHint(kParamMaskInvertHint);
+        page->addChild(*param);
+    }
 }
 
 template <class T>
@@ -90,6 +137,57 @@ float ofxsClampIfInt(float v, int min, int max)
     return ofxsClamp(v, min, max);
 }
 
+// normalize and unpremultiply srcPix
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultChannel*/)
+{
+    if (!srcPix) {
+        // no src pixel here, be black and transparent
+        for (int c = 0; c < 4; ++c) {
+            unpPix[c] = 0.;
+        }
+
+        return;
+    }
+
+    if (!premult || (nComponents == 3) || (srcPix[3] <= 0.)) {
+        unpPix[0] = srcPix[0] / (float)maxValue;
+        unpPix[1] = srcPix[1] / (float)maxValue;
+        unpPix[2] = srcPix[2] / (float)maxValue;
+        unpPix[3] = (nComponents == 4) ? srcPix[3] : 0.0;
+
+        return;
+    }
+
+    unpPix[0] = srcPix[0] / srcPix[3];
+    unpPix[1] = srcPix[1] / srcPix[3];
+    unpPix[2] = srcPix[2] / srcPix[3];
+    unpPix[3] = srcPix[3] / (float)maxValue;
+}
+
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
+{
+    if (!premult) {
+        tmpPix[0] = unpPix[0];
+        tmpPix[1] = unpPix[1];
+        tmpPix[2] = unpPix[2];
+        if (nComponents == 4) {
+            tmpPix[3] = unpPix[3];
+        }
+
+        return;
+    }
+
+    tmpPix[0] = unpPix[0] * unpPix[3];
+    tmpPix[1] = unpPix[1] * unpPix[3];
+    tmpPix[2] = unpPix[2] * unpPix[3];
+    if (nComponents == 4) {
+        tmpPix[3] = unpPix[3];
+    }
+}
 
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
@@ -155,6 +253,25 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             }
         }
     }
+}
+
+template <class PIX, int nComponents, int maxValue, bool masked>
+void
+ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
+                      bool premult,
+                      int premultChannel,
+                      int x, //!< coordinates for the pixel to be computed (PIXEL coordinates)
+                      int y,
+                      const PIX *srcPix, //!< the background image (the output is srcImg where maskImg=0, else it is tmpPix)
+                      bool domask, //!< apply the mask?
+                      const OFX::Image *maskImg, //!< the mask image (ignored if masked=false or domask=false)
+                      float mix, //!< mix factor between the output and bkImg
+                      bool maskInvert, //<! invert mask behavior
+                      PIX *dstPix) //!< destination pixel
+{
+    float tmpPix[nComponents];
+    ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
+    ofxsMaskMixPix<PIX, nComponents, maxValue, true>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
 template <class PIX, int nComponents, int maxValue, bool masked>

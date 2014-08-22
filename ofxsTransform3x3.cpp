@@ -301,8 +301,8 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle, bool masked)
     _shutteroffset = fetchChoiceParam(kTransform3x3ShutterOffsetParamName);
     _shuttercustomoffset = fetchDoubleParam(kTransform3x3ShutterCustomOffsetParamName);
     if (masked) {
-        _mix = fetchDoubleParam(kMixParamName);
-        _maskInvert = fetchBooleanParam(kMaskInvertParamName);
+        _mix = fetchDoubleParam(kParamMix);
+        _maskInvert = fetchBooleanParam(kParamMaskInvert);
     }
 }
 
