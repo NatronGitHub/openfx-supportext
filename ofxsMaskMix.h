@@ -165,11 +165,12 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
         unpPix[0] = srcPix[0] / (double)maxValue;
         unpPix[1] = srcPix[1] / (double)maxValue;
         unpPix[2] = srcPix[2] / (double)maxValue;
-        unpPix[3] = (nComponents == 4) ? srcPix[3] : 0.0;
+        unpPix[3] = (nComponents == 4) ? (srcPix[3] / (double)maxValue) : 0.0;
 
         return;
     }
 
+    assert(nComponents == 4);
     unpPix[0] = srcPix[0] / srcPix[3];
     unpPix[1] = srcPix[1] / srcPix[3];
     unpPix[2] = srcPix[2] / srcPix[3];
