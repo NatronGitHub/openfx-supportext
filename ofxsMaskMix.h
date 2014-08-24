@@ -39,6 +39,8 @@
 #ifndef Misc_ofxsMaskMix_h
 #define Misc_ofxsMaskMix_h
 
+#include <limits>
+
 #include <ofxsImageEffect.h>
 
 #define kParamPremult "premult"
