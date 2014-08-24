@@ -191,6 +191,8 @@ namespace OFX {
         int _srcRowBytes;
         const OFX::Image *_origImg;
         const OFX::Image *_maskImg;
+        bool _premult;
+        int _premultChannel;
         bool   _doMasking;
         double _mix;
         bool _maskInvert;
@@ -206,6 +208,8 @@ namespace OFX {
         , _srcPixelBytes(0)
         , _srcRowBytes(0)
         , _maskImg(0)
+        , _premult(false)
+        , _premultChannel(3)
         , _doMasking(false)
         , _mix(1.)
         , _maskInvert(false)
@@ -252,10 +256,14 @@ namespace OFX {
             _doMasking = v;
         }
 
-        void setMaskMix(double mix,
-                        bool maskInvert)
+        void setPremultMaskMix(bool premult,
+                               int premultChannel,
+                               double mix,
+                               bool maskInvert)
         {
-             _mix = mix;
+            _premult = premult;
+            _premultChannel = premultChannel;
+            _mix = mix;
             _maskInvert = maskInvert;
         }
 
