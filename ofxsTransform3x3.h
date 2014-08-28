@@ -150,7 +150,7 @@ private:
                                 OFX::Matrix3x3* invtransform,
                                 size_t invtransformsizealloc) const;
 
-    void transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset, OfxRectD *rectTo);
+    void transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset,const bool isIdentity, OfxRectD *rectTo);
     
 private:
     class CacheID;

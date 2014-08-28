@@ -46,7 +46,7 @@ using namespace OFX;
 // nor on dst->getUniqueIdentifier (which is "ffffffffffffffff" on Nuke)
 // DON'T UNCOMMENT //#define USE_CACHE
 
-#define kTransform3x3MotionBlurCount 1000 // number of transforms used in the motion 
+#define kTransform3x3MotionBlurCount 1000 // number of transforms used in the motion
 
 static void
 shutterRange(double time, double shutter, int shutteroffset, double shuttercustomoffset, OfxRangeD* range)
@@ -114,7 +114,7 @@ public:
     {
     }
 
-    
+
     bool operator == (const CacheID &b) const
     {
         return (_time == b._time &&
@@ -521,7 +521,7 @@ ofxsTransformRegionFromRoD(const OfxRectD &srcRoD, const OFX::Matrix3x3 &transfo
 }
 
 void
-Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset, OfxRectD *rectTo)
+Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset, const bool isIdentity, OfxRectD *rectTo)
 {
     // Algorithm:
     // - Compute positions of the four corners at start and end of shutter, and every multiple of 0.25 within this range.
@@ -534,7 +534,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom, double time, bool 
         shutterRange(time, shutter, shutteroffset_i, shuttercustomoffset, &range);
     } else {
         ///if is identity return the input rod instead of transforming
-        if (isIdentity(time)) {
+        if (isIdentity) {
             *rectTo = rectFrom;
             return;
         }
@@ -658,13 +658,19 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     double shuttercustomoffset;
     _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
+    bool identity = isIdentity(args.time);
+
     // set rod from srcRoD
-    transformRegion(srcRoD, time, invert, motionblur, shutter, shutteroffset_i, shuttercustomoffset, &rod);
+    transformRegion(srcRoD, time, invert, motionblur, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
 
-    bool blackOutside;
-    _blackOutside->getValueAtTime(time, blackOutside);
+    // If identity do not expand for black outside, otherwise we would never be able to have identity.
+    // We want the RoD to be the same as the src RoD when we are identity.
+    if (!identity) {
+        bool blackOutside;
+        _blackOutside->getValueAtTime(time, blackOutside);
 
-    ofxsFilterExpandRoD(this, dstClip_->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
+        ofxsFilterExpandRoD(this, dstClip_->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
+    }
 
     if (doMasking && mix != 1.) {
         // for masking or mixing, we also need the source image.
@@ -714,7 +720,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
     // set srcRoI from roi
-    transformRegion(roi, time, invert, motionblur, shutter, shutteroffset_i, shuttercustomoffset, &srcRoI);
+    transformRegion(roi, time, invert, motionblur, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
     int filter;
     _filter->getValueAtTime(time, filter);
@@ -920,7 +926,7 @@ bool Transform3x3Plugin::isIdentity(const IsIdentityArguments &args, OFX::Clip *
             return true;
         }
     }
-    
+
     return false;
 }
 
