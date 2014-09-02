@@ -482,6 +482,8 @@ ofxsFilterExpandRoD(OFX::ImageEffect* effect, double pixelAspectRatio, const Ofx
 
     if (!blackOutside) {
         // if it's not black outside, the RoD should contain the project (we can't rely on the host to fill it).
+        // [FD] 2014/09/01: disabled this. The transformed object may have a size which is very different from the project size
+        /*
         OfxPointD size = effect->getProjectSize();
         OfxPointD offset = effect->getProjectOffset();
 
@@ -489,10 +491,11 @@ ofxsFilterExpandRoD(OFX::ImageEffect* effect, double pixelAspectRatio, const Ofx
         rod->x2 = std::max(rod->x2, offset.x + size.x);
         rod->y1 = std::min(rod->y1, offset.y);
         rod->y2 = std::max(rod->y2, offset.y + size.y);
+        */
     } else {
         // expand the RoD to get at least one black pixel
         double pixelSizeX = pixelAspectRatio / renderScale.x;
-        double pixelSizeY = 1. / renderScale.x;
+        double pixelSizeY = 1. / renderScale.y;
         if (rod->x1 > kOfxFlagInfiniteMin) {
             rod->x1 = rod->x1 - pixelSizeX;
         }
@@ -506,6 +509,24 @@ ofxsFilterExpandRoD(OFX::ImageEffect* effect, double pixelAspectRatio, const Ofx
             rod->y2 = rod->y2 + pixelSizeY;
         }
     }
+#if 0
+    // The following code may be needed for hosts which do not
+    // round correctly the RoD/RoI
+    // This should correspond to pixel boundaries at the given renderScale,
+    // which is why we have to round things up/down.
+    if (rod->x1 > kOfxFlagInfiniteMin) {
+        rod->x1 = (std::floor(rod->x1/pixelSizeX)) * pixelSizeX;
+    }
+    if (rod->x2 < kOfxFlagInfiniteMax) {
+        rod->x2 = (std::ceil(rod->x2/pixelSizeX))  * pixelSizeX;
+    }
+    if (rod->y1 > kOfxFlagInfiniteMin) {
+        rod->y1 = (std::floor(rod->y1/pixelSizeY)) * pixelSizeY;
+    }
+    if (rod->y2 < kOfxFlagInfiniteMax) {
+        rod->y2 = (std::ceil(rod->y2/pixelSizeY))  * pixelSizeY;
+    }
+#endif
     assert(rod->x1 <= rod->x2 && rod->y1 <= rod->y2);
 }
 
@@ -516,7 +537,7 @@ ofxsFilterExpandRoI(const OfxRectD &roi, double pixelAspectRatio, const OfxPoint
     // the host should compute the right image region from it (by rounding it up/down).
 
     double pixelSizeX = pixelAspectRatio / renderScale.x;
-    double pixelSizeY = 1. / renderScale.x;
+    double pixelSizeY = 1. / renderScale.y;
     switch (filter) {
         case eFilterImpulse:
             // nearest neighbor, the exact region is OK
@@ -566,6 +587,24 @@ ofxsFilterExpandRoI(const OfxRectD &roi, double pixelAspectRatio, const OfxPoint
         srcRoI->y1 = std::min(srcRoI->y1, roi.y1);
         srcRoI->y2 = std::max(srcRoI->y2, roi.y2);
     }
+#if 0
+    // The following code may be needed for hosts which do not
+    // round correctly the RoD/RoI
+    // This should correspond to pixel boundaries at the given renderScale,
+    // which is why we have to round things up/down.
+    if (srcRoI->x1 > kOfxFlagInfiniteMin) {
+        srcRoI->x1 = std::floor(srcRoI->x1/pixelSizeX) * pixelSizeX;
+    }
+    if (srcRoI->x2 < kOfxFlagInfiniteMax) {
+        srcRoI->x2 = std::ceil(srcRoI->x2/pixelSizeX)  * pixelSizeX;
+    }
+    if (srcRoI->y1 > kOfxFlagInfiniteMin) {
+        srcRoI->y1 = std::floor(srcRoI->y1/pixelSizeY) * pixelSizeY;
+    }
+    if (srcRoI->y2 < kOfxFlagInfiniteMax) {
+        srcRoI->y2 = std::ceil(srcRoI->y2/pixelSizeY)  * pixelSizeY;
+    }
+#endif
     assert(srcRoI->x1 < srcRoI->x2 && srcRoI->y1 < srcRoI->y2);
 }
 
