@@ -74,15 +74,15 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     assert(srcClip_->getPixelComponents() == ePixelComponentAlpha || srcClip_->getPixelComponents() == ePixelComponentRGB || srcClip_->getPixelComponents() == ePixelComponentRGBA);
 
     
-    _center = fetchDouble2DParam(kTrackCenterPointParamName);
-    _innerBtmLeft = fetchDouble2DParam(kTrackPatternBoxBtmLeftParamName);
-    _innerTopRight = fetchDouble2DParam(kTrackPatternBoxTopRightParamName);
-    _outerBtmLeft = fetchDouble2DParam(kTrackSearchBoxBtmLeftParamName);
-    _outerTopRight = fetchDouble2DParam(kTrackSearchBoxTopRightParamName);
-    _backwardButton = fetchPushButtonParam(kTrackBackwardParamName);
-    _prevButton = fetchPushButtonParam(kTrackPreviousParamName);
-    _nextButton = fetchPushButtonParam(kTrackNextParamName);
-    _forwardButton = fetchPushButtonParam(kTrackForwardParamName);
+    _center = fetchDouble2DParam(kParamTrackingCenterPoint);
+    _innerBtmLeft = fetchDouble2DParam(kParamTrackingPatternBoxBtmLeft);
+    _innerTopRight = fetchDouble2DParam(kParamTrackingPatternBoxTopRight);
+    _outerBtmLeft = fetchDouble2DParam(kParamTrackingSearchBoxBtmLeft);
+    _outerTopRight = fetchDouble2DParam(kParamTrackingSearchBoxTopRight);
+    _backwardButton = fetchPushButtonParam(kParamTrackingBackward);
+    _prevButton = fetchPushButtonParam(kParamTrackingPrevious);
+    _nextButton = fetchPushButtonParam(kParamTrackingNext);
+    _forwardButton = fetchPushButtonParam(kParamTrackingForward);
     _instanceName = fetchStringParam(kOfxParamStringSublabelName);
     assert(_center && _innerTopRight && _innerBtmLeft && _outerTopRight && _outerBtmLeft && _backwardButton && _prevButton && _nextButton && _forwardButton && _instanceName);
 }
@@ -108,7 +108,7 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
 
-    if (paramName == kTrackBackwardParamName) {
+    if (paramName == kParamTrackingBackward) {
         OFX::TrackArguments trackArgs;
         trackArgs.first = args.time;
         double first,last;
@@ -119,21 +119,21 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
             trackArgs.reason = args.reason;
             trackRange(trackArgs);
         }
-    } else if (paramName == kTrackPreviousParamName) {
+    } else if (paramName == kParamTrackingPrevious) {
         OFX::TrackArguments trackArgs;
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = false;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kTrackNextParamName) {
+    } else if (paramName == kParamTrackingNext) {
         OFX::TrackArguments trackArgs;
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = true;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kTrackForwardParamName) {
+    } else if (paramName == kParamTrackingForward) {
         OFX::TrackArguments trackArgs;
         trackArgs.first = args.time;
         double first,last;
@@ -236,10 +236,10 @@ void
 OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page)
 {
     ///Declare the name first so that in Natron it appears as the first column in the multi instance
-    OFX::StringParamDescriptor* name = desc.defineStringParam(kTrackLabelParamName);
-    name->setLabels(kTrackLabelParamLabel, kTrackLabelParamLabel, kTrackLabelParamLabel);
-    name->setHint(kTrackLabelParamHint);
-    name->setDefault(kTrackLabelParamDefault);
+    OFX::StringParamDescriptor* name = desc.defineStringParam(kParamTrackingLabel);
+    name->setLabels(kParamTrackingLabelLabel, kParamTrackingLabelLabel, kParamTrackingLabelLabel);
+    name->setHint(kParamTrackingLabelHint);
+    name->setDefault(kParamTrackingLabelDefault);
     ////name->setIsSecret(false); // it has to be user-editable
     ////name->setEnabled(true); // it has to be user-editable
     ////name->setIsPersistant(true); // it has to be saved with the instance parameters
@@ -247,9 +247,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     page->addChild(*name);
 
     
-    OFX::Double2DParamDescriptor* center = desc.defineDouble2DParam(kTrackCenterPointParamName);
-    center->setLabels(kTrackCenterPointParamLabel, kTrackCenterPointParamLabel, kTrackCenterPointParamLabel);
-    center->setHint(kTrackCenterPointParamHint);
+    OFX::Double2DParamDescriptor* center = desc.defineDouble2DParam(kParamTrackingCenterPoint);
+    center->setLabels(kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel);
+    center->setHint(kParamTrackingCenterPointHint);
     center->setDoubleType(eDoubleTypeXYAbsolute);
     center->setDefaultCoordinateSystem(eCoordinatesNormalised);
     center->setDefault(0.5, 0.5);
@@ -258,9 +258,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     page->addChild(*center);
     
     
-    OFX::Double2DParamDescriptor* innerBtmLeft = desc.defineDouble2DParam(kTrackPatternBoxBtmLeftParamName);
-    innerBtmLeft->setLabels(kTrackPatternBoxBtmLeftParamLabel, kTrackPatternBoxBtmLeftParamLabel, kTrackPatternBoxBtmLeftParamLabel);
-    innerBtmLeft->setHint(kTrackPatternBoxBtmLeftParamHint);
+    OFX::Double2DParamDescriptor* innerBtmLeft = desc.defineDouble2DParam(kParamTrackingPatternBoxBtmLeft);
+    innerBtmLeft->setLabels(kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel);
+    innerBtmLeft->setHint(kParamTrackingPatternBoxBtmLeftHint);
     innerBtmLeft->setDoubleType(eDoubleTypeXY);
     innerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
     innerBtmLeft->setDefault(-15,-15);
@@ -269,9 +269,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     innerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*innerBtmLeft);
     
-    OFX::Double2DParamDescriptor* innerTopRight = desc.defineDouble2DParam(kTrackPatternBoxTopRightParamName);
-    innerTopRight->setLabels(kTrackPatternBoxTopRightParamLabel, kTrackPatternBoxTopRightParamLabel, kTrackPatternBoxTopRightParamLabel);
-    innerTopRight->setHint(kTrackPatternBoxTopRightParamHint);
+    OFX::Double2DParamDescriptor* innerTopRight = desc.defineDouble2DParam(kParamTrackingPatternBoxTopRight);
+    innerTopRight->setLabels(kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel);
+    innerTopRight->setHint(kParamTrackingPatternBoxTopRightHint);
     innerTopRight->setDoubleType(eDoubleTypeXY);
     innerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
     innerTopRight->setDefault(15, 15);
@@ -280,9 +280,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     innerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*innerTopRight);
     
-    OFX::Double2DParamDescriptor* outerBtmLeft = desc.defineDouble2DParam(kTrackSearchBoxBtmLeftParamName);
-    outerBtmLeft->setLabels(kTrackSearchBoxBtmLeftParamLabel, kTrackSearchBoxBtmLeftParamLabel, kTrackSearchBoxBtmLeftParamLabel);
-    outerBtmLeft->setHint(kTrackSearchBoxBtmLeftParamHint);
+    OFX::Double2DParamDescriptor* outerBtmLeft = desc.defineDouble2DParam(kParamTrackingSearchBoxBtmLeft);
+    outerBtmLeft->setLabels(kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel);
+    outerBtmLeft->setHint(kParamTrackingSearchBoxBtmLeftHint);
     outerBtmLeft->setDoubleType(eDoubleTypeXY);
     outerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
     outerBtmLeft->setDefault(-25,-25);
@@ -291,9 +291,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     outerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*outerBtmLeft);
     
-    OFX::Double2DParamDescriptor* outerTopRight = desc.defineDouble2DParam(kTrackSearchBoxTopRightParamName);
-    outerTopRight->setLabels(kTrackSearchBoxTopRightParamLabel, kTrackSearchBoxTopRightParamLabel, kTrackSearchBoxTopRightParamLabel);
-    outerTopRight->setHint(kTrackSearchBoxBtmLeftParamHint);
+    OFX::Double2DParamDescriptor* outerTopRight = desc.defineDouble2DParam(kParamTrackingSearchBoxTopRight);
+    outerTopRight->setLabels(kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel);
+    outerTopRight->setHint(kParamTrackingSearchBoxBtmLeftHint);
     outerTopRight->setDoubleType(eDoubleTypeXY);
     outerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
     outerTopRight->setDefault(25, 25);
@@ -302,28 +302,28 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
     outerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
     page->addChild(*outerTopRight);
     
-    OFX::PushButtonParamDescriptor* backward = desc.definePushButtonParam(kTrackBackwardParamName);
-    backward->setLabels(kTrackBackwardParamLabel, kTrackBackwardParamLabel,kTrackBackwardParamLabel);
-    backward->setHint(kTrackBackwardParamHint);
+    OFX::PushButtonParamDescriptor* backward = desc.definePushButtonParam(kParamTrackingBackward);
+    backward->setLabels(kParamTrackingBackwardLabel, kParamTrackingBackwardLabel,kParamTrackingBackwardLabel);
+    backward->setHint(kParamTrackingBackwardHint);
     backward->setLayoutHint(eLayoutHintNoNewLine);
     page->addChild(*backward);
 
     
-    OFX::PushButtonParamDescriptor* prev = desc.definePushButtonParam(kTrackPreviousParamName);
-    prev->setLabels(kTrackPreviousParamLabel, kTrackPreviousParamLabel, kTrackPreviousParamLabel);
-    prev->setHint(kTrackPreviousParamHint);
+    OFX::PushButtonParamDescriptor* prev = desc.definePushButtonParam(kParamTrackingPrevious);
+    prev->setLabels(kParamTrackingPreviousLabel, kParamTrackingPreviousLabel, kParamTrackingPreviousLabel);
+    prev->setHint(kParamTrackingPreviousHint);
     prev->setLayoutHint(eLayoutHintNoNewLine);
     page->addChild(*prev);
     
-    OFX::PushButtonParamDescriptor* next = desc.definePushButtonParam(kTrackNextParamName);
-    next->setLabels(kTrackNextParamLabel, kTrackNextParamLabel, kTrackNextParamLabel);
-    next->setHint(kTrackNextParamHint);
+    OFX::PushButtonParamDescriptor* next = desc.definePushButtonParam(kParamTrackingNext);
+    next->setLabels(kParamTrackingNextLabel, kParamTrackingNextLabel, kParamTrackingNextLabel);
+    next->setHint(kParamTrackingNextHint);
     next->setLayoutHint(eLayoutHintNoNewLine);
     page->addChild(*next);
 
-    OFX::PushButtonParamDescriptor* forward = desc.definePushButtonParam(kTrackForwardParamName);
-    forward->setLabels(kTrackForwardParamLabel, kTrackForwardParamLabel, kTrackForwardParamLabel);
-    forward->setHint(kTrackForwardParamHint);
+    OFX::PushButtonParamDescriptor* forward = desc.definePushButtonParam(kParamTrackingForward);
+    forward->setLabels(kParamTrackingForwardLabel, kParamTrackingForwardLabel, kParamTrackingForwardLabel);
+    forward->setHint(kParamTrackingForwardHint);
     page->addChild(*forward);
 
 

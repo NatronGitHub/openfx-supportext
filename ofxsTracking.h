@@ -40,46 +40,46 @@
 #include "ofxNatron.h"
 #include "ofxsMacros.h"
 
-#define kTrackCenterPointParamName "center"
-#define kTrackCenterPointParamLabel "Center"
-#define kTrackCenterPointParamHint "The center point to track"
+#define kParamTrackingCenterPoint "center"
+#define kParamTrackingCenterPointLabel "Center"
+#define kParamTrackingCenterPointHint "The center point to track"
 
-#define kTrackPatternBoxBtmLeftParamName "patternBoxBtmLeft"
-#define kTrackPatternBoxBtmLeftParamLabel "Pattern bottom left"
-#define kTrackPatternBoxBtmLeftParamHint "The bottom left corner of the inner pattern box. The coordinates are relative to the center point."
+#define kParamTrackingPatternBoxBtmLeft "patternBoxBtmLeft"
+#define kParamTrackingPatternBoxBtmLeftLabel "Pattern bottom left"
+#define kParamTrackingPatternBoxBtmLeftHint "The bottom left corner of the inner pattern box. The coordinates are relative to the center point."
 
-#define kTrackPatternBoxTopRightParamName "patternBoxTopRight"
-#define kTrackPatternBoxTopRightParamLabel "Pattern top right"
-#define kTrackPatternBoxTopRightParamHint "The top right corner of the inner pattern box. The coordinates are relative to the center point."
+#define kParamTrackingPatternBoxTopRight "patternBoxTopRight"
+#define kParamTrackingPatternBoxTopRightLabel "Pattern top right"
+#define kParamTrackingPatternBoxTopRightHint "The top right corner of the inner pattern box. The coordinates are relative to the center point."
 
-#define kTrackSearchBoxBtmLeftParamName "searchBoxBtmLeft"
-#define kTrackSearchBoxBtmLeftParamLabel "Search area bottom left"
-#define kTrackSearchBoxBtmLeftParamHint "The bottom left corner of the search area. The coordinates are relative to the center point."
+#define kParamTrackingSearchBoxBtmLeft "searchBoxBtmLeft"
+#define kParamTrackingSearchBoxBtmLeftLabel "Search area bottom left"
+#define kParamTrackingSearchBoxBtmLeftHint "The bottom left corner of the search area. The coordinates are relative to the center point."
 
-#define kTrackSearchBoxTopRightParamName "searchBoxTopRight"
-#define kTrackSearchBoxTopRightParamLabel "Search area top right"
-#define kTrackSearchBoxTopRightParamHint "The top right corner of the search area. The coordinates are relative to the center point."
+#define kParamTrackingSearchBoxTopRight "searchBoxTopRight"
+#define kParamTrackingSearchBoxTopRightLabel "Search area top right"
+#define kParamTrackingSearchBoxTopRightHint "The top right corner of the search area. The coordinates are relative to the center point."
 
-#define kTrackPreviousParamName "trackPrevious"
-#define kTrackPreviousParamLabel "Track previous"
-#define kTrackPreviousParamHint "Track pattern to previous frame"
+#define kParamTrackingPrevious "trackPrevious"
+#define kParamTrackingPreviousLabel "Track previous"
+#define kParamTrackingPreviousHint "Track pattern to previous frame"
 
-#define kTrackNextParamName "trackNext"
-#define kTrackNextParamLabel "Track next"
-#define kTrackNextParamHint "Track pattern to next frame"
+#define kParamTrackingNext "trackNext"
+#define kParamTrackingNextLabel "Track next"
+#define kParamTrackingNextHint "Track pattern to next frame"
 
-#define kTrackBackwardParamName "trackBackward"
-#define kTrackBackwardParamLabel "Track backward"
-#define kTrackBackwardParamHint "Track pattern to the beginning of the sequence"
+#define kParamTrackingBackward "trackBackward"
+#define kParamTrackingBackwardLabel "Track backward"
+#define kParamTrackingBackwardHint "Track pattern to the beginning of the sequence"
 
-#define kTrackForwardParamName "trackForward"
-#define kTrackForwardParamLabel "Track forward"
-#define kTrackForwardParamHint "Track pattern to the end of the sequence"
+#define kParamTrackingForward "trackForward"
+#define kParamTrackingForwardLabel "Track forward"
+#define kParamTrackingForwardHint "Track pattern to the end of the sequence"
 
-#define kTrackLabelParamName kOfxParamStringSublabelName // defined in ofxNatron.h
-#define kTrackLabelParamLabel "Track name"
-#define kTrackLabelParamHint "The name of the track, as it appears in the user interface."
-#define kTrackLabelParamDefault "Track"
+#define kParamTrackingLabel kOfxParamStringSublabelName // defined in ofxNatron.h
+#define kParamTrackingLabelLabel "Track name"
+#define kParamTrackingLabelHint "The name of the track, as it appears in the user interface."
+#define kParamTrackingLabelDefault "Track"
 
 namespace OFX
 {
@@ -236,11 +236,11 @@ public:
     , _controlDown(false)
     , _altDown(0)
     {
-        _center = effect->fetchDouble2DParam(kTrackCenterPointParamName);
-        _innerBtmLeft = effect->fetchDouble2DParam(kTrackPatternBoxBtmLeftParamName);
-        _innerTopRight = effect->fetchDouble2DParam(kTrackPatternBoxTopRightParamName);
-        _outerBtmLeft = effect->fetchDouble2DParam(kTrackSearchBoxBtmLeftParamName);
-        _outerTopRight = effect->fetchDouble2DParam(kTrackSearchBoxTopRightParamName);
+        _center = effect->fetchDouble2DParam(kParamTrackingCenterPoint);
+        _innerBtmLeft = effect->fetchDouble2DParam(kParamTrackingPatternBoxBtmLeft);
+        _innerTopRight = effect->fetchDouble2DParam(kParamTrackingPatternBoxTopRight);
+        _outerBtmLeft = effect->fetchDouble2DParam(kParamTrackingSearchBoxBtmLeft);
+        _outerTopRight = effect->fetchDouble2DParam(kParamTrackingSearchBoxTopRight);
         _name = effect->fetchStringParam(kOfxParamStringSublabelName);
         addParamToSlaveTo(_center);
         addParamToSlaveTo(_innerBtmLeft);

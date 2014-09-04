@@ -40,15 +40,15 @@
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
 
-#define kRectInteractBtmLeftParamName "bottomLeft"
-#define kRectInteractBtmLeftParamLabel "Bottom Left"
-#define kRectInteractBtmLeftParamHint "Coordinates of the bottom left corner of the rectangle"
+#define kParamRectangleInteractBtmLeft "bottomLeft"
+#define kParamRectangleInteractBtmLeftLabel "Bottom Left"
+#define kParamRectangleInteractBtmLeftHint "Coordinates of the bottom left corner of the rectangle"
 
-#define kRectInteractSizeParamName "size"
-#define kRectInteractSizeParamLabel "Size"
-#define kRectInteractSizeParamHint "Width and height of the rectangle"
-#define kRectInteractSizeParamDim1 "width"
-#define kRectInteractSizeParamDim2 "height"
+#define kParamRectangleInteractSize "size"
+#define kParamRectangleInteractSizeLabel "Size"
+#define kParamRectangleInteractSizeHint "Width and height of the rectangle"
+#define kParamRectangleInteractSizeDim1 "width"
+#define kParamRectangleInteractSizeDim2 "height"
 
 namespace OFX {
 
@@ -98,8 +98,8 @@ public:
     , _btmLeft(0)
     , _size(0)
     {
-        _btmLeft = effect->fetchDouble2DParam(kRectInteractBtmLeftParamName);
-        _size = effect->fetchDouble2DParam(kRectInteractSizeParamName);
+        _btmLeft = effect->fetchDouble2DParam(kParamRectangleInteractBtmLeft);
+        _size = effect->fetchDouble2DParam(kParamRectangleInteractSize);
         addParamToSlaveTo(_btmLeft);
         addParamToSlaveTo(_size);
         assert(_btmLeft && _size);

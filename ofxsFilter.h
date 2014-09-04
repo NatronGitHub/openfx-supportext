@@ -47,15 +47,15 @@
 namespace OFX {
 
 // GENERIC
-#define kFilterTypeParamName "filter"
-#define kFilterTypeParamLabel "Filter"
-#define kFilterTypeParamHint "Filtering algorithm - some filters may produce values outside of the initial range (*) or modify the values even if there is no movement (+)."
-#define kFilterClampParamName "clamp"
-#define kFilterClampParamLabel "Clamp"
-#define kFilterClampParamHint "Clamp filter output within the original range - useful to avoid negative values in mattes"
-#define kFilterBlackOutsideParamName "black_outside"
-#define kFilterBlackOutsideParamLabel "Black outside"
-#define kFilterBlackOutsideParamHint "Fill the area outside the source image with black"
+#define kParamFilterType "filter"
+#define kParamFilterTypeLabel "Filter"
+#define kParamFilterTypeHint "Filtering algorithm - some filters may produce values outside of the initial range (*) or modify the values even if there is no movement (+)."
+#define kParamFilterClamp "clamp"
+#define kParamFilterClampLabel "Clamp"
+#define kParamFilterClampHint "Clamp filter output within the original range - useful to avoid negative values in mattes"
+#define kParamFilterBlackOutside "black_outside"
+#define kParamFilterBlackOutsideLabel "Black outside"
+#define kParamFilterBlackOutsideHint "Fill the area outside the source image with black"
 
 enum FilterEnum {
     eFilterImpulse,
@@ -94,9 +94,9 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc, OFX::Pag
 {
     // GENERIC PARAMETERS
     //
-    OFX::ChoiceParamDescriptor* filter = desc.defineChoiceParam(kFilterTypeParamName);
-    filter->setLabels(kFilterTypeParamLabel, kFilterTypeParamLabel, kFilterTypeParamLabel);
-    filter->setHint(kFilterTypeParamHint);
+    OFX::ChoiceParamDescriptor* filter = desc.defineChoiceParam(kParamFilterType);
+    filter->setLabels(kParamFilterTypeLabel, kParamFilterTypeLabel, kParamFilterTypeLabel);
+    filter->setHint(kParamFilterTypeHint);
     assert(filter->getNOptions() == eFilterImpulse);
     filter->appendOption(kFilterImpulse, kFilterImpulseHint);
     assert(filter->getNOptions() == eFilterBilinear);
@@ -120,17 +120,17 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc, OFX::Pag
     filter->setLayoutHint(OFX::eLayoutHintNoNewLine);
     page->addChild(*filter);
 
-    OFX::BooleanParamDescriptor* clamp = desc.defineBooleanParam(kFilterClampParamName);
-    clamp->setLabels(kFilterClampParamLabel, kFilterClampParamLabel, kFilterClampParamLabel);
-    clamp->setHint(kFilterClampParamHint);
+    OFX::BooleanParamDescriptor* clamp = desc.defineBooleanParam(kParamFilterClamp);
+    clamp->setLabels(kParamFilterClampLabel, kParamFilterClampLabel, kParamFilterClampLabel);
+    clamp->setHint(kParamFilterClampHint);
     clamp->setDefault(false);
     clamp->setAnimates(true);
     clamp->setLayoutHint(OFX::eLayoutHintNoNewLine);
     page->addChild(*clamp);
 
-    OFX::BooleanParamDescriptor* blackOutside = desc.defineBooleanParam(kFilterBlackOutsideParamName);
-    blackOutside->setLabels(kFilterBlackOutsideParamLabel, kFilterBlackOutsideParamLabel, kFilterBlackOutsideParamLabel);
-    blackOutside->setHint(kFilterBlackOutsideParamHint);
+    OFX::BooleanParamDescriptor* blackOutside = desc.defineBooleanParam(kParamFilterBlackOutside);
+    blackOutside->setLabels(kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel);
+    blackOutside->setHint(kParamFilterBlackOutsideHint);
     blackOutside->setDefault(true);
     blackOutside->setAnimates(true);
     page->addChild(*blackOutside);
