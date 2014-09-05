@@ -51,7 +51,7 @@ using namespace OFX;
 static void
 shutterRange(double time, double shutter, int shutteroffset_i, double shuttercustomoffset, OfxRangeD* range)
 {
-    Transform3x3ShutterOffsetEnum shutteroffset = shutteroffset_i;
+    Transform3x3ShutterOffsetEnum shutteroffset = (Transform3x3ShutterOffsetEnum)shutteroffset_i;
     switch (shutteroffset) {
         case eTransform3x3ShutterOffsetCentered:
             range->min = time - shutter/2;
@@ -1154,60 +1154,73 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
 
 void OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum /*context*/, OFX::PageParamDescriptor* page, bool masked)
 {
-
-    BooleanParamDescriptor* invert = desc.defineBooleanParam(kParamTransform3x3Invert);
-    invert->setLabels(kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel);
-    invert->setHint(kParamTransform3x3InvertHint);
-    invert->setDefault(false);
-    invert->setAnimates(true);
-    page->addChild(*invert);
-
+    // invert
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3Invert);
+        param->setLabels(kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel);
+        param->setHint(kParamTransform3x3InvertHint);
+        param->setDefault(false);
+        param->setAnimates(true);
+        page->addChild(*param);
+    }
     // GENERIC PARAMETERS
     //
 
     ofxsFilterDescribeParamsInterpolate2D(desc, page);
 
-    DoubleParamDescriptor* motionblur = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
-    motionblur->setLabels(kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel);
-    motionblur->setHint(kParamTransform3x3MotionBlurHint);
-    motionblur->setDefault(0.);
-    motionblur->setRange(0., 100.);
-    motionblur->setIncrement(0.01);
-    motionblur->setDisplayRange(0., 4.);
-    page->addChild(*motionblur);
+    // motionblur
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
+        param->setLabels(kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel);
+        param->setHint(kParamTransform3x3MotionBlurHint);
+        param->setDefault(0.);
+        param->setRange(0., 100.);
+        param->setIncrement(0.01);
+        param->setDisplayRange(0., 4.);
+        page->addChild(*param);
+    }
 
-    DoubleParamDescriptor* shutter = desc.defineDoubleParam(kParamTransform3x3Shutter);
-    shutter->setLabels(kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel);
-    shutter->setHint(kParamTransform3x3ShutterHint);
-    shutter->setDefault(0.5);
-    shutter->setRange(0., 2.);
-    shutter->setIncrement(0.01);
-    shutter->setDisplayRange(0., 2.);
-    page->addChild(*shutter);
+    // shutter
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3Shutter);
+        param->setLabels(kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel);
+        param->setHint(kParamTransform3x3ShutterHint);
+        param->setDefault(0.5);
+        param->setRange(0., 2.);
+        param->setIncrement(0.01);
+        param->setDisplayRange(0., 2.);
+        page->addChild(*param);
+    }
 
-    ChoiceParamDescriptor* shutteroffset = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
-    shutteroffset->setLabels(kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel);
-    shutteroffset->setHint(kParamTransform3x3ShutterOffsetHint);
-    assert(shutteroffset->getNOptions() == eTransform3x3ShutterOffsetCentered);
-    shutteroffset->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
-    assert(shutteroffset->getNOptions() == eTransform3x3ShutterOffsetStart);
-    shutteroffset->appendOption(kParamTransform3x3ShutterOffsetOptionStart, kParamTransform3x3ShutterOffsetOptionStartHint);
-    assert(shutteroffset->getNOptions() == eTransform3x3ShutterOffsetEnd);
-    shutteroffset->appendOption(kParamTransform3x3ShutterOffsetOptionEnd, kParamTransform3x3ShutterOffsetOptionEndHint);
-    assert(shutteroffset->getNOptions() == eTransform3x3ShutterOffsetCustom);
-    shutteroffset->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
-    shutteroffset->setAnimates(true);
-    shutteroffset->setDefault(eTransform3x3ShutterOffsetStart);
-    page->addChild(*shutteroffset);
+    // shutteroffset
+    {
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
+        param->setLabels(kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel);
+        param->setHint(kParamTransform3x3ShutterOffsetHint);
+        assert(param->getNOptions() == eTransform3x3ShutterOffsetCentered);
+        param->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
+        assert(param->getNOptions() == eTransform3x3ShutterOffsetStart);
+        param->appendOption(kParamTransform3x3ShutterOffsetOptionStart, kParamTransform3x3ShutterOffsetOptionStartHint);
+        assert(param->getNOptions() == eTransform3x3ShutterOffsetEnd);
+        param->appendOption(kParamTransform3x3ShutterOffsetOptionEnd, kParamTransform3x3ShutterOffsetOptionEndHint);
+        assert(param->getNOptions() == eTransform3x3ShutterOffsetCustom);
+        param->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
+        param->setAnimates(true);
+        param->setDefault(eTransform3x3ShutterOffsetStart);
+        page->addChild(*param);
+    }
 
-    DoubleParamDescriptor* shuttercustomoffset = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
-    shuttercustomoffset->setLabels(kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel);
-    shuttercustomoffset->setHint(kParamTransform3x3ShutterCustomOffsetHint);
-    shuttercustomoffset->setDefault(0.);
-    shuttercustomoffset->setRange(-1., 1.);
-    shuttercustomoffset->setIncrement(0.1);
-    shuttercustomoffset->setDisplayRange(-1., 1.);
-    page->addChild(*shuttercustomoffset);
+    // shuttercustomoffset
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
+        param->setLabels(kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel);
+        param->setHint(kParamTransform3x3ShutterCustomOffsetHint);
+        param->setDefault(0.);
+        param->setRange(-1., 1.);
+        param->setIncrement(0.1);
+        param->setDisplayRange(-1., 1.);
+        page->addChild(*param);
+    }
 
     if (masked) {
         // GENERIC (MASKED)

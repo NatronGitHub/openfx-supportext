@@ -120,20 +120,26 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc, OFX::Pag
     filter->setLayoutHint(OFX::eLayoutHintNoNewLine);
     page->addChild(*filter);
 
-    OFX::BooleanParamDescriptor* clamp = desc.defineBooleanParam(kParamFilterClamp);
-    clamp->setLabels(kParamFilterClampLabel, kParamFilterClampLabel, kParamFilterClampLabel);
-    clamp->setHint(kParamFilterClampHint);
-    clamp->setDefault(false);
-    clamp->setAnimates(true);
-    clamp->setLayoutHint(OFX::eLayoutHintNoNewLine);
-    page->addChild(*clamp);
+    // clamp
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterClamp);
+        param->setLabels(kParamFilterClampLabel, kParamFilterClampLabel, kParamFilterClampLabel);
+        param->setHint(kParamFilterClampHint);
+        param->setDefault(false);
+        param->setAnimates(true);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        page->addChild(*param);
+    }
 
-    OFX::BooleanParamDescriptor* blackOutside = desc.defineBooleanParam(kParamFilterBlackOutside);
-    blackOutside->setLabels(kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel);
-    blackOutside->setHint(kParamFilterBlackOutsideHint);
-    blackOutside->setDefault(true);
-    blackOutside->setAnimates(true);
-    page->addChild(*blackOutside);
+    // blackOutside
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterBlackOutside);
+        param->setLabels(kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel);
+        param->setHint(kParamFilterBlackOutsideHint);
+        param->setDefault(true);
+        param->setAnimates(true);
+        page->addChild(*param);
+    }
 }
 
 

@@ -236,98 +236,122 @@ void
 OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page)
 {
     ///Declare the name first so that in Natron it appears as the first column in the multi instance
-    OFX::StringParamDescriptor* name = desc.defineStringParam(kParamTrackingLabel);
-    name->setLabels(kParamTrackingLabelLabel, kParamTrackingLabelLabel, kParamTrackingLabelLabel);
-    name->setHint(kParamTrackingLabelHint);
-    name->setDefault(kParamTrackingLabelDefault);
-    ////name->setIsSecret(false); // it has to be user-editable
-    ////name->setEnabled(true); // it has to be user-editable
-    ////name->setIsPersistant(true); // it has to be saved with the instance parameters
-    name->setEvaluateOnChange(false); // it is meaningless
-    page->addChild(*name);
+    // name
+    {
+        OFX::StringParamDescriptor* param = desc.defineStringParam(kParamTrackingLabel);
+        param->setLabels(kParamTrackingLabelLabel, kParamTrackingLabelLabel, kParamTrackingLabelLabel);
+        param->setHint(kParamTrackingLabelHint);
+        param->setDefault(kParamTrackingLabelDefault);
+        ////param->setIsSecret(false); // it has to be user-editable
+        ////param->setEnabled(true); // it has to be user-editable
+        ////param->setIsPersistant(true); // it has to be saved with the instance parameters
+        param->setEvaluateOnChange(false); // it is meaningless
+        page->addChild(*param);
+    }
 
-    
-    OFX::Double2DParamDescriptor* center = desc.defineDouble2DParam(kParamTrackingCenterPoint);
-    center->setLabels(kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel);
-    center->setHint(kParamTrackingCenterPointHint);
-    center->setDoubleType(eDoubleTypeXYAbsolute);
-    center->setDefaultCoordinateSystem(eCoordinatesNormalised);
-    center->setDefault(0.5, 0.5);
-    center->setIncrement(1.);
-    center->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-    page->addChild(*center);
-    
-    
-    OFX::Double2DParamDescriptor* innerBtmLeft = desc.defineDouble2DParam(kParamTrackingPatternBoxBtmLeft);
-    innerBtmLeft->setLabels(kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel);
-    innerBtmLeft->setHint(kParamTrackingPatternBoxBtmLeftHint);
-    innerBtmLeft->setDoubleType(eDoubleTypeXY);
-    innerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
-    innerBtmLeft->setDefault(-15,-15);
-    innerBtmLeft->setIncrement(1.);
-    //innerBtmLeft->setIsSecret(true);
-    innerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-    page->addChild(*innerBtmLeft);
-    
-    OFX::Double2DParamDescriptor* innerTopRight = desc.defineDouble2DParam(kParamTrackingPatternBoxTopRight);
-    innerTopRight->setLabels(kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel);
-    innerTopRight->setHint(kParamTrackingPatternBoxTopRightHint);
-    innerTopRight->setDoubleType(eDoubleTypeXY);
-    innerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
-    innerTopRight->setDefault(15, 15);
-    innerTopRight->setIncrement(1.);
-    //innerTopRight->setIsSecret(true);
-    innerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-    page->addChild(*innerTopRight);
-    
-    OFX::Double2DParamDescriptor* outerBtmLeft = desc.defineDouble2DParam(kParamTrackingSearchBoxBtmLeft);
-    outerBtmLeft->setLabels(kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel);
-    outerBtmLeft->setHint(kParamTrackingSearchBoxBtmLeftHint);
-    outerBtmLeft->setDoubleType(eDoubleTypeXY);
-    outerBtmLeft->setDefaultCoordinateSystem(eCoordinatesCanonical);
-    outerBtmLeft->setDefault(-25,-25);
-    outerBtmLeft->setIncrement(1.);
-    //outerBtmLeft->setIsSecret(true);
-    outerBtmLeft->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-    page->addChild(*outerBtmLeft);
-    
-    OFX::Double2DParamDescriptor* outerTopRight = desc.defineDouble2DParam(kParamTrackingSearchBoxTopRight);
-    outerTopRight->setLabels(kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel);
-    outerTopRight->setHint(kParamTrackingSearchBoxBtmLeftHint);
-    outerTopRight->setDoubleType(eDoubleTypeXY);
-    outerTopRight->setDefaultCoordinateSystem(eCoordinatesCanonical);
-    outerTopRight->setDefault(25, 25);
-    outerTopRight->setIncrement(1.);
-    //outerTopRight->setIsSecret(true);
-    outerTopRight->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-    page->addChild(*outerTopRight);
-    
-    OFX::PushButtonParamDescriptor* backward = desc.definePushButtonParam(kParamTrackingBackward);
-    backward->setLabels(kParamTrackingBackwardLabel, kParamTrackingBackwardLabel,kParamTrackingBackwardLabel);
-    backward->setHint(kParamTrackingBackwardHint);
-    backward->setLayoutHint(eLayoutHintNoNewLine);
-    page->addChild(*backward);
+    // center
+    {
+        OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingCenterPoint);
+        param->setLabels(kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel);
+        param->setHint(kParamTrackingCenterPointHint);
+        param->setDoubleType(eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(eCoordinatesNormalised);
+        param->setDefault(0.5, 0.5);
+        param->setIncrement(1.);
+        param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
+        page->addChild(*param);
+    }
 
-    
-    OFX::PushButtonParamDescriptor* prev = desc.definePushButtonParam(kParamTrackingPrevious);
-    prev->setLabels(kParamTrackingPreviousLabel, kParamTrackingPreviousLabel, kParamTrackingPreviousLabel);
-    prev->setHint(kParamTrackingPreviousHint);
-    prev->setLayoutHint(eLayoutHintNoNewLine);
-    page->addChild(*prev);
-    
-    OFX::PushButtonParamDescriptor* next = desc.definePushButtonParam(kParamTrackingNext);
-    next->setLabels(kParamTrackingNextLabel, kParamTrackingNextLabel, kParamTrackingNextLabel);
-    next->setHint(kParamTrackingNextHint);
-    next->setLayoutHint(eLayoutHintNoNewLine);
-    page->addChild(*next);
+    // innerBtmLeft
+    {
+        OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingPatternBoxBtmLeft);
+        param->setLabels(kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel);
+        param->setHint(kParamTrackingPatternBoxBtmLeftHint);
+        param->setDoubleType(eDoubleTypeXY);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical);
+        param->setDefault(-15,-15);
+        param->setIncrement(1.);
+        //param->setIsSecret(true);
+        param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
+        page->addChild(*param);
+    }
 
-    OFX::PushButtonParamDescriptor* forward = desc.definePushButtonParam(kParamTrackingForward);
-    forward->setLabels(kParamTrackingForwardLabel, kParamTrackingForwardLabel, kParamTrackingForwardLabel);
-    forward->setHint(kParamTrackingForwardHint);
-    page->addChild(*forward);
+    // innerTopRight
+    {
+        OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingPatternBoxTopRight);
+        param->setLabels(kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel);
+        param->setHint(kParamTrackingPatternBoxTopRightHint);
+        param->setDoubleType(eDoubleTypeXY);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical);
+        param->setDefault(15, 15);
+        param->setIncrement(1.);
+        //innerTopRight->setIsSecret(true);
+        param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
+        page->addChild(*param);
+    }
 
+    // outerBtmLeft
+    {
+        OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingSearchBoxBtmLeft);
+        param->setLabels(kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel);
+        param->setHint(kParamTrackingSearchBoxBtmLeftHint);
+        param->setDoubleType(eDoubleTypeXY);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical);
+        param->setDefault(-25,-25);
+        param->setIncrement(1.);
+        //param->setIsSecret(true);
+        param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
+        page->addChild(*param);
+    }
 
+    // outerTopRight
+    {
+        OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingSearchBoxTopRight);
+        param->setLabels(kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel);
+        param->setHint(kParamTrackingSearchBoxBtmLeftHint);
+        param->setDoubleType(eDoubleTypeXY);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical);
+        param->setDefault(25, 25);
+        param->setIncrement(1.);
+        //param->setIsSecret(true);
+        param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
+        page->addChild(*param);
+    }
+
+    // backward
+    {
+        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
+        param->setLabels(kParamTrackingBackwardLabel, kParamTrackingBackwardLabel,kParamTrackingBackwardLabel);
+        param->setHint(kParamTrackingBackwardHint);
+        param->setLayoutHint(eLayoutHintNoNewLine);
+        page->addChild(*param);
+    }
+
+    // prev
+    {
+        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
+        param->setLabels(kParamTrackingPreviousLabel, kParamTrackingPreviousLabel, kParamTrackingPreviousLabel);
+        param->setHint(kParamTrackingPreviousHint);
+        param->setLayoutHint(eLayoutHintNoNewLine);
+        page->addChild(*param);
+    }
+
+    // next
+    {
+        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
+        param->setLabels(kParamTrackingNextLabel, kParamTrackingNextLabel, kParamTrackingNextLabel);
+        param->setHint(kParamTrackingNextHint);
+        param->setLayoutHint(eLayoutHintNoNewLine);
+        page->addChild(*param);
+    }
     
+    // forward
+    {
+        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
+        param->setLabels(kParamTrackingForwardLabel, kParamTrackingForwardLabel, kParamTrackingForwardLabel);
+        param->setHint(kParamTrackingForwardHint);
+        page->addChild(*param);
+    }
 }
 
 //////////////////// INTERACT ////////////////////
