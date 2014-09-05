@@ -45,39 +45,39 @@
 #define kParamTrackingCenterPointHint "The center point to track"
 
 #define kParamTrackingPatternBoxBtmLeft "patternBoxBtmLeft"
-#define kParamTrackingPatternBoxBtmLeftLabel "Pattern bottom left"
+#define kParamTrackingPatternBoxBtmLeftLabel "Pattern Bottom Left"
 #define kParamTrackingPatternBoxBtmLeftHint "The bottom left corner of the inner pattern box. The coordinates are relative to the center point."
 
 #define kParamTrackingPatternBoxTopRight "patternBoxTopRight"
-#define kParamTrackingPatternBoxTopRightLabel "Pattern top right"
+#define kParamTrackingPatternBoxTopRightLabel "Pattern Top Right"
 #define kParamTrackingPatternBoxTopRightHint "The top right corner of the inner pattern box. The coordinates are relative to the center point."
 
 #define kParamTrackingSearchBoxBtmLeft "searchBoxBtmLeft"
-#define kParamTrackingSearchBoxBtmLeftLabel "Search area bottom left"
+#define kParamTrackingSearchBoxBtmLeftLabel "Search Area Bottom Left"
 #define kParamTrackingSearchBoxBtmLeftHint "The bottom left corner of the search area. The coordinates are relative to the center point."
 
 #define kParamTrackingSearchBoxTopRight "searchBoxTopRight"
-#define kParamTrackingSearchBoxTopRightLabel "Search area top right"
+#define kParamTrackingSearchBoxTopRightLabel "Search Area Top Right"
 #define kParamTrackingSearchBoxTopRightHint "The top right corner of the search area. The coordinates are relative to the center point."
 
 #define kParamTrackingPrevious "trackPrevious"
-#define kParamTrackingPreviousLabel "Track previous"
+#define kParamTrackingPreviousLabel "Track Previous"
 #define kParamTrackingPreviousHint "Track pattern to previous frame"
 
 #define kParamTrackingNext "trackNext"
-#define kParamTrackingNextLabel "Track next"
+#define kParamTrackingNextLabel "Track Next"
 #define kParamTrackingNextHint "Track pattern to next frame"
 
 #define kParamTrackingBackward "trackBackward"
-#define kParamTrackingBackwardLabel "Track backward"
+#define kParamTrackingBackwardLabel "Track Backward"
 #define kParamTrackingBackwardHint "Track pattern to the beginning of the sequence"
 
 #define kParamTrackingForward "trackForward"
-#define kParamTrackingForwardLabel "Track forward"
+#define kParamTrackingForwardLabel "Track Forward"
 #define kParamTrackingForwardHint "Track pattern to the end of the sequence"
 
 #define kParamTrackingLabel kOfxParamStringSublabelName // defined in ofxNatron.h
-#define kParamTrackingLabelLabel "Track name"
+#define kParamTrackingLabelLabel "Track Name"
 #define kParamTrackingLabelHint "The name of the track, as it appears in the user interface."
 #define kParamTrackingLabelDefault "Track"
 
