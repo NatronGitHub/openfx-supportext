@@ -99,6 +99,18 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
 
 inline
 void
+ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+{
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
+        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
+        param->setHint(kParamMaskInvertHint);
+        page->addChild(*param);
+    }
+}
+
+inline
+void
 ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
 {
     // GENERIC (MASKED)
@@ -113,12 +125,7 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
         param->setDisplayRange(0.,1.);
         page->addChild(*param);
     }
-    {
-        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
-        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
-        param->setHint(kParamMaskInvertHint);
-        page->addChild(*param);
-    }
+    ofxsMaskDescribeParams(desc, page);
 }
 
 template <class T>
