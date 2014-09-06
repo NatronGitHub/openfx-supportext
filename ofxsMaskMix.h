@@ -100,6 +100,19 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
 
 inline
 void
+ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+{
+    {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
+        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
+        param->setHint(kParamMaskInvertHint);
+        page->addChild(*param);
+    }
+}
+
+
+inline
+void
 ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
 {
     // GENERIC (MASKED)
@@ -114,12 +127,7 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
         param->setDisplayRange(0.,1.);
         page->addChild(*param);
     }
-    {
-        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
-        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
-        param->setHint(kParamMaskInvertHint);
-        page->addChild(*param);
-    }
+    ofxsMaskDescribeParams(desc, page);
 }
 
 template <class T>
@@ -333,76 +341,6 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
     return ofxsMaskMixPix<PIX,nComponents,maxValue,masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
-/** @brief  Base class used to blend two images together */
-class ImageBlenderMaskedBase : public ImageBlenderBase {
-protected:
-    bool   _doMasking;
-    const OFX::Image *_maskImg;
-    bool _maskInvert;
-
-public:
-    /** @brief no arg ctor */
-    ImageBlenderMaskedBase(OFX::ImageEffect &instance)
-    : ImageBlenderBase(instance)
-    , _doMasking(false)
-    , _maskInvert(false)
-    {
-    }
-
-    void setMaskImg(const OFX::Image *v) {_maskImg = v;}
-    
-    void doMasking(bool v) {_doMasking = v;}
-
-    /** @brief set the mask invert flag */
-    void setMaskInvert(bool maskInvert) {_maskInvert = maskInvert;}
-};
-
-/** @brief templated class to blend between two images */
-template <class PIX, int nComponents, int maxValue>
-class ImageBlenderMasked : public ImageBlenderMaskedBase {
-public:
-    // ctor
-    ImageBlenderMasked(OFX::ImageEffect &instance)
-    : ImageBlenderMaskedBase(instance)
-    {}
-
-    // and do some processing
-    void multiThreadProcessImages(OfxRectI procWindow)
-    {
-        float tmpPix[nComponents];
-
-        for (int y = procWindow.y1; y < procWindow.y2; y++) {
-            if (_effect.abort()) {
-                break;
-            }
-
-            PIX *dstPix = (PIX *) _dstImg->getPixelAddress(procWindow.x1, y);
-
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-
-                PIX *fromPix = (PIX *)  (_fromImg ? _fromImg->getPixelAddress(x, y) : 0);
-                PIX *toPix   = (PIX *)  (_toImg   ? _toImg->getPixelAddress(x, y)   : 0);
-
-                if (fromPix || toPix) {
-
-                    for (int c = 0; c < nComponents; ++c) {
-                        // all images are supposed to be black and transparent outside o
-                        tmpPix[c] = fromPix ? (float)fromPix[c] : 0.;
-                    }
-                    ofxsMaskMixPix<PIX, nComponents, maxValue, true>(tmpPix, x, y, toPix, _doMasking, _maskImg, _blend, _maskInvert, dstPix);
-                } else {
-                    // everything is black and transparent
-                    for (int c = 0; c < nComponents; ++c) {
-                        dstPix[c] = 0;
-                    }
-                }
-
-                dstPix += nComponents;
-            }
-        }
-    }
-
-};
 
 } // OFX
 
