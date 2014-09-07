@@ -343,7 +343,6 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
     double motionblur = 0.;
     bool blackOutside = true;
     double mix = 1.;
-    bool maskInvert = false;
 
     if (!src.get()) {
         // no source image, use a dummy transform
@@ -373,7 +372,6 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
         _blackOutside->getValueAtTime(time, blackOutside);
         if (_masked) {
             _mix->getValueAtTime(time, mix);
-            _maskInvert->getValueAtTime(time, maskInvert);
         }
         _motionblur->getValueAtTime(time, motionblur);
         double shutter;
@@ -430,11 +428,14 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
 
     // do we do masking
     if (_masked && getContext() != OFX::eContextFilter && maskClip_->isConnected()) {
+        bool maskInvert;
+        _maskInvert->getValueAtTime(time, maskInvert);
+        
         // say we are masking
         processor.doMasking(true);
 
         // Set it in the processor
-        processor.setMaskImg(mask.get());
+        processor.setMaskImg(mask.get(), maskInvert);
     }
 
     // set the images
@@ -448,8 +449,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
                         invtransformsize,
                         blackOutside,
                         motionblur,
-                        mix,
-                        maskInvert);
+                        mix);
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();

@@ -93,7 +93,7 @@ public:
 
 
     /** @brief set the optional mask image */
-    void setMaskImg(const OFX::Image *v) {_maskImg = v;}
+    void setMaskImg(const OFX::Image *v, bool maskInvert) { _maskImg = v; _maskInvert = maskInvert; }
 
     // Are we masking. We can't derive this from the mask image being set as NULL is a valid value for an input image
     void doMasking(bool v) {_domask = v;}
@@ -103,8 +103,7 @@ public:
                    // all generic parameters below
                    bool blackOutside, //!< generic
                    double motionblur,
-                   double mix,//!< generic
-                   bool maskInvert)          //!< generic
+                   double mix)          //!< generic
     {
         // NON-GENERIC
         assert(invtransform);
@@ -114,7 +113,6 @@ public:
         _blackOutside = blackOutside;
         _motionblur = motionblur;
         _mix = mix;
-        _maskInvert = maskInvert;
     }
 };
 

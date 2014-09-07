@@ -22,12 +22,9 @@ namespace OFX {
         {
         }
 
-        void setMaskImg(const OFX::Image *v) {_maskImg = v;}
+        void setMaskImg(const OFX::Image *v, bool maskInvert) {_maskImg = v; _maskInvert = maskInvert; }
 
         void doMasking(bool v) {_doMasking = v;}
-
-        /** @brief set the mask invert flag */
-        void setMaskInvert(bool maskInvert) {_maskInvert = maskInvert;}
     };
 
     /** @brief templated class to blend between two images */
