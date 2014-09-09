@@ -83,6 +83,7 @@ public:
     }
 };
 
+// be careful, if _premult is false this processor does nothing!
 template <class SRCPIX, int nComponents, int srcMaxValue, class DSTPIX, int dstMaxValue>
 class PixelCopierUnPremult : public OFX::PixelProcessorFilterBase {
 public:
@@ -108,6 +109,43 @@ public:
             for (int x = procWindow.x1; x < procWindow.x2; x++) {
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
                 ofxsUnPremult<SRCPIX, nComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
+                for (int c = 0; c < nComponents; ++c) {
+                    float v = unpPix[c] * dstMaxValue;
+                    dstPix[c] = DSTPIX(ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue));
+                }
+                // increment the dst pixel
+                dstPix += nComponents;
+            }
+        }
+    }
+};
+
+// be careful, if _premult is false this processor does nothing!
+template <class SRCPIX, int nComponents, int srcMaxValue, class DSTPIX, int dstMaxValue>
+class PixelCopierPremult : public OFX::PixelProcessorFilterBase {
+public:
+    // ctor
+    PixelCopierPremult(OFX::ImageEffect &instance)
+    : OFX::PixelProcessorFilterBase(instance)
+    {
+        assert(nComponents == 3 || nComponents == 4);
+    }
+
+    // and do some processing
+    void multiThreadProcessImages(OfxRectI procWindow)
+    {
+        float unpPix[4];
+        for(int y = procWindow.y1; y < procWindow.y2; ++y) {
+            if(_effect.abort()) {
+                break;
+            }
+
+            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
+            assert(dstPix);
+
+            for (int x = procWindow.x1; x < procWindow.x2; x++) {
+                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
+                ofxsPremult<SRCPIX, nComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
                 for (int c = 0; c < nComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
                     dstPix[c] = DSTPIX(ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue));
