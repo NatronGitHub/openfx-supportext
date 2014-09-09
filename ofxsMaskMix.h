@@ -150,6 +150,7 @@ float ofxsClampIfInt(float v, int min, int max)
 }
 
 // normalize in [0,1] and unpremultiply srcPix
+// if premult is false, just normalize
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultChannel*/)
@@ -197,6 +198,7 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
 }
 
 // premultiply and denormalize in [0, maxValue]
+// if premult is false, just denormalize
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
