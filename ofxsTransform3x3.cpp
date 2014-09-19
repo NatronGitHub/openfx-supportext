@@ -874,8 +874,7 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
     OFX::BitDepthEnum       dstBitDepth    = dstClip_->getPixelDepth();
     OFX::PixelComponentEnum dstComponents  = dstClip_->getPixelComponents();
 
-    assert(dstComponents == OFX::ePixelComponentRGB || dstComponents == OFX::ePixelComponentRGBA
-           || dstComponents == OFX::ePixelComponentAlpha);
+    assert(dstComponents == OFX::ePixelComponentAlpha || dstComponents == OFX::ePixelComponentRGB || dstComponents == OFX::ePixelComponentRGBA);
     if (dstComponents == OFX::ePixelComponentRGBA) {
         if (_masked) {
             renderInternal<4,true>(args, dstBitDepth);
