@@ -35,16 +35,19 @@
  78153 Le Chesnay Cedex - France
  */
 
+#include <memory>
+
 #include "ofxsTransform3x3.h"
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsMerging.h"
 
 using namespace OFX;
 
-// unfortunately, we cannot rely on the host sending changedParam() when the animation changes
+// It would be nice to be able to cache the set of transforms (with motion blur) used to compute the
+// current frame between two renders.
+// Unfortunately, we cannot rely on the host sending changedParam() when the animation changes
 // (Nuke doesn't call the action when a linked animation is changed),
 // nor on dst->getUniqueIdentifier (which is "ffffffffffffffff" on Nuke)
-// DON'T UNCOMMENT //#define USE_CACHE
 
 #define kTransform3x3MotionBlurCount 1000 // number of transforms used in the motion
 
@@ -77,196 +80,11 @@ shutterRange(double time, double shutter, int shutteroffset_i, double shuttercus
 }
 
 
-#ifdef USE_CACHE
-class Transform3x3Plugin::CacheID {
-public:
-    CacheID()
-    : _time(0.)
-    , _fielded(false)
-    , _pixelaspectratio(0.)
-    , _invert(false)
-    , _shutter(0.)
-    , _shutteroffset(0)
-    , _shuttercustomoffset(0.)
-    , _uniqueIdentifier()
-    {
-        _renderscale.x = 0.;
-        _renderscale.y = 0.;
-    }
-
-    CacheID(double time,
-            OfxPointD renderscale,
-            bool fielded,
-            double pixelaspectratio,
-            bool invert,
-            double shutter,
-            int shutteroffset,
-            double shuttercustomoffset,
-            const std::string& uniqueIdentifier)
-    : _time(time)
-    , _renderscale(renderscale)
-    , _fielded(fielded)
-    , _pixelaspectratio(pixelaspectratio)
-    , _invert(invert)
-    , _shutter(shutter)
-    , _shutteroffset(shutteroffset)
-    , _shuttercustomoffset(shuttercustomoffset)
-    , _uniqueIdentifier(uniqueIdentifier)
-    {
-    }
-
-
-    bool operator == (const CacheID &b) const
-    {
-        return (_time == b._time &&
-                _renderscale.x == b._renderscale.x &&
-                _renderscale.y == b._renderscale.y &&
-                _fielded == b._fielded &&
-                _pixelaspectratio == b._pixelaspectratio &&
-                _invert == b._invert &&
-                _shutter == b._shutter &&
-                _shutteroffset == b._shutteroffset &&
-                _shuttercustomoffset == b._shuttercustomoffset);
-    }
-
-    bool operator != (const CacheID &b) const
-    {
-        return !(*this == b);
-    }
-
-    double getTime() const { return _time; }
-
-    OfxPointD getRenderScale() const { return _renderscale; }
-
-    bool getFielded() const { return _fielded; }
-
-    double getPixelAspectRatio() const { return _pixelaspectratio; }
-
-    bool getInvert() const { return _invert; }
-
-    double getShutter() const { return _shutter; }
-
-    int getShutterOffset() const { return _shutteroffset; }
-
-    double getShutterCustomOffset() const { return _shuttercustomoffset; }
-
-    void getShutterRange(OfxRangeD* range) const {
-        return shutterRange(_time, _shutter, _shutteroffset, _shuttercustomoffset, range);
-    }
-
-private:
-    double _time;
-    OfxPointD _renderscale;
-    bool _fielded;
-    double _pixelaspectratio;
-    bool _invert;
-    double _shutter;
-    int _shutteroffset;
-    double _shuttercustomoffset;
-    std::string _uniqueIdentifier; // unique ID of the source image (see Image::getUniqueIdentifier())
-};
-
-// a simple cache for the 1000 transforms used in the motionblur process
-template<class ID>
-class Transform3x3Plugin::Cache {
-public:
-    Cache(Transform3x3Plugin* parent)
-    : _parent(parent)
-    , _valid(false)
-    , _id()
-    , _invtransform(NULL)
-    , _invtransformsize(0)
-    , _invtransformsizealloc(0)
-    , _mutex(0)
-    {
-    }
-
-    ~Cache()
-    {
-        delete _invtransform;
-    }
-
-    void purge()
-    {
-        _valid = false;
-    }
-
-    bool get(const ID& id, OFX::Matrix3x3* invtransform, size_t* invtransformsize)
-    {
-        bool retval = true;
-        lock();
-        if (!_valid || _id != id) {
-            retval = false; // not cached
-
-            if (_invtransform == NULL) {
-                assert(_invtransformsizealloc == 0);
-                _invtransformsizealloc = kTransform3x3MotionBlurCount;
-                _invtransform = new OFX::Matrix3x3[_invtransformsizealloc];
-            }
-            const bool fielded = id.getFielded();
-            const bool invert = id.getInvert();
-            const double pixelaspectratio = id.getPixelAspectRatio();
-            const OfxPointD renderscale = id.getRenderScale();
-
-            _invtransformsize = _parent->getInverseTransforms(id.getTime(),
-                                                              renderscale,
-                                                              fielded,
-                                                              pixelaspectratio,
-                                                              invert,
-                                                              id.getShutter(),
-                                                              id.getShutterOffset(),
-                                                              id.getShutterCustomOffset(),
-                                                              _invtransform,
-                                                              _invtransformsizealloc);
-        }
-        _id = id;
-        _valid = true;
-
-        memcpy(invtransform, _invtransform, _invtransformsize * sizeof(OFX::Matrix3x3));
-        *invtransformsize = _invtransformsize;
-
-        unlock();
-        return retval;
-    }
-
-    bool getShutterRange(OfxRangeD* range) const {
-        lock();
-        if (!_valid) {
-            unlock();
-            return false;
-        }
-        _id.getShutterRange(range);
-        unlock();
-        return true;
-    }
-
-private:
-    void lock() const
-    {
-        _mutex.lock();
-    }
-
-    void unlock() const
-    {
-        _mutex.unlock();
-    }
-
-    Transform3x3Plugin* _parent;
-    bool _valid; // easy switch to invalidate the cache
-    ID _id;
-    OFX::Matrix3x3* _invtransform; // the 1000 transforms
-    size_t _invtransformsize;
-    size_t _invtransformsizealloc;
-    mutable OFX::MultiThread::Mutex _mutex;
-};
-#endif // USE_CACHE
-
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle, bool masked)
 : ImageEffect(handle)
 , dstClip_(0)
 , srcClip_(0)
 , maskClip_(0)
-, _cache(0)
 , _invert(0)
 , _filter(0)
 , _clamp(0)
@@ -288,9 +106,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle, bool masked)
         maskClip_ = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
         assert(!maskClip_ || maskClip_->getPixelComponents() == ePixelComponentAlpha);
     }
-#ifdef USE_CACHE
-    _cache = new Cache<CacheID>(this);
-#endif
+
     // Transform3x3-GENERIC
     _invert = fetchBooleanParam(kParamTransform3x3Invert);
     // GENERIC
@@ -309,9 +125,6 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle, bool masked)
 
 Transform3x3Plugin::~Transform3x3Plugin()
 {
-#ifdef USE_CACHE
-    delete _cache;
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -338,7 +151,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
     std::auto_ptr<OFX::Image> src(srcClip_->fetchImage(time));
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
-    OFX::Matrix3x3* invtransform = NULL;
+    std::vector<OFX::Matrix3x3> invtransform;
 
     double motionblur = 0.;
     bool blackOutside = true;
@@ -347,7 +160,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
     if (!src.get()) {
         // no source image, use a dummy transform
         invtransformsizealloc = 1;
-        invtransform = new OFX::Matrix3x3[invtransformsizealloc];
+        invtransform.resize(invtransformsizealloc);
         invtransformsize = 1;
         invtransform[0].a = 0.;
         invtransform[0].b = 0.;
@@ -382,22 +195,16 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
 
         if (shutter != 0. && motionblur != 0.) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
-            invtransform = new OFX::Matrix3x3[invtransformsizealloc];
+            invtransform.resize(invtransformsizealloc);
             int shutteroffset_i;
             _shutteroffset->getValueAtTime(time, shutteroffset_i);
             double shuttercustomoffset;
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-#ifdef USE_CACHE
-            _cache->get(CacheID(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, shutteroffset_i, shuttercustomoffset, dst->getUniqueIdentifier()),
-                        invtransform, &invtransformsize);
-#else
-            invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, shutteroffset_i, shuttercustomoffset, invtransform, invtransformsizealloc);
-#endif
-
+            invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else {
             invtransformsizealloc = 1;
-            invtransform = new OFX::Matrix3x3[invtransformsizealloc];
+            invtransform.resize(invtransformsizealloc);
             invtransformsize = 1;
             bool success = getInverseTransformCanonical(time, invert, &invtransform[0]); // virtual function
             if (!success) {
@@ -415,7 +222,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
                                                                                args.renderScale.y, fielded);
                 OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelAspectRatio,  args.renderScale.x,
                                                                                args.renderScale.y, fielded);
-                *invtransform = canonicalToPixel * *invtransform * pixelToCanonical;
+                invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
             }
         }
         if (invtransformsize == 1) {
@@ -444,8 +251,8 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
 
     // set the render window
     processor.setRenderWindow(args.renderWindow);
-    assert(invtransform && invtransformsize);
-    processor.setValues(invtransform,
+    assert(invtransform.size() && invtransformsize);
+    processor.setValues(&invtransform.front(),
                         invtransformsize,
                         blackOutside,
                         motionblur,
@@ -453,7 +260,6 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();
-    delete [] invtransform;
 }
 
 // compute the bounding box of the transform of four points
@@ -1036,32 +842,11 @@ Transform3x3Plugin::changedParam(const OFX::InstanceChangedArgs &args, const std
     }
 }
 
-// override purgeCaches.
-void
-Transform3x3Plugin::purgeCaches()
-{
-#ifdef USE_CACHE
-    _cache->purge();
-    //delete _cache;
-    //_cache = new Cache<CacheID>();
-#endif
-}
-
 // this method must be called by the derived class when the transform was changed
 void
 Transform3x3Plugin::changedTransform(const OFX::InstanceChangedArgs &args)
 {
-#ifdef USE_CACHE
-    // compute t_start and t_end of the cached transforms.
-    // if args.time falls between these, invalidate the transform cache
-    OfxRangeD range;
-    bool valid = _cache->getShutterRange(&range);
-    if (valid && range.min <= args.time && args.time <= range.max) {
-        _cache->purge();
-    }
-#else
     (void)args;
-#endif
 }
 
 

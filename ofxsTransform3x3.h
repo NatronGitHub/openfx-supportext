@@ -37,6 +37,8 @@
 #ifndef __Misc__Transform3x3__
 #define __Misc__Transform3x3__
 
+#include <memory>
+
 #include "ofxsImageEffect.h"
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsMacros.h"
@@ -124,9 +126,6 @@ public:
     // override changedParam. note that the derived class MUST explicitely call this method after handling its own parameter changes
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
 
-    // override purgeCaches.
-    virtual void purgeCaches() OVERRIDE FINAL;
-
     // this method must be called by the derived class when the transform was changed
     void changedTransform(const OFX::InstanceChangedArgs &args);
 
@@ -157,13 +156,6 @@ private:
     void transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset,const bool isIdentity, OfxRectD *rectTo);
     
 private:
-    class CacheID;
-
-    template<class ID>
-    class Cache;
-
-    Cache<CacheID>* _cache;
-
     // Transform3x3-GENERIC
     OFX::BooleanParam* _invert;
     // GENERIC
