@@ -43,7 +43,6 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxsMultiThread.h"
-#include "IOUtility.h"
 
 /** @file This file contains a useful base class that can be used to process images 
 
@@ -53,6 +52,39 @@ its own include directory.
 */
 
 namespace OFX {
+
+    inline
+    int getPixelBytes(OFX::PixelComponentEnum pixelComponents,
+                      OFX::BitDepthEnum bitDepth)
+    {
+        // compute bytes per pixel
+        int pixelBytes = 0;
+        switch (pixelComponents) {
+            case OFX::ePixelComponentNone : pixelBytes = 0; break;
+            case OFX::ePixelComponentRGBA  : pixelBytes = 4; break;
+            case OFX::ePixelComponentRGB  : pixelBytes = 3; break;
+            case OFX::ePixelComponentAlpha : pixelBytes = 1; break;
+#ifdef OFX_EXTENSIONS_NUKE
+            case OFX::ePixelComponentMotionVectors  : pixelBytes = 2; break;
+            case OFX::ePixelComponentStereoDisparity : pixelBytes = 2; break;
+#endif
+            case OFX::ePixelComponentCustom : pixelBytes = 0; break;
+        }
+        switch (bitDepth) {
+            case OFX::eBitDepthNone   : pixelBytes *= 0; break;
+            case OFX::eBitDepthUByte  : pixelBytes *= 1; break;
+            case OFX::eBitDepthUShort : pixelBytes *= 2; break;
+            case OFX::eBitDepthHalf   : pixelBytes *= 2; break;
+            case OFX::eBitDepthFloat  : pixelBytes *= 4; break;
+#ifdef OFX_EXTENSIONS_VEGAS
+            case OFX::eBitDepthUByteBGRA  : pixelBytes *= 1; break;
+            case OFX::eBitDepthUShortBGRA : pixelBytes *= 2; break;
+            case OFX::eBitDepthFloatBGRA  : pixelBytes *= 4; break;
+#endif
+            case OFX::eBitDepthCustom : pixelBytes *= 0; break;
+        }
+        return pixelBytes;
+    }
 
     ////////////////////////////////////////////////////////////////////////////////
     // base class to process images with
