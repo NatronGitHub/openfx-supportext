@@ -53,6 +53,26 @@ its own include directory.
 
 namespace OFX {
 
+    inline void
+    getImageData(OFX::Image* img, void** pixelData, OfxRectI* bounds, OFX::PixelComponentEnum* pixelComponents, OFX::BitDepthEnum* bitDepth, int* rowBytes)
+    {
+        *pixelData = img->getPixelData();
+        *bounds = img->getBounds();
+        *pixelComponents = img->getPixelComponents();
+        *bitDepth = img->getPixelDepth();
+        *rowBytes = img->getRowBytes();
+    }
+
+    inline void
+    getImageData(const OFX::Image* img, const void** pixelData, OfxRectI* bounds, OFX::PixelComponentEnum* pixelComponents, OFX::BitDepthEnum* bitDepth, int* rowBytes)
+    {
+        *pixelData = img->getPixelData();
+        *bounds = img->getBounds();
+        *pixelComponents = img->getPixelComponents();
+        *bitDepth = img->getPixelDepth();
+        *rowBytes = img->getRowBytes();
+    }
+
     inline
     int getPixelBytes(OFX::PixelComponentEnum pixelComponents,
                       OFX::BitDepthEnum bitDepth)
