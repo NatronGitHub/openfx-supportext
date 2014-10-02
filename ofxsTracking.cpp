@@ -45,6 +45,11 @@
 #include <GL/gl.h>
 #endif
 
+#define kSupportsTiles 1
+#define kSupportsMultiResolution 1
+#define kSupportsRenderScale 1
+#define kRenderThreadSafety eRenderFullySafe
+
 #define POINT_SIZE 5
 #define POINT_TOLERANCE 6
 #define HANDLE_SIZE 6
@@ -185,17 +190,17 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
     desc.setSupportsMultipleClipPARs(false);
     
     // support multithread (anyway, the tracker always returns identity)
-    desc.setRenderThreadSafety(eRenderFullySafe);
+    desc.setRenderThreadSafety(kRenderThreadSafety);
     
     // support tiles (anyway, the tracker always returns identity)
-    desc.setSupportsTiles(true);
+    desc.setSupportsTiles(kSupportsTiles);
     
     // in order to support render scale, render() must take into account the pixelaspectratio and the renderscale
     // and scale the transform appropriately.
     // All other functions are usually in canonical coordinates.
     
     ///We support multi-resolution (which does not mean we support render scale)
-    desc.setSupportsMultiResolution(true);
+    desc.setSupportsMultiResolution(kSupportsMultiResolution);
     
 
 }
@@ -214,7 +219,7 @@ OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX:
     
     ///we do temporal clip access
     srcClip->setTemporalClipAccess(true);
-    srcClip->setSupportsTiles(true);
+    srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
     srcClip->setOptional(false);
     
@@ -223,7 +228,7 @@ OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX:
     dstClip->addSupportedComponent(ePixelComponentRGBA);
     dstClip->addSupportedComponent(ePixelComponentRGB);
     dstClip->addSupportedComponent(ePixelComponentAlpha);
-    dstClip->setSupportsTiles(true);
+    dstClip->setSupportsTiles(kSupportsTiles);
     
     
     // make some pages and to things in

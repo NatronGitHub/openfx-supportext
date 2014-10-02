@@ -41,6 +41,11 @@
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsMerging.h"
 
+#define kSupportsTiles 1
+#define kSupportsMultiResolution 1
+#define kSupportsRenderScale 1
+#define kRenderThreadSafety eRenderFullySafe
+
 using namespace OFX;
 
 // It would be nice to be able to cache the set of transforms (with motion blur) used to compute the
@@ -868,17 +873,17 @@ void OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked)
     // this should be true for all geometric transforms
     desc.setRenderTwiceAlways(true);
     desc.setSupportsMultipleClipPARs(false);
-    desc.setRenderThreadSafety(eRenderFullySafe);
+    desc.setRenderThreadSafety(kRenderThreadSafety);
 
     // Transform3x3-GENERIC
 
     // in order to support tiles, the transform plugin must implement the getRegionOfInterest function
-    desc.setSupportsTiles(true);
+    desc.setSupportsTiles(kSupportsTiles);
 
     // in order to support multiresolution, render() must take into account the pixelaspectratio and the renderscale
     // and scale the transform appropriately.
     // All other functions are usually in canonical coordinates.
-    desc.setSupportsMultiResolution(true);
+    desc.setSupportsMultiResolution(kSupportsMultiResolution);
 
 #ifdef OFX_EXTENSIONS_NUKE
     if (!masked) {
@@ -905,7 +910,7 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
     srcClip->addSupportedComponent(ePixelComponentRGB);
     srcClip->addSupportedComponent(ePixelComponentAlpha);
     srcClip->setTemporalClipAccess(false);
-    srcClip->setSupportsTiles(true);
+    srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
 
     if (masked && (context == eContextGeneral || context == eContextPaint)) {
@@ -919,7 +924,7 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
         if (context == eContextGeneral) {
             maskClip->setOptional(true);
         }
-        maskClip->setSupportsTiles(true);
+        maskClip->setSupportsTiles(kSupportsTiles);
         maskClip->setIsMask(true); // we are a mask input
     }
 
@@ -928,7 +933,7 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
     dstClip->addSupportedComponent(ePixelComponentRGBA);
     dstClip->addSupportedComponent(ePixelComponentRGB);
     dstClip->addSupportedComponent(ePixelComponentAlpha);
-    dstClip->setSupportsTiles(true);
+    dstClip->setSupportsTiles(kSupportsTiles);
 
 
     // make some pages and to things in
