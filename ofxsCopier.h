@@ -84,14 +84,14 @@ public:
 };
 
 // be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int nComponents, int srcMaxValue, class DSTPIX, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierUnPremult : public OFX::PixelProcessorFilterBase {
 public:
     // ctor
     PixelCopierUnPremult(OFX::ImageEffect &instance)
     : OFX::PixelProcessorFilterBase(instance)
     {
-        assert(nComponents == 3 || nComponents == 4);
+        assert((srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4));
     }
 
     // and do some processing
@@ -108,27 +108,27 @@ public:
 
             for (int x = procWindow.x1; x < procWindow.x2; x++) {
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
-                ofxsUnPremult<SRCPIX, nComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
-                for (int c = 0; c < nComponents; ++c) {
+                ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
+                for (int c = 0; c < dstNComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
                     dstPix[c] = DSTPIX(ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue));
                 }
                 // increment the dst pixel
-                dstPix += nComponents;
+                dstPix += dstNComponents;
             }
         }
     }
 };
 
 // be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int nComponents, int srcMaxValue, class DSTPIX, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremult : public OFX::PixelProcessorFilterBase {
 public:
     // ctor
     PixelCopierPremult(OFX::ImageEffect &instance)
     : OFX::PixelProcessorFilterBase(instance)
     {
-        assert(nComponents == 3 || nComponents == 4);
+        assert((srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4));
     }
 
     // and do some processing
@@ -145,34 +145,34 @@ public:
 
             for (int x = procWindow.x1; x < procWindow.x2; x++) {
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
-                ofxsPremult<SRCPIX, nComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
-                for (int c = 0; c < nComponents; ++c) {
+                ofxsPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
+                for (int c = 0; c < dstNComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
                     dstPix[c] = DSTPIX(ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue));
                 }
                 // increment the dst pixel
-                dstPix += nComponents;
+                dstPix += dstNComponents;
             }
         }
     }
 };
 
 // template to do the RGBA processing
-template <class SRCPIX, int nComponents, int srcMaxValue, class DSTPIX, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremultMaskMix : public OFX::PixelProcessorFilterBase {
 public:
     // ctor
     PixelCopierPremultMaskMix(OFX::ImageEffect &instance)
     : OFX::PixelProcessorFilterBase(instance)
     {
-        assert(nComponents == 3 || nComponents == 4);
+        assert((srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4));
     }
 
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
         float unpPix[4];
-        if (nComponents == 3) {
+        if (srcNComponents == 3) {
             unpPix[3] = 0.;
         }
         for(int y = procWindow.y1; y < procWindow.y2; ++y) {
@@ -185,12 +185,12 @@ public:
 
             for (int x = procWindow.x1; x < procWindow.x2; x++) {
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
-                for (int c = 0; c < nComponents; ++c) {
+                for (int c = 0; c < srcNComponents; ++c) {
                     unpPix[c] = srcPix[c] / (double)srcMaxValue;
                 }
-                ofxsPremultMaskMixPix<DSTPIX, nComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, srcPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, srcPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                 // increment the dst pixel
-                dstPix += nComponents;
+                dstPix += dstNComponents;
             }
         }
     }
