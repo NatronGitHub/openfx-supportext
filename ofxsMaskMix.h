@@ -267,9 +267,9 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             }
         }
     } else {
-        if (domask && maskImg) {
+        if (domask) {
             // we do, get the pixel from the mask
-            maskPix = (const PIX *)maskImg->getPixelAddress(x, y);
+            maskPix = maskImg ? (const PIX *)maskImg->getPixelAddress(x, y) : 0;
             // figure the scale factor from that pixel
             if (maskPix == 0) {
                 maskScale = maskInvert ? 1. : 0.;
