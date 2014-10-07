@@ -47,7 +47,7 @@
 
 #define kSupportsTiles 1
 #define kSupportsMultiResolution 1
-#define kSupportsRenderScale 1
+#define kSupportsRenderScale 0 // we need full-res images
 #define kRenderThreadSafety eRenderFullySafe
 
 #define POINT_SIZE 5
@@ -55,8 +55,6 @@
 #define HANDLE_SIZE 6
 
 using namespace OFX;
-
-#define kSupportsRenderScale 0 // we need full-res images
 
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 : ImageEffect(handle)
