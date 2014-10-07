@@ -198,6 +198,7 @@ public:
 };
 
 // same as PixelCopierPremultMaskMix but get the Alpha channel from original image, and premultiply by it (useful for effects that act only on RGB, such as SmoothCImg)
+// note that the original image must have the same BitDepth and Components as dstImg
 template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremultOrigMaskMix : public OFX::PixelProcessorFilterBase {
 public:
