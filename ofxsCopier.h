@@ -197,46 +197,6 @@ public:
     }
 };
 
-// same as PixelCopierPremultMaskMix but get the Alpha channel from original image, and premultiply by it (useful for effects that act only on RGB, such as SmoothCImg)
-// note that the original image must have the same BitDepth and Components as dstImg
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
-class PixelCopierPremultOrigMaskMix : public OFX::PixelProcessorFilterBase {
-public:
-    // ctor
-    PixelCopierPremultOrigMaskMix(OFX::ImageEffect &instance)
-    : OFX::PixelProcessorFilterBase(instance)
-    {
-        assert((srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4));
-    }
-
-    // and do some processing
-    void multiThreadProcessImages(OfxRectI procWindow)
-    {
-        float unpPix[4];
-
-        for(int y = procWindow.y1; y < procWindow.y2; ++y) {
-            if(_effect.abort()) {
-                break;
-            }
-
-            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
-            assert(dstPix);
-
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
-                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
-                for (int c = 0; c < 3; ++c) {
-                    unpPix[c] = srcPix[c] / (double)srcMaxValue;
-                }
-                unpPix[3] = origPix[3] / (double)dstMaxValue;
-                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
-                // increment the dst pixel
-                dstPix += dstNComponents;
-            }
-        }
-    }
-};
-
 template <class PIX, int nComponents>
 class BlackFiller : public OFX::PixelProcessorFilterBase {
 public:
