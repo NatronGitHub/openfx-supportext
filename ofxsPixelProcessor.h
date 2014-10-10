@@ -202,9 +202,17 @@ namespace OFX {
         /** @brief called to process everything */
         virtual void process(void)
         {
+            assert(_dstPixelData &&
+                   _dstBounds.x1 <= _renderWindow.x1 && _renderWindow.x2 <= _dstBounds.x2 &&
+                   _dstBounds.y1 <= _renderWindow.y1 && _renderWindow.y2 <= _dstBounds.y2);
             // is it OK ?
-            if(!_dstPixelData || (_renderWindow.x2 - _renderWindow.x1 == 0 && _renderWindow.y2 - _renderWindow.y1))
+            if(!(_dstPixelData &&
+                 _dstBounds.x1 <= _renderWindow.x1 && _renderWindow.x2 <= _dstBounds.x2 &&
+                 _dstBounds.y1 <= _renderWindow.y1 && _renderWindow.y2 <= _dstBounds.y2) ||
+               (_renderWindow.x1 >= _renderWindow.x2) ||
+               (_renderWindow.y1 >= _renderWindow.y2)) {
                 return;
+            }
 
             // call the pre MP pass
             preProcess();
