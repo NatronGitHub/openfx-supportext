@@ -614,7 +614,7 @@ namespace MergeImages2D {
         bbox->x1 = std::min(a.x1, b.x1);
         bbox->x2 = std::max(bbox->x1, std::max(a.x2, b.x2));
         bbox->y1 = std::min(a.y1, b.y1);
-        bbox->y2 = std::max(bbox->x1, std::max(a.y2, b.y2));
+        bbox->y2 = std::max(bbox->y1, std::max(a.y2, b.y2));
     }
 
 
