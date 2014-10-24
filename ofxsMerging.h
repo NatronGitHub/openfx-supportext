@@ -399,7 +399,7 @@ namespace MergeImages2D {
             double An = A/(double)maxValue;
             double Bn = B/(double)maxValue;
 
-            return std::max(0., maxValue * (1 - std::sqrt(1. - An) / Bn));
+            return std::max(0., maxValue * (1 - std::sqrt(std::max(0., 1. - An)) / Bn));
         }
     }
 
