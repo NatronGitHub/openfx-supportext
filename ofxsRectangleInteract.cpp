@@ -56,6 +56,16 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
     return std::fabs(p.x-x) <= tolerance*pscale.x &&  std::fabs(p.y-y) <= tolerance*pscale.y;
 }
 
+// round to the closest int, 1/10 int, etc
+// this make parameter editing easier
+// pscale is args.pixelScale.x / args.renderScale.x;
+// pscale10 is the power of 10 below pscale
+static double fround(double val, double pscale)
+{
+    double pscale10 = std::pow(10.,std::floor(std::log10(pscale)));
+    return pscale10 * std::floor(val/pscale10 + 0.5);
+}
+
 static void drawPoint(bool draw, double x, double y, RectangleInteract::DrawState id, RectangleInteract::DrawState ds, int l)
 {
     if (draw) {
@@ -388,12 +398,17 @@ bool RectangleInteract::penDown(const OFX::PenArgs &args)
     return didSomething;
 }
 
-bool RectangleInteract::penUp(const OFX::PenArgs &/*args*/)
+bool RectangleInteract::penUp(const OFX::PenArgs &args)
 {
     bool didSmthing = false;
     if (_ms != eIdle) {
-        _btmLeft->setValue(_btmLeftDragPos.x, _btmLeftDragPos.y);
-        _size->setValue(_sizeDrag.x, _sizeDrag.y);
+        // round newx/y to the closest int, 1/10 int, etc
+        // this make parameter editing easier
+        OfxPointD pscale;
+        pscale.x = args.pixelScale.x / args.renderScale.x;
+        pscale.y = args.pixelScale.y / args.renderScale.y;
+        _btmLeft->setValue(fround(_btmLeftDragPos.x, pscale.x), fround(_btmLeftDragPos.y, pscale.y));
+        _size->setValue(fround(_sizeDrag.x, pscale.x), fround(_sizeDrag.y, pscale.x));
         didSmthing = true;
     }
     _ms = eIdle;
