@@ -736,7 +736,7 @@ namespace MergeImages2D {
                 double par,
                 OfxPointD *p_canonical)
     {
-        p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x / par;
+        p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
         p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
     }
 
