@@ -53,7 +53,7 @@ public:
                 if (x1 < x2 && procWindow.x1 <= x1 && x2 <= procWindow.x2) {
                     const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, y);
                     assert(srcPix);
-                    std::memcpy(dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - 1));
+                    std::memcpy(dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1));
                     dstPix += nComponents * (x2 - x1);
                 }
                 // end of line may be black
