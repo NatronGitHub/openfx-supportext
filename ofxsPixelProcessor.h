@@ -228,7 +228,7 @@ namespace OFX {
         void* getDstPixelAddress(int x, int y) const
         {
             // are we in the image bounds
-            if(x < _dstBounds.x1 || x >= _dstBounds.x2 || y < _dstBounds.y1 || y >= _dstBounds.y2 || _dstPixelBytes == 0)
+            if(!_dstPixelData || x < _dstBounds.x1 || x >= _dstBounds.x2 || y < _dstBounds.y1 || y >= _dstBounds.y2 || _dstPixelBytes == 0)
                 return 0;
 
             char *pix = (char *) (((char *) _dstPixelData) + (size_t)(y - _dstBounds.y1) * _dstRowBytes);
@@ -330,8 +330,9 @@ namespace OFX {
         const void* getSrcPixelAddress(int x, int y) const
         {
             // are we in the image bounds
-            if(x < _srcBounds.x1 || x >= _srcBounds.x2 || y < _srcBounds.y1 || y >= _srcBounds.y2 || _srcPixelBytes == 0)
+            if (!_srcPixelData  || x < _srcBounds.x1 || x >= _srcBounds.x2 || y < _srcBounds.y1 || y >= _srcBounds.y2 || _srcPixelBytes == 0) {
                 return 0;
+            }
 
             char *pix = (char *) (((char *) _srcPixelData) + (size_t)(y - _srcBounds.y1) * _srcRowBytes);
             pix += (x - _srcBounds.x1) * _srcPixelBytes;

@@ -39,9 +39,28 @@ public:
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
             assert(dstPix);
 
-            const PIX *srcPix = (const PIX *) getSrcPixelAddress(procWindow.x1, y);
-            assert(srcPix);
-            std::memcpy(dstPix, srcPix, rowBytes);
+            if (y < _srcBounds.y1 || _srcBounds.y2 <= y) {
+                std::memset(dstPix, 0, rowBytes);
+            } else {
+                int x1 = std::max(_srcBounds.x1, procWindow.x1);
+                int x2 = std::min(_srcBounds.x2, procWindow.x2);
+                // start of line may be black
+                if (procWindow.x1 < x1) {
+                    std::memset(dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1));
+                    dstPix += nComponents * (x1 - procWindow.x1);
+                }
+                // then, copy the relevant fraction of src
+                if (x1 < x2 && procWindow.x1 <= x1 && x2 <= procWindow.x2) {
+                    const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, y);
+                    assert(srcPix);
+                    std::memcpy(dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - 1));
+                    dstPix += nComponents * (x2 - x1);
+                }
+                // end of line may be black
+                if (x2 < procWindow.x2) {
+                    std::memset(dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2));
+                }
+            }
         }
     }
 };
@@ -187,7 +206,7 @@ public:
                 const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
                 for (int c = 0; c < srcNComponents; ++c) {
-                    unpPix[c] = srcPix[c] / (double)srcMaxValue;
+                    unpPix[c] = (srcPix ? (srcPix[c] / (double)srcMaxValue) : 0.);
                 }
                 ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                 // increment the dst pixel
