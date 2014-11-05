@@ -273,6 +273,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(-15,-15);
+        param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -287,6 +288,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(15, 15);
+        param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //innerTopRight->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -301,6 +303,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(-25,-25);
+        param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -315,6 +318,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(25, 25);
+        param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
