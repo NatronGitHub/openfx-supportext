@@ -148,7 +148,7 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &a
         _format->getValue(format_i);
         double par;
         size_t w,h;
-        getFormatResolution((OFX::EParamFormat)index, &w, &h, &par);
+        getFormatResolution((OFX::EParamFormat)format_i, &w, &h, &par);
         rod.x1 = rod.y1 = 0;
         rod.x2 = w;
         rod.y2 = h;
@@ -156,10 +156,16 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &a
     case eGeneratorTypeSize: {
         _size->getValue(rod.x2, rod.y2);
         _btmLeft->getValue(rod.x1, rod.y1);
+        rod.x2 += rod.x1;
+        rod.y2 += rod.y1;
     }   return true;
     case eGeneratorTypeProject: {
-        getProjectExtent(rod.x2,rod.y2);
-        getProjectOffset(rod.x1,rod.y1);
+        OfxPointD ext = getProjectExtent();
+        OfxPointD off = getProjectOffset();
+        rod.x1 = off.x;
+        rod.x2 = ext.x;
+        rod.y1 = off.y;
+        rod.y2 = ext.y;
     }    return true;
     default:
         return false;
@@ -178,7 +184,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     case eGeneratorTypeFormat: {
         //specific output format
         int index;
-        format_->getValue(index);
+        _format->getValue(index);
         size_t w,h;
         getFormatResolution((OFX::EParamFormat)index, &w, &h, &par);
     }   break;
@@ -196,7 +202,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     clipPreferences.setPixelAspectRatio(*dstClip_, par);
 }
 
-class GeneratorInteract : public RectangleInteract
+class GeneratorInteract : public OFX::RectangleInteract
 {
 public:
 
@@ -219,7 +225,9 @@ private:
 
     virtual void aboutToCheckInteractivity(OfxTime /*time*/)  OVERRIDE FINAL
     {
-        _type->getValue(_generatorType);
+        int type;
+        _type->getValue(type);
+        _generatorType = (GeneratorTypeEnum)type;
     }
 
     virtual bool allowTopLeftInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
@@ -280,7 +288,7 @@ GeneratorInteract::penUp(const OFX::PenArgs &args)
 
 namespace OFX {
 
-class GeneratorOverlayDescriptor : public DefaultEffectOverlayDescriptor<CropOverlayDescriptor, CropInteract> {};
+class GeneratorOverlayDescriptor : public DefaultEffectOverlayDescriptor<GeneratorOverlayDescriptor, GeneratorInteract> {};
 
 void generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
 {
