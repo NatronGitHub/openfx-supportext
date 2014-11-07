@@ -39,9 +39,28 @@ public:
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
             assert(dstPix);
 
-            const PIX *srcPix = (const PIX *) getSrcPixelAddress(procWindow.x1, y);
-            assert(srcPix);
-            std::memcpy(dstPix, srcPix, rowBytes);
+            if (y < _srcBounds.y1 || _srcBounds.y2 <= y) {
+                std::memset(dstPix, 0, rowBytes);
+            } else {
+                int x1 = std::max(_srcBounds.x1, procWindow.x1);
+                int x2 = std::min(_srcBounds.x2, procWindow.x2);
+                // start of line may be black
+                if (procWindow.x1 < x1) {
+                    std::memset(dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1));
+                    dstPix += nComponents * (x1 - procWindow.x1);
+                }
+                // then, copy the relevant fraction of src
+                if (x1 < x2 && procWindow.x1 <= x1 && x2 <= procWindow.x2) {
+                    const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, y);
+                    assert(srcPix);
+                    std::memcpy(dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1));
+                    dstPix += nComponents * (x2 - x1);
+                }
+                // end of line may be black
+                if (x2 < procWindow.x2) {
+                    std::memset(dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2));
+                }
+            }
         }
     }
 };
@@ -187,48 +206,8 @@ public:
                 const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
                 for (int c = 0; c < srcNComponents; ++c) {
-                    unpPix[c] = srcPix[c] / (double)srcMaxValue;
+                    unpPix[c] = (srcPix ? (srcPix[c] / (double)srcMaxValue) : 0.);
                 }
-                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
-                // increment the dst pixel
-                dstPix += dstNComponents;
-            }
-        }
-    }
-};
-
-// same as PixelCopierPremultMaskMix but get the Alpha channel from original image, and premultiply by it (useful for effects that act only on RGB, such as SmoothCImg)
-// note that the original image must have the same BitDepth and Components as dstImg
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
-class PixelCopierPremultOrigMaskMix : public OFX::PixelProcessorFilterBase {
-public:
-    // ctor
-    PixelCopierPremultOrigMaskMix(OFX::ImageEffect &instance)
-    : OFX::PixelProcessorFilterBase(instance)
-    {
-        assert((srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4));
-    }
-
-    // and do some processing
-    void multiThreadProcessImages(OfxRectI procWindow)
-    {
-        float unpPix[4];
-
-        for(int y = procWindow.y1; y < procWindow.y2; ++y) {
-            if(_effect.abort()) {
-                break;
-            }
-
-            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
-            assert(dstPix);
-
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
-                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
-                for (int c = 0; c < 3; ++c) {
-                    unpPix[c] = srcPix[c] / (double)srcMaxValue;
-                }
-                unpPix[3] = origPix[3] / (double)dstMaxValue;
                 ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += dstNComponents;

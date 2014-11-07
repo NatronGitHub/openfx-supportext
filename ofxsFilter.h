@@ -482,7 +482,7 @@ ofxsFilterInterpolate2D(double fx, double fy, //!< coordinates of the pixel to b
 
 
 inline void
-ofxsFilterExpandRoD(OFX::ImageEffect* effect, double pixelAspectRatio, const OfxPointD& renderScale, bool blackOutside, OfxRectD *rod)
+ofxsFilterExpandRoD(OFX::ImageEffect* /*effect*/, double pixelAspectRatio, const OfxPointD& renderScale, bool blackOutside, OfxRectD *rod)
 {
     // No need to round things up here, we must give the *actual* RoD
 

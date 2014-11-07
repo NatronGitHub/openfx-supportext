@@ -60,32 +60,32 @@ namespace OFX {
 class RectangleInteract : public OFX::OverlayInteract
 {
 public:
-    enum MouseState
+    enum MouseStateEnum
     {
-        eIdle = 0,
-        eDraggingTopLeft,
-        eDraggingTopRight,
-        eDraggingBtmLeft,
-        eDraggingBtmRight,
-        eDraggingCenter,
-        eDraggingTopMid,
-        eDraggingMidRight,
-        eDraggingBtmMid,
-        eDraggingMidLeft
+        eMouseStateIdle = 0,
+        eMouseStateDraggingTopLeft,
+        eMouseStateDraggingTopRight,
+        eMouseStateDraggingBtmLeft,
+        eMouseStateDraggingBtmRight,
+        eMouseStateDraggingCenter,
+        eMouseStateDraggingTopMid,
+        eMouseStateDraggingMidRight,
+        eMouseStateDraggingBtmMid,
+        eMouseStateDraggingMidLeft
     };
     
-    enum DrawState
+    enum DrawStateEnum
     {
-        eInactive = 0,
-        eHoveringTopLeft,
-        eHoveringTopRight,
-        eHoveringBtmLeft,
-        eHoveringBtmRight,
-        eHoveringCenter,
-        eHoveringTopMid,
-        eHoveringMidRight,
-        eHoveringBtmMid,
-        eHoveringMidLeft
+        eDrawStateInactive = 0,
+        eDrawStateHoveringTopLeft,
+        eDrawStateHoveringTopRight,
+        eDrawStateHoveringBtmLeft,
+        eDrawStateHoveringBtmRight,
+        eDrawStateHoveringCenter,
+        eDrawStateHoveringTopMid,
+        eDrawStateHoveringMidRight,
+        eDrawStateHoveringBtmMid,
+        eDrawStateHoveringMidLeft
     };
     
 public:
@@ -93,8 +93,8 @@ public:
     RectangleInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
     : OFX::OverlayInteract(handle)
     , _lastMousePos()
-    , _ms(eIdle)
-    , _ds(eInactive)
+    , _ms(eMouseStateIdle)
+    , _ds(eDrawStateInactive)
     , _btmLeft(0)
     , _size(0)
     {
@@ -146,8 +146,8 @@ protected:
 private:
     
     OfxPointD _lastMousePos;
-    MouseState _ms;
-    DrawState _ds;
+    MouseStateEnum _ms;
+    DrawStateEnum _ds;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OfxPointD _btmLeftDragPos;

@@ -167,52 +167,52 @@ void genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
 class TrackerRegionInteract : public OFX::OverlayInteract
 {
     
-    enum MouseState
+    enum MouseStateEnum
     {
-        eIdle = 0,
-        eDraggingCenter,
+        eMouseStateIdle = 0,
+        eMouseStateDraggingCenter,
 
-        eDraggingInnerTopLeft,
-        eDraggingInnerTopRight,
-        eDraggingInnerBtmLeft,
-        eDraggingInnerBtmRight,
-        eDraggingInnerTopMid,
-        eDraggingInnerMidRight,
-        eDraggingInnerBtmMid,
-        eDraggingInnerMidLeft,
+        eMouseStateDraggingInnerTopLeft,
+        eMouseStateDraggingInnerTopRight,
+        eMouseStateDraggingInnerBtmLeft,
+        eMouseStateDraggingInnerBtmRight,
+        eMouseStateDraggingInnerTopMid,
+        eMouseStateDraggingInnerMidRight,
+        eMouseStateDraggingInnerBtmMid,
+        eMouseStateDraggingInnerMidLeft,
         
-        eDraggingOuterTopLeft,
-        eDraggingOuterTopRight,
-        eDraggingOuterBtmLeft,
-        eDraggingOuterBtmRight,
-        eDraggingOuterTopMid,
-        eDraggingOuterMidRight,
-        eDraggingOuterBtmMid,
-        eDraggingOuterMidLeft
+        eMouseStateDraggingOuterTopLeft,
+        eMouseStateDraggingOuterTopRight,
+        eMouseStateDraggingOuterBtmLeft,
+        eMouseStateDraggingOuterBtmRight,
+        eMouseStateDraggingOuterTopMid,
+        eMouseStateDraggingOuterMidRight,
+        eMouseStateDraggingOuterBtmMid,
+        eMouseStateDraggingOuterMidLeft
     };
     
-    enum DrawState
+    enum DrawStateEnum
     {
-        eInactive = 0,
-        eHoveringCenter,
+        eDrawStateInactive = 0,
+        eDrawStateHoveringCenter,
 
-        eHoveringInnerTopLeft,
-        eHoveringInnerTopRight,
-        eHoveringInnerBtmLeft,
-        eHoveringInnerBtmRight,
-        eHoveringInnerTopMid,
-        eHoveringInnerMidRight,
-        eHoveringInnerBtmMid,
-        eHoveringInnerMidLeft,
+        eDrawStateHoveringInnerTopLeft,
+        eDrawStateHoveringInnerTopRight,
+        eDrawStateHoveringInnerBtmLeft,
+        eDrawStateHoveringInnerBtmRight,
+        eDrawStateHoveringInnerTopMid,
+        eDrawStateHoveringInnerMidRight,
+        eDrawStateHoveringInnerBtmMid,
+        eDrawStateHoveringInnerMidLeft,
         
-        eHoveringOuterTopLeft,
-        eHoveringOuterTopRight,
-        eHoveringOuterBtmLeft,
-        eHoveringOuterBtmRight,
-        eHoveringOuterTopMid,
-        eHoveringOuterMidRight,
-        eHoveringOuterBtmMid,
-        eHoveringOuterMidLeft
+        eDrawStateHoveringOuterTopLeft,
+        eDrawStateHoveringOuterTopRight,
+        eDrawStateHoveringOuterBtmLeft,
+        eDrawStateHoveringOuterBtmRight,
+        eDrawStateHoveringOuterTopMid,
+        eDrawStateHoveringOuterMidRight,
+        eDrawStateHoveringOuterBtmMid,
+        eDrawStateHoveringOuterMidLeft
     };
     
 public:
@@ -220,8 +220,8 @@ public:
     TrackerRegionInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
     : OFX::OverlayInteract(handle)
     , _lastMousePos()
-    , _ms(eIdle)
-    , _ds(eInactive)
+    , _ms(eMouseStateIdle)
+    , _ds(eDrawStateInactive)
     , _center(0)
     , _innerBtmLeft(0)
     , _innerTopRight(0)
@@ -264,8 +264,8 @@ private:
     bool isDraggingOuterPoint() const;
     
     OfxPointD _lastMousePos;
-    MouseState _ms;
-    DrawState _ds;
+    MouseStateEnum _ms;
+    DrawStateEnum _ds;
     
     OFX::Double2DParam* _center;
     

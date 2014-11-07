@@ -273,6 +273,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(-15,-15);
+        param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -287,6 +288,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(15, 15);
+        param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //innerTopRight->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -301,6 +303,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(-25,-25);
+        param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -315,6 +318,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX:
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(25, 25);
+        param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
@@ -375,7 +379,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc;
 
-    if (_ms != eIdle) {
+    if (_ms != eMouseStateIdle) {
         xi1 = _innerBtmLeftDragPos.x;
         yi1 = _innerBtmLeftDragPos.y;
         xi2 = _innerTopRightDragPos.x;
@@ -441,44 +445,44 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glBegin(GL_POINTS);
 
         ///draw center
-        if (_ds == eHoveringCenter || _ms == eDraggingCenter) {
+        if (_ds == eDrawStateHoveringCenter || _ms == eMouseStateDraggingCenter) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
         }
         glVertex2d(xc, yc);
         //////DRAWING INNER POINTS
-        if (_ds == eHoveringInnerBtmLeft || _ms == eDraggingInnerBtmLeft) {
+        if (_ds == eDrawStateHoveringInnerBtmLeft || _ms == eMouseStateDraggingInnerBtmLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yi1);
         }
-        if (_ds == eHoveringInnerBtmMid || _ms == eDraggingInnerBtmMid) {
+        if (_ds == eDrawStateHoveringInnerBtmMid || _ms == eMouseStateDraggingInnerBtmMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yi1);
         }
-        if (_ds == eHoveringInnerBtmRight || _ms == eDraggingInnerBtmRight) {
+        if (_ds == eDrawStateHoveringInnerBtmRight || _ms == eMouseStateDraggingInnerBtmRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yi1);
         }
-        if (_ds == eHoveringInnerMidLeft || _ms == eDraggingInnerMidLeft) {
+        if (_ds == eDrawStateHoveringInnerMidLeft || _ms == eMouseStateDraggingInnerMidLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yc);
         }
-        if (_ds == eHoveringInnerMidRight || _ms == eDraggingInnerMidRight) {
+        if (_ds == eDrawStateHoveringInnerMidRight || _ms == eMouseStateDraggingInnerMidRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yc);
         }
-        if (_ds == eHoveringInnerTopLeft || _ms == eDraggingInnerTopLeft) {
+        if (_ds == eDrawStateHoveringInnerTopLeft || _ms == eMouseStateDraggingInnerTopLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi1, yi2);
         }
 
-        if (_ds == eHoveringInnerTopMid || _ms == eDraggingInnerTopMid) {
+        if (_ds == eDrawStateHoveringInnerTopMid || _ms == eMouseStateDraggingInnerTopMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yi2);
         }
 
-        if (_ds == eHoveringInnerTopRight || _ms == eDraggingInnerTopRight) {
+        if (_ds == eDrawStateHoveringInnerTopRight || _ms == eMouseStateDraggingInnerTopRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xi2, yi2);
         }
@@ -488,36 +492,36 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 
         //////DRAWING OUTTER POINTS
 
-        if (_ds == eHoveringOuterBtmLeft || _ms == eDraggingOuterBtmLeft) {
+        if (_ds == eDrawStateHoveringOuterBtmLeft || _ms == eMouseStateDraggingOuterBtmLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yo1);
         }
-        if (_ds == eHoveringOuterBtmMid || _ms == eDraggingOuterBtmMid) {
+        if (_ds == eDrawStateHoveringOuterBtmMid || _ms == eMouseStateDraggingOuterBtmMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yo1);
         }
-        if (_ds == eHoveringOuterBtmRight || _ms == eDraggingOuterBtmRight) {
+        if (_ds == eDrawStateHoveringOuterBtmRight || _ms == eMouseStateDraggingOuterBtmRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yo1);
         }
-        if (_ds == eHoveringOuterMidLeft || _ms == eDraggingOuterMidLeft) {
+        if (_ds == eDrawStateHoveringOuterMidLeft || _ms == eMouseStateDraggingOuterMidLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yc);
         }
-        if (_ds == eHoveringOuterMidRight || _ms == eDraggingOuterMidRight) {
+        if (_ds == eDrawStateHoveringOuterMidRight || _ms == eMouseStateDraggingOuterMidRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yc);
         }
 
-        if (_ds == eHoveringOuterTopLeft || _ms == eDraggingOuterTopLeft) {
+        if (_ds == eDrawStateHoveringOuterTopLeft || _ms == eMouseStateDraggingOuterTopLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo1, yo2);
         }
-        if (_ds == eHoveringOuterTopMid || _ms == eDraggingOuterTopMid) {
+        if (_ds == eDrawStateHoveringOuterTopMid || _ms == eMouseStateDraggingOuterTopMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xc, yo2);
         }
-        if (_ds == eHoveringOuterTopRight || _ms == eDraggingOuterTopRight) {
+        if (_ds == eDrawStateHoveringOuterTopRight || _ms == eMouseStateDraggingOuterTopRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
             glVertex2d(xo2, yo2);
         }
@@ -530,7 +534,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         ///now show small lines at handle positions
         glBegin(GL_LINES);
 
-        if (_ds == eHoveringInnerMidLeft || _ms == eDraggingInnerMidLeft) {
+        if (_ds == eDrawStateHoveringInnerMidLeft || _ms == eMouseStateDraggingInnerMidLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -538,7 +542,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xi1, yc);
         glVertex2d(xi1 - handleSizeX, yc);
 
-        if (_ds == eHoveringInnerTopMid || _ms == eDraggingInnerTopMid) {
+        if (_ds == eDrawStateHoveringInnerTopMid || _ms == eMouseStateDraggingInnerTopMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -546,7 +550,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xc, yi2);
         glVertex2d(xc, yi2 + handleSizeY);
 
-        if (_ds == eHoveringInnerMidRight || _ms == eDraggingInnerMidRight) {
+        if (_ds == eDrawStateHoveringInnerMidRight || _ms == eMouseStateDraggingInnerMidRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -554,7 +558,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xi2, yc);
         glVertex2d(xi2 + handleSizeX, yc);
 
-        if (_ds == eHoveringInnerBtmMid || _ms == eDraggingInnerBtmMid) {
+        if (_ds == eDrawStateHoveringInnerBtmMid || _ms == eMouseStateDraggingInnerBtmMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -564,7 +568,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 
         //////DRAWING OUTTER HANDLES
 
-        if (_ds == eHoveringOuterMidLeft || _ms == eDraggingOuterMidLeft) {
+        if (_ds == eDrawStateHoveringOuterMidLeft || _ms == eMouseStateDraggingOuterMidLeft) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -572,7 +576,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xo1, yc);
         glVertex2d(xo1 - handleSizeX, yc);
 
-        if (_ds == eHoveringOuterTopMid || _ms == eDraggingOuterTopMid) {
+        if (_ds == eDrawStateHoveringOuterTopMid || _ms == eMouseStateDraggingOuterTopMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -580,7 +584,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xc, yo2);
         glVertex2d(xc, yo2 + handleSizeY);
 
-        if (_ds == eHoveringOuterMidRight || _ms == eDraggingOuterMidRight) {
+        if (_ds == eDrawStateHoveringOuterMidRight || _ms == eMouseStateDraggingOuterMidRight) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -588,7 +592,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xo2 + handleSizeX, yc);
         glVertex2d(xo2, yc);
 
-        if (_ds == eHoveringOuterBtmMid || _ms == eDraggingOuterBtmMid) {
+        if (_ds == eDrawStateHoveringOuterBtmMid || _ms == eMouseStateDraggingOuterBtmMid) {
             glColor3f(0.*l, 1.*l, 0.*l);
         } else {
             glColor3f(0.8*l, 0.8*l, 0.8*l);
@@ -642,68 +646,68 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     xo2 += xc;
     yo2 += yc;
 
-    bool lastStateWasHovered = _ds != eInactive;
+    bool lastStateWasHovered = _ds != eDrawStateInactive;
 
-    if (_ms == eIdle) {
+    if (_ms == eMouseStateIdle) {
         // test center first
         if (       isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringCenter;
+            _ds = eDrawStateHoveringCenter;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerBtmLeft;
+            _ds = eDrawStateHoveringInnerBtmLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi2, yi1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerBtmRight;
+            _ds = eDrawStateHoveringInnerBtmRight;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi1, yi2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerTopLeft;
+            _ds = eDrawStateHoveringInnerTopLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi2, yi2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerTopRight;
+            _ds = eDrawStateHoveringInnerTopRight;
             didSomething = true;
         } else if (isNearby(args.penPosition, xc,  yi1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerBtmMid;
+            _ds = eDrawStateHoveringInnerBtmMid;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi1, yc,  POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerMidLeft;
+            _ds = eDrawStateHoveringInnerMidLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xc,  yi2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerTopMid;
+            _ds = eDrawStateHoveringInnerTopMid;
             didSomething = true;
         } else if (isNearby(args.penPosition, xi2, yc,  POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringInnerMidRight;
+            _ds = eDrawStateHoveringInnerMidRight;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo1, yo1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterBtmLeft;
+            _ds = eDrawStateHoveringOuterBtmLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo2, yo1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterBtmRight;
+            _ds = eDrawStateHoveringOuterBtmRight;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo1, yo2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterTopLeft;
+            _ds = eDrawStateHoveringOuterTopLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo2, yo2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterTopRight;
+            _ds = eDrawStateHoveringOuterTopRight;
             didSomething = true;
         } else if (isNearby(args.penPosition, xc,  yo1, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterBtmMid;
+            _ds = eDrawStateHoveringOuterBtmMid;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo1, yc,  POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterMidLeft;
+            _ds = eDrawStateHoveringOuterMidLeft;
             didSomething = true;
         } else if (isNearby(args.penPosition, xc,  yo2, POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterTopMid;
+            _ds = eDrawStateHoveringOuterTopMid;
             didSomething = true;
         } else if (isNearby(args.penPosition, xo2, yc,  POINT_TOLERANCE, pscale)) {
-            _ds = eHoveringOuterMidRight;
+            _ds = eDrawStateHoveringOuterMidRight;
             didSomething = true;
         } else {
-            _ds = eInactive;
+            _ds = eDrawStateInactive;
         }
     }
     
     double multiplier = _controlDown ? 0 : 1;
-    if (_ms == eDraggingInnerBtmLeft) {
+    if (_ms == eMouseStateDraggingInnerBtmLeft) {
         _innerBtmLeftDragPos.x += delta.x;
         _innerBtmLeftDragPos.y += delta.y;
         _innerTopRightDragPos.x -= delta.x;
@@ -714,7 +718,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.x -= delta.x;
         _outerTopRightDragPos.y -= delta.y;
         didSomething = true;
-    } else if (_ms == eDraggingInnerTopLeft) {
+    } else if (_ms == eMouseStateDraggingInnerTopLeft) {
         _innerBtmLeftDragPos.x += delta.x;
         _innerBtmLeftDragPos.y -= delta.y;
     
@@ -727,7 +731,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y += delta.y;
         _outerTopRightDragPos.x -= delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingInnerTopRight) {
+    } else if (_ms == eMouseStateDraggingInnerTopRight) {
         _innerBtmLeftDragPos.x -= delta.x;
         _innerBtmLeftDragPos.y -= delta.y;
         
@@ -740,7 +744,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y += delta.y;
         _outerTopRightDragPos.x += delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingInnerBtmRight) {
+    } else if (_ms == eMouseStateDraggingInnerBtmRight) {
         _innerTopRightDragPos.y -= delta.y;
         _innerTopRightDragPos.x += delta.x;
         _innerBtmLeftDragPos.y += delta.y;
@@ -754,7 +758,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         
 
         didSomething = true;
-    } else if (_ms == eDraggingInnerTopMid) {
+    } else if (_ms == eMouseStateDraggingInnerTopMid) {
         _innerBtmLeftDragPos.y -= delta.y;
         _outerBtmLeftDragPos.y -= delta.y;
         
@@ -762,7 +766,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y += delta.y;
 
         didSomething = true;
-    } else if (_ms == eDraggingInnerMidRight) {
+    } else if (_ms == eMouseStateDraggingInnerMidRight) {
         _innerTopRightDragPos.x += delta.x;
         _outerTopRightDragPos.x += delta.x;
         _innerBtmLeftDragPos.x -= delta.x;
@@ -770,7 +774,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         
         
         didSomething = true;
-    } else if (_ms == eDraggingInnerBtmMid) {
+    } else if (_ms == eMouseStateDraggingInnerBtmMid) {
         _innerBtmLeftDragPos.y += delta.y;
         _innerTopRightDragPos.y -= delta.y;
         
@@ -778,20 +782,20 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y -= delta.y;
 
         didSomething = true;
-    } else if (_ms == eDraggingInnerMidLeft) {
+    } else if (_ms == eMouseStateDraggingInnerMidLeft) {
         _innerBtmLeftDragPos.x += delta.x;
         _innerTopRightDragPos.x -= delta.x;
         
         _outerBtmLeftDragPos.x += delta.x;
         _outerTopRightDragPos.x -= delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingOuterBtmLeft) {
+    } else if (_ms == eMouseStateDraggingOuterBtmLeft) {
         _outerBtmLeftDragPos.x += delta.x;
         _outerBtmLeftDragPos.y += delta.y;
         _outerTopRightDragPos.x -= multiplier * delta.x;
         _outerTopRightDragPos.y -= multiplier * delta.y;
         didSomething = true;
-    } else if (_ms == eDraggingOuterTopLeft) {
+    } else if (_ms == eMouseStateDraggingOuterTopLeft) {
         _outerBtmLeftDragPos.x += delta.x;
         if (!_controlDown) {
             _outerBtmLeftDragPos.y -= delta.y;
@@ -799,7 +803,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y += delta.y;
         _outerTopRightDragPos.x -= multiplier * delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingOuterTopRight) {
+    } else if (_ms == eMouseStateDraggingOuterTopRight) {
         if (!_controlDown) {
             _outerBtmLeftDragPos.x -= delta.x;
             _outerBtmLeftDragPos.y -= delta.y;
@@ -807,7 +811,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         _outerTopRightDragPos.y +=  delta.y;
         _outerTopRightDragPos.x +=  delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingOuterBtmRight) {
+    } else if (_ms == eMouseStateDraggingOuterBtmRight) {
         _outerTopRightDragPos.y -= multiplier * delta.y;
         _outerTopRightDragPos.x +=  delta.x;
         _outerBtmLeftDragPos.y += delta.y;
@@ -815,27 +819,27 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             _outerBtmLeftDragPos.x -= delta.x;
         }
         didSomething = true;
-    } else if (_ms == eDraggingOuterTopMid) {
+    } else if (_ms == eMouseStateDraggingOuterTopMid) {
         if (!_controlDown) {
             _outerBtmLeftDragPos.y -= delta.y;
         }
         _outerTopRightDragPos.y += delta.y;
         didSomething = true;
-    } else if (_ms == eDraggingOuterMidRight) {
+    } else if (_ms == eMouseStateDraggingOuterMidRight) {
         _outerTopRightDragPos.x +=  delta.x;
         if (!_controlDown) {
             _outerBtmLeftDragPos.x -= delta.x;
         }
         didSomething = true;
-    } else if (_ms == eDraggingOuterBtmMid) {
+    } else if (_ms == eMouseStateDraggingOuterBtmMid) {
         _outerBtmLeftDragPos.y += delta.y;
         _outerTopRightDragPos.y -= multiplier * delta.y;
         didSomething = true;
-    } else if (_ms == eDraggingOuterMidLeft) {
+    } else if (_ms == eMouseStateDraggingOuterMidLeft) {
         _outerBtmLeftDragPos.x += delta.x;
         _outerTopRightDragPos.x -= multiplier * delta.x;
         didSomething = true;
-    } else if (_ms == eDraggingCenter) {
+    } else if (_ms == eMouseStateDraggingCenter) {
         _centerDragPos.x += delta.x;
         _centerDragPos.y += delta.y;
         _innerBtmLeftDragPos.x += delta.x;
@@ -956,58 +960,58 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
 
     // test center first
     if (       isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingCenter;
+        _ms = eMouseStateDraggingCenter;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerBtmLeft;
+        _ms = eMouseStateDraggingInnerBtmLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi2, yi1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerBtmRight;
+        _ms = eMouseStateDraggingInnerBtmRight;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi1, yi2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerTopLeft;
+        _ms = eMouseStateDraggingInnerTopLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi2, yi2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerTopRight;
+        _ms = eMouseStateDraggingInnerTopRight;
         didSomething = true;
     } else if (isNearby(args.penPosition, xc,  yi1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerBtmMid;
+        _ms = eMouseStateDraggingInnerBtmMid;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi1, yc,  POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerMidLeft;
+        _ms = eMouseStateDraggingInnerMidLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xc,  yi2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerTopMid;
+        _ms = eMouseStateDraggingInnerTopMid;
         didSomething = true;
     } else if (isNearby(args.penPosition, xi2, yc,  POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingInnerMidRight;
+        _ms = eMouseStateDraggingInnerMidRight;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo1, yo1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterBtmLeft;
+        _ms = eMouseStateDraggingOuterBtmLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo2, yo1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterBtmRight;
+        _ms = eMouseStateDraggingOuterBtmRight;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo1, yo2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterTopLeft;
+        _ms = eMouseStateDraggingOuterTopLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo2, yo2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterTopRight;
+        _ms = eMouseStateDraggingOuterTopRight;
         didSomething = true;
     } else if (isNearby(args.penPosition, xc,  yo1, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterBtmMid;
+        _ms = eMouseStateDraggingOuterBtmMid;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo1, yc,  POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterMidLeft;
+        _ms = eMouseStateDraggingOuterMidLeft;
         didSomething = true;
     } else if (isNearby(args.penPosition, xc,  yo2, POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterTopMid;
+        _ms = eMouseStateDraggingOuterTopMid;
         didSomething = true;
     } else if (isNearby(args.penPosition, xo2, yc,  POINT_TOLERANCE, pscale)) {
-        _ms = eDraggingOuterMidRight;
+        _ms = eMouseStateDraggingOuterMidRight;
         didSomething = true;
     } else {
-        _ms = eIdle;
+        _ms = eMouseStateIdle;
     }
  
     
@@ -1030,38 +1034,38 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
 bool
 TrackerRegionInteract::isDraggingInnerPoint() const
 {
-    return _ms == eDraggingInnerTopLeft ||
-            _ms == eDraggingInnerTopRight ||
-            _ms == eDraggingInnerBtmLeft ||
-            _ms == eDraggingInnerBtmRight ||
-            _ms == eDraggingInnerTopMid ||
-            _ms == eDraggingInnerMidRight ||
-            _ms == eDraggingInnerBtmMid ||
-            _ms == eDraggingInnerMidLeft;
+    return _ms == eMouseStateDraggingInnerTopLeft ||
+            _ms == eMouseStateDraggingInnerTopRight ||
+            _ms == eMouseStateDraggingInnerBtmLeft ||
+            _ms == eMouseStateDraggingInnerBtmRight ||
+            _ms == eMouseStateDraggingInnerTopMid ||
+            _ms == eMouseStateDraggingInnerMidRight ||
+            _ms == eMouseStateDraggingInnerBtmMid ||
+            _ms == eMouseStateDraggingInnerMidLeft;
 }
 
 bool
 TrackerRegionInteract::isDraggingOuterPoint() const
 {
-    return _ms == eDraggingOuterTopLeft ||
-    _ms == eDraggingOuterTopRight ||
-    _ms == eDraggingOuterBtmLeft ||
-    _ms == eDraggingOuterBtmRight ||
-    _ms == eDraggingOuterTopMid ||
-    _ms == eDraggingOuterMidRight ||
-    _ms == eDraggingOuterBtmMid ||
-    _ms == eDraggingOuterMidLeft;
+    return _ms == eMouseStateDraggingOuterTopLeft ||
+    _ms == eMouseStateDraggingOuterTopRight ||
+    _ms == eMouseStateDraggingOuterBtmLeft ||
+    _ms == eMouseStateDraggingOuterBtmRight ||
+    _ms == eMouseStateDraggingOuterTopMid ||
+    _ms == eMouseStateDraggingOuterMidRight ||
+    _ms == eMouseStateDraggingOuterBtmMid ||
+    _ms == eMouseStateDraggingOuterMidLeft;
 }
 
 bool
 TrackerRegionInteract::penUp(const OFX::PenArgs &args)
 {
-    if (_ms == eIdle) {
+    if (_ms == eMouseStateIdle) {
         return false;
     }
     
     OfxPointD center;
-    if (_ms != eDraggingCenter) {
+    if (_ms != eMouseStateDraggingCenter) {
         _center->getValue(center.x, center.y);
     } else {
         center = _centerDragPos;
@@ -1091,11 +1095,11 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
         _outerTopRight->setValue(topRight.x, topRight.y);
     }
     
-    if (_ms == eDraggingCenter) {
+    if (_ms == eMouseStateDraggingCenter) {
         _center->setValueAtTime(args.time,_centerDragPos.x, _centerDragPos.y);
     }
 
-    _ms = eIdle;
+    _ms = eMouseStateIdle;
     return true;
 }
 

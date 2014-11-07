@@ -399,7 +399,7 @@ namespace MergeImages2D {
             double An = A/(double)maxValue;
             double Bn = B/(double)maxValue;
 
-            return std::max(0., maxValue * (1 - std::sqrt(1. - An) / Bn));
+            return std::max(0., maxValue * (1 - std::sqrt(std::max(0., 1. - An)) / Bn));
         }
     }
 
@@ -614,7 +614,7 @@ namespace MergeImages2D {
         bbox->x1 = std::min(a.x1, b.x1);
         bbox->x2 = std::max(bbox->x1, std::max(a.x2, b.x2));
         bbox->y1 = std::min(a.y1, b.y1);
-        bbox->y2 = std::max(bbox->x1, std::max(a.y2, b.y2));
+        bbox->y2 = std::max(bbox->y1, std::max(a.y2, b.y2));
     }
 
 
@@ -661,7 +661,8 @@ namespace MergeImages2D {
     }
 
     /**
-     * @brief Scales down the rectangle by the given power of 2, and return the smallest *enclosing* rectangle
+     * @brief Scales down the rectangle in pixel coordinates by the given power of 2, and return the smallest *enclosing* rectangle in pixel coordinates
+     * Never use this with canonical coordinates, or never round canonical coordinates to use this: use toPixelEnclosing instead.
      **/
     inline
     OfxRectI downscalePowerOfTwoSmallestEnclosing(const OfxRectI& r,unsigned int thisLevel)
@@ -704,6 +705,63 @@ namespace MergeImages2D {
     double scaleFromMipmapLevel(unsigned int level)
     {
         return 1./(1<<level);
+    }
+
+    inline void
+    toPixelEnclosing(const OfxRectD& regionOfInterest,
+                     const OfxPointD& renderScale,
+                     double par,
+                     OfxRectI *rect)
+    {
+        rect->x1 = std::floor(regionOfInterest.x1 * renderScale.x / par);
+        rect->y1 = std::floor(regionOfInterest.y1 * renderScale.y);
+        rect->x2 = std::ceil(regionOfInterest.x2 * renderScale.x / par);
+        rect->y2 = std::ceil(regionOfInterest.y2 * renderScale.y);
+    }
+
+    inline void
+    toPixel(const OfxPointD& p_canonical,
+            const OfxPointD& renderScale,
+            double par,
+            OfxPointI *p_pixel)
+    {
+        p_pixel->x = std::floor(p_canonical.x * renderScale.x / par);
+        p_pixel->y = std::floor(p_canonical.y * renderScale.y);
+    }
+
+    // transforms the middle of the given pixel to canonical coordinates
+    inline void
+    toCanonical(const OfxPointI& p_pixel,
+                const OfxPointD& renderScale,
+                double par,
+                OfxPointD *p_canonical)
+    {
+        p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
+        p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
+    }
+
+    inline void
+    toCanonical(const OfxRectI& rect,
+                const OfxPointD& renderScale,
+                double par,
+                OfxRectD *regionOfInterest)
+    {
+        regionOfInterest->x1 = rect.x1 * par / renderScale.x;
+        regionOfInterest->y1 = rect.y1 / renderScale.y;
+        regionOfInterest->x2 = rect.x2 * par / renderScale.x;
+        regionOfInterest->y2 = rect.y2 / renderScale.y;
+    }
+
+    inline void
+    enlargeRectI(const OfxRectI& rect,
+                 int delta_pix,
+                 const OfxRectI& bounds,
+                 OfxRectI* rectOut)
+    {
+        rectOut->x1 = std::max(bounds.x1, rect.x1 - delta_pix);
+        rectOut->x2 = std::min(bounds.x2, rect.x2 + delta_pix);
+        rectOut->y1 = std::max(bounds.y1, rect.y1 - delta_pix);
+        rectOut->y2 = std::min(bounds.y2, rect.y2 + delta_pix);
     }
 
 #ifndef M_LN2
