@@ -78,7 +78,7 @@ class PositionInteract : public OFX::OverlayInteract
 public:
     PositionInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
     : OFX::OverlayInteract(handle)
-    , _state(eInActive)
+    , _state(eMouseStateInactive)
     {
         _position = effect->fetchDouble2DParam(PositionInteractParam::name());
         assert(_position);
@@ -92,17 +92,27 @@ private:
     virtual bool penUp(const OFX::PenArgs &args);
 
 private:
-    enum StateEnum {
-        eInActive,
-        ePoised,
-        ePicked
+    enum MouseStateEnum {
+        eMouseStateInactive,
+        eMouseStatePoised,
+        eMouseStatePicked
     };
 
-    StateEnum _state;
+    MouseStateEnum _state;
     OFX::Double2DParam* _position;
+    OfxPointD _penPosition;
 
     double pointSize() const { return 5; }
     double pointTolerance() const { return 6; }
+    // round to the closest int, 1/10 int, etc
+    // this make parameter editing easier
+    // pscale is args.pixelScale.x / args.renderScale.x;
+    // pscale10 is the power of 10 below pscale
+    inline double fround(double val, double pscale)
+    {
+        double pscale10 = std::pow(10.,std::floor(std::log10(pscale)));
+        return pscale10 * std::floor(val/pscale10 + 0.5);
+    }
 };
 
 template <typename ParamName>
@@ -114,15 +124,19 @@ bool PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 
     OfxRGBColourF col;
     switch (_state) {
-        case eInActive : col.r = col.g = col.b = 0.8f; break;
-        case ePoised   : col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
-        case ePicked   : col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
+        case eMouseStateInactive : col.r = col.g = col.b = 0.8f; break;
+        case eMouseStatePoised   : col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
+        case eMouseStatePicked   : col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
     }
 
     OfxPointD pos;
-    _position->getValueAtTime(args.time, pos.x, pos.y);
-
+    if (_state == eMouseStatePicked) {
+        pos = _penPosition;
+    } else {
+        _position->getValueAtTime(args.time, pos.x, pos.y);
+    }
     glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glMatrixMode(GL_PROJECTION);
     glPointSize(pointSize());
 
     glPushMatrix();
@@ -165,16 +179,16 @@ bool PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
     OfxPointD penPos = args.penPosition;
 
     switch (_state) {
-        case eInActive:
-        case ePoised: {
+        case eMouseStateInactive:
+        case eMouseStatePoised: {
             // are we in the box, become 'poised'
-            StateEnum newState;
+            MouseStateEnum newState;
             if (std::fabs(penPos.x-pos.x) <= pointTolerance()*pscale.x &&
                 std::fabs(penPos.y-pos.y) <= pointTolerance()*pscale.y) {
-                newState = ePoised;
+                newState = eMouseStatePoised;
             }
             else {
-                newState = eInActive;
+                newState = eMouseStateInactive;
             }
 
             if (_state != newState) {
@@ -183,12 +197,12 @@ bool PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
             }
         }   break;
 
-        case ePicked: {
-            _position->setValue(penPos.x, penPos.y);
+        case eMouseStatePicked: {
+            _penPosition = args.penPosition;
             _effect->redrawOverlays();
         }   break;
     }
-    return _state != eInActive;
+    return _state != eMouseStateInactive;
 }
 
 template <typename ParamName>
@@ -198,13 +212,13 @@ bool PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
         return false;
     }
     penMotion(args);
-    if (_state == ePoised) {
-        _state = ePicked;
-        _position->setValue(args.penPosition.x, args.penPosition.y);
+    if (_state == eMouseStatePoised) {
+        _state = eMouseStatePicked;
+        _penPosition = args.penPosition;
         _effect->redrawOverlays();
     }
 
-    return _state == ePicked;
+    return _state == eMouseStatePicked;
 }
 
 template <typename ParamName>
@@ -213,8 +227,12 @@ bool PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     if (!_position) {
         return false;
     }
-    if (_state == ePicked) {
-        _state = ePoised;
+    if (_state == eMouseStatePicked) {
+        OfxPointD pscale;
+        pscale.x = args.pixelScale.x / args.renderScale.x;
+        pscale.y = args.pixelScale.y / args.renderScale.y;
+        _position->setValue(fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y));
+        _state = eMouseStatePoised;
         penMotion(args);
         _effect->redrawOverlays();
         return true;
