@@ -100,6 +100,7 @@ bool RectangleInteract::draw(const OFX::DrawArgs &args)
     double yc = y1 + h/2;
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glMatrixMode(GL_PROJECTION);
 
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
