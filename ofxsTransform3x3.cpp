@@ -233,6 +233,30 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor, const 
         if (invtransformsize == 1) {
             motionblur  = 0.;
         }
+        // compose with the input transform
+        if (!src->getTransformIsIdentity()) {
+            double srcTransform[9]; // transform to apply to the source image, in pixel coordinates, from source to destination
+            src->getTransform(srcTransform);
+            OFX::Matrix3x3 srcTransformMat;
+            srcTransformMat.a = srcTransform[0];
+            srcTransformMat.b = srcTransform[1];
+            srcTransformMat.c = srcTransform[2];
+            srcTransformMat.d = srcTransform[3];
+            srcTransformMat.e = srcTransform[4];
+            srcTransformMat.f = srcTransform[5];
+            srcTransformMat.g = srcTransform[6];
+            srcTransformMat.h = srcTransform[7];
+            srcTransformMat.i = srcTransform[8];
+            // invert it
+            double det = ofxsMatDeterminant(srcTransformMat);
+            if (det != 0.) {
+                OFX::Matrix3x3 srcTransformInverse = ofxsMatInverse(srcTransformMat, det);
+
+                for (size_t i = 0; i < invtransformsize; ++i) {
+                    invtransform[i] = srcTransformInverse * invtransform[i];
+                }
+            }
+        }
     }
 
     // auto ptr for the mask.
@@ -912,6 +936,7 @@ OFX::PageParamDescriptor * OFX::Transform3x3DescribeInContextBegin(OFX::ImageEff
     srcClip->setTemporalClipAccess(false);
     srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
+    srcClip->setCanTransform(true); // source images can have a transform attached
 
     if (masked && (context == eContextGeneral || context == eContextPaint)) {
         // GENERIC (MASKED)
