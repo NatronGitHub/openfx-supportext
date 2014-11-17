@@ -782,21 +782,30 @@ bool Transform3x3Plugin::getTransform(const TransformArguments &args, Clip * &tr
     if (!success) {
         return false;
     }
+    
+    
+    OFX::Matrix3x3 transformCanonical = invtransform;
+    // invert it
+    double det = ofxsMatDeterminant(invtransform);
+    if (det != 0.) {
+        transformCanonical = ofxsMatInverse(transformCanonical, det);
+    }
+    
     double pixelaspectratio = srcClip_->getPixelAspectRatio();
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
-    OFX::Matrix3x3 invtransformpixel = (OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
-                                        invtransform *
+    OFX::Matrix3x3 transformpixel = (OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
+                                        transformCanonical *
                                         OFX::ofxsMatPixelToCanonical(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded));
     transformClip = srcClip_;
-    transformMatrix[0] = invtransformpixel.a;
-    transformMatrix[1] = invtransformpixel.b;
-    transformMatrix[2] = invtransformpixel.c;
-    transformMatrix[3] = invtransformpixel.d;
-    transformMatrix[4] = invtransformpixel.e;
-    transformMatrix[5] = invtransformpixel.f;
-    transformMatrix[6] = invtransformpixel.g;
-    transformMatrix[7] = invtransformpixel.h;
-    transformMatrix[8] = invtransformpixel.i;
+    transformMatrix[0] = transformpixel.a;
+    transformMatrix[1] = transformpixel.b;
+    transformMatrix[2] = transformpixel.c;
+    transformMatrix[3] = transformpixel.d;
+    transformMatrix[4] = transformpixel.e;
+    transformMatrix[5] = transformpixel.f;
+    transformMatrix[6] = transformpixel.g;
+    transformMatrix[7] = transformpixel.h;
+    transformMatrix[8] = transformpixel.i;
     return true;
 }
 #endif
