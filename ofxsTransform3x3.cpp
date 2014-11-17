@@ -784,28 +784,28 @@ bool Transform3x3Plugin::getTransform(const TransformArguments &args, Clip * &tr
     }
     
     
-    OFX::Matrix3x3 transformCanonical = invtransform;
     // invert it
     double det = ofxsMatDeterminant(invtransform);
-    if (det != 0.) {
-        transformCanonical = ofxsMatInverse(transformCanonical, det);
+    if (det == 0.) {
+        return false; // no transform available, render as usual
     }
-    
+    OFX::Matrix3x3 transformCanonical = ofxsMatInverse(invtransform, det);
+
     double pixelaspectratio = srcClip_->getPixelAspectRatio();
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
-    OFX::Matrix3x3 transformpixel = (OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
-                                        transformCanonical *
-                                        OFX::ofxsMatPixelToCanonical(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded));
+    OFX::Matrix3x3 transformPixel = (OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
+                                     transformCanonical *
+                                     OFX::ofxsMatPixelToCanonical(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded));
     transformClip = srcClip_;
-    transformMatrix[0] = transformpixel.a;
-    transformMatrix[1] = transformpixel.b;
-    transformMatrix[2] = transformpixel.c;
-    transformMatrix[3] = transformpixel.d;
-    transformMatrix[4] = transformpixel.e;
-    transformMatrix[5] = transformpixel.f;
-    transformMatrix[6] = transformpixel.g;
-    transformMatrix[7] = transformpixel.h;
-    transformMatrix[8] = transformpixel.i;
+    transformMatrix[0] = transformPixel.a;
+    transformMatrix[1] = transformPixel.b;
+    transformMatrix[2] = transformPixel.c;
+    transformMatrix[3] = transformPixel.d;
+    transformMatrix[4] = transformPixel.e;
+    transformMatrix[5] = transformPixel.f;
+    transformMatrix[6] = transformPixel.g;
+    transformMatrix[7] = transformPixel.h;
+    transformMatrix[8] = transformPixel.i;
     return true;
 }
 #endif

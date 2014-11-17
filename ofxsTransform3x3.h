@@ -105,7 +105,8 @@ public:
     virtual bool getInverseTransformCanonical(double time, bool invert, OFX::Matrix3x3* invtransform) const = 0;
 
 
-
+    // The following functions override those is OFX::ImageEffect
+    
     // override the rod call
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
 
@@ -120,7 +121,7 @@ public:
 
 #ifdef OFX_EXTENSIONS_NUKE
     /** @brief recover a transform matrix from an effect */
-    virtual bool getTransform(const OFX::TransformArguments &args, OFX::Clip * &transformClip, double transformMatrix[9]);
+    virtual bool getTransform(const OFX::TransformArguments &args, OFX::Clip * &transformClip, double transformMatrix[9]) OVERRIDE;
 #endif
 
     // override changedParam. note that the derived class MUST explicitely call this method after handling its own parameter changes
