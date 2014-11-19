@@ -89,6 +89,7 @@ namespace OFX
         OfxTime last; //<! the last frame to track *from* (can be the same as first)
         bool forward; //<! tracking direction
         InstanceChangeReason reason;
+        OfxPointD renderScale;
     };
 
 class GenericTrackerPlugin : public OFX::ImageEffect

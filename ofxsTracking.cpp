@@ -110,9 +110,11 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
     if (!kSupportsRenderScale && (args.renderScale.x != 1. || args.renderScale.y != 1.)) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
-
+    
+    OFX::TrackArguments trackArgs;
+    trackArgs.renderScale = args.renderScale;
     if (paramName == kParamTrackingBackward) {
-        OFX::TrackArguments trackArgs;
+        
         trackArgs.first = args.time;
         double first,last;
         timeLineGetBounds(first, last);
@@ -123,21 +125,21 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
             trackRange(trackArgs);
         }
     } else if (paramName == kParamTrackingPrevious) {
-        OFX::TrackArguments trackArgs;
+        
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = false;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
     } else if (paramName == kParamTrackingNext) {
-        OFX::TrackArguments trackArgs;
+        
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = true;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
     } else if (paramName == kParamTrackingForward) {
-        OFX::TrackArguments trackArgs;
+        
         trackArgs.first = args.time;
         double first,last;
         timeLineGetBounds(first, last);
@@ -148,7 +150,6 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
             trackRange(trackArgs);
         }
     }
-    
 }
 
 bool
