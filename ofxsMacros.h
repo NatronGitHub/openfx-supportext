@@ -350,4 +350,10 @@ CLANG_DIAG_PRAGMA(ignored CLANG_DIAG_JOINSTR(-W,x))
  CLANG_DIAG_OFF(uninitialized)
  */
 
+#if COMPILER_SUPPORTS(CXX_OVERRIDE_CONTROL)
+// we want to use override & final, and get no warnings even if not compiling in c++11 mode
+CLANG_DIAG_OFF(c++11-extensions)
+GCC_DIAG_OFF(c++11-extensions)
+#endif
+
 #endif
