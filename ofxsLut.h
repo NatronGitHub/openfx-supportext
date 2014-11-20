@@ -50,6 +50,87 @@ namespace OFX {
     namespace Color {
         
         
+        /// numvals should be 256 for byte, 65536 for 16-bits, etc.
+        
+        /// maps 0-(numvals-1) to 0.-1.
+        template<int numvals>
+        float
+        intToFloat(int value)
+        {
+            return value / (float)(numvals - 1);
+        }
+        
+        /// maps °.-1. to 0-(numvals-1)
+        template<int numvals>
+        int
+        floatToInt(float value)
+        {
+            if (value <= 0) {
+                return 0;
+            } else if (value >= 1.) {
+                return numvals - 1;
+            }
+            
+            return value * (numvals - 1) + 0.5;
+        }
+        
+        /// maps 0x0-0xffff to 0x0-0xff
+        inline unsigned char
+        uint16ToChar(unsigned short quantum)
+        {
+            // see ScaleQuantumToChar() in ImageMagick's magick/quantum.h
+            
+            /* test:
+             for(int i=0; i < 0x10000; ++i) {
+             printf("%x -> %x,%x\n", i, uint16ToChar(i), floatToInt<256>(intToFloat<65536>(i)));
+             assert(uint16ToChar(i) == floatToInt<256>(intToFloat<65536>(i)));
+             }
+             */
+            return (unsigned char) ( ( (quantum + 128UL) - ( (quantum + 128UL) >> 8 ) ) >> 8 );
+        }
+        
+        /// maps 0x0-0xff to 0x0-0xffff
+        inline unsigned short
+        charToUint16(unsigned char quantum)
+        {
+            /* test:
+             for(int i=0; i < 0x100; ++i) {
+             printf("%x -> %x,%x\n", i, charToUint16(i), floatToInt<65536>(intToFloat<256>(i)));
+             assert(charToUint16(i) == floatToInt<65536>(intToFloat<256>(i)));
+             assert(i == uint16ToChar(charToUint16(i)));
+             }
+             */
+            return (unsigned short) ( (quantum << 8) | quantum );
+        }
+        
+        // maps 0x0-0xff00 to 0x0-0xff
+        inline unsigned char
+        uint8xxToChar(unsigned short quantum)
+        {
+            /* test:
+             for(int i=0; i < 0xff01; ++i) {
+             printf("%x -> %x,%x, err=%d\n", i, uint8xxToChar(i), floatToInt<256>(intToFloat<0xff01>(i)),i - charToUint8xx(uint8xxToChar(i)));
+             assert(uint8xxToChar(i) == floatToInt<256>(intToFloat<0xff01>(i)));
+             }
+             */
+            return (unsigned char) ( (quantum + 0x80) >> 8 );
+        }
+        
+        // maps 0x0-0xff to 0x0-0xff00
+        inline unsigned short
+        charToUint8xx(unsigned char quantum)
+        {
+            /* test:
+             for(int i=0; i < 0x100; ++i) {
+             printf("%x -> %x,%x\n", i, charToUint8xx(i), floatToInt<0xff01>(intToFloat<256>(i)));
+             assert(charToUint8xx(i) == floatToInt<0xff01>(intToFloat<256>(i)));
+             assert(i == uint8xxToChar(charToUint8xx(i)));
+             }
+             */
+            return (unsigned short) (quantum << 8);
+        }
+
+        
         
         /* @brief Converts a float ranging in [0 - 1.f] in the desired color-space to linear color-space also ranging in [0 - 1.f]*/
         typedef float (*fromColorSpaceFunctionV1)(float v);
@@ -659,85 +740,6 @@ namespace OFX {
         ///		if s == 0, then h = -1 (undefined)
         void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
         
-        /// numvals should be 256 for byte, 65536 for 16-bits, etc.
-        
-        /// maps 0-(numvals-1) to 0.-1.
-        template<int numvals>
-        float
-        intToFloat(int value)
-        {
-            return value / (float)(numvals - 1);
-        }
-        
-        /// maps °.-1. to 0-(numvals-1)
-        template<int numvals>
-        int
-        floatToInt(float value)
-        {
-            if (value <= 0) {
-                return 0;
-            } else if (value >= 1.) {
-                return numvals - 1;
-            }
-            
-            return value * (numvals - 1) + 0.5;
-        }
-        
-        /// maps 0x0-0xffff to 0x0-0xff
-        inline unsigned char
-        uint16ToChar(unsigned short quantum)
-        {
-            // see ScaleQuantumToChar() in ImageMagick's magick/quantum.h
-            
-            /* test:
-             for(int i=0; i < 0x10000; ++i) {
-             printf("%x -> %x,%x\n", i, uint16ToChar(i), floatToInt<256>(intToFloat<65536>(i)));
-             assert(uint16ToChar(i) == floatToInt<256>(intToFloat<65536>(i)));
-             }
-             */
-            return (unsigned char) ( ( (quantum + 128UL) - ( (quantum + 128UL) >> 8 ) ) >> 8 );
-        }
-        
-        /// maps 0x0-0xff to 0x0-0xffff
-        inline unsigned short
-        charToUint16(unsigned char quantum)
-        {
-            /* test:
-             for(int i=0; i < 0x100; ++i) {
-             printf("%x -> %x,%x\n", i, charToUint16(i), floatToInt<65536>(intToFloat<256>(i)));
-             assert(charToUint16(i) == floatToInt<65536>(intToFloat<256>(i)));
-             assert(i == uint16ToChar(charToUint16(i)));
-             }
-             */
-            return (unsigned short) ( (quantum << 8) | quantum );
-        }
-        
-        // maps 0x0-0xff00 to 0x0-0xff
-        inline unsigned char
-        uint8xxToChar(unsigned short quantum)
-        {
-            /* test:
-             for(int i=0; i < 0xff01; ++i) {
-             printf("%x -> %x,%x, err=%d\n", i, uint8xxToChar(i), floatToInt<256>(intToFloat<0xff01>(i)),i - charToUint8xx(uint8xxToChar(i)));
-             assert(uint8xxToChar(i) == floatToInt<256>(intToFloat<0xff01>(i)));
-             }
-             */
-            return (unsigned char) ( (quantum + 0x80) >> 8 );
-        }
-        
-        // maps 0x0-0xff to 0x0-0xff00
-        inline unsigned short
-        charToUint8xx(unsigned char quantum)
-        {
-            /* test:
-             for(int i=0; i < 0x100; ++i) {
-             printf("%x -> %x,%x\n", i, charToUint8xx(i), floatToInt<0xff01>(intToFloat<256>(i)));
-             assert(charToUint8xx(i) == floatToInt<0xff01>(intToFloat<256>(i)));
-             assert(i == uint8xxToChar(charToUint8xx(i)));
-             }
-             */
-            return (unsigned short) (quantum << 8);
-        }
         
         
         // a Singleton that holds precomputed LUTs for the whole application.
