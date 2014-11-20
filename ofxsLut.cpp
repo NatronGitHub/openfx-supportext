@@ -41,1278 +41,629 @@
 #include "ofxsMerging.h"
 
 namespace  {
-/// a class to wrap around a mutex which is exception safe
-/// it locks the mutex on construction and unlocks it on destruction
-template <class MUTEX>
-class MutexLocker {
-    
-protected :
-    
-    MUTEX &_mutex;
-    
-public :
-    /// ctor, acquires the lock
-    explicit MutexLocker(MUTEX &m)
+    /// a class to wrap around a mutex which is exception safe
+    /// it locks the mutex on construction and unlocks it on destruction
+    template <class MUTEX>
+    class MutexLocker {
+        
+        protected :
+        
+        MUTEX &_mutex;
+        
+        public :
+        /// ctor, acquires the lock
+        explicit MutexLocker(MUTEX &m)
         : _mutex(m)
-    {
-        _mutex.lock();
-    }
-    
-    /// dtor, releases the lock
-    virtual ~MutexLocker()
-    {
-        _mutex.unlock();
-    }
-    
-};
+        {
+            _mutex.lock();
+        }
+        
+        /// dtor, releases the lock
+        virtual ~MutexLocker()
+        {
+            _mutex.unlock();
+        }
+        
+    };
 }
 
 namespace OFX {
-namespace Color {
-// compile-time endianness checking found on:
-// http://stackoverflow.com/questions/2100331/c-macro-definition-to-determine-big-endian-or-little-endian-machine
-// if(O32_HOST_ORDER == O32_BIG_ENDIAN) will always be optimized by gcc -O2
-enum
-{
-    O32_LITTLE_ENDIAN = 0x03020100ul,
-    O32_BIG_ENDIAN = 0x00010203ul,
-    O32_PDP_ENDIAN = 0x01000302ul
-};
-
-static const union
-{
-    uint8_t bytes[4];
-    uint32_t value;
-}
-
-o32_host_order = {
-    { 0, 1, 2, 3 }
-};
+    namespace Color {
+        // compile-time endianness checking found on:
+        // http://stackoverflow.com/questions/2100331/c-macro-definition-to-determine-big-endian-or-little-endian-machine
+        // if(O32_HOST_ORDER == O32_BIG_ENDIAN) will always be optimized by gcc -O2
+        enum
+        {
+            O32_LITTLE_ENDIAN = 0x03020100ul,
+            O32_BIG_ENDIAN = 0x00010203ul,
+            O32_PDP_ENDIAN = 0x01000302ul
+        };
+        
+        static const union
+        {
+            uint8_t bytes[4];
+            uint32_t value;
+        }
+        
+        o32_host_order = {
+            { 0, 1, 2, 3 }
+        };
 #define O32_HOST_ORDER (o32_host_order.value)
-static unsigned short
-hipart(const float f)
-{
-    union
-    {
-        float f;
-        unsigned short us[2];
-    }
-
-    tmp;
-
-    tmp.us[0] = tmp.us[1] = 0;
-    tmp.f = f;
-
-    if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
-        return tmp.us[0];
-    } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
-        return tmp.us[1];
-    } else {
-        assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
-
-        return 0;
-    }
-}
-
-static float
-index_to_float(const unsigned short i)
-{
-    union
-    {
-        float f;
-        unsigned short us[2];
-    }
-
-    tmp;
-
-    /* positive and negative zeros, and all gradual underflow, turn into zero: */
-    if ( ( i < 0x80) || ( ( i >= 0x8000) && ( i < 0x8080) ) ) {
-        return 0;
-    }
-    /* All NaN's and infinity turn into the largest possible legal float: */
-    if ( ( i >= 0x7f80) && ( i < 0x8000) ) {
-        return std::numeric_limits<float>::max();
-    }
-    if (i >= 0xff80) {
-        return -std::numeric_limits<float>::max();
-    }
-    if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
-        tmp.us[0] = i;
-        tmp.us[1] = 0x8000;
-    } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
-        tmp.us[0] = 0x8000;
-        tmp.us[1] = i;
-    } else {
-        assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
-    }
-
-    return tmp.f;
-}
-
-///initialize the singleton
-LutManager LutManager::m_instance = LutManager();
-LutManager::LutManager()
-    : luts()
-{
-}
-
-
-LutManager::~LutManager()
-{
-    ////the luts must all have been released before!
-    ////This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
-    //// by this singleton because it makes their destruction time uncertain regarding to
-    ///the host multi-thread suite.
-    for (LutsMap::iterator it = luts.begin(); it != luts.end(); ++it) {
-        delete it->second;
-    }
-}
-
-void
-getOffsetsForPacking(PixelPacking format,
-                     int *r,
-                     int *g,
-                     int *b,
-                     int *a)
-{
-    if (format == PACKING_BGRA) {
-        *b = 0;
-        *g = 1;
-        *r = 2;
-        *a = 3;
-    } else if (format == PACKING_RGBA) {
-        *r = 0;
-        *g = 1;
-        *b = 2;
-        *a = 3;
-    } else if (format == PACKING_RGB) {
-        *r = 0;
-        *g = 1;
-        *b = 2;
-        *a = -1;
-    } else if (format == PACKING_BGR) {
-        *r = 0;
-        *g = 1;
-        *b = 2;
-        *a = -1;
-    } else if (format == PACKING_PLANAR) {
-        *r = 0;
-        *g = 1;
-        *b = 2;
-        *a = -1;
-    } else {
-        *r = -1;
-        *g = -1;
-        *b = -1;
-        *a = -1;
-        throw std::runtime_error("Unsupported pixel packing format");
-    }
-}
-
-template <typename MUTEX>
-float
-Lut<MUTEX>::fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const
-{
-    assert(init_);
-
-    return fromFunc_uint8_to_float[v];
-}
-
+        static unsigned short
+        hipart(const float f)
+        {
+            union
+            {
+                float f;
+                unsigned short us[2];
+            }
+            
+            tmp;
+            
+            tmp.us[0] = tmp.us[1] = 0;
+            tmp.f = f;
+            
+            if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
+                return tmp.us[0];
+            } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
+                return tmp.us[1];
+            } else {
+                assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
+                
+                return 0;
+            }
+        }
+        
+        static float
+        index_to_float(const unsigned short i)
+        {
+            union
+            {
+                float f;
+                unsigned short us[2];
+            }
+            
+            tmp;
+            
+            /* positive and negative zeros, and all gradual underflow, turn into zero: */
+            if ( ( i < 0x80) || ( ( i >= 0x8000) && ( i < 0x8080) ) ) {
+                return 0;
+            }
+            /* All NaN's and infinity turn into the largest possible legal float: */
+            if ( ( i >= 0x7f80) && ( i < 0x8000) ) {
+                return std::numeric_limits<float>::max();
+            }
+            if (i >= 0xff80) {
+                return -std::numeric_limits<float>::max();
+            }
+            if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
+                tmp.us[0] = i;
+                tmp.us[1] = 0x8000;
+            } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
+                tmp.us[0] = 0x8000;
+                tmp.us[1] = i;
+            } else {
+                assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
+            }
+            
+            return tmp.f;
+        }
+        
+        ///initialize the singleton
+        LutManager LutManager::m_instance = LutManager();
+        LutManager::LutManager()
+        : luts()
+        {
+        }
+        
+        
+        LutManager::~LutManager()
+        {
+            ////the luts must all have been released before!
+            ////This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
+            //// by this singleton because it makes their destruction time uncertain regarding to
+            ///the host multi-thread suite.
+            for (LutsMap::iterator it = luts.begin(); it != luts.end(); ++it) {
+                delete it->second;
+            }
+        }
+        
+        void
+        getOffsetsForPacking(PixelPacking format,
+                             int *r,
+                             int *g,
+                             int *b,
+                             int *a)
+        {
+            if (format == PACKING_BGRA) {
+                *b = 0;
+                *g = 1;
+                *r = 2;
+                *a = 3;
+            } else if (format == PACKING_RGBA) {
+                *r = 0;
+                *g = 1;
+                *b = 2;
+                *a = 3;
+            } else if (format == PACKING_RGB) {
+                *r = 0;
+                *g = 1;
+                *b = 2;
+                *a = -1;
+            } else if (format == PACKING_BGR) {
+                *r = 0;
+                *g = 1;
+                *b = 2;
+                *a = -1;
+            } else if (format == PACKING_PLANAR) {
+                *r = 0;
+                *g = 1;
+                *b = 2;
+                *a = -1;
+            } else {
+                *r = -1;
+                *g = -1;
+                *b = -1;
+                *a = -1;
+                throw std::runtime_error("Unsupported pixel packing format");
+            }
+        }
+        
+        template <typename MUTEX>
+        float
+        Lut<MUTEX>::fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const
+        {
+            assert(init_);
+            
+            return fromFunc_uint8_to_float[v];
+        }
+        
 #if 0
-// It is not recommended to use this function, because the output is quantized
-// If one really needs float, one has to use the full function (or OpenColorIO)
-template <typename MUTEX>
-float
-Lut<MUTEX>::toColorSpaceFloatFromLinearFloatFast(float v) const
-{
-    assert(init_);
-
-    return Color::intToFloat<0xff01>(toFunc_hipart_to_uint8xx[hipart(v)]);
-}
-
+        // It is not recommended to use this function, because the output is quantized
+        // If one really needs float, one has to use the full function (or OpenColorIO)
+        template <typename MUTEX>
+        float
+        Lut<MUTEX>::toColorSpaceFloatFromLinearFloatFast(float v) const
+        {
+            assert(init_);
+            
+            return Color::intToFloat<0xff01>(toFunc_hipart_to_uint8xx[hipart(v)]);
+        }
+        
 #endif
-template <typename MUTEX>
-unsigned char
-Lut<MUTEX>::toColorSpaceUint8FromLinearFloatFast(float v) const
-{
-    assert(init_);
-
-    return Color::uint8xxToChar(toFunc_hipart_to_uint8xx[hipart(v)]);
-}
-
-template <typename MUTEX>
-unsigned short
-Lut<MUTEX>::toColorSpaceUint8xxFromLinearFloatFast(float v) const
-{
-    assert(init_);
-
-    return toFunc_hipart_to_uint8xx[hipart(v)];
-}
-
-// the following only works for increasing LUTs
-template <typename MUTEX>
-unsigned short
-Lut<MUTEX>::toColorSpaceUint16FromLinearFloatFast(float v) const
-{
-    assert(init_);
-    // algorithm:
-    // - convert to 8 bits -> val8u
-    // - convert val8u-1, val8u and val8u+1 to float
-    // - interpolate linearly in the right interval
-    unsigned char v8u = toColorSpaceUint8FromLinearFloatFast(v);
-    unsigned char v8u_next, v8u_prev;
-    float v32f_next, v32f_prev;
-    if (v8u == 0) {
-        v8u_prev = 0;
-        v8u_next = 1;
-        v32f_prev = fromColorSpaceUint8ToLinearFloatFast(0);
-        v32f_next = fromColorSpaceUint8ToLinearFloatFast(1);
-    } else if (v8u == 255) {
-        v8u_prev = 254;
-        v8u_next = 255;
-        v32f_prev = fromColorSpaceUint8ToLinearFloatFast(254);
-        v32f_next = fromColorSpaceUint8ToLinearFloatFast(255);
-    } else {
-        float v32f = fromColorSpaceUint8ToLinearFloatFast(v8u);
-        // we suppose the LUT is an increasing func
-        if (v < v32f) {
-            v8u_prev = v8u - 1;
-            v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
-            v8u_next = v8u;
-            v32f_next = v32f;
-        } else {
-            v8u_prev = v8u;
-            v32f_prev = v32f;
-            v8u_next = v8u + 1;
-            v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
+        template <typename MUTEX>
+        unsigned char
+        Lut<MUTEX>::toColorSpaceUint8FromLinearFloatFast(float v) const
+        {
+            assert(init_);
+            
+            return Color::uint8xxToChar(toFunc_hipart_to_uint8xx[hipart(v)]);
         }
-    }
-
-    // interpolate linearly
-    return (v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5;
-}
-
-template <typename MUTEX>
-float
-Lut<MUTEX>::fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const
-{
-    assert(init_);
-    // the following is from ImageMagick's quantum.h
-    unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
-    unsigned char v8u_next = v8u_prev + 1;
-    unsigned short v16u_prev = (v8u_prev << 8) + v8u_prev;
-    unsigned short v16u_next = (v8u_next << 8) + v8u_next;
-    float v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
-    float v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
-
-    // interpolate linearly
-    return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::fillTables() const
-{
-    if (init_) {
-        return;
-    }
-    // fill all
-    for (int i = 0; i < 0x10000; ++i) {
-        float inp = index_to_float( (unsigned short)i );
-        float f = _toFunc(inp);
-        toFunc_hipart_to_uint8xx[i] = Color::floatToInt<0xff01>(f);
-    }
-    // fill fromFunc_uint8_to_float, and make sure that
-    // the entries of toFunc_hipart_to_uint8xx corresponding
-    // to the transform of each byte value contain the same value,
-    // so that toFunc(fromFunc(b)) is identity
-    //
-    for (int b = 0; b < 256; ++b) {
-        float f = _fromFunc( Color::intToFloat<256>(b) );
-        fromFunc_uint8_to_float[b] = f;
-        int i = hipart(f);
-        toFunc_hipart_to_uint8xx[i] = Color::charToUint8xx(b);
-    }
-}
-
-
-//Called by all public members
-template <typename MUTEX>
-void
-Lut<MUTEX>::validate() const
-{
-    MutexLocker<MUTEX> g(_lock.get());
-
-    if (init_) {
-        return;
-    }
-    fillTables();
-    init_ = true;
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_byte_planar(unsigned char* to,
-                           const float* from,
-                           int W,
-                           const float* alpha,
-                           int inDelta,
-                           int outDelta) const
-{
-    validate();
-    unsigned char *end = to + W * outDelta;
-    int start = rand() % W;
-    const float *q;
-    unsigned char *p;
-    unsigned error;
-    if (!alpha) {
-        /* go fowards from starting point to end of line: */
-        error = 0x80;
-        for (p = to + start * outDelta, q = from + start * inDelta; p < end; p += outDelta, q += inDelta) {
-            error = (error & 0xff) + toFunc_hipart_to_uint8xx[hipart(*q)];
-            *p = (unsigned char)(error >> 8);
+        
+        template <typename MUTEX>
+        unsigned short
+        Lut<MUTEX>::toColorSpaceUint8xxFromLinearFloatFast(float v) const
+        {
+            assert(init_);
+            
+            return toFunc_hipart_to_uint8xx[hipart(v)];
         }
-        /* go backwards from starting point to start of line: */
-        error = 0x80;
-        for (p = to + (start - 1) * outDelta, q = from + start * inDelta; p >= to; p -= outDelta) {
-            q -= inDelta;
-            error = (error & 0xff) + toFunc_hipart_to_uint8xx[hipart(*q)];
-            *p = (unsigned char)(error >> 8);
-        }
-    } else {
-        const float *a = alpha;
-        /* go fowards from starting point to end of line: */
-        error = 0x80;
-        for (p = to + start * outDelta, q = from + start * inDelta, a += start * inDelta; p < end; p += outDelta, q += inDelta, a += inDelta) {
-            const float v = *q * *a;
-            error = (error & 0xff) + toFunc_hipart_to_uint8xx[hipart(v)];
-            ++a;
-            *p = (unsigned char)(error >> 8);
-        }
-        /* go backwards from starting point to start of line: */
-        error = 0x80;
-        for (p = to + (start - 1) * outDelta, q = from + start * inDelta, a = alpha + start * inDelta; p >= to; p -= outDelta) {
-            const float v = *q * *a;
-            q -= inDelta;
-            q -= inDelta;
-            error = (error & 0xff) + toFunc_hipart_to_uint8xx[hipart(v)];
-            *p = (unsigned char)(error >> 8);
-        }
-    }
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_short_planar(unsigned short* /*to*/,
-                            const float* /*from*/,
-                            int /*W*/,
-                            const float* /*alpha*/,
-                            int /*inDelta*/,
-                            int /*outDelta*/) const
-{
-    throw std::runtime_error("Lut::to_short_planar not implemented yet.");
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_float_planar(float* to,
-                            const float* from,
-                            int W,
-                            const float* alpha,
-                            int inDelta,
-                            int outDelta) const
-{
-    validate();
-    if (!alpha) {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = toColorSpaceFloatFromLinearFloat(from[f]);
-        }
-    } else {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = toColorSpaceFloatFromLinearFloat(from[f] * alpha[f]);
-        }
-    }
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_byte_packed(unsigned char* to,
-                           const float* from,
-                           const OfxRectI & conversionRect,
-                           const OfxRectI & srcBounds,
-                           const OfxRectI & dstBounds,
-                           PixelPacking inputPacking,
-                           PixelPacking outputPacking,
-                           bool invertY,
-                           bool premult) const
-{
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    validate();
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int start = rand() % (rect.x2 - rect.x1) + rect.x1;
-        unsigned error_r, error_g, error_b;
-        error_r = error_g = error_b = 0x80;
-        int srcY = y;
-        if (!invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-
-
-        int dstY = dstBounds.y2 - y - 1;
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        unsigned char *dst_pixels = to + (dstY * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        /* go fowards from starting point to end of line: */
-        for (int x = start; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;
-            error_r = (error_r & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inROffset] * a)];
-            error_g = (error_g & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inGOffset] * a)];
-            error_b = (error_b & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inBOffset] * a)];
-            assert(error_r < 0x10000 && error_g < 0x10000 && error_b < 0x10000);
-            dst_pixels[outCol + outROffset] = (unsigned char)(error_r >> 8);
-            dst_pixels[outCol + outGOffset] = (unsigned char)(error_g >> 8);
-            dst_pixels[outCol + outBOffset] = (unsigned char)(error_b >> 8);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = floatToInt<256>(a);
-            }
-        }
-        /* go backwards from starting point to start of line: */
-        error_r = error_g = error_b = 0x80;
-        for (int x = start - 1; x >= rect.x1; --x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;
-            error_r = (error_r & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inROffset] * a)];
-            error_g = (error_g & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inGOffset] * a)];
-            error_b = (error_b & 0xff) + toFunc_hipart_to_uint8xx[hipart(src_pixels[inCol + inBOffset] * a)];
-            assert(error_r < 0x10000 && error_g < 0x10000 && error_b < 0x10000);
-            dst_pixels[outCol + outROffset] = (unsigned char)(error_r >> 8);
-            dst_pixels[outCol + outGOffset] = (unsigned char)(error_g >> 8);
-            dst_pixels[outCol + outBOffset] = (unsigned char)(error_b >> 8);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = floatToInt<256>(a);
-            }
-        }
-    }
-} // to_byte_packed
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_short_packed(unsigned short* /*to*/,
-                            const float* /*from*/,
-                            const OfxRectI & /*conversionRect*/,
-                            const OfxRectI & /*srcBounds*/,
-                            const OfxRectI & /*dstBounds*/,
-                            PixelPacking /*inputPacking*/,
-                            PixelPacking /*outputPacking*/,
-                            bool /*invertY*/,
-                            bool /*premult*/) const
-{
-    throw std::runtime_error("Lut::to_short_packed not implemented yet.");
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::to_float_packed(float* to,
-                            const float* from,
-                            const OfxRectI & conversionRect,
-                            const OfxRectI & srcBounds,
-                            const OfxRectI & dstBounds,
-                            PixelPacking inputPacking,
-                            PixelPacking outputPacking,
-                            bool invertY,
-                            bool premult) const
-{
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    validate();
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-
-        int dstY = dstBounds.y2 - y - 1;
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (dstY * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        /* go fowards from starting point to end of line: */
-        for (int x = rect.x1; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;;
-            dst_pixels[outCol + outROffset] = toColorSpaceFloatFromLinearFloat(src_pixels[inCol + inROffset] * a);
-            dst_pixels[outCol + outGOffset] = toColorSpaceFloatFromLinearFloat(src_pixels[inCol + inGOffset] * a);
-            dst_pixels[outCol + outBOffset] = toColorSpaceFloatFromLinearFloat(src_pixels[inCol + inBOffset] * a);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = a;
-            }
-        }
-    }
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_byte_planar(float* to,
-                             const unsigned char* from,
-                             int W,
-                             const unsigned char* alpha,
-                             int inDelta,
-                             int outDelta) const
-{
-    validate();
-    if (!alpha) {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[f] = fromFunc_uint8_to_float[(int)from[f]];
-        }
-    } else {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = alpha[f] <= 0 ? 0 : Color::intToFloat<256>(fromFunc_uint8_to_float[(from[f] * 255 + 128) / alpha[f]] * alpha[f]);
-        }
-    }
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_short_planar(float* /*to*/,
-                              const unsigned short* /*from*/,
-                              int /*W*/,
-                              const unsigned short*/* alpha*/,
-                              int /*inDelta*/,
-                              int /* outDelta*/) const
-{
-    throw std::runtime_error("Lut::from_short_planar not implemented yet.");
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_float_planar(float* to,
-                              const float* from,
-                              int W,
-                              const float* alpha,
-                              int inDelta,
-                              int outDelta) const
-{
-    validate();
-    if (!alpha) {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = fromColorSpaceFloatToLinearFloat(from[f]);
-        }
-    } else {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            float a = alpha[f];
-            to[t] = a <= 0. ? 0. : fromColorSpaceFloatToLinearFloat(from[f] / a) * a;
-        }
-    }
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_byte_packed(float* to,
-                             const unsigned char* from,
-                             const OfxRectI & conversionRect,
-                             const OfxRectI & srcBounds,
-                             const OfxRectI & dstBounds,
-                             PixelPacking inputPacking,
-                             PixelPacking outputPacking,
-                             bool invertY,
-                             bool premult) const
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("Invalid pixel format.");
-    }
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    validate();
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-
-        const unsigned char *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        for (int x = rect.x1; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            if (inputHasAlpha && premult) {
-                float rf = 0., gf = 0., bf = 0.;
-                float a = Color::intToFloat<256>(src_pixels[inCol + inAOffset]);
-                if (a > 0) {
-                    rf = Color::intToFloat<256>(src_pixels[inCol + inROffset]) / a;
-                    gf = Color::intToFloat<256>(src_pixels[inCol + inGOffset]) / a;
-                    bf = Color::intToFloat<256>(src_pixels[inCol + inBOffset]) / a;
-                }
-                // we may lose a bit of information, but hey, it's 8-bits anyway, who cares?
-                dst_pixels[outCol + outROffset] = fromColorSpaceUint8ToLinearFloatFast( Color::floatToInt<256>(rf) ) * a;
-                dst_pixels[outCol + outGOffset] = fromColorSpaceUint8ToLinearFloatFast( Color::floatToInt<256>(gf) ) * a;
-                dst_pixels[outCol + outBOffset] = fromColorSpaceUint8ToLinearFloatFast( Color::floatToInt<256>(bf) ) * a;
-                if (outputHasAlpha) {
-                    dst_pixels[outCol + outAOffset] = a;
-                }
+        
+        // the following only works for increasing LUTs
+        template <typename MUTEX>
+        unsigned short
+        Lut<MUTEX>::toColorSpaceUint16FromLinearFloatFast(float v) const
+        {
+            assert(init_);
+            // algorithm:
+            // - convert to 8 bits -> val8u
+            // - convert val8u-1, val8u and val8u+1 to float
+            // - interpolate linearly in the right interval
+            unsigned char v8u = toColorSpaceUint8FromLinearFloatFast(v);
+            unsigned char v8u_next, v8u_prev;
+            float v32f_next, v32f_prev;
+            if (v8u == 0) {
+                v8u_prev = 0;
+                v8u_next = 1;
+                v32f_prev = fromColorSpaceUint8ToLinearFloatFast(0);
+                v32f_next = fromColorSpaceUint8ToLinearFloatFast(1);
+            } else if (v8u == 255) {
+                v8u_prev = 254;
+                v8u_next = 255;
+                v32f_prev = fromColorSpaceUint8ToLinearFloatFast(254);
+                v32f_next = fromColorSpaceUint8ToLinearFloatFast(255);
             } else {
-                int r8 = 0, g8 = 0, b8 = 0;
-                r8 = src_pixels[inCol + inROffset];
-                g8 = src_pixels[inCol + inGOffset];
-                b8 = src_pixels[inCol + inBOffset];
-                assert(r8 >= 0 && r8 < 256 && g8 >= 0 && g8 < 256 && b8 >= 0 && b8 < 256);
-                dst_pixels[outCol + outROffset] = fromFunc_uint8_to_float[r8];
-                dst_pixels[outCol + outGOffset] = fromFunc_uint8_to_float[g8];
-                dst_pixels[outCol + outBOffset] = fromFunc_uint8_to_float[b8];
-                if (outputHasAlpha) {
-                    float a = Color::intToFloat<256>(src_pixels[inCol + inAOffset]);
-                    dst_pixels[outCol + outAOffset] = a;
+                float v32f = fromColorSpaceUint8ToLinearFloatFast(v8u);
+                // we suppose the LUT is an increasing func
+                if (v < v32f) {
+                    v8u_prev = v8u - 1;
+                    v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
+                    v8u_next = v8u;
+                    v32f_next = v32f;
+                } else {
+                    v8u_prev = v8u;
+                    v32f_prev = v32f;
+                    v8u_next = v8u + 1;
+                    v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
                 }
             }
+            
+            // interpolate linearly
+            return (v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5;
         }
-    }
-} // from_byte_packed
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_short_packed(float* /*to*/,
-                              const unsigned short* /*from*/,
-                              const OfxRectI & /*conversionRect*/,
-                              const OfxRectI & /*srcBounds*/,
-                              const OfxRectI & /*dstBounds*/,
-                              PixelPacking /*inputPacking*/,
-                              PixelPacking /*outputPacking*/,
-                              bool /*invertY*/,
-                              bool /*premult*/) const
-{
-    throw std::runtime_error("Lut::from_short_packed not implemented yet.");
-}
-
-template <typename MUTEX>
-void
-Lut<MUTEX>::from_float_packed(float* to,
-                              const float* from,
-                              const OfxRectI & conversionRect,
-                              const OfxRectI & srcBounds,
-                              const OfxRectI & dstBounds,
-                              PixelPacking inputPacking,
-                              PixelPacking outputPacking,
-                              bool invertY,
-                              bool premult) const
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("Invalid pixel format.");
-    }
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    validate();
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
+        
+        template <typename MUTEX>
+        float
+        Lut<MUTEX>::fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const
+        {
+            assert(init_);
+            // the following is from ImageMagick's quantum.h
+            unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
+            unsigned char v8u_next = v8u_prev + 1;
+            unsigned short v16u_prev = (v8u_prev << 8) + v8u_prev;
+            unsigned short v16u_next = (v8u_next << 8) + v8u_next;
+            float v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
+            float v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
+            
+            // interpolate linearly
+            return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
         }
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        for (int x = rect.x1; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;;
-            float rf = 0., gf = 0., bf = 0.;
-            if (a > 0.) {
-                rf = src_pixels[inCol + inROffset] / a;
-                gf = src_pixels[inCol + inGOffset] / a;
-                bf = src_pixels[inCol + inBOffset] / a;
+        
+        template <typename MUTEX>
+        void
+        Lut<MUTEX>::fillTables() const
+        {
+            if (init_) {
+                return;
             }
-            dst_pixels[outCol + outROffset] = fromColorSpaceFloatToLinearFloat(rf) * a;
-            dst_pixels[outCol + outGOffset] = fromColorSpaceFloatToLinearFloat(gf) * a;
-            dst_pixels[outCol + outBOffset] = fromColorSpaceFloatToLinearFloat(bf) * a;
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = a;
+            // fill all
+            for (int i = 0; i < 0x10000; ++i) {
+                float inp = index_to_float( (unsigned short)i );
+                float f = _toFunc(inp);
+                toFunc_hipart_to_uint8xx[i] = Color::floatToInt<0xff01>(f);
+            }
+            // fill fromFunc_uint8_to_float, and make sure that
+            // the entries of toFunc_hipart_to_uint8xx corresponding
+            // to the transform of each byte value contain the same value,
+            // so that toFunc(fromFunc(b)) is identity
+            //
+            for (int b = 0; b < 256; ++b) {
+                float f = _fromFunc( Color::intToFloat<256>(b) );
+                fromFunc_uint8_to_float[b] = f;
+                int i = hipart(f);
+                toFunc_hipart_to_uint8xx[i] = Color::charToUint8xx(b);
             }
         }
-    }
-} // from_float_packed
-
-///////////////////////
-/////////////////////////////////////////// LINEAR //////////////////////////////////////////////
-///////////////////////
-
-namespace Linear {
-void
-from_byte_planar(float *to,
-                 const unsigned char *from,
-                 int W,
-                 int inDelta,
-                 int outDelta)
-{
-    from += (W - 1) * inDelta;
-    to += W * outDelta;
-    for (; --W >= 0; from -= inDelta) {
-        to -= outDelta;
-        *to = intToFloat<256>(*from);
-    }
-}
-
-void
-from_short_planar(float *to,
-                  const unsigned short *from,
-                  int W,
-                  int inDelta,
-                  int outDelta)
-{
-    for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-        to[t] = intToFloat<65536>(from[f]);
-    }
-}
-
-void
-from_float_planar(float *to,
-                  const float *from,
-                  int W,
-                  int inDelta,
-                  int outDelta)
-{
-    if ( ( inDelta == 1) && ( outDelta == 1) ) {
-        memcpy( to, from, W * sizeof(float) );
-    } else {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = from[f];
-        }
-    }
-}
-
-void
-from_byte_packed(float *to,
-                 const unsigned char *from,
-                 const OfxRectI &conversionRect,
-                 const OfxRectI &srcBounds,
-                 const OfxRectI &dstBounds,
-                 PixelPacking inputPacking,
-                 PixelPacking outputPacking,
-                 bool invertY )
-
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("Invalid pixel format.");
-    }
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-        const unsigned char *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        for (int x = rect.x1; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            unsigned char a = inputHasAlpha ? src_pixels[inCol + inAOffset] : 255;
-            dst_pixels[outCol + outROffset] = Color::intToFloat<256>(src_pixels[inCol + inROffset]);
-            dst_pixels[outCol + outGOffset] = Color::intToFloat<256>(src_pixels[inCol + inGOffset]);
-            dst_pixels[outCol + outBOffset] = Color::intToFloat<256>(src_pixels[inCol + inBOffset]);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = Color::intToFloat<256>(a);
+        
+        
+        //Called by all public members
+        template <typename MUTEX>
+        void
+        Lut<MUTEX>::validate() const
+        {
+            MutexLocker<MUTEX> g(_lock.get());
+            
+            if (init_) {
+                return;
             }
+            fillTables();
+            init_ = true;
         }
-    }
-}
-
-void
-from_short_packed(float */*to*/,
-                  const unsigned short */*from*/,
-                  const OfxRectI & /*rect*/,
-                  const OfxRectI & /*srcRod*/,
-                  const OfxRectI & /*rod*/,
-                  PixelPacking /*inputFormat*/,
-                  PixelPacking /*format*/,
-                  bool /*invertY*/)
-{
-    throw std::runtime_error("Linear::from_short_packed not yet implemented.");
-}
-
-void
-from_float_packed(float *to,
-                  const float *from,
-                  const OfxRectI &conversionRect,
-                  const OfxRectI &srcBounds,
-                  const OfxRectI &dstBounds,
-                  PixelPacking inputPacking,
-                  PixelPacking outputPacking,
-                  bool invertY)
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("This function is not meant for planar buffers.");
-    }
-
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("Invalid pixel format.");
-    }
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        if (inputPacking == outputPacking) {
-            memcpy( dst_pixels, src_pixels,(rect.x2 - rect.x1) * sizeof(float) );
-        } else {
-            for (int x = rect.x1; x < rect.x2; ++x) {
-                int inCol = x * inPackingSize;
-                int outCol = x * outPackingSize;
-                float a = inputHasAlpha ? src_pixels[inCol + inAOffset] : 1.f;
-                dst_pixels[outCol + outROffset] = src_pixels[inCol + inROffset];
-                dst_pixels[outCol + outGOffset] = src_pixels[inCol + inGOffset];
-                dst_pixels[outCol + outBOffset] = src_pixels[inCol + inBOffset];
-                if (outputHasAlpha) {
-                    dst_pixels[outCol + outAOffset] = a;
+        
+        
+        
+        template <typename MUTEX>
+        void Lut<MUTEX>::to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                                        const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const
+        {
+            
+            
+            validate();
+            
+            for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                
+                int start = rand() % (renderWindow.x2 - renderWindow.x1);
+                
+                unsigned error[3] = { 0x80, 0x80, 0x80 };
+                
+                const float *src_pixels = from + (y * srcRowBytes * nComponents) + start * nComponents;
+                unsigned char *dst_pixels = to + (y * dstRowBytes * nComponents) + start * nComponents;
+                
+                const float* originalSrc_pixels = src_pixels;
+                unsigned char* originalDst_pixels = dst_pixels;
+                
+                
+                /* go fowards from starting point to end of line: */
+                const float* src_end = src_pixels + renderWindow.x2 * nComponents;
+                
+                while (src_pixels != src_end) {
+                    
+                    if (nComponents == 1) {
+                        *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                    } else {
+                        for (int k = 0; k < nComponents; ++k) {
+                            if (k == 3) {
+                                *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                            } else {
+                                error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels++);
+                                assert(error[k] < 0x10000);
+                                *dst_pixels++ = (unsigned char)(error[k] >> 8);
+                            }
+                        }
+                    }
+                    
+                }
+                
+                /* go backwards from starting point to start of line: */
+                src_pixels = originalSrc_pixels - nComponents;
+                src_end = src_pixels - start * nComponents;
+                dst_pixels = originalDst_pixels - nComponents;
+                
+                for (int i = 0; i < 3; ++i) {
+                    error[i] = 0x80;
+                }
+                
+                while (src_pixels != src_end) {
+                    
+                    if (nComponents == 1) {
+                        *dst_pixels-- = floatToInt<256>(*src_pixels--);
+                    } else {
+                        for (int k = 0; k < nComponents; ++k) {
+                            if (k == 3) {
+                                *dst_pixels-- = floatToInt<256>(*src_pixels--);
+                            } else {
+                                error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels--);
+                                assert(error[k] < 0x10000);
+                                *dst_pixels-- = (unsigned char)(error[k] >> 8);
+                            }
+                        }
+                    }
+                    
                 }
             }
+            
         }
-    }
-} // from_float_packed
-
-void
-to_byte_planar(unsigned char *to,
-               const float *from,
-               int W,
-               const float* alpha,
-               int inDelta,
-               int outDelta)
-{
-    if (!alpha) {
-        unsigned char *end = to + W * outDelta;
-        int start = rand() % W;
-        const float *q;
-        unsigned char *p;
-        /* go fowards from starting point to end of line: */
-        float error = .5;
-        for (p = to + start * outDelta, q = from + start * inDelta; p < end; p += outDelta, q += inDelta) {
-            float G = error + *q * 255.0f;
-            if (G <= 0) {
-                *p = 0;
-            } else if (G < 255) {
-                int i = (int)G;
-                *p = (unsigned char)i;
-                error = G - i;
-            } else {
-                *p = 255;
-            }
-        }
-        /* go backwards from starting point to start of line: */
-        error = .5;
-        for (p = to + (start - 1) * outDelta, q = from + start * inDelta; p >= to; p -= outDelta) {
-            q -= inDelta;
-            float G = error + *q * 255.0f;
-            if (G <= 0) {
-                *p = 0;
-            } else if (G < 255) {
-                int i = (int)G;
-                *p = (unsigned char)i;
-                error = G - i;
-            } else {
-                *p = 255;
-            }
-        }
-    } else {
-        unsigned char *end = to + W * outDelta;
-        int start = rand() % W;
-        const float *q;
-        const float *a = alpha;
-        unsigned char *p;
-        /* go fowards from starting point to end of line: */
-        float error = .5;
-        for (p = to + start * outDelta, q = from + start * inDelta, a += start * inDelta; p < end;
-             p += outDelta, q += inDelta, a += inDelta) {
-            float v = *q * *a;
-            float G = error + v * 255.0f;
-            if (G <= 0) {
-                *p = 0;
-            } else if (G < 255) {
-                int i = (int)G;
-                *p = (unsigned char)i;
-                error = G - i;
-            } else {
-                *p = 255;
-            }
-        }
-        /* go backwards from starting point to start of line: */
-        error = .5;
-        for (p = to + (start - 1) * outDelta, q = from + start * inDelta, a = alpha + start * inDelta; p >= to; p -= outDelta) {
-            q -= inDelta;
-            a -= inDelta;
-            const float v = *q * *a;
-            float G = error + v * 255.0f;
-            if (G <= 0) {
-                *p = 0;
-            } else if (G < 255) {
-                int i = (int)G;
-                *p = (unsigned char)i;
-                error = G - i;
-            } else {
-                *p = 255;
-            }
-        }
-    }
-} // to_byte_planar
-
-void
-to_short_planar(unsigned short *to,
-                const float *from,
-                int W,
-                const float* alpha,
-                int inDelta,
-                int outDelta)
-{
-    (void)to;
-    (void)from;
-    (void)W;
-    (void)alpha;
-    (void)inDelta;
-    (void)outDelta;
-    throw std::runtime_error("Linear::to_short_planar not yet implemented.");
-}
-
-void
-to_float_planar(float *to,
-                const float *from,
-                int W,
-                const float* alpha,
-                int inDelta,
-                int outDelta)
-{
-    if (!alpha) {
-        if ( ( inDelta == 1) && ( outDelta == 1) ) {
-            memcpy( to, from, W * sizeof(float) );
-        } else {
-            for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-                to[t] = from[f];
-            }
-        }
-    } else {
-        for (int f = 0,t = 0; f < W; f += inDelta, t += outDelta) {
-            to[t] = from[f] * alpha[f];
-        }
-    }
-}
-
-void
-to_byte_packed(unsigned char* to,
-               const float* from,
-               const OfxRectI & conversionRect,
-               const OfxRectI & srcBounds,
-               const OfxRectI & dstBounds,
-               PixelPacking inputPacking,
-               PixelPacking outputPacking,
-               bool invertY,
-               bool premult)
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("This function is not meant for planar buffers.");
-    }
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int start = rand() % (rect.x2 - rect.x1) + rect.x1;
-        unsigned error_r, error_g, error_b;
-        error_r = error_g = error_b = 0x80;
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        unsigned char *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        /* go fowards from starting point to end of line: */
-        for (int x = start; x < rect.x2; ++x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;
-
-            error_r = (error_r & 0xff) + src_pixels[inCol + inROffset] * a * 255.f;
-            error_g = (error_g & 0xff) + src_pixels[inCol + inGOffset] * a * 255.f;
-            error_b = (error_b & 0xff) + src_pixels[inCol + inBOffset] * a * 255.f;
-            dst_pixels[outCol + outROffset] = (unsigned char)(error_r >> 8);
-            dst_pixels[outCol + outGOffset] = (unsigned char)(error_g >> 8);
-            dst_pixels[outCol + outBOffset] = (unsigned char)(error_b >> 8);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = floatToInt<256>(a);
-            }
-        }
-        /* go backwards from starting point to start of line: */
-        error_r = error_g = error_b = 0x80;
-        for (int x = start - 1; x >= rect.x1; --x) {
-            int inCol = x * inPackingSize;
-            int outCol = x * outPackingSize;
-            float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;
-
-            error_r = (error_r & 0xff) + src_pixels[inCol + inROffset] * a * 255.f;
-            error_g = (error_g & 0xff) + src_pixels[inCol + inGOffset] * a * 255.f;
-            error_b = (error_b & 0xff) + src_pixels[inCol + inBOffset] * a * 255.f;
-            dst_pixels[outCol + outROffset] = (unsigned char)(error_r >> 8);
-            dst_pixels[outCol + outGOffset] = (unsigned char)(error_g >> 8);
-            dst_pixels[outCol + outBOffset] = (unsigned char)(error_b >> 8);
-            if (outputHasAlpha) {
-                dst_pixels[outCol + outAOffset] = floatToInt<256>(a);
-            }
-        }
-    }
-} // to_byte_packed
-
-void
-to_short_packed(unsigned short* to,
-                const float* from,
-                const OfxRectI & conversionRect,
-                const OfxRectI & srcBounds,
-                const OfxRectI & dstBounds,
-                PixelPacking inputPacking,
-                PixelPacking outputPacking,
-                bool invertY,
-                bool premult)
-{
-    (void)to;
-    (void)from;
-    (void)conversionRect;
-    (void)srcBounds;
-    (void)dstBounds;
-    (void)invertY;
-    (void)premult;
-    (void)inputPacking;
-    (void)outputPacking;
-    throw std::runtime_error("Linear::to_short_packed not yet implemented.");
-}
-
-void
-to_float_packed(float* to,
-                const float* from,
-                const OfxRectI & conversionRect,
-                const OfxRectI & srcBounds,
-                const OfxRectI & dstBounds,
-                PixelPacking inputPacking,
-                PixelPacking outputPacking,
-                bool invertY,
-                bool premult)
-{
-    if ( ( inputPacking == PACKING_PLANAR) || ( outputPacking == PACKING_PLANAR) ) {
-        throw std::runtime_error("Invalid pixel format.");
-    }
-
-    ///clip the conversion rect to srcBounds and dstBounds
-    OfxRectI rect ;
-
-    if (!OFX::MergeImages2D::rectIntersection(conversionRect, srcBounds, &rect) ||
-            !OFX::MergeImages2D::rectIntersection(rect, dstBounds, &rect)) {
-        return;
-    }
-
-
-    bool inputHasAlpha = inputPacking == PACKING_BGRA || inputPacking == PACKING_RGBA;
-    bool outputHasAlpha = outputPacking == PACKING_BGRA || outputPacking == PACKING_RGBA;
-    int inROffset, inGOffset, inBOffset, inAOffset;
-    int outROffset, outGOffset, outBOffset, outAOffset;
-    getOffsetsForPacking(inputPacking, &inROffset, &inGOffset, &inBOffset, &inAOffset);
-    getOffsetsForPacking(outputPacking, &outROffset, &outGOffset, &outBOffset, &outAOffset);
-
-
-    int inPackingSize,outPackingSize;
-    inPackingSize = inputHasAlpha ? 4 : 3;
-    outPackingSize = outputHasAlpha ? 4 : 3;
-
-    for (int y = rect.y1; y < rect.y2; ++y) {
-        int srcY = y;
-        if (invertY) {
-            srcY = srcBounds.y2 - y - 1;
-        }
-
-        const float *src_pixels = from + (srcY * (srcBounds.x2 - srcBounds.x1) * inPackingSize);
-        float *dst_pixels = to + (y * (dstBounds.x2 - dstBounds.x1) * outPackingSize);
-        if ( ( inputPacking == outputPacking) && !premult ) {
-            memcpy( dst_pixels, src_pixels, (rect.x2 - rect.x1) * sizeof(float) );
-        } else {
-            for (int x = rect.x1; x < conversionRect.x2; ++x) {
-                int inCol = x * inPackingSize;
-                int outCol = x * outPackingSize;
-                float a = (inputHasAlpha && premult) ? src_pixels[inCol + inAOffset] : 1.f;
-
-                dst_pixels[outCol + outROffset] = src_pixels[inCol + inROffset] * a;
-                dst_pixels[outCol + outGOffset] = src_pixels[inCol + inGOffset] * a;
-                dst_pixels[outCol + outBOffset] = src_pixels[inCol + inBOffset] * a;
-                if (outputHasAlpha) {
-                    dst_pixels[outCol + outAOffset] = a;
+        
+        template <typename MUTEX>
+        void Lut<MUTEX>::to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                                         const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const
+        {
+            validate();
+            
+            int w = renderWindow.x2 - renderWindow.x1;
+            
+            for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                
+                const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                unsigned short *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                
+                
+                const float* src_end = src_pixels + w * nComponents;
+                
+                while (src_pixels != src_end) {
+                    
+                    if (nComponents == 1) {
+                        *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                    } else {
+                        for (int k = 0; k < nComponents; ++k) {
+                            if (k == 3) {
+                                *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                            } else {
+                                *dst_pixels++ = toColorSpaceUint16FromLinearFloatFast(*src_pixels++);
+                            }
+                        }
+                    }
+                    
                 }
             }
+            
         }
-    }
-} // to_float_packed
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::sRGBLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("sRGB",from_func_srgb,to_func_srgb);
-}
-
-float
-from_func_Rec709(float v)
-{
-    if (v < 0.081f) {
-        return (v < 0.0f) ? 0.0f : v * (1.0f / 4.5f);
-    } else {
-        return std::pow( (v + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f) );
-    }
-}
-
-float
-to_func_Rec709(float v)
-{
-    if (v < 0.018f) {
-        return (v < 0.0f) ? 0.0f : v * 4.5f;
-    } else {
-        return 1.099f * std::pow(v, 0.45f) - 0.099f;
-    }
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::Rec709Lut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("Rec709",from_func_Rec709,to_func_Rec709);
-}
-
-/*
+        
+        template <typename MUTEX>
+        void Lut<MUTEX>::from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
+                                          const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const
+        {
+            
+            validate();
+            
+            int w = renderWindow.x2 - renderWindow.x1;
+            for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                
+                const unsigned char *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                
+                
+                const unsigned char* src_end = src_pixels + w * nComponents;
+                
+                
+                while (src_pixels != src_end) {
+                    
+                    if (nComponents == 1) {
+                        *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                    } else {
+                        for (int k = 0; k < nComponents; ++k) {
+                            if (k == 3) {
+                                *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                            } else {
+                                *dst_pixels++ = fromColorSpaceUint8ToLinearFloatFast(*src_pixels++);
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        
+        template <typename MUTEX>
+        void Lut<MUTEX>::from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
+                                           const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const
+        {
+            validate();
+            
+            int w = renderWindow.x2 - renderWindow.x1;
+            for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                
+                const unsigned short *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                
+                
+                const unsigned short* src_end = src_pixels + w * nComponents;
+                
+                
+                while (src_pixels != src_end) {
+                    
+                    if (nComponents == 1) {
+                        *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                    } else {
+                        for (int k = 0; k < nComponents; ++k) {
+                            if (k == 3) {
+                                *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                            } else {
+                                *dst_pixels++ = fromColorSpaceUint16ToLinearFloatFast(*src_pixels++);
+                            }
+                        }
+                    }
+                    
+                }
+            }
+            
+        }
+        ///////////////////////
+        /////////////////////////////////////////// LINEAR //////////////////////////////////////////////
+        ///////////////////////
+        
+        namespace Linear {
+            
+            
+            void
+            to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                           const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
+            {
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    unsigned char *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const float* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        for (int k = 0; k < nComponents; ++k) {
+                            *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                        }
+                    }
+                }
+            }
+            
+            void
+            to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                            const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
+            {
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    unsigned short *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const float* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        for (int k = 0; k < nComponents; ++k) {
+                            *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                        }
+                    }
+                }
+                
+            }
+            
+            
+            void
+            from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
+                             const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
+            {
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const unsigned char *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const unsigned char* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        for (int k = 0; k < nComponents; ++k) {
+                            *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                        }
+                    }
+                }
+                
+            }
+            
+            void
+            from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
+                              const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
+            {
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const unsigned short *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const unsigned short* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        for (int k = 0; k < nComponents; ++k) {
+                            *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                        }
+                    }
+                }
+                
+            }
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::sRGBLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("sRGB",from_func_srgb,to_func_srgb);
+        }
+        
+        float
+        from_func_Rec709(float v)
+        {
+            if (v < 0.081f) {
+                return (v < 0.0f) ? 0.0f : v * (1.0f / 4.5f);
+            } else {
+                return std::pow( (v + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f) );
+            }
+        }
+        
+        float
+        to_func_Rec709(float v)
+        {
+            if (v < 0.018f) {
+                return (v < 0.0f) ? 0.0f : v * 4.5f;
+            } else {
+                return 1.099f * std::pow(v, 0.45f) - 0.099f;
+            }
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::Rec709Lut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("Rec709",from_func_Rec709,to_func_Rec709);
+        }
+        
+        /*
          Following the formula:
          offset = pow(10,(blackpoint - whitepoint) * 0.002 / gammaSensito)
          gain = 1/(1-offset)
@@ -1322,186 +673,186 @@ LutManager::Rec709Lut()
          whitepoint = 685.0
          gammasensito = 0.6
          */
-float
-from_func_Cineon(float v)
-{
-    return ( 1.f / ( 1.f - std::pow(10.f,1.97f) ) ) * std::pow(10.f,( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
-}
-
-float
-to_func_Cineon(float v)
-{
-    float offset = std::pow(10.f,1.97f);
-
-    return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::CineonLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("Cineon",from_func_Cineon,to_func_Cineon);
-}
-
-float
-from_func_Gamma1_8(float v)
-{
-    return std::pow(v, 0.55f);
-}
-
-float
-to_func_Gamma1_8(float v)
-{
-    return std::pow(v, 1.8f);
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::Gamma1_8Lut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("Gamma1_8",from_func_Gamma1_8,to_func_Gamma1_8);
-}
-
-float
-from_func_Gamma2_2(float v)
-{
-    return std::pow(v, 0.45f);
-}
-
-float
-to_func_Gamma2_2(float v)
-{
-    return std::pow(v, 2.2f);
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::Gamma2_2Lut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("Gamma2_2",from_func_Gamma2_2,to_func_Gamma2_2);
-}
-
-float
-from_func_Panalog(float v)
-{
-    return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408) / 0.96f;
-}
-
-float
-to_func_Panalog(float v)
-{
-    return (444.f * std::log10(0.0408 + 0.96f * v) + 681.f) / 1023.f;
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::PanaLogLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("PanaLog",from_func_Panalog,to_func_Panalog);
-}
-
-float
-from_func_ViperLog(float v)
-{
-    return std::pow(10.f,(1023.f * v - 1023.f) / 500.f);
-}
-
-float
-to_func_ViperLog(float v)
-{
-    return (500.f * std::log10(v) + 1023.f) / 1023.f;
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::ViperLogLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("ViperLog",from_func_ViperLog,to_func_ViperLog);
-}
-
-float
-from_func_RedLog(float v)
-{
-    return (std::pow(10.f,( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
-}
-
-float
-to_func_RedLog(float v)
-{
-    return (511.f * std::log10(0.01f + 0.99f * v) + 1023.f) / 1023.f;
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::RedLogLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("RedLog",from_func_RedLog,to_func_RedLog);
-}
-
-float
-from_func_AlexaV3LogC(float v)
-{
-    return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
-                          : ( v / 0.9661776f - 0.04378604) * 0.18f - 0.00937677f;
-}
-
-float
-to_func_AlexaV3LogC(float v)
-{
-    return v > 0.010591f ?  0.247190f * std::log10(5.555556f * v + 0.052272f) + 0.385537f
-                          : v * 5.367655f + 0.092809f;
-}
-
-template <class MUTEX>
-const LutBase*
-LutManager::AlexaV3LogCLut()
-{
-    return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC",from_func_AlexaV3LogC,to_func_AlexaV3LogC);
-}
-
-// r,g,b values are from 0 to 1
-// h = [0,360], s = [0,1], v = [0,1]
-//		if s == 0, then h = 0 (undefined)
-void
-rgb_to_hsv( float r,
-            float g,
-            float b,
-            float *h,
-            float *s,
-            float *v )
-{
-    float min, max, delta;
-
-    min = std::min(std::min(r, g), b);
-    max = std::max(std::max(r, g), b);
-    *v = max;                       // v
-
-    delta = max - min;
-
-    if (max != 0.) {
-        *s = delta / max;               // s
-    } else {
-        // r = g = b = 0		// s = 0, v is undefined
-        *s = 0.;
-        *h = 0.;
-
-        return;
-    }
-
-    if (delta == 0.) {
-        *h = 0.;         // gray
-    } else if (r == max) {
-        *h = (g - b) / delta;               // between yellow & magenta
-    } else if (g == max) {
-        *h = 2 + (b - r) / delta;           // between cyan & yellow
-    } else {
-        *h = 4 + (r - g) / delta;           // between magenta & cyan
-    }
-    *h *= 60;                       // degrees
-    if (*h < 0) {
-        *h += 360;
-    }
-}
-}     // namespace Color
+        float
+        from_func_Cineon(float v)
+        {
+            return ( 1.f / ( 1.f - std::pow(10.f,1.97f) ) ) * std::pow(10.f,( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
+        }
+        
+        float
+        to_func_Cineon(float v)
+        {
+            float offset = std::pow(10.f,1.97f);
+            
+            return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::CineonLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("Cineon",from_func_Cineon,to_func_Cineon);
+        }
+        
+        float
+        from_func_Gamma1_8(float v)
+        {
+            return std::pow(v, 0.55f);
+        }
+        
+        float
+        to_func_Gamma1_8(float v)
+        {
+            return std::pow(v, 1.8f);
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::Gamma1_8Lut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("Gamma1_8",from_func_Gamma1_8,to_func_Gamma1_8);
+        }
+        
+        float
+        from_func_Gamma2_2(float v)
+        {
+            return std::pow(v, 0.45f);
+        }
+        
+        float
+        to_func_Gamma2_2(float v)
+        {
+            return std::pow(v, 2.2f);
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::Gamma2_2Lut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("Gamma2_2",from_func_Gamma2_2,to_func_Gamma2_2);
+        }
+        
+        float
+        from_func_Panalog(float v)
+        {
+            return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408) / 0.96f;
+        }
+        
+        float
+        to_func_Panalog(float v)
+        {
+            return (444.f * std::log10(0.0408 + 0.96f * v) + 681.f) / 1023.f;
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::PanaLogLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("PanaLog",from_func_Panalog,to_func_Panalog);
+        }
+        
+        float
+        from_func_ViperLog(float v)
+        {
+            return std::pow(10.f,(1023.f * v - 1023.f) / 500.f);
+        }
+        
+        float
+        to_func_ViperLog(float v)
+        {
+            return (500.f * std::log10(v) + 1023.f) / 1023.f;
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::ViperLogLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("ViperLog",from_func_ViperLog,to_func_ViperLog);
+        }
+        
+        float
+        from_func_RedLog(float v)
+        {
+            return (std::pow(10.f,( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
+        }
+        
+        float
+        to_func_RedLog(float v)
+        {
+            return (511.f * std::log10(0.01f + 0.99f * v) + 1023.f) / 1023.f;
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::RedLogLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("RedLog",from_func_RedLog,to_func_RedLog);
+        }
+        
+        float
+        from_func_AlexaV3LogC(float v)
+        {
+            return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
+            : ( v / 0.9661776f - 0.04378604) * 0.18f - 0.00937677f;
+        }
+        
+        float
+        to_func_AlexaV3LogC(float v)
+        {
+            return v > 0.010591f ?  0.247190f * std::log10(5.555556f * v + 0.052272f) + 0.385537f
+            : v * 5.367655f + 0.092809f;
+        }
+        
+        template <class MUTEX>
+        const LutBase*
+        LutManager::AlexaV3LogCLut()
+        {
+            return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC",from_func_AlexaV3LogC,to_func_AlexaV3LogC);
+        }
+        
+        // r,g,b values are from 0 to 1
+        // h = [0,360], s = [0,1], v = [0,1]
+        //		if s == 0, then h = 0 (undefined)
+        void
+        rgb_to_hsv( float r,
+                   float g,
+                   float b,
+                   float *h,
+                   float *s,
+                   float *v )
+        {
+            float min, max, delta;
+            
+            min = std::min(std::min(r, g), b);
+            max = std::max(std::max(r, g), b);
+            *v = max;                       // v
+            
+            delta = max - min;
+            
+            if (max != 0.) {
+                *s = delta / max;               // s
+            } else {
+                // r = g = b = 0		// s = 0, v is undefined
+                *s = 0.;
+                *h = 0.;
+                
+                return;
+            }
+            
+            if (delta == 0.) {
+                *h = 0.;         // gray
+            } else if (r == max) {
+                *h = (g - b) / delta;               // between yellow & magenta
+            } else if (g == max) {
+                *h = 2 + (b - r) / delta;           // between cyan & yellow
+            } else {
+                *h = 4 + (r - g) / delta;           // between magenta & cyan
+            }
+            *h *= 60;                       // degrees
+            if (*h < 0) {
+                *h += 360;
+            }
+        }
+    }     // namespace Color
 } //namespace OFX
 
