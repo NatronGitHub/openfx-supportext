@@ -605,7 +605,7 @@ namespace OFX {
             }
         }
         
-        float
+        inline float
         from_func_Rec709(float v)
         {
             if (v < 0.081f) {
@@ -615,7 +615,7 @@ namespace OFX {
             }
         }
         
-        float
+        inline float
         to_func_Rec709(float v)
         {
             if (v < 0.018f) {
@@ -637,13 +637,13 @@ namespace OFX {
          whitepoint = 685.0
          gammasensito = 0.6
          */
-        float
+        inline float
         from_func_Cineon(float v)
         {
             return ( 1.f / ( 1.f - std::pow(10.f,1.97f) ) ) * std::pow(10.f,( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
         }
         
-        float
+        inline float
         to_func_Cineon(float v)
         {
             float offset = std::pow(10.f,1.97f);
@@ -652,78 +652,78 @@ namespace OFX {
         }
         
         
-        float
+        inline float
         from_func_Gamma1_8(float v)
         {
             return std::pow(v, 0.55f);
         }
         
-        float
+        inline float
         to_func_Gamma1_8(float v)
         {
             return std::pow(v, 1.8f);
         }
         
-        float
+        inline float
         from_func_Gamma2_2(float v)
         {
             return std::pow(v, 0.45f);
         }
         
-        float
+        inline float
         to_func_Gamma2_2(float v)
         {
             return std::pow(v, 2.2f);
         }
         
         
-        float
+        inline float
         from_func_Panalog(float v)
         {
             return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408) / 0.96f;
         }
         
-        float
+        inline float
         to_func_Panalog(float v)
         {
             return (444.f * std::log10(0.0408 + 0.96f * v) + 681.f) / 1023.f;
         }
         
         
-        float
+        inline float
         from_func_ViperLog(float v)
         {
             return std::pow(10.f,(1023.f * v - 1023.f) / 500.f);
         }
         
-        float
+        inline float
         to_func_ViperLog(float v)
         {
             return (500.f * std::log10(v) + 1023.f) / 1023.f;
         }
         
         
-        float
+        inline float
         from_func_RedLog(float v)
         {
             return (std::pow(10.f,( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
         }
         
-        float
+        inline float
         to_func_RedLog(float v)
         {
             return (511.f * std::log10(0.01f + 0.99f * v) + 1023.f) / 1023.f;
         }
         
         
-        float
+        inline float
         from_func_AlexaV3LogC(float v)
         {
             return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
             : ( v / 0.9661776f - 0.04378604) * 0.18f - 0.00937677f;
         }
         
-        float
+        inline float
         to_func_AlexaV3LogC(float v)
         {
             return v > 0.010591f ?  0.247190f * std::log10(5.555556f * v + 0.052272f) + 0.385537f
