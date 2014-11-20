@@ -41,6 +41,7 @@
 #include <map>
 #include <cmath>
 #include <cassert>
+#include <cstring> // for memcpy
 
 #include "ofxCore.h"
 #include "ofxsMacros.h"
@@ -49,16 +50,6 @@ namespace OFX {
     namespace Color {
         
         
-        
-        /// @enum An enum describing supported pixels packing formats
-        enum PixelPacking
-        {
-            PACKING_RGBA = 0,
-            PACKING_BGRA,
-            PACKING_RGB,
-            PACKING_BGR,
-            PACKING_PLANAR
-        };
         
         /* @brief Converts a float ranging in [0 - 1.f] in the desired color-space to linear color-space also ranging in [0 - 1.f]*/
         typedef float (*fromColorSpaceFunctionV1)(float v);
@@ -100,7 +91,6 @@ namespace OFX {
             
             /* @brief Converts a float ranging in [0 - 1.f] in  linear color-space to the desired color-space to also ranging in [0 - 1.f]
              * This function is not fast!
-             * @see toColorSpaceFloatFromLinearFloatFast(float)
              */
             virtual float toColorSpaceFloatFromLinearFloat(float v) const = 0;
             
@@ -109,7 +99,6 @@ namespace OFX {
              */
             // It is not recommended to use this function, because the output is quantized
             // If one really needs float, one has to use the full function (or OpenColorIO)
-            //float toColorSpaceFloatFromLinearFloatFast(float v) const;
             
             /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
              * @return A byte in [0 - 255] in the destination color-space.
@@ -150,7 +139,12 @@ namespace OFX {
             virtual void from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
                                            const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
             
+        protected:
             
+            static float index_to_float(const unsigned short i);
+            
+            static unsigned short hipart(const float f);
+
         };
         
         /**
@@ -184,12 +178,45 @@ namespace OFX {
             ///init luts
             ///it uses fromColorSpaceFloatToLinearFloat(float) and toColorSpaceFloatFromLinearFloat(float)
             ///Called by validate()
-            void fillTables() const;
+            void fillTables() const
+            {
+                if (init_) {
+                    return;
+                }
+                // fill all
+                for (int i = 0; i < 0x10000; ++i) {
+                    float inp = index_to_float( (unsigned short)i );
+                    float f = _toFunc(inp);
+                    toFunc_hipart_to_uint8xx[i] = Color::floatToInt<0xff01>(f);
+                }
+                // fill fromFunc_uint8_to_float, and make sure that
+                // the entries of toFunc_hipart_to_uint8xx corresponding
+                // to the transform of each byte value contain the same value,
+                // so that toFunc(fromFunc(b)) is identity
+                //
+                for (int b = 0; b < 256; ++b) {
+                    float f = _fromFunc( Color::intToFloat<256>(b) );
+                    fromFunc_uint8_to_float[b] = f;
+                    int i = hipart(f);
+                    toFunc_hipart_to_uint8xx[i] = Color::charToUint8xx(b);
+                }
+            }
             
         public:
             
             //Called by all public members
-            void validate() const;
+            void validate() const
+            {
+                _lock->lock();
+                
+                if (init_) {
+                    _lock->unlock();
+                    return;
+                }
+                fillTables();
+                init_ = true;
+                _lock->unlock();
+            }
             
             
             virtual float fromColorSpaceFloatToLinearFloat(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
@@ -202,28 +229,257 @@ namespace OFX {
                 return _toFunc(v);
             }
             
-            virtual unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN;
+            virtual unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+            {
+                assert(init_);
+                
+                return Color::uint8xxToChar(toFunc_hipart_to_uint8xx[hipart(v)]);
+            }
+
             
-            virtual unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN;
+            virtual unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+            {
+                assert(init_);
+                
+                return toFunc_hipart_to_uint8xx[hipart(v)];
+
+            }
             
-            virtual unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN;
+            // the following only works for increasing LUTs
+
+            virtual unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+            {
+                assert(init_);
+                // algorithm:
+                // - convert to 8 bits -> val8u
+                // - convert val8u-1, val8u and val8u+1 to float
+                // - interpolate linearly in the right interval
+                unsigned char v8u = toColorSpaceUint8FromLinearFloatFast(v);
+                unsigned char v8u_next, v8u_prev;
+                float v32f_next, v32f_prev;
+                if (v8u == 0) {
+                    v8u_prev = 0;
+                    v8u_next = 1;
+                    v32f_prev = fromColorSpaceUint8ToLinearFloatFast(0);
+                    v32f_next = fromColorSpaceUint8ToLinearFloatFast(1);
+                } else if (v8u == 255) {
+                    v8u_prev = 254;
+                    v8u_next = 255;
+                    v32f_prev = fromColorSpaceUint8ToLinearFloatFast(254);
+                    v32f_next = fromColorSpaceUint8ToLinearFloatFast(255);
+                } else {
+                    float v32f = fromColorSpaceUint8ToLinearFloatFast(v8u);
+                    // we suppose the LUT is an increasing func
+                    if (v < v32f) {
+                        v8u_prev = v8u - 1;
+                        v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
+                        v8u_next = v8u;
+                        v32f_next = v32f;
+                    } else {
+                        v8u_prev = v8u;
+                        v32f_prev = v32f;
+                        v8u_next = v8u + 1;
+                        v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
+                    }
+                }
+                
+                // interpolate linearly
+                return (v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5;
+            }
             
-            virtual float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const OVERRIDE FINAL WARN_UNUSED_RETURN;
+            virtual float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+            {
+                assert(init_);
+                
+                return fromFunc_uint8_to_float[v];
+            }
             
-            virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const OVERRIDE FINAL WARN_UNUSED_RETURN;
+            virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+            {
+                assert(init_);
+                // the following is from ImageMagick's quantum.h
+                unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
+                unsigned char v8u_next = v8u_prev + 1;
+                unsigned short v16u_prev = (v8u_prev << 8) + v8u_prev;
+                unsigned short v16u_next = (v8u_next << 8) + v8u_next;
+                float v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
+                float v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
+                
+                // interpolate linearly
+                return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
+
+            }
             
             
             virtual void to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                        const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL;
+                                        const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL
+            {
+                validate();
+                
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    int start = rand() % (renderWindow.x2 - renderWindow.x1);
+                    
+                    unsigned error[3] = { 0x80, 0x80, 0x80 };
+                    
+                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + start * nComponents;
+                    unsigned char *dst_pixels = to + (y * dstRowBytes * nComponents) + start * nComponents;
+                    
+                    const float* originalSrc_pixels = src_pixels;
+                    unsigned char* originalDst_pixels = dst_pixels;
+                    
+                    
+                    /* go fowards from starting point to end of line: */
+                    const float* src_end = src_pixels + renderWindow.x2 * nComponents;
+                    
+                    while (src_pixels != src_end) {
+                        
+                        if (nComponents == 1) {
+                            *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                        } else {
+                            for (int k = 0; k < nComponents; ++k) {
+                                if (k == 3) {
+                                    *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                                } else {
+                                    error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels++);
+                                    assert(error[k] < 0x10000);
+                                    *dst_pixels++ = (unsigned char)(error[k] >> 8);
+                                }
+                            }
+                        }
+                        
+                    }
+                    
+                    /* go backwards from starting point to start of line: */
+                    src_pixels = originalSrc_pixels - nComponents;
+                    src_end = src_pixels - start * nComponents;
+                    dst_pixels = originalDst_pixels - nComponents;
+                    
+                    for (int i = 0; i < 3; ++i) {
+                        error[i] = 0x80;
+                    }
+                    
+                    while (src_pixels != src_end) {
+                        
+                        if (nComponents == 1) {
+                            *dst_pixels-- = floatToInt<256>(*src_pixels--);
+                        } else {
+                            for (int k = 0; k < nComponents; ++k) {
+                                if (k == 3) {
+                                    *dst_pixels-- = floatToInt<256>(*src_pixels--);
+                                } else {
+                                    error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels--);
+                                    assert(error[k] < 0x10000);
+                                    *dst_pixels-- = (unsigned char)(error[k] >> 8);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+                
+
+            }
             
             virtual void to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                         const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL;
+                                         const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL
+            {
+                validate();
+                
+                int w = renderWindow.x2 - renderWindow.x1;
+                
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    unsigned short *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const float* src_end = src_pixels + w * nComponents;
+                    
+                    while (src_pixels != src_end) {
+                        
+                        if (nComponents == 1) {
+                            *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                        } else {
+                            for (int k = 0; k < nComponents; ++k) {
+                                if (k == 3) {
+                                    *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                                } else {
+                                    *dst_pixels++ = toColorSpaceUint16FromLinearFloatFast(*src_pixels++);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+
+            }
             
             virtual void from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
-                                          const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL;
+                                          const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL
+            {
+                validate();
+                
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const unsigned char *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const unsigned char* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        
+                        if (nComponents == 1) {
+                            *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                        } else {
+                            for (int k = 0; k < nComponents; ++k) {
+                                if (k == 3) {
+                                    *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                                } else {
+                                    *dst_pixels++ = fromColorSpaceUint8ToLinearFloatFast(*src_pixels++);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
             
             virtual void from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
-                                           const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL;
+                                           const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const OVERRIDE FINAL
+            {
+                validate();
+                
+                int w = renderWindow.x2 - renderWindow.x1;
+                for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+                    
+                    const unsigned short *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    
+                    
+                    const unsigned short* src_end = src_pixels + w * nComponents;
+                    
+                    
+                    while (src_pixels != src_end) {
+                        
+                        if (nComponents == 1) {
+                            *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                        } else {
+                            for (int k = 0; k < nComponents; ++k) {
+                                if (k == 3) {
+                                    *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                                } else {
+                                    *dst_pixels++ = fromColorSpaceUint16ToLinearFloatFast(*src_pixels++);
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+            }
             
         };
         
@@ -248,8 +504,6 @@ namespace OFX {
         }        //namespace Linear
         
         
-        ///these are put in the header as they are used elsewhere
-        
         inline float
         from_func_srgb(float v)
         {
@@ -269,6 +523,133 @@ namespace OFX {
                 return 1.055f * std::pow(v, 1.0f / 2.4f) - 0.055f;
             }
         }
+        
+        float
+        from_func_Rec709(float v)
+        {
+            if (v < 0.081f) {
+                return (v < 0.0f) ? 0.0f : v * (1.0f / 4.5f);
+            } else {
+                return std::pow( (v + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f) );
+            }
+        }
+        
+        float
+        to_func_Rec709(float v)
+        {
+            if (v < 0.018f) {
+                return (v < 0.0f) ? 0.0f : v * 4.5f;
+            } else {
+                return 1.099f * std::pow(v, 0.45f) - 0.099f;
+            }
+        }
+        
+        
+        
+        /*
+         Following the formula:
+         offset = pow(10,(blackpoint - whitepoint) * 0.002 / gammaSensito)
+         gain = 1/(1-offset)
+         linear = gain * pow(10,(1023*v - whitepoint)*0.002/gammaSensito)
+         cineon = (log10((v + offset) /gain)/ (0.002 / gammaSensito) + whitepoint)/1023
+         Here we're using: blackpoint = 95.0
+         whitepoint = 685.0
+         gammasensito = 0.6
+         */
+        float
+        from_func_Cineon(float v)
+        {
+            return ( 1.f / ( 1.f - std::pow(10.f,1.97f) ) ) * std::pow(10.f,( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
+        }
+        
+        float
+        to_func_Cineon(float v)
+        {
+            float offset = std::pow(10.f,1.97f);
+            
+            return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
+        }
+        
+        
+        float
+        from_func_Gamma1_8(float v)
+        {
+            return std::pow(v, 0.55f);
+        }
+        
+        float
+        to_func_Gamma1_8(float v)
+        {
+            return std::pow(v, 1.8f);
+        }
+        
+        float
+        from_func_Gamma2_2(float v)
+        {
+            return std::pow(v, 0.45f);
+        }
+        
+        float
+        to_func_Gamma2_2(float v)
+        {
+            return std::pow(v, 2.2f);
+        }
+        
+        
+        float
+        from_func_Panalog(float v)
+        {
+            return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408) / 0.96f;
+        }
+        
+        float
+        to_func_Panalog(float v)
+        {
+            return (444.f * std::log10(0.0408 + 0.96f * v) + 681.f) / 1023.f;
+        }
+        
+        
+        float
+        from_func_ViperLog(float v)
+        {
+            return std::pow(10.f,(1023.f * v - 1023.f) / 500.f);
+        }
+        
+        float
+        to_func_ViperLog(float v)
+        {
+            return (500.f * std::log10(v) + 1023.f) / 1023.f;
+        }
+        
+        
+        float
+        from_func_RedLog(float v)
+        {
+            return (std::pow(10.f,( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
+        }
+        
+        float
+        to_func_RedLog(float v)
+        {
+            return (511.f * std::log10(0.01f + 0.99f * v) + 1023.f) / 1023.f;
+        }
+        
+        
+        float
+        from_func_AlexaV3LogC(float v)
+        {
+            return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
+            : ( v / 0.9661776f - 0.04378604) * 0.18f - 0.00937677f;
+        }
+        
+        float
+        to_func_AlexaV3LogC(float v)
+        {
+            return v > 0.010591f ?  0.247190f * std::log10(5.555556f * v + 0.052272f) + 0.385537f
+            : v * 5.367655f + 0.092809f;
+        }
+        
+
         
         /// convert RGB to HSV
         /// In Nuke's viewer, sRGB values are used (apply to_func_srgb to linear
@@ -403,31 +784,59 @@ namespace OFX {
             
             ///buit-ins color-spaces
             template <class MUTEX>
-            static const LutBase* sRGBLut();
+            static const LutBase* sRGBLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("sRGB",from_func_srgb,to_func_srgb);
+            }
             
             template <class MUTEX>
-            static const LutBase* Rec709Lut();
+            static const LutBase* Rec709Lut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("Rec709",from_func_Rec709,to_func_Rec709);
+
+            }
             
             template <class MUTEX>
-            static const LutBase* CineonLut();
+            static const LutBase* CineonLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("Cineon",from_func_Cineon,to_func_Cineon);
+            }
             
             template <class MUTEX>
-            static const LutBase* Gamma1_8Lut();
+            static const LutBase* Gamma1_8Lut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("Gamma1_8",from_func_Gamma1_8,to_func_Gamma1_8);
+            }
             
             template <class MUTEX>
-            static const LutBase* Gamma2_2Lut();
+            static const LutBase* Gamma2_2Lut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("Gamma2_2",from_func_Gamma2_2,to_func_Gamma2_2);
+            }
             
             template <class MUTEX>
-            static const LutBase* PanaLogLut();
+            static const LutBase* PanaLogLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("PanaLog",from_func_Panalog,to_func_Panalog);
+            }
             
             template <class MUTEX>
-            static const LutBase* ViperLogLut();
+            static const LutBase* ViperLogLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("ViperLog",from_func_ViperLog,to_func_ViperLog);
+            }
             
             template <class MUTEX>
-            static const LutBase* RedLogLut();
+            static const LutBase* RedLogLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("RedLog",from_func_RedLog,to_func_RedLog);
+            }
             
             template <class MUTEX>
-            static const LutBase* AlexaV3LogCLut();
+            static const LutBase* AlexaV3LogCLut()
+            {
+                return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC",from_func_AlexaV3LogC,to_func_AlexaV3LogC);
+            }
             
         private:
             LutManager &operator= (const LutManager &)
