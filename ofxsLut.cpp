@@ -150,11 +150,14 @@ namespace OFX {
             to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
                            const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
             {
+                int srcElements = srcRowBytes / sizeof(float);
+                int dstElements = dstRowBytes / sizeof(unsigned char);
+
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    unsigned char *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    unsigned char *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const float* src_end = src_pixels + w * nComponents;
@@ -172,11 +175,13 @@ namespace OFX {
             to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
                             const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
             {
+                int srcElements = srcRowBytes / sizeof(float);
+                int dstElements = dstRowBytes / sizeof(unsigned short);
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    unsigned short *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    unsigned short *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const float* src_end = src_pixels + w * nComponents;
@@ -196,11 +201,13 @@ namespace OFX {
             from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
                              const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
             {
+                int srcElements = srcRowBytes / sizeof(unsigned char);
+                int dstElements = dstRowBytes / sizeof(float);
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const unsigned char *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const unsigned char *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstRowBytes) + renderWindow.x1 * nComponents;
                     
                     
                     const unsigned char* src_end = src_pixels + w * nComponents;
@@ -219,11 +226,13 @@ namespace OFX {
             from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
                               const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes)
             {
+                int srcElements = srcRowBytes / sizeof(unsigned short);
+                int dstElements = dstRowBytes / sizeof(float);
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const unsigned short *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const unsigned short *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const unsigned short* src_end = src_pixels + w * nComponents;

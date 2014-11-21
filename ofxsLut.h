@@ -397,14 +397,17 @@ namespace OFX {
             {
                 validate();
                 
+                int srcElements = srcRowBytes / sizeof(float);
+                int dstElements = dstRowBytes / sizeof(unsigned char);
+                
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
                     int start = rand() % (renderWindow.x2 - renderWindow.x1);
                     
                     unsigned error[3] = { 0x80, 0x80, 0x80 };
                     
-                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + start * nComponents;
-                    unsigned char *dst_pixels = to + (y * dstRowBytes * nComponents) + start * nComponents;
+                    const float *src_pixels = from + (y * srcElements) + start * nComponents;
+                    unsigned char *dst_pixels = to + (y * dstElements) + start * nComponents;
                     
                     const float* originalSrc_pixels = src_pixels;
                     unsigned char* originalDst_pixels = dst_pixels;
@@ -467,12 +470,15 @@ namespace OFX {
             {
                 validate();
                 
+                int srcElements = srcRowBytes / sizeof(float);
+                int dstElements = dstRowBytes / sizeof(unsigned short);
+                
                 int w = renderWindow.x2 - renderWindow.x1;
                 
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const float *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    unsigned short *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    unsigned short *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const float* src_end = src_pixels + w * nComponents;
@@ -501,11 +507,15 @@ namespace OFX {
             {
                 validate();
                 
+                int srcElements = srcRowBytes / sizeof(unsigned char);
+                int dstElements = dstRowBytes / sizeof(float);
+
+                
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const unsigned char *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const unsigned char *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const unsigned char* src_end = src_pixels + w * nComponents;
@@ -534,11 +544,14 @@ namespace OFX {
             {
                 validate();
                 
+                int srcElements = srcRowBytes / sizeof(unsigned short);
+                int dstElements = dstRowBytes / sizeof(float);
+                
                 int w = renderWindow.x2 - renderWindow.x1;
                 for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
                     
-                    const unsigned short *src_pixels = from + (y * srcRowBytes * nComponents) + renderWindow.x1 * nComponents;
-                    float *dst_pixels = to + (y * dstRowBytes * nComponents) + renderWindow.x1 * nComponents;
+                    const unsigned short *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+                    float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
                     
                     
                     const unsigned short* src_end = src_pixels + w * nComponents;
