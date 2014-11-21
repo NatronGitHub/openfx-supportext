@@ -250,7 +250,7 @@ namespace OFX {
                 toColorSpaceFunctionV1 toFunc)
             : LutBase(name,fromFunc,toFunc)
             , init_(false)
-            , _lock()
+            , _lock(new MUTEX())
             {
             }
             
