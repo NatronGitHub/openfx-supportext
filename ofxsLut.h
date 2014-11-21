@@ -414,7 +414,7 @@ namespace OFX {
                     
                     
                     /* go fowards from starting point to end of line: */
-                    const float* src_end = src_pixels + renderWindow.x2 * nComponents;
+                    const float* src_end = src_pixels + (renderWindow.x2 - start) * nComponents;
                     
                     while (src_pixels != src_end) {
                         
