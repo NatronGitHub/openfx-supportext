@@ -409,14 +409,10 @@ namespace OFX {
                     const float *src_pixels = from + (y * srcElements) + start * nComponents;
                     unsigned char *dst_pixels = to + (y * dstElements) + start * nComponents;
                     
-                    const float* originalSrc_pixels = src_pixels;
-                    unsigned char* originalDst_pixels = dst_pixels;
-                    
-                    
                     /* go fowards from starting point to end of line: */
-                    const float* src_end = src_pixels + (renderWindow.x2 - start) * nComponents;
+                    const float* src_end = from + (y * srcElements) + (renderWindow.x2 - renderWindow.x1) * nComponents;
                     
-                    while (src_pixels != src_end) {
+                    while (src_pixels < src_end) {
                         
                         if (nComponents == 1) {
                             *dst_pixels++ = floatToInt<256>(*src_pixels++);
@@ -434,34 +430,36 @@ namespace OFX {
                         
                     }
                     
-                    /* go backwards from starting point to start of line: */
-                    src_pixels = originalSrc_pixels - nComponents;
-                    src_end = src_pixels - start * nComponents;
-                    dst_pixels = originalDst_pixels - nComponents;
-                    
-                    for (int i = 0; i < 3; ++i) {
-                        error[i] = 0x80;
-                    }
-                    
-                    while (src_pixels != src_end) {
+                    if (start > 0) {
+                        /* go backwards from starting point to start of line: */
+                        src_pixels = from + (y * srcElements) + (start - 1) * nComponents;
+                        src_end = from + (y * srcElements) - 1;
+                        dst_pixels = to + (y * dstElements) + (start - 1) * nComponents;
                         
-                        if (nComponents == 1) {
-                            *dst_pixels-- = floatToInt<256>(*src_pixels--);
-                        } else {
-                            for (int k = 0; k < nComponents; ++k) {
-                                if (k == 3) {
-                                    *dst_pixels-- = floatToInt<256>(*src_pixels--);
-                                } else {
-                                    error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels--);
-                                    assert(error[k] < 0x10000);
-                                    *dst_pixels-- = (unsigned char)(error[k] >> 8);
-                                }
-                            }
+                        for (int i = 0; i < 3; ++i) {
+                            error[i] = 0x80;
                         }
                         
+                        while (src_pixels > src_end) {
+                            
+                            if (nComponents == 1) {
+                                *dst_pixels = floatToInt<256>(*src_pixels);
+                            } else {
+                                for (int k = 0; k < nComponents; ++k) {
+                                    if (k == 3) {
+                                        dst_pixels[k] = floatToInt<256>(src_pixels[k]);
+                                    } else {
+                                        error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(src_pixels[k]);
+                                        assert(error[k] < 0x10000);
+                                        dst_pixels[k] = (unsigned char)(error[k] >> 8);
+                                    }
+                                }
+                            }
+                            dst_pixels -= nComponents;
+                            src_pixels -= nComponents;
+                        }
                     }
                 }
-                
 
             }
             
