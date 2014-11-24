@@ -35,7 +35,10 @@
  */
 
 #include "ofxsLut.h"
-
+#ifdef _WIN32
+typedef unsigned __int32 uint32_t;
+typedef unsigned char uint8_t;
+#endif
 
 namespace OFX {
 namespace Color {
