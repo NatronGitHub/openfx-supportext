@@ -204,8 +204,17 @@ public:
      * @return A float in [0 - 1.f] in linear color-space.
      */
     virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const = 0;
-    virtual void to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+
+    /* @brief convert from float to byte with dithering (error diffusion).
+       It uses random numbers for error diffusion, and thus the result is different at each function call. */
+    virtual void to_byte_packed_dither(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                                       const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+
+    /* @brief convert from float to byte without dithering. */
+    virtual void to_byte_packed_nodither(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
+                                         const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+
+    /* @brief convert from float to short without dithering. */
     virtual void to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
                                  const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
     virtual void from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
@@ -381,14 +390,14 @@ public:
         return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
     }
 
-    virtual void to_byte_packed(unsigned char* to,
-                                const float* from,
-                                const OfxRectI & renderWindow,
-                                int nComponents,
-                                const OfxRectI & srcBounds,
-                                int srcRowBytes,
-                                const OfxRectI & dstBounds,
-                                int dstRowBytes) const OVERRIDE FINAL
+    virtual void to_byte_packed_dither(unsigned char* to,
+                                       const float* from,
+                                       const OfxRectI & renderWindow,
+                                       int nComponents,
+                                       const OfxRectI & srcBounds,
+                                       int srcRowBytes,
+                                       const OfxRectI & dstBounds,
+                                       int dstRowBytes) const OVERRIDE FINAL
     {
         validate();
 
@@ -451,8 +460,44 @@ public:
                 }
             }
         }
-    } // to_byte_packed
+    } // to_byte_packed_dither
+    
+    virtual void to_byte_packed_nodither(unsigned char* to,
+                                         const float* from,
+                                         const OfxRectI & renderWindow,
+                                         int nComponents,
+                                         const OfxRectI & srcBounds,
+                                         int srcRowBytes,
+                                         const OfxRectI & dstBounds,
+                                         int dstRowBytes) const OVERRIDE FINAL
+    {
+        validate();
 
+        int srcElements = srcRowBytes / sizeof(float);
+        int dstElements = dstRowBytes / sizeof(unsigned short);
+        int w = renderWindow.x2 - renderWindow.x1;
+
+        for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+            const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
+            unsigned char *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
+            const float* src_end = src_pixels + w * nComponents;
+
+            while (src_pixels != src_end) {
+                if (nComponents == 1) {
+                    *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                } else {
+                    for (int k = 0; k < nComponents; ++k) {
+                        if (k == 3) {
+                            *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                        } else {
+                            *dst_pixels++ = toColorSpaceUint8FromLinearFloatFast(*src_pixels++);
+                        }
+                    }
+                }
+            }
+        }
+    } // to_byte_packed_nodither
+    
     virtual void to_short_packed(unsigned short* to,
                                  const float* from,
                                  const OfxRectI & renderWindow,
