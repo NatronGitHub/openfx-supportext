@@ -315,7 +315,7 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
     for (int c = 0; c < nComponents; ++c) {
         tmpPix[c] *= maxValue;
     }
-    ofxsMaskMixPix<PIX, nComponents, maxValue, true>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
+    ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
 // tmpPix is not normalized, it is within [0,maxValue]
