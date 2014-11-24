@@ -42,6 +42,7 @@
 #include <cmath>
 #include <cassert>
 #include <cstring> // for memcpy
+#include <cstdlib> // for rand
 
 #include "ofxCore.h"
 #include "ofxsMacros.h"
@@ -405,7 +406,7 @@ public:
         int dstElements = dstRowBytes / sizeof(unsigned char);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            int start = rand() % (renderWindow.x2 - renderWindow.x1);
+            int start = std::rand() % (renderWindow.x2 - renderWindow.x1);
             unsigned error[3] = {
                 0x80, 0x80, 0x80
             };
