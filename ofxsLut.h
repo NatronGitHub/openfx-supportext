@@ -727,6 +727,7 @@ to_func_AlexaV3LogC(float v)
 /// h = [0,360], s = [0,1], v = [0,1]
 ///		if s == 0, then h = -1 (undefined)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
+void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b );
 
 
 // a Singleton that holds precomputed LUTs for the whole application.
