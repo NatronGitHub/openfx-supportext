@@ -327,6 +327,7 @@ hsv_to_rgb(float h,
     h /= 60;            // sector 0 to 5
     i = std::floor(h);
     f = h - i;          // factorial part of h
+    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     p = v * ( 1 - s );
     q = v * ( 1 - s * f );
     t = v * ( 1 - s * ( 1 - f ) );
