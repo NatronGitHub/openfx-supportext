@@ -43,6 +43,7 @@
 #include <cassert>
 #include <cstring> // for memcpy
 #include <cstdlib> // for rand
+#include <memory> // for auto_ptr
 
 #include "ofxCore.h"
 #include "ofxsMacros.h"
