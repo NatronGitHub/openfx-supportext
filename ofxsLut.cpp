@@ -41,6 +41,7 @@ typedef unsigned char uint8_t;
 #else
 #include <stdint.h>
 #endif
+#include <limits>
 
 namespace OFX {
 namespace Color {
