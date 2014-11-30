@@ -220,6 +220,19 @@ public:
                                          const OfxRectI & renderWindow,
                                          void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
 
+    /* @brief uses Rec.709 to convert from color to grayscale. */
+    virtual void to_byte_grayscale_nodither(const void* pixelData,
+                                            const OfxRectI & bounds,
+                                            OFX::PixelComponentEnum pixelComponents,
+                                            OFX::BitDepthEnum bitDepth,
+                                            int rowBytes,
+                                            const OfxRectI & renderWindow,
+                                            void* dstPixelData,
+                                            const OfxRectI & dstBounds,
+                                            OFX::PixelComponentEnum dstPixelComponents,
+                                            OFX::BitDepthEnum dstBitDepth,
+                                            int dstRowBytes) const = 0;
+
     /* @brief convert from float to short without dithering. */
     virtual void to_short_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
                                  const OfxRectI & renderWindow,
@@ -520,6 +533,44 @@ public:
                 }
                 dst_pixels += nComponents;
                 src_pixels += nComponents;
+            }
+        }
+    } // to_byte_packed_nodither
+
+    // uses Rec.709 to convert from color to grayscale
+    virtual void to_byte_grayscale_nodither(const void* pixelData,
+                                            const OfxRectI & bounds,
+                                            OFX::PixelComponentEnum pixelComponents,
+                                            OFX::BitDepthEnum bitDepth,
+                                            int rowBytes,
+                                            const OfxRectI & renderWindow,
+                                            void* dstPixelData,
+                                            const OfxRectI & dstBounds,
+                                            OFX::PixelComponentEnum dstPixelComponents,
+                                            OFX::BitDepthEnum dstBitDepth,
+                                            int dstRowBytes) const OVERRIDE FINAL
+    {
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte &&
+               (pixelComponents == ePixelComponentRGB || pixelComponents == ePixelComponentRGBA) &&
+               dstPixelComponents == ePixelComponentAlpha);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        validate();
+
+        int srcComponents = getNComponents(pixelComponents);
+
+        for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+            const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+            unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
+
+            while (src_pixels != src_end) {
+                float l = 0.2126 * src_pixels[0] + 0.7152 * src_pixels[1] + 0.0722 * src_pixels[2]; // Rec.709 luminance formula
+                dst_pixels[0] = toColorSpaceUint8FromLinearFloatFast(l);
+                ++dst_pixels;
+                src_pixels += srcComponents;
             }
         }
     } // to_byte_packed_nodither
