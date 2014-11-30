@@ -1,64 +1,64 @@
 /*
- Useful macros.
+   Useful macros.
 
- Copyright (C) 2014 INRIA
+   Copyright (C) 2014 INRIA
 
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
 
- Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
+   Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
- Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
+   Redistributions in binary form must reproduce the above copyright notice, this
+   list of conditions and the following disclaimer in the documentation and/or
+   other materials provided with the distribution.
 
- Neither the name of the {organization} nor the names of its
- contributors may be used to endorse or promote products derived from
- this software without specific prior written permission.
+   Neither the name of the {organization} nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+   ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- INRIA
- Domaine de Voluceau
- Rocquencourt - B.P. 105
- 78153 Le Chesnay Cedex - France
+   INRIA
+   Domaine de Voluceau
+   Rocquencourt - B.P. 105
+   78153 Le Chesnay Cedex - France
  */
 #ifndef __SupportExt__ofxsMacros__
 #define __SupportExt__ofxsMacros__
 
 
 // compiler_warning.h
-#define STRINGISE_IMPL(x) #x
+#define STRINGISE_IMPL(x) # x
 #define STRINGISE(x) STRINGISE_IMPL(x)
 
 // Use: #pragma message WARN("My message")
 #if _MSC_VER
 #   define FILE_LINE_LINK __FILE__ "(" STRINGISE(__LINE__) ") : "
 #   define WARN(exp) (FILE_LINE_LINK "WARNING: " exp)
-#else//__GNUC__ - may need other defines for different compilers
+#else //__GNUC__ - may need other defines for different compilers
 #   define WARN(exp) ("WARNING: " exp)
 #endif
 
 // The following was grabbed from WTF/wtf/Compiler.h (where WTF was replaced by OFXS)
 
 /* COMPILER() - the compiler being used to build the project */
-#define COMPILER(OFXS_FEATURE) (defined OFXS_COMPILER_##OFXS_FEATURE && OFXS_COMPILER_##OFXS_FEATURE)
+#define COMPILER(OFXS_FEATURE) (defined OFXS_COMPILER_ ## OFXS_FEATURE && OFXS_COMPILER_ ## OFXS_FEATURE)
 
 /* COMPILER_SUPPORTS() - whether the compiler being used to build the project supports the given feature. */
-#define COMPILER_SUPPORTS(OFXS_COMPILER_FEATURE) (defined OFXS_COMPILER_SUPPORTS_##OFXS_COMPILER_FEATURE && OFXS_COMPILER_SUPPORTS_##OFXS_COMPILER_FEATURE)
+#define COMPILER_SUPPORTS(OFXS_COMPILER_FEATURE) (defined OFXS_COMPILER_SUPPORTS_ ## OFXS_COMPILER_FEATURE && OFXS_COMPILER_SUPPORTS_ ## OFXS_COMPILER_FEATURE)
 
 /* COMPILER_QUIRK() - whether the compiler being used to build the project requires a given quirk. */
-#define COMPILER_QUIRK(OFXS_COMPILER_QUIRK) (defined OFXS_COMPILER_QUIRK_##OFXS_COMPILER_QUIRK && OFXS_COMPILER_QUIRK_##OFXS_COMPILER_QUIRK)
+#define COMPILER_QUIRK(OFXS_COMPILER_QUIRK) (defined OFXS_COMPILER_QUIRK_ ## OFXS_COMPILER_QUIRK && OFXS_COMPILER_QUIRK_ ## OFXS_COMPILER_QUIRK)
 
 /* ==== COMPILER() - the compiler being used to build the project ==== */
 
@@ -76,8 +76,8 @@
 #define OFXS_COMPILER_SUPPORTS_CXX_VARIADIC_TEMPLATES __has_extension(cxx_variadic_templates)
 
 /* There is a bug in clang that comes with Xcode 4.2 where AtomicStrings can't be implicitly converted to Strings
- in the presence of move constructors and/or move assignment operators. This bug has been fixed in Xcode 4.3 clang, so we
- check for both cxx_rvalue_references as well as the unrelated cxx_nonstatic_member_init feature which we know was added in 4.3 */
+   in the presence of move constructors and/or move assignment operators. This bug has been fixed in Xcode 4.3 clang, so we
+   check for both cxx_rvalue_references as well as the unrelated cxx_nonstatic_member_init feature which we know was added in 4.3 */
 #define OFXS_COMPILER_SUPPORTS_CXX_RVALUE_REFERENCES __has_extension(cxx_rvalue_references) && __has_extension(cxx_nonstatic_member_init)
 
 #define OFXS_COMPILER_SUPPORTS_CXX_DELETED_FUNCTIONS __has_extension(cxx_deleted_functions)
@@ -121,7 +121,7 @@
 /* COMPILER(RVCT4_OR_GREATER) - ARM RealView Compilation Tools 4.0 or greater */
 #if defined(__CC_ARM) || defined(__ARMCC__)
 #define OFXS_COMPILER_RVCT 1
-#define RVCT_VERSION_AT_LEAST(major, minor, patch, build) (__ARMCC_VERSION >= (major * 100000 + minor * 10000 + patch * 1000 + build))
+#define RVCT_VERSION_AT_LEAST(major, minor, patch, build) ( __ARMCC_VERSION >= (major * 100000 + minor * 10000 + patch * 1000 + build) )
 #else
 /* Define this for !RVCT compilers, just so we can write things like RVCT_VERSION_AT_LEAST(3, 0, 0, 0). */
 #define RVCT_VERSION_AT_LEAST(major, minor, patch, build) 0
@@ -131,7 +131,7 @@
 #if defined(__GCCE__)
 #define OFXS_COMPILER_GCCE 1
 #define GCCE_VERSION (__GCCE__ * 10000 + __GCCE_MINOR__ * 100 + __GCCE_PATCHLEVEL__)
-#define GCCE_VERSION_AT_LEAST(major, minor, patch) (GCCE_VERSION >= (major * 10000 + minor * 100 + patch))
+#define GCCE_VERSION_AT_LEAST(major, minor, patch) ( GCCE_VERSION >= (major * 10000 + minor * 100 + patch) )
 #endif
 
 /* COMPILER(GCC) - GNU Compiler Collection */
@@ -139,7 +139,7 @@
 #if defined(__GNUC__) && !COMPILER(RVCT)
 #define OFXS_COMPILER_GCC 1
 #define GCC_VERSION (__GNUC__ * 10000 + __GNUC_MINOR__ * 100 + __GNUC_PATCHLEVEL__)
-#define GCC_VERSION_AT_LEAST(major, minor, patch) (GCC_VERSION >= (major * 10000 + minor * 100 + patch))
+#define GCC_VERSION_AT_LEAST(major, minor, patch) ( GCC_VERSION >= (major * 10000 + minor * 100 + patch) )
 #else
 /* Define this for !GCC compilers, just so we can write things like GCC_VERSION_AT_LEAST(4, 1, 0). */
 #define GCC_VERSION_AT_LEAST(major, minor, patch) 0
@@ -188,8 +188,8 @@
 
 #ifndef ALWAYS_INLINE
 #if COMPILER(GCC) && defined(NDEBUG) && !COMPILER(MINGW)
-#define ALWAYS_INLINE inline __attribute__((__always_inline__))
-#elif (COMPILER(MSVC) || COMPILER(RVCT)) && defined(NDEBUG)
+#define ALWAYS_INLINE inline __attribute__( (__always_inline__) )
+#elif (COMPILER(MSVC) || COMPILER(RVCT ) ) && defined(NDEBUG)
 #define ALWAYS_INLINE __forceinline
 #else
 #define ALWAYS_INLINE inline
@@ -201,7 +201,7 @@
 
 #ifndef NEVER_INLINE
 #if COMPILER(GCC)
-#define NEVER_INLINE __attribute__((__noinline__))
+#define NEVER_INLINE __attribute__( (__noinline__) )
 #elif COMPILER(RVCT)
 #define NEVER_INLINE __declspec(noinline)
 #else
@@ -213,8 +213,8 @@
 /* UNLIKELY */
 
 #ifndef UNLIKELY
-#if COMPILER(GCC) || (RVCT_VERSION_AT_LEAST(3, 0, 0, 0) && defined(__GNUC__))
-#define UNLIKELY(x) __builtin_expect((x), 0)
+#if COMPILER(GCC) || (RVCT_VERSION_AT_LEAST(3, 0, 0, 0) && defined(__GNUC__ ) )
+#define UNLIKELY(x) __builtin_expect( (x), 0 )
 #else
 #define UNLIKELY(x) (x)
 #endif
@@ -224,8 +224,8 @@
 /* LIKELY */
 
 #ifndef LIKELY
-#if COMPILER(GCC) || (RVCT_VERSION_AT_LEAST(3, 0, 0, 0) && defined(__GNUC__))
-#define LIKELY(x) __builtin_expect((x), 1)
+#if COMPILER(GCC) || (RVCT_VERSION_AT_LEAST(3, 0, 0, 0) && defined(__GNUC__ ) )
+#define LIKELY(x) __builtin_expect( (x), 1 )
 #else
 #define LIKELY(x) (x)
 #endif
@@ -237,7 +237,7 @@
 
 #ifndef NO_RETURN
 #if COMPILER(GCC)
-#define NO_RETURN __attribute((__noreturn__))
+#define NO_RETURN __attribute( (__noreturn__) )
 #elif COMPILER(MSVC) || COMPILER(RVCT)
 #define NO_RETURN __declspec(noreturn)
 #else
@@ -260,7 +260,7 @@
 /* WARN_UNUSED_RETURN */
 
 #if COMPILER(GCC)
-#define WARN_UNUSED_RETURN __attribute__ ((warn_unused_result))
+#define WARN_UNUSED_RETURN __attribute__ ( (warn_unused_result) )
 #else
 #define WARN_UNUSED_RETURN
 #endif
@@ -285,7 +285,7 @@
 
 #ifndef REFERENCED_FROM_ASM
 #if COMPILER(GCC)
-#define REFERENCED_FROM_ASM __attribute__((used))
+#define REFERENCED_FROM_ASM __attribute__( (used) )
 #else
 #define REFERENCED_FROM_ASM
 #endif
@@ -307,18 +307,18 @@
 #endif
 
 // Warning control from https://svn.boost.org/trac/boost/wiki/Guidelines/WarningsGuidelines
-#if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 402
-#define GCC_DIAG_STR(s) #s
+#if ( ( __GNUC__ * 100) + __GNUC_MINOR__) >= 402
+#define GCC_DIAG_STR(s) # s
 #define GCC_DIAG_JOINSTR(x,y) GCC_DIAG_STR(x ## y)
-# define GCC_DIAG_DO_PRAGMA(x) _Pragma (#x)
+# define GCC_DIAG_DO_PRAGMA(x) _Pragma ( # x)
 # define GCC_DIAG_PRAGMA(x) GCC_DIAG_DO_PRAGMA(GCC diagnostic x)
-# if ((__GNUC__ * 100) + __GNUC_MINOR__) >= 406
+# if ( ( __GNUC__ * 100) + __GNUC_MINOR__) >= 406
 #  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(push) \
-GCC_DIAG_PRAGMA(ignored GCC_DIAG_JOINSTR(-W,x))
+    GCC_DIAG_PRAGMA( ignored GCC_DIAG_JOINSTR(-W,x) )
 #  define GCC_DIAG_ON(x) GCC_DIAG_PRAGMA(pop)
 # else
-#  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA(ignored GCC_DIAG_JOINSTR(-W,x))
-#  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA(warning GCC_DIAG_JOINSTR(-W,x))
+#  define GCC_DIAG_OFF(x) GCC_DIAG_PRAGMA( ignored GCC_DIAG_JOINSTR(-W,x) )
+#  define GCC_DIAG_ON(x)  GCC_DIAG_PRAGMA( warning GCC_DIAG_JOINSTR(-W,x) )
 # endif
 #else
 # define GCC_DIAG_OFF(x)
@@ -330,11 +330,11 @@ GCC_DIAG_PRAGMA(ignored GCC_DIAG_JOINSTR(-W,x))
 // stringize s to "no-unused-variable"
 #  define CLANG_DIAG_JOINSTR(x,y) CLANG_DIAG_STR(x ## y)
 //  join -W with no-unused-variable to "-Wno-unused-variable"
-#  define CLANG_DIAG_DO_PRAGMA(x) _Pragma (#x)
+#  define CLANG_DIAG_DO_PRAGMA(x) _Pragma ( # x)
 // _Pragma is unary operator  #pragma ("")
 #  define CLANG_DIAG_PRAGMA(x) CLANG_DIAG_DO_PRAGMA(clang diagnostic x)
 #    define CLANG_DIAG_OFF(x) CLANG_DIAG_PRAGMA(push) \
-CLANG_DIAG_PRAGMA(ignored CLANG_DIAG_JOINSTR(-W,x))
+    CLANG_DIAG_PRAGMA( ignored CLANG_DIAG_JOINSTR(-W,x) )
 // For example: #pragma clang diagnostic ignored "-Wno-unused-variable"
 #   define CLANG_DIAG_ON(x) CLANG_DIAG_PRAGMA(pop)
 // For example: #pragma clang diagnostic warning "-Wno-unused-variable"
@@ -345,15 +345,15 @@ CLANG_DIAG_PRAGMA(ignored CLANG_DIAG_JOINSTR(-W,x))
 #endif
 
 /* Usage:
- CLANG_DIAG_OFF(unused-variable)
- CLANG_DIAG_OFF(unused-parameter)
- CLANG_DIAG_OFF(uninitialized)
+   CLANG_DIAG_OFF(unused-variable)
+   CLANG_DIAG_OFF(unused-parameter)
+   CLANG_DIAG_OFF(uninitialized)
  */
 
 #if COMPILER_SUPPORTS(CXX_OVERRIDE_CONTROL)
 // we want to use override & final, and get no warnings even if not compiling in c++11 mode
-CLANG_DIAG_OFF(c++11-extensions)
-GCC_DIAG_OFF(c++11-extensions)
+CLANG_DIAG_OFF(c++ 11-extensions)
+GCC_DIAG_OFF(c++ 11-extensions)
 #endif
 
-#endif
+#endif // ifndef __SupportExt__ofxsMacros__

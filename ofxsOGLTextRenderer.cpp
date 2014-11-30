@@ -1,40 +1,40 @@
 /*
- Small utility to draw text using OpenGL.
- This code is based on the free glut source code.
- 
- Copyright (C) 2014 INRIA
- 
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
- 
- Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
- 
- Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
- 
- Neither the name of the {organization} nor the names of its
- contributors may be used to endorse or promote products derived from
- this software without specific prior written permission.
- 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- 
- INRIA
- Domaine de Voluceau
- Rocquencourt - B.P. 105
- 78153 Le Chesnay Cedex - France
- 
- 
+   Small utility to draw text using OpenGL.
+   This code is based on the free glut source code.
+
+   Copyright (C) 2014 INRIA
+
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
+
+   Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+   Redistributions in binary form must reproduce the above copyright notice, this
+   list of conditions and the following disclaimer in the documentation and/or
+   other materials provided with the distribution.
+
+   Neither the name of the {organization} nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+   ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+   INRIA
+   Domaine de Voluceau
+   Rocquencourt - B.P. 105
+   78153 Le Chesnay Cedex - France
+
+
  * The freeglut library private include file.
  *
  * Copyright (c) 1999-2000 Pawel W. Olszta. All Rights Reserved.
@@ -66,47 +66,60 @@
 #include <cstdlib>
 
 namespace  {
-    const OFX::SFG_Font* getFont(OFX::TextRenderer::Font font)
-    {
-        switch (font) {
-            case OFX::TextRenderer::FONT_FIXED_8_X_13:
-                return &OFX::fgFontFixed8x13;
-                break;
-            case OFX::TextRenderer::FONT_FIXED_9_X_15:
-                return &OFX::fgFontFixed9x15;
-                break;
-            case OFX::TextRenderer::FONT_HELVETICA_10:
-                return &OFX::fgFontHelvetica10;
-                break;
-            case OFX::TextRenderer::FONT_HELVETICA_12:
-                return &OFX::fgFontHelvetica12;
-                break;
-            case OFX::TextRenderer::FONT_HELVETICA_18:
-                return &OFX::fgFontHelvetica18;
-                break;
-            case OFX::TextRenderer::FONT_TIMES_ROMAN_10:
-                return &OFX::fgFontTimesRoman10;
-                break;
-            case OFX::TextRenderer::FONT_TIMES_ROMAN_24:
-                return &OFX::fgFontTimesRoman24;
-                break;
-            default:
-                return (const OFX::SFG_Font*)NULL;
-                break;
-        }
+const OFX::SFG_Font*
+getFont(OFX::TextRenderer::Font font)
+{
+    switch (font) {
+    case OFX::TextRenderer::FONT_FIXED_8_X_13:
+
+        return &OFX::fgFontFixed8x13;
+        break;
+    case OFX::TextRenderer::FONT_FIXED_9_X_15:
+
+        return &OFX::fgFontFixed9x15;
+        break;
+    case OFX::TextRenderer::FONT_HELVETICA_10:
+
+        return &OFX::fgFontHelvetica10;
+        break;
+    case OFX::TextRenderer::FONT_HELVETICA_12:
+
+        return &OFX::fgFontHelvetica12;
+        break;
+    case OFX::TextRenderer::FONT_HELVETICA_18:
+
+        return &OFX::fgFontHelvetica18;
+        break;
+    case OFX::TextRenderer::FONT_TIMES_ROMAN_10:
+
+        return &OFX::fgFontTimesRoman10;
+        break;
+    case OFX::TextRenderer::FONT_TIMES_ROMAN_24:
+
+        return &OFX::fgFontTimesRoman24;
+        break;
+    default:
+
+        return (const OFX::SFG_Font*)NULL;
+        break;
     }
 }
+}
 
-void  OFX::TextRenderer::bitmapString(const char *string, TextRenderer::Font f)
+void
+OFX::TextRenderer::bitmapString(const char *string,
+                                TextRenderer::Font f)
 {
     unsigned char c;
-    float x = 0.0f ;
+    float x = 0.0f;
     const SFG_Font* font = getFont(f);
+
     if (!font) {
         return;
     }
-    if ( !string || ! *string )
+    if (!string || !*string) {
         return;
+    }
 
     glPushClientAttrib( GL_CLIENT_PIXEL_STORE_BIT );
     glPixelStorei( GL_UNPACK_SWAP_BYTES,  GL_FALSE );
@@ -121,34 +134,36 @@ void  OFX::TextRenderer::bitmapString(const char *string, TextRenderer::Font f)
      * A newline will simply translate the next character's insertion
      * point back to the start of the line and down one line.
      */
-    while( ( c = *string++) )
-        if( c == '\n' )
-        {
+    while ( ( c = *string++) ) {
+        if (c == '\n') {
             glBitmap ( 0, 0, 0, 0, -x, (float) -font->Height, NULL );
             x = 0.0f;
-        }
-        else  /* Not an EOL, draw the bitmap character */
-        {
+        } else   { /* Not an EOL, draw the bitmap character */
             const GLubyte* face = font->Characters[ c ];
 
             glBitmap(
-                     face[ 0 ], font->Height,     /* Bitmap's width and height    */
-                     font->xorig, font->yorig,    /* The origin in the font glyph */
-                     ( float )( face[ 0 ] ), 0.0, /* The raster advance; inc. x,y */
-                     ( face + 1 )                 /* The packed bitmap data...    */
-                     );
+                face[ 0 ], font->Height,          /* Bitmap's width and height    */
+                font->xorig, font->yorig,         /* The origin in the font glyph */
+                ( float )( face[ 0 ] ), 0.0,      /* The raster advance; inc. x,y */
+                ( face + 1 )                      /* The packed bitmap data...    */
+                );
 
             x += ( float )( face[ 0 ] );
         }
+    }
 
     glPopClientAttrib( );
 }
 
-
-void OFX::TextRenderer::bitmapString(double x, double y, const char*string, TextRenderer::Font font)
+void
+OFX::TextRenderer::bitmapString(double x,
+                                double y,
+                                const char*string,
+                                TextRenderer::Font font)
 {
     glPushAttrib(GL_CURRENT_BIT);
     glRasterPos2f(x, y);
     bitmapString(string, font);
     glPopAttrib();
 }
+

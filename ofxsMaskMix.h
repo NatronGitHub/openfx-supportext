@@ -1,39 +1,39 @@
 /*
- OFX Masking/Mixing help functions
+   OFX Masking/Mixing help functions
 
- Author: Frederic Devernay <frederic.devernay@inria.fr>
+   Author: Frederic Devernay <frederic.devernay@inria.fr>
 
- Copyright (C) 2014 INRIA
+   Copyright (C) 2014 INRIA
 
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
 
- Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
+   Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
- Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
+   Redistributions in binary form must reproduce the above copyright notice, this
+   list of conditions and the following disclaimer in the documentation and/or
+   other materials provided with the distribution.
 
- Neither the name of the {organization} nor the names of its
- contributors may be used to endorse or promote products derived from
- this software without specific prior written permission.
+   Neither the name of the {organization} nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+   ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- INRIA
- Domaine de Voluceau
- Rocquencourt - B.P. 105
- 78153 Le Chesnay Cedex - France
+   INRIA
+   Domaine de Voluceau
+   Rocquencourt - B.P. 105
+   78153 Le Chesnay Cedex - France
  */
 
 #ifndef Misc_ofxsMaskMix_h
@@ -47,13 +47,13 @@
 #define kParamPremult "premult"
 #define kParamPremultLabel "(Un)premult"
 #define kParamPremultHint \
-"Divide the image by the alpha channel before processing, and re-multiply it afterwards. " \
-"Use if the input images are premultiplied."
+    "Divide the image by the alpha channel before processing, and re-multiply it afterwards. " \
+    "Use if the input images are premultiplied."
 
 #define kParamPremultChannel "premultChannel"
 #define kParamPremultChannelLabel "By"
 #define kParamPremultChannelHint \
-"The channel to use for (un)premult."
+    "The channel to use for (un)premult."
 #define kParamPremultChannelR "R"
 #define kParamPremultChannelRHint "R channel from input"
 #define kParamPremultChannelG "G"
@@ -71,10 +71,10 @@
 #define kParamMaskInvertHint "When checked, the effect is fully applied where the mask is 0"
 
 namespace OFX {
-
 inline
 void
-ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
+                          OFX::PageParamDescriptor *page)
 {
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamPremult);
@@ -100,7 +100,8 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
 
 inline
 void
-ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
+                       OFX::PageParamDescriptor *page)
 {
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
@@ -110,10 +111,10 @@ ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescripto
     }
 }
 
-
 inline
 void
-ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page)
+ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
+                          OFX::PageParamDescriptor *page)
 {
     // GENERIC (MASKED)
     //
@@ -132,20 +133,32 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescri
 
 template <class T>
 inline
-T ofxsClamp(T v, int min, int max)
+T
+ofxsClamp(T v,
+          int min,
+          int max)
 {
-    if(v < T(min)) return T(min);
-    if(v > T(max)) return T(max);
+    if ( v < T(min) ) {
+        return T(min);
+    }
+    if ( v > T(max) ) {
+        return T(max);
+    }
+
     return v;
 }
 
 template <int maxValue>
 inline
-float ofxsClampIfInt(float v, int min, int max)
+float
+ofxsClampIfInt(float v,
+               int min,
+               int max)
 {
     if (maxValue == 1) {
         return v;
     }
+
     return ofxsClamp(v, min, max);
 }
 
@@ -153,7 +166,10 @@ float ofxsClampIfInt(float v, int min, int max)
 // if premult is false, just normalize
 template <class PIX, int nComponents, int maxValue>
 void
-ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultChannel*/)
+ofxsUnPremult(const PIX *srcPix,
+              float unpPix[4],
+              bool premult,
+              int /*premultChannel*/)
 {
     if (!srcPix) {
         // no src pixel here, be black and transparent
@@ -173,7 +189,7 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
         return;
     }
 
-    if (!premult || (nComponents == 3) || (srcPix[3] <= 0.)) {
+    if ( !premult || (nComponents == 3) || (srcPix[3] <= 0.) ) {
         unpPix[0] = srcPix[0] / (double)maxValue;
         unpPix[1] = srcPix[1] / (double)maxValue;
         unpPix[2] = srcPix[2] / (double)maxValue;
@@ -185,7 +201,7 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
     assert(nComponents == 4);
     const float fltmin = std::numeric_limits<float>::min();
     PIX alpha = srcPix[3];
-    if (alpha > (PIX)(fltmin * maxValue)) {
+    if ( alpha > (PIX)(fltmin * maxValue) ) {
         unpPix[0] = srcPix[0] / alpha;
         unpPix[1] = srcPix[1] / alpha;
         unpPix[2] = srcPix[2] / alpha;
@@ -201,7 +217,10 @@ ofxsUnPremult(const PIX *srcPix, float unpPix[4], bool premult, int /*premultCha
 // if premult is false, just denormalize
 template <class PIX, int nComponents, int maxValue>
 void
-ofxsPremult(const float unpPix[4], float *tmpPix, bool premult, int /*premultChannel*/)
+ofxsPremult(const float unpPix[4],
+            float *tmpPix,
+            bool premult,
+            int /*premultChannel*/)
 {
     if (nComponents == 1) {
         tmpPix[0] = unpPix[3] * maxValue;
@@ -249,7 +268,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (mix == 1.) {
             // no mask, no mix
             for (int c = 0; c < nComponents; ++c) {
-                dstPix[c] = PIX(ofxsClampIfInt<maxValue>(tmpPix[c], 0, maxValue));
+                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(tmpPix[c], 0, maxValue) );
             }
         } else {
             // just mix
@@ -257,12 +276,12 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha + (1. - alpha) * srcPix[c];
-                    dstPix[c] = PIX(ofxsClampIfInt<maxValue>(v, 0, maxValue));
+                    dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha;
-                    dstPix[c] = PIX(ofxsClampIfInt<maxValue>(v, 0, maxValue));
+                    dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
                 }
             }
         }
@@ -274,7 +293,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (maskPix == 0) {
                 maskScale = maskInvert ? 1. : 0.;
             } else {
-                maskScale = *maskPix/float(maxValue);
+                maskScale = *maskPix / float(maxValue);
                 if (maskInvert) {
                     maskScale = 1. - maskScale;
                 }
@@ -284,16 +303,16 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (srcPix) {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha + (1. - alpha) * srcPix[c];
-                dstPix[c] = PIX(ofxsClampIfInt<maxValue>(v, 0, maxValue));
+                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
             }
         } else {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha;
-                dstPix[c] = PIX(ofxsClampIfInt<maxValue>(v, 0, maxValue));
+                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
             }
         }
     }
-}
+} // ofxsMaskMixPix
 
 // unpPix is normalized between [0,1]
 template <class PIX, int nComponents, int maxValue, bool masked>
@@ -311,6 +330,7 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
                       PIX *dstPix) //!< destination pixel
 {
     float tmpPix[nComponents];
+
     ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
     for (int c = 0; c < nComponents; ++c) {
         tmpPix[c] *= maxValue;
@@ -335,15 +355,13 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
 
     // are we doing masking/mixing? in this case, retrieve srcPix
     if (masked && srcImg) {
-        if ((domask && maskImg) || mix != 1.) {
+        if ( (domask && maskImg) || (mix != 1.) ) {
             srcPix = (const PIX *)srcImg->getPixelAddress(x, y);
         }
     }
 
     return ofxsMaskMixPix<PIX,nComponents,maxValue,masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
-
-
 } // OFX
 
-#endif
+#endif // ifndef Misc_ofxsMaskMix_h

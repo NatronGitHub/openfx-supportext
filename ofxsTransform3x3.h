@@ -1,38 +1,38 @@
 /*
- OFX Transform3x3 plugin: a base plugin for 2D homographic transform,
- represented by a 3x3 matrix.
+   OFX Transform3x3 plugin: a base plugin for 2D homographic transform,
+   represented by a 3x3 matrix.
 
- Copyright (C) 2014 INRIA
+   Copyright (C) 2014 INRIA
 
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
 
- Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
+   Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
- Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
+   Redistributions in binary form must reproduce the above copyright notice, this
+   list of conditions and the following disclaimer in the documentation and/or
+   other materials provided with the distribution.
 
- Neither the name of the {organization} nor the names of its
- contributors may be used to endorse or promote products derived from
- this software without specific prior written permission.
+   Neither the name of the {organization} nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+   ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- INRIA
- Domaine de Voluceau
- Rocquencourt - B.P. 105
- 78153 Le Chesnay Cedex - France
+   INRIA
+   Domaine de Voluceau
+   Rocquencourt - B.P. 105
+   78153 Le Chesnay Cedex - France
  */
 #ifndef __Misc__Transform3x3__
 #define __Misc__Transform3x3__
@@ -67,7 +67,8 @@
 #define kParamTransform3x3ShutterOffsetOptionCustom "Custom"
 #define kParamTransform3x3ShutterOffsetOptionCustomHint "Open the shutter at t+shuttercustomoffset (from t+shuttercustomoffset to t+shuttercustomoffset+shutter)"
 
-enum Transform3x3ShutterOffsetEnum {
+enum Transform3x3ShutterOffsetEnum
+{
     eTransform3x3ShutterOffsetCentered,
     eTransform3x3ShutterOffsetStart,
     eTransform3x3ShutterOffsetEnd,
@@ -80,10 +81,10 @@ enum Transform3x3ShutterOffsetEnum {
 #define kParamTransform3x3ShutterCustomOffsetHint "When custom is selected, the shutter is open at current time plus this offset (in frames). Ignored if there is no motion blur (i.e. shutter=0 or motionBlur=0)."
 
 namespace OFX {
-
 ////////////////////////////////////////////////////////////////////////////////
 /** @brief The plugin that does our work */
-class Transform3x3Plugin : public OFX::ImageEffect
+class Transform3x3Plugin
+    : public OFX::ImageEffect
 {
 protected:
     // do not need to delete these, the ImageEffect is managing them for us
@@ -93,20 +94,24 @@ protected:
 
 public:
     /** @brief ctor */
-    Transform3x3Plugin(OfxImageEffectHandle handle, bool masked);
+    Transform3x3Plugin(OfxImageEffectHandle handle,
+                       bool masked);
 
     /** @brief destructor */
     virtual ~Transform3x3Plugin();
 
     // a default implementation of isIdentity is provided, which may be overridden by the derived class
-    virtual bool isIdentity(double /*time*/) { return false; };
+    virtual bool isIdentity(double /*time*/)
+    {
+        return false;
+    };
 
     /** @brief recover a transform matrix from an effect */
     virtual bool getInverseTransformCanonical(double time, bool invert, OFX::Matrix3x3* invtransform) const = 0;
 
 
     // The following functions override those is OFX::ImageEffect
-    
+
     // override the rod call
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
 
@@ -121,7 +126,7 @@ public:
 
 #ifdef OFX_EXTENSIONS_NUKE
     /** @brief recover a transform matrix from an effect */
-    virtual bool getTransform(const OFX::TransformArguments &args, OFX::Clip * &transformClip, double transformMatrix[9]) OVERRIDE;
+    virtual bool getTransform(const OFX::TransformArguments & args, OFX::Clip * &transformClip, double transformMatrix[9]) OVERRIDE;
 #endif
 
     // override changedParam. note that the derived class MUST explicitely call this method after handling its own parameter changes
@@ -155,7 +160,7 @@ private:
                                 size_t invtransformsizealloc) const;
 
     void transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset,const bool isIdentity, OfxRectD *rectTo);
-    
+
 private:
     // Transform3x3-GENERIC
     OFX::BooleanParam* _invert;
@@ -167,7 +172,6 @@ private:
     OFX::DoubleParam* _shutter;
     OFX::ChoiceParam* _shutteroffset;
     OFX::DoubleParam* _shuttercustomoffset;
-
     bool _masked;
     OFX::DoubleParam* _mix;
     OFX::BooleanParam* _maskInvert;
@@ -176,6 +180,5 @@ private:
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
 void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked);
-
 }
 #endif /* defined(__Misc__Transform3x3__) */

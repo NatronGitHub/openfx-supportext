@@ -1,38 +1,38 @@
 /*
- OFX Generator plug-in helper
+   OFX Generator plug-in helper
 
- Copyright (C) 2014 INRIA
+   Copyright (C) 2014 INRIA
 
- Redistribution and use in source and binary forms, with or without modification,
- are permitted provided that the following conditions are met:
+   Redistribution and use in source and binary forms, with or without modification,
+   are permitted provided that the following conditions are met:
 
- Redistributions of source code must retain the above copyright notice, this
- list of conditions and the following disclaimer.
+   Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
- Redistributions in binary form must reproduce the above copyright notice, this
- list of conditions and the following disclaimer in the documentation and/or
- other materials provided with the distribution.
+   Redistributions in binary form must reproduce the above copyright notice, this
+   list of conditions and the following disclaimer in the documentation and/or
+   other materials provided with the distribution.
 
- Neither the name of the {organization} nor the names of its
- contributors may be used to endorse or promote products derived from
- this software without specific prior written permission.
+   Neither the name of the {organization} nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
 
- THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
- ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
- ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+   THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+   ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+   DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+   ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+   (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+   LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+   ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+   SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
- INRIA
- Domaine de Voluceau
- Rocquencourt - B.P. 105
- 78153 Le Chesnay Cedex - France
-*/
+   INRIA
+   Domaine de Voluceau
+   Rocquencourt - B.P. 105
+   78153 Le Chesnay Cedex - France
+ */
 
 #ifndef _OFXS_GENERATOR_H_
 #define _OFXS_GENERATOR_H_
@@ -68,8 +68,9 @@ enum GeneratorTypeEnum
 #define kParamFormatHint "The output format"
 
 
-class GeneratorPlugin : public OFX::ImageEffect {
-
+class GeneratorPlugin
+    : public OFX::ImageEffect
+{
 protected:
     // do not need to delete these, the ImageEffect is managing them for us
     OFX::Clip *dstClip_;
@@ -82,16 +83,16 @@ public:
 
     GeneratorPlugin(OfxImageEffectHandle handle)
         : OFX::ImageEffect(handle)
-        , dstClip_(0)
-        , _type(0)
-        , _format(0)
-        , _btmLeft(0)
-        , _size(0)
+          , dstClip_(0)
+          , _type(0)
+          , _format(0)
+          , _btmLeft(0)
+          , _size(0)
     {
         dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
-        assert(dstClip_ && (dstClip_->getPixelComponents() == OFX::ePixelComponentRGB ||
-                            dstClip_->getPixelComponents() == OFX::ePixelComponentRGBA ||
-                            dstClip_->getPixelComponents() == OFX::ePixelComponentAlpha));
+        assert( dstClip_ && (dstClip_->getPixelComponents() == OFX::ePixelComponentRGB ||
+                             dstClip_->getPixelComponents() == OFX::ePixelComponentRGBA ||
+                             dstClip_->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
         _type = fetchChoiceParam(kParamType);
         _format = fetchChoiceParam(kParamFormat);
@@ -105,16 +106,16 @@ private:
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE FINAL;
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE FINAL;
-
 };
 
 void
-GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName)
+GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
+                              const std::string &paramName)
 {
     if (paramName == kParamType) {
         int type_i;
         _type->getValue(type_i);
-        switch ((GeneratorTypeEnum)type_i) {
+        switch ( (GeneratorTypeEnum)type_i ) {
         case eGeneratorTypeFormat:
             _format->setIsSecret(false);
             _size->setIsSecret(true);
@@ -138,27 +139,33 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args, const std::s
 }
 
 bool
-GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod)
+GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args,
+                                       OfxRectD &rod)
 {
     int type_i;
+
     _type->getValue(type_i);
-    switch ((GeneratorTypeEnum)type_i) {
+    switch ( (GeneratorTypeEnum)type_i ) {
     case eGeneratorTypeFormat: {
         int format_i;
         _format->getValue(format_i);
         double par;
         size_t w,h;
-        getFormatResolution((OFX::EParamFormat)format_i, &w, &h, &par);
+        getFormatResolution( (OFX::EParamFormat)format_i, &w, &h, &par );
         rod.x1 = rod.y1 = 0;
         rod.x2 = w;
         rod.y2 = h;
-    }   return true;
+    }
+
+        return true;
     case eGeneratorTypeSize: {
         _size->getValue(rod.x2, rod.y2);
         _btmLeft->getValue(rod.x1, rod.y1);
         rod.x2 += rod.x1;
         rod.y2 += rod.y1;
-    }   return true;
+    }
+
+        return true;
     case eGeneratorTypeProject: {
         OfxPointD ext = getProjectExtent();
         OfxPointD off = getProjectOffset();
@@ -166,11 +173,13 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &a
         rod.x2 = ext.x;
         rod.y1 = off.y;
         rod.y2 = ext.y;
-    }    return true;
-    default:
-        return false;
     }
 
+        return true;
+    default:
+
+        return false;
+    }
 }
 
 void
@@ -178,6 +187,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 {
     double par;
     int type_i;
+
     _type->getValue(type_i);
     GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
     switch (type) {
@@ -186,8 +196,9 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         int index;
         _format->getValue(index);
         size_t w,h;
-        getFormatResolution((OFX::EParamFormat)index, &w, &h, &par);
-    }   break;
+        getFormatResolution( (OFX::EParamFormat)index, &w, &h, &par );
+    }
+    break;
     case eGeneratorTypeProject:
     case eGeneratorTypeDefault: {
         par = getProjectPixelAspectRatio();
@@ -196,25 +207,25 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     default:
         par = 1.;
         break;
-
     }
 
     clipPreferences.setPixelAspectRatio(*dstClip_, par);
 }
 
-class GeneratorInteract : public OFX::RectangleInteract
+class GeneratorInteract
+    : public OFX::RectangleInteract
 {
 public:
 
-    GeneratorInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
-    : RectangleInteract(handle,effect)
-    , _type(0)
-    , _generatorType(eGeneratorTypeDefault)
+    GeneratorInteract(OfxInteractHandle handle,
+                      OFX::ImageEffect* effect)
+        : RectangleInteract(handle,effect)
+          , _type(0)
+          , _generatorType(eGeneratorTypeDefault)
     {
         _type = effect->fetchChoiceParam(kParamType);
         assert(_type);
     }
-
 
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
@@ -226,17 +237,40 @@ private:
     virtual void aboutToCheckInteractivity(OfxTime /*time*/)  OVERRIDE FINAL
     {
         int type;
+
         _type->getValue(type);
         _generatorType = (GeneratorTypeEnum)type;
     }
 
-    virtual bool allowTopLeftInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
-    virtual bool allowBtmRightInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
-    virtual bool allowBtmLeftInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
-    virtual bool allowBtmMidInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
-    virtual bool allowMidLeftInteraction() const OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
-    virtual bool allowCenterInteraction() const  OVERRIDE FINAL { return _generatorType == eGeneratorTypeSize; }
+    virtual bool allowTopLeftInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
 
+    virtual bool allowBtmRightInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
+
+    virtual bool allowBtmLeftInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
+
+    virtual bool allowBtmMidInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
+
+    virtual bool allowMidLeftInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
+
+    virtual bool allowCenterInteraction() const OVERRIDE FINAL
+    {
+        return _generatorType == eGeneratorTypeSize;
+    }
 
     OFX::ChoiceParam* _type;
     GeneratorTypeEnum _generatorType;
@@ -246,10 +280,12 @@ bool
 GeneratorInteract::draw(const OFX::DrawArgs &args)
 {
     int type_i;
+
     _type->getValue(type_i);
-    if ((GeneratorTypeEnum)type_i != eGeneratorTypeSize) {
+    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
         return false;
     }
+
     return RectangleInteract::draw(args);
 }
 
@@ -257,10 +293,12 @@ bool
 GeneratorInteract::penMotion(const OFX::PenArgs &args)
 {
     int type_i;
+
     _type->getValue(type_i);
-    if ((GeneratorTypeEnum)type_i != eGeneratorTypeSize) {
+    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
         return false;
     }
+
     return RectangleInteract::penMotion(args);
 }
 
@@ -268,34 +306,43 @@ bool
 GeneratorInteract::penDown(const OFX::PenArgs &args)
 {
     int type_i;
+
     _type->getValue(type_i);
-    if ((GeneratorTypeEnum)type_i != eGeneratorTypeSize) {
+    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
         return false;
     }
+
     return RectangleInteract::penDown(args);
 };
-
 bool
 GeneratorInteract::penUp(const OFX::PenArgs &args)
 {
     int type_i;
+
     _type->getValue(type_i);
-    if ((GeneratorTypeEnum)type_i != eGeneratorTypeSize) {
+    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
         return false;
     }
+
     return RectangleInteract::penUp(args);
 }
 
 namespace OFX {
+class GeneratorOverlayDescriptor
+    : public DefaultEffectOverlayDescriptor<GeneratorOverlayDescriptor, GeneratorInteract>
+{
+};
 
-class GeneratorOverlayDescriptor : public DefaultEffectOverlayDescriptor<GeneratorOverlayDescriptor, GeneratorInteract> {};
-
-void generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
+void
+generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
 {
     desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
 }
 
-void generatorDescribeInContext(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc, ContextEnum /*context*/)
+void
+generatorDescribeInContext(PageParamDescriptor *page,
+                           OFX::ImageEffectDescriptor &desc,
+                           ContextEnum /*context*/)
 {
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamType);
@@ -382,8 +429,7 @@ void generatorDescribeInContext(PageParamDescriptor *page, OFX::ImageEffectDescr
         param->setDigits(0);
         page->addChild(*param);
     }
-}
-
+} // generatorDescribeInContext
 } // OFX
 
-#endif
+#endif // ifndef _OFXS_GENERATOR_H_
