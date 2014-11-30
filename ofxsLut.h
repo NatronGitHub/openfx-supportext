@@ -46,7 +46,9 @@
 #include <memory> // for auto_ptr
 
 #include "ofxCore.h"
+#include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
+#include "ofxsPixelProcessor.h"
 
 namespace OFX {
 namespace Color {
@@ -209,20 +211,25 @@ public:
 
     /* @brief convert from float to byte with dithering (error diffusion).
        It uses random numbers for error diffusion, and thus the result is different at each function call. */
-    virtual void to_byte_packed_dither(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                       const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+    virtual void to_byte_packed_dither(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                       const OfxRectI & renderWindow,
+                                       void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
 
     /* @brief convert from float to byte without dithering. */
-    virtual void to_byte_packed_nodither(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                         const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+    virtual void to_byte_packed_nodither(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                         const OfxRectI & renderWindow,
+                                         void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
 
     /* @brief convert from float to short without dithering. */
-    virtual void to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                                 const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
-    virtual void from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
-                                  const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
-    virtual void from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
-                                   const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes) const = 0;
+    virtual void to_short_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                 const OfxRectI & renderWindow,
+                                 void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
+    virtual void from_byte_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                  const OfxRectI & renderWindow,
+                                  void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
+    virtual void from_short_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                   const OfxRectI & renderWindow,
+                                   void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
 
 protected:
 
@@ -392,70 +399,78 @@ public:
         return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
     }
 
-    virtual void to_byte_packed_dither(unsigned char* to,
-                                       const float* from,
+    virtual void to_byte_packed_dither(const void* pixelData,
+                                       const OfxRectI & bounds,
+                                       OFX::PixelComponentEnum pixelComponents,
+                                       OFX::BitDepthEnum bitDepth,
+                                       int rowBytes,
                                        const OfxRectI & renderWindow,
-                                       int nComponents,
-                                       const OfxRectI & srcBounds,
-                                       int srcRowBytes,
+                                       void* dstPixelData,
                                        const OfxRectI & dstBounds,
+                                       OFX::PixelComponentEnum dstPixelComponents,
+                                       OFX::BitDepthEnum dstBitDepth,
                                        int dstRowBytes) const OVERRIDE FINAL
     {
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        if (pixelComponents == ePixelComponentAlpha) {
+            // alpha: no dither
+            return to_byte_packed_nodither(pixelData, bounds, pixelComponents, bitDepth, rowBytes,
+                                           renderWindow,
+                                           dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+        }
         validate();
 
-        int srcElements = srcRowBytes / sizeof(float);
-        int dstElements = dstRowBytes / sizeof(unsigned char);
+        int nComponents = getNComponents(pixelComponents);
+        assert(nComponents == 3 || nComponents == 4);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            int start = std::rand() % (renderWindow.x2 - renderWindow.x1);
+            int xstart = renderWindow.x1 + std::rand() % (renderWindow.x2 - renderWindow.x1);
             unsigned error[3] = {
                 0x80, 0x80, 0x80
             };
-            const float *src_pixels = from + (y * srcElements) + start * nComponents;
-            unsigned char *dst_pixels = to + (y * dstElements) + start * nComponents;
+            const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, xstart, y);
+            unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, xstart, y);
 
-            /* go fowards from starting point to end of line: */
-            const float* src_end = from + (y * srcElements) + (renderWindow.x2 - renderWindow.x1) * nComponents;
+            /* go forward from starting point to end of line: */
+            const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
             while (src_pixels < src_end) {
-                if (nComponents == 1) {
-                    *dst_pixels++ = floatToInt<256>(*src_pixels++);
-                } else {
-                    for (int k = 0; k < nComponents; ++k) {
-                        if (k == 3) {
-                            *dst_pixels++ = floatToInt<256>(*src_pixels++);
-                        } else {
-                            error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(*src_pixels++);
-                            assert(error[k] < 0x10000);
-                            *dst_pixels++ = (unsigned char)(error[k] >> 8);
-                        }
-                    }
+                for (int k = 0; k < 3; ++k) {
+                    error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(src_pixels[k]);
+                    assert(error[k] < 0x10000);
+                    dst_pixels[k] = (unsigned char)(error[k] >> 8);
                 }
+                if (nComponents == 4) {
+                    // alpha channel: no dithering
+                    dst_pixels[3] = floatToInt<256>(src_pixels[3]);
+                }
+                dst_pixels += nComponents;
+                src_pixels += nComponents;
             }
 
-            if (start > 0) {
-                /* go backwards from starting point to start of line: */
-                src_pixels = from + (y * srcElements) + (start - 1) * nComponents;
-                src_end = from + (y * srcElements) - 1;
-                dst_pixels = to + (y * dstElements) + (start - 1) * nComponents;
+            if (xstart > 0) {
+                /* go backward from starting point to start of line: */
+                src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, xstart - 1, y);
+                src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+                dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, xstart - 1, y);
 
                 for (int i = 0; i < 3; ++i) {
                     error[i] = 0x80;
                 }
 
-                while (src_pixels > src_end) {
-                    if (nComponents == 1) {
-                        *dst_pixels = floatToInt<256>(*src_pixels);
-                    } else {
-                        for (int k = 0; k < nComponents; ++k) {
-                            if (k == 3) {
-                                dst_pixels[k] = floatToInt<256>(src_pixels[k]);
-                            } else {
-                                error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(src_pixels[k]);
-                                assert(error[k] < 0x10000);
-                                dst_pixels[k] = (unsigned char)(error[k] >> 8);
-                            }
-                        }
+                while (src_pixels >= src_end) {
+                    for (int k = 0; k < 3; ++k) {
+                        error[k] = (error[k] & 0xff) + toColorSpaceUint8xxFromLinearFloatFast(src_pixels[k]);
+                        assert(error[k] < 0x10000);
+                        dst_pixels[k] = (unsigned char)(error[k] >> 8);
+                    }
+                    if (nComponents == 4) {
+                        // alpha channel: no colorspace conversion & no dithering
+                        dst_pixels[3] = floatToInt<256>(src_pixels[3]);
                     }
                     dst_pixels -= nComponents;
                     src_pixels -= nComponents;
@@ -463,147 +478,183 @@ public:
             }
         }
     } // to_byte_packed_dither
-    
-    virtual void to_byte_packed_nodither(unsigned char* to,
-                                         const float* from,
+
+    virtual void to_byte_packed_nodither(const void* pixelData,
+                                         const OfxRectI & bounds,
+                                         OFX::PixelComponentEnum pixelComponents,
+                                         OFX::BitDepthEnum bitDepth,
+                                         int rowBytes,
                                          const OfxRectI & renderWindow,
-                                         int nComponents,
-                                         const OfxRectI & srcBounds,
-                                         int srcRowBytes,
+                                         void* dstPixelData,
                                          const OfxRectI & dstBounds,
+                                         OFX::PixelComponentEnum dstPixelComponents,
+                                         OFX::BitDepthEnum dstBitDepth,
                                          int dstRowBytes) const OVERRIDE FINAL
     {
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcElements = srcRowBytes / sizeof(float);
-        int dstElements = dstRowBytes / sizeof(unsigned short);
-        int w = renderWindow.x2 - renderWindow.x1;
+        int nComponents = getNComponents(pixelComponents);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-            unsigned char *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-            const float* src_end = src_pixels + w * nComponents;
+            const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+            unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
             while (src_pixels != src_end) {
                 if (nComponents == 1) {
-                    *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                    // alpha channel: no colorspace conversion
+                    dst_pixels[0] = floatToInt<256>(src_pixels[0]);
                 } else {
-                    for (int k = 0; k < nComponents; ++k) {
-                        if (k == 3) {
-                            *dst_pixels++ = floatToInt<256>(*src_pixels++);
-                        } else {
-                            *dst_pixels++ = toColorSpaceUint8FromLinearFloatFast(*src_pixels++);
-                        }
+                    for (int k = 0; k < 3; ++k) {
+                        dst_pixels[k] = toColorSpaceUint8FromLinearFloatFast(src_pixels[k]);
+                    }
+                    if (nComponents == 4) {
+                        // alpha channel: no colorspace conversion
+                        dst_pixels[3] = floatToInt<256>(src_pixels[3]);
                     }
                 }
+                dst_pixels += nComponents;
+                src_pixels += nComponents;
             }
         }
     } // to_byte_packed_nodither
-    
-    virtual void to_short_packed(unsigned short* to,
-                                 const float* from,
+
+    virtual void to_short_packed(const void* pixelData,
+                                 const OfxRectI & bounds,
+                                 OFX::PixelComponentEnum pixelComponents,
+                                 OFX::BitDepthEnum bitDepth,
+                                 int rowBytes,
                                  const OfxRectI & renderWindow,
-                                 int nComponents,
-                                 const OfxRectI & srcBounds,
-                                 int srcRowBytes,
+                                 void* dstPixelData,
                                  const OfxRectI & dstBounds,
+                                 OFX::PixelComponentEnum dstPixelComponents,
+                                 OFX::BitDepthEnum dstBitDepth,
                                  int dstRowBytes) const OVERRIDE FINAL
     {
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcElements = srcRowBytes / sizeof(float);
-        int dstElements = dstRowBytes / sizeof(unsigned short);
-        int w = renderWindow.x2 - renderWindow.x1;
+        int nComponents = getNComponents(pixelComponents);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-            unsigned short *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-            const float* src_end = src_pixels + w * nComponents;
+            const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+            unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
             while (src_pixels != src_end) {
                 if (nComponents == 1) {
-                    *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                    // alpha channel: no colorspace conversion
+                    dst_pixels[0] = floatToInt<65536>(src_pixels[0]);
                 } else {
-                    for (int k = 0; k < nComponents; ++k) {
-                        if (k == 3) {
-                            *dst_pixels++ = floatToInt<65536>(*src_pixels++);
-                        } else {
-                            *dst_pixels++ = toColorSpaceUint16FromLinearFloatFast(*src_pixels++);
-                        }
+                    for (int k = 0; k < 3; ++k) {
+                        dst_pixels[k] = toColorSpaceUint16FromLinearFloatFast(src_pixels[k]);
+                    }
+                    if (nComponents == 4) {
+                        // alpha channel: no colorspace conversion
+                        dst_pixels[3] = floatToInt<65536>(src_pixels[3]);
                     }
                 }
+                dst_pixels += nComponents;
+                src_pixels += nComponents;
             }
         }
     }
 
-    virtual void from_byte_packed(float* to,
-                                  const unsigned char* from,
+    virtual void from_byte_packed(const void* pixelData,
+                                  const OfxRectI & bounds,
+                                  OFX::PixelComponentEnum pixelComponents,
+                                  OFX::BitDepthEnum bitDepth,
+                                  int rowBytes,
                                   const OfxRectI & renderWindow,
-                                  int nComponents,
-                                  const OfxRectI & srcBounds,
-                                  int srcRowBytes,
+                                  void* dstPixelData,
                                   const OfxRectI & dstBounds,
+                                  OFX::PixelComponentEnum dstPixelComponents,
+                                  OFX::BitDepthEnum dstBitDepth,
                                   int dstRowBytes) const OVERRIDE FINAL
     {
+        assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcElements = srcRowBytes / sizeof(unsigned char);
-        int dstElements = dstRowBytes / sizeof(float);
-        int w = renderWindow.x2 - renderWindow.x1;
+        int nComponents = getNComponents(pixelComponents);
+
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            const unsigned char *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-            float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-            const unsigned char* src_end = src_pixels + w * nComponents;
+            const unsigned char *src_pixels = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+            float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            const unsigned char *src_end = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
 
             while (src_pixels != src_end) {
                 if (nComponents == 1) {
                     *dst_pixels++ = intToFloat<256>(*src_pixels++);
                 } else {
-                    for (int k = 0; k < nComponents; ++k) {
-                        if (k == 3) {
-                            *dst_pixels++ = intToFloat<256>(*src_pixels++);
-                        } else {
-                            *dst_pixels++ = fromColorSpaceUint8ToLinearFloatFast(*src_pixels++);
-                        }
+                    for (int k = 0; k < 3; ++k) {
+                        dst_pixels[k] = fromColorSpaceUint8ToLinearFloatFast(src_pixels[k]);
+                    }
+                    if (nComponents == 4) {
+                        // alpha channel: no colorspace conversion
+                        dst_pixels[3] = intToFloat<256>(src_pixels[3]);
                     }
                 }
+                dst_pixels += nComponents;
+                src_pixels += nComponents;
             }
         }
     }
 
-    virtual void from_short_packed(float* to,
-                                   const unsigned short* from,
+    virtual void from_short_packed(const void* pixelData,
+                                   const OfxRectI & bounds,
+                                   OFX::PixelComponentEnum pixelComponents,
+                                   OFX::BitDepthEnum bitDepth,
+                                   int rowBytes,
                                    const OfxRectI & renderWindow,
-                                   int nComponents,
-                                   const OfxRectI & srcBounds,
-                                   int srcRowBytes,
+                                   void* dstPixelData,
                                    const OfxRectI & dstBounds,
+                                   OFX::PixelComponentEnum dstPixelComponents,
+                                   OFX::BitDepthEnum dstBitDepth,
                                    int dstRowBytes) const OVERRIDE FINAL
     {
+        assert(bitDepth == eBitDepthUShort && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+        assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+               bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+               dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+               dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcElements = srcRowBytes / sizeof(unsigned short);
-        int dstElements = dstRowBytes / sizeof(float);
-        int w = renderWindow.x2 - renderWindow.x1;
+        int nComponents = getNComponents(pixelComponents);
+
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-            const unsigned short *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-            float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-            const unsigned short* src_end = src_pixels + w * nComponents;
+            const unsigned short *src_pixels = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+            float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            const unsigned short *src_end = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
 
             while (src_pixels != src_end) {
                 if (nComponents == 1) {
                     *dst_pixels++ = intToFloat<65536>(*src_pixels++);
                 } else {
-                    for (int k = 0; k < nComponents; ++k) {
-                        if (k == 3) {
-                            *dst_pixels++ = intToFloat<65536>(*src_pixels++);
-                        } else {
-                            *dst_pixels++ = fromColorSpaceUint16ToLinearFloatFast(*src_pixels++);
-                        }
+                    for (int k = 0; k < 3; ++k) {
+                        dst_pixels[k] = fromColorSpaceUint16ToLinearFloatFast(src_pixels[k]);
+                    }
+                    if (nComponents == 4) {
+                        // alpha channel: no colorspace conversion
+                        dst_pixels[3] = intToFloat<65536>(src_pixels[3]);
                     }
                 }
+                dst_pixels += nComponents;
+                src_pixels += nComponents;
             }
         }
     }

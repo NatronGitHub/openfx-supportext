@@ -149,117 +149,151 @@ LutManager::~LutManager()
 
 namespace Linear {
 void
-to_byte_packed(unsigned char* to,
-               const float* from,
+to_byte_packed(const void* pixelData,
+               const OfxRectI & bounds,
+               OFX::PixelComponentEnum pixelComponents,
+               OFX::BitDepthEnum bitDepth,
+               int rowBytes,
                const OfxRectI & renderWindow,
-               int nComponents,
-               const OfxRectI & srcBounds,
-               int srcRowBytes,
+               void* dstPixelData,
                const OfxRectI & dstBounds,
+               OFX::PixelComponentEnum dstPixelComponents,
+               OFX::BitDepthEnum dstBitDepth,
                int dstRowBytes)
 {
-    int srcElements = srcRowBytes / sizeof(float);
-    int dstElements = dstRowBytes / sizeof(unsigned char);
-    int w = renderWindow.x2 - renderWindow.x1;
+    assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
+    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+
+    int nComponents = getNComponents(pixelComponents);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-        unsigned char *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-        const float* src_end = src_pixels + w * nComponents;
-
+        const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+        unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+        const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
         while (src_pixels != src_end) {
             for (int k = 0; k < nComponents; ++k) {
-                *dst_pixels++ = floatToInt<256>(*src_pixels++);
+                dst_pixels[k] = floatToInt<256>(src_pixels[k]);
             }
+            dst_pixels += nComponents;
+            src_pixels += nComponents;
         }
     }
 }
 
 void
-to_short_packed(unsigned short* to,
-                const float* from,
+to_short_packed(const void* pixelData,
+                const OfxRectI & bounds,
+                OFX::PixelComponentEnum pixelComponents,
+                OFX::BitDepthEnum bitDepth,
+                int rowBytes,
                 const OfxRectI & renderWindow,
-                int nComponents,
-                const OfxRectI & srcBounds,
-                int srcRowBytes,
+                void* dstPixelData,
                 const OfxRectI & dstBounds,
+                OFX::PixelComponentEnum dstPixelComponents,
+                OFX::BitDepthEnum dstBitDepth,
                 int dstRowBytes)
 {
-    int srcElements = srcRowBytes / sizeof(float);
-    int dstElements = dstRowBytes / sizeof(unsigned short);
-    int w = renderWindow.x2 - renderWindow.x1;
+    assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents);
+    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+
+    int nComponents = getNComponents(pixelComponents);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const float *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-        unsigned short *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-        const float* src_end = src_pixels + w * nComponents;
-
+        const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+        unsigned short *dst_pixels = (unsigned short*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+        const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
         while (src_pixels != src_end) {
             for (int k = 0; k < nComponents; ++k) {
-                *dst_pixels++ = floatToInt<65536>(*src_pixels++);
+                dst_pixels[k] = floatToInt<65536>(src_pixels[k]);
             }
+            dst_pixels += nComponents;
+            src_pixels += nComponents;
         }
     }
 }
 
 void
-from_byte_packed(float* to,
-                 const unsigned char* from,
+from_byte_packed(const void* pixelData,
+                 const OfxRectI & bounds,
+                 OFX::PixelComponentEnum pixelComponents,
+                 OFX::BitDepthEnum bitDepth,
+                 int rowBytes,
                  const OfxRectI & renderWindow,
-                 int nComponents,
-                 const OfxRectI & srcBounds,
-                 int srcRowBytes,
+                 void* dstPixelData,
                  const OfxRectI & dstBounds,
+                 OFX::PixelComponentEnum dstPixelComponents,
+                 OFX::BitDepthEnum dstBitDepth,
                  int dstRowBytes)
 {
-    int srcElements = srcRowBytes / sizeof(unsigned char);
-    int dstElements = dstRowBytes / sizeof(float);
-    int w = renderWindow.x2 - renderWindow.x1;
+    assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+
+    int nComponents = getNComponents(pixelComponents);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const unsigned char *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-        float *dst_pixels = to + (y * dstRowBytes) + renderWindow.x1 * nComponents;
-        const unsigned char* src_end = src_pixels + w * nComponents;
+        const unsigned char *src_pixels = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+        float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+        const unsigned char *src_end = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
 
         while (src_pixels != src_end) {
             for (int k = 0; k < nComponents; ++k) {
-                *dst_pixels++ = intToFloat<256>(*src_pixels++);
+                dst_pixels[k] = intToFloat<256>(src_pixels[k]);
             }
+            dst_pixels += nComponents;
+            src_pixels += nComponents;
         }
     }
 }
 
 void
-from_short_packed(float* to,
-                  const unsigned short* from,
+from_short_packed(const void* pixelData,
+                  const OfxRectI & bounds,
+                  OFX::PixelComponentEnum pixelComponents,
+                  OFX::BitDepthEnum bitDepth,
+                  int rowBytes,
                   const OfxRectI & renderWindow,
-                  int nComponents,
-                  const OfxRectI & srcBounds,
-                  int srcRowBytes,
+                  void* dstPixelData,
                   const OfxRectI & dstBounds,
+                  OFX::PixelComponentEnum dstPixelComponents,
+                  OFX::BitDepthEnum dstBitDepth,
                   int dstRowBytes)
 {
-    int srcElements = srcRowBytes / sizeof(unsigned short);
-    int dstElements = dstRowBytes / sizeof(float);
-    int w = renderWindow.x2 - renderWindow.x1;
+    assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
+           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
+           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
+           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+
+    int nComponents = getNComponents(pixelComponents);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const unsigned short *src_pixels = from + (y * srcElements) + renderWindow.x1 * nComponents;
-        float *dst_pixels = to + (y * dstElements) + renderWindow.x1 * nComponents;
-        const unsigned short* src_end = src_pixels + w * nComponents;
+        const unsigned short *src_pixels = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
+        float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+        const unsigned short *src_end = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y);
 
 
         while (src_pixels != src_end) {
             for (int k = 0; k < nComponents; ++k) {
-                *dst_pixels++ = intToFloat<65536>(*src_pixels++);
+                dst_pixels[k] = intToFloat<65536>(src_pixels[k]);
             }
+            dst_pixels += nComponents;
+            src_pixels += nComponents;
         }
     }
 }
-}
+} // namespace Linear
 
 
 // r,g,b values are from 0 to 1
@@ -358,7 +392,7 @@ hsv_to_rgb(float h,
         *g = p;
         *b = v;
         break;
-    default:            // case 5:
+    default:                // case 5:
         *r = v;
         *g = p;
         *b = q;
