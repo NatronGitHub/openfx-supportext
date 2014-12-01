@@ -109,13 +109,15 @@ private:
 };
 
 void
-GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
+GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &/*args*/,
                               const std::string &paramName)
 {
     if (paramName == kParamType) {
         int type_i;
         _type->getValue(type_i);
-        switch ( (GeneratorTypeEnum)type_i ) {
+        GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+        switch (type) {
         case eGeneratorTypeFormat:
             _format->setIsSecret(false);
             _size->setIsSecret(true);
@@ -139,13 +141,13 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 }
 
 bool
-GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args,
+GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/*args*/,
                                        OfxRectD &rod)
 {
     int type_i;
-
     _type->getValue(type_i);
-    switch ( (GeneratorTypeEnum)type_i ) {
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    switch (type) {
     case eGeneratorTypeFormat: {
         int format_i;
         _format->getValue(format_i);
@@ -155,17 +157,17 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &a
         rod.x1 = rod.y1 = 0;
         rod.x2 = w;
         rod.y2 = h;
-    }
 
         return true;
+    }
     case eGeneratorTypeSize: {
         _size->getValue(rod.x2, rod.y2);
         _btmLeft->getValue(rod.x1, rod.y1);
         rod.x2 += rod.x1;
         rod.y2 += rod.y1;
-    }
 
         return true;
+    }
     case eGeneratorTypeProject: {
         OfxPointD ext = getProjectExtent();
         OfxPointD off = getProjectOffset();
@@ -173,19 +175,17 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &a
         rod.x2 = ext.x;
         rod.y1 = off.y;
         rod.y2 = ext.y;
-    }
 
         return true;
-    default:
-
-        return false;
     }
+    }
+    return false;
 }
 
 void
 GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 {
-    double par;
+    double par = 0.;
     int type_i;
 
     _type->getValue(type_i);
@@ -197,19 +197,20 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         _format->getValue(index);
         size_t w,h;
         getFormatResolution( (OFX::EParamFormat)index, &w, &h, &par );
+        break;
     }
-    break;
     case eGeneratorTypeProject:
     case eGeneratorTypeDefault: {
         par = getProjectPixelAspectRatio();
+        break;
     }
     case eGeneratorTypeSize:
-    default:
-        par = 1.;
         break;
     }
 
-    clipPreferences.setPixelAspectRatio(*dstClip_, par);
+    if (par != 0.) {
+      clipPreferences.setPixelAspectRatio(*dstClip_, par);
+    }
 }
 
 class GeneratorInteract
@@ -236,10 +237,9 @@ private:
 
     virtual void aboutToCheckInteractivity(OfxTime /*time*/)  OVERRIDE FINAL
     {
-        int type;
-
-        _type->getValue(type);
-        _generatorType = (GeneratorTypeEnum)type;
+        int type_i;
+        _type->getValue(type_i);
+        _generatorType = (GeneratorTypeEnum)type_i;
     }
 
     virtual bool allowTopLeftInteraction() const OVERRIDE FINAL
@@ -280,9 +280,10 @@ bool
 GeneratorInteract::draw(const OFX::DrawArgs &args)
 {
     int type_i;
-
     _type->getValue(type_i);
-    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type != eGeneratorTypeSize) {
         return false;
     }
 
@@ -293,9 +294,10 @@ bool
 GeneratorInteract::penMotion(const OFX::PenArgs &args)
 {
     int type_i;
-
     _type->getValue(type_i);
-    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type != eGeneratorTypeSize) {
         return false;
     }
 
@@ -306,9 +308,10 @@ bool
 GeneratorInteract::penDown(const OFX::PenArgs &args)
 {
     int type_i;
-
     _type->getValue(type_i);
-    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type_i != eGeneratorTypeSize) {
         return false;
     }
 
@@ -318,9 +321,10 @@ bool
 GeneratorInteract::penUp(const OFX::PenArgs &args)
 {
     int type_i;
-
     _type->getValue(type_i);
-    if ( (GeneratorTypeEnum)type_i != eGeneratorTypeSize ) {
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type != eGeneratorTypeSize) {
         return false;
     }
 
