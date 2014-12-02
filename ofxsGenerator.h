@@ -311,7 +311,7 @@ GeneratorInteract::penDown(const OFX::PenArgs &args)
     _type->getValue(type_i);
     GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
 
-    if (type_i != eGeneratorTypeSize) {
+    if (type != eGeneratorTypeSize) {
         return false;
     }
 

@@ -87,30 +87,17 @@ int
 getNComponents(OFX::PixelComponentEnum pixelComponents)
 {
     switch (pixelComponents) {
-    case OFX::ePixelComponentNone:
-
-        return 0; break;
-    case OFX::ePixelComponentRGBA:
-
-        return 4; break;
-    case OFX::ePixelComponentRGB:
-
-        return 3; break;
-    case OFX::ePixelComponentAlpha:
-
-        return 1; break;
+    case OFX::ePixelComponentNone:            return 0; break;
+    case OFX::ePixelComponentRGBA:            return 4; break;
+    case OFX::ePixelComponentRGB:             return 3; break;
+    case OFX::ePixelComponentAlpha:           return 1; break;
 #ifdef OFX_EXTENSIONS_NUKE
-    case OFX::ePixelComponentMotionVectors:
-
-        return 2; break;
-    case OFX::ePixelComponentStereoDisparity:
-
-        return 2; break;
+    case OFX::ePixelComponentMotionVectors:   return 2; break;
+    case OFX::ePixelComponentStereoDisparity: return 2; break;
 #endif
-    case OFX::ePixelComponentCustom:
-
-        return 0; break;
+    case OFX::ePixelComponentCustom:          return 0; break;
     }
+    return 0;
 }
 
 inline
@@ -119,36 +106,19 @@ getComponentBytes(OFX::BitDepthEnum bitDepth)
 {
     // compute bytes per component
     switch (bitDepth) {
-    case OFX::eBitDepthNone:
-
-        return 0; break;
-    case OFX::eBitDepthUByte:
-
-        return 1; break;
-    case OFX::eBitDepthUShort:
-
-        return 2; break;
-    case OFX::eBitDepthHalf:
-
-        return 2; break;
-    case OFX::eBitDepthFloat:
-
-        return 4; break;
+    case OFX::eBitDepthNone:       return 0; break;
+    case OFX::eBitDepthUByte:      return 1; break;
+    case OFX::eBitDepthUShort:     return 2; break;
+    case OFX::eBitDepthHalf:       return 2; break;
+    case OFX::eBitDepthFloat:      return 4; break;
 #ifdef OFX_EXTENSIONS_VEGAS
-    case OFX::eBitDepthUByteBGRA:
-
-        return 1; break;
-    case OFX::eBitDepthUShortBGRA:
-
-        return 2; break;
-    case OFX::eBitDepthFloatBGRA:
-
-        return 4; break;
+    case OFX::eBitDepthUByteBGRA:  return 1; break;
+    case OFX::eBitDepthUShortBGRA: return 2; break;
+    case OFX::eBitDepthFloatBGRA:  return 4; break;
 #endif
-    case OFX::eBitDepthCustom:
-
-        return 0; break;
+    case OFX::eBitDepthCustom:     return 0; break;
     }
+    return 0;
 }
 
 inline
