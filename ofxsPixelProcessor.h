@@ -160,12 +160,14 @@ getPixelAddress(const void* pixelData,
                 OFX::BitDepthEnum bitDepth,
                 int rowBytes,
                 int x,
-                int y)
+                int y,
+                bool withinBoundsCheck = true)
 {
     int pixelBytes = getPixelBytes(pixelComponents, bitDepth);
 
     // are we in the image bounds
-    if ( ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0) ) {
+    if ( withinBoundsCheck && (
+        ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0)) ) {
         return 0;
     }
     char *pix = (char *) ( ( (char *) pixelData ) + (size_t)(y - bounds.y1) * rowBytes );
