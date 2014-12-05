@@ -37,11 +37,11 @@
 #include "ofxsMipMap.h"
 
 namespace OFX {
-// update the window of dst defined by nextRenderWindow by halving the corresponding area in src.
+// update the window of dst defined by dstRoI by halving the corresponding area in src.
 // proofread and fixed by F. Devernay on 3/10/2014
 template <typename PIX,int nComponents>
 static void
-halveWindow(const OfxRectI & nextRenderWindow,
+halveWindow(const OfxRectI & dstRoI,
             const PIX* srcPixels,
             const OfxRectI & srcBounds,
             int srcRowBytes,
@@ -49,37 +49,56 @@ halveWindow(const OfxRectI & nextRenderWindow,
             const OfxRectI & dstBounds,
             int dstRowBytes)
 {
+
+    assert(dstRoI.x1 * 2 >= (srcBounds.x1 - 1) && (dstRoI.x2 - 1) * 2 < srcBounds.x2 &&
+           dstRoI.y1 * 2 >= (srcBounds.y1 - 1) && (dstRoI.y2 - 1) * 2 < srcBounds.y2);
     int srcRowSize = srcRowBytes / sizeof(PIX);
     int dstRowSize = dstRowBytes / sizeof(PIX);
-    const PIX* srcData =  srcPixels - (srcBounds.x1 * nComponents + srcRowSize * srcBounds.y1);
-    PIX* dstData = dstPixels - (dstBounds.x1 * nComponents + dstRowSize * dstBounds.y1);
+    
+    // offset pointers so that srcData and dstData correspond to pixel (0,0)
+    const PIX* const srcData = srcPixels - (srcBounds.x1 * nComponents + srcRowSize * srcBounds.y1);
+    PIX* const dstData       = dstPixels - (dstBounds.x1 * nComponents + dstRowSize * dstBounds.y1);
 
-    assert(nextRenderWindow.x1 * 2 >= (srcBounds.x1 - 1) && (nextRenderWindow.x2 - 1) * 2 < srcBounds.x2 &&
-           nextRenderWindow.y1 * 2 >= (srcBounds.y1 - 1) && (nextRenderWindow.y2 - 1) * 2 < srcBounds.y2);
-    for (int y = nextRenderWindow.y1; y < nextRenderWindow.y2; ++y) {
-        const PIX* srcLineStart = srcData + y * 2 * srcRowSize;
-        PIX* dstLineStart = dstData + y * dstRowSize;
-        bool pickNextRow = (y * 2) < (srcBounds.y2 - 1);
-        bool pickThisRow = (y * 2) >= (srcBounds.y1);
-        int sumH = (int)pickNextRow + (int)pickThisRow;
+    for (int y = dstRoI.y1; y < dstRoI.y2; ++y) {
+        const PIX* const srcLineStart    = srcData + y * 2 * srcRowSize;
+        PIX* const dstLineStart          = dstData + y     * dstRowSize;
+
+        // The current dst row, at y, covers the src rows y*2 (thisRow) and y*2+1 (nextRow).
+        // Check that if are within srcBounds.
+        int srcy = y * 2;
+        bool pickThisRow = srcBounds.y1 <= (srcy + 0) && (srcy + 0) < srcBounds.y2;
+        bool pickNextRow = srcBounds.y1 <= (srcy + 1) && (srcy + 1) < srcBounds.y2;
+
+        const int sumH = (int)pickNextRow + (int)pickThisRow;
         assert(sumH == 1 || sumH == 2);
-        for (int x = nextRenderWindow.x1; x < nextRenderWindow.x2; ++x) {
-            bool pickNextCol = (x * 2) < (srcBounds.x2 - 1);
-            bool pickThisCol = (x * 2) >= (srcBounds.x1);
-            int sumW = (int)pickThisCol + (int)pickNextCol;
+
+        for (int x = dstRoI.x1; x < dstRoI.x2; ++x) {
+            const PIX* const srcPixStart    = srcLineStart   + x * 2 * nComponents;
+            PIX* const dstPixStart          = dstLineStart   + x * nComponents;
+
+            // The current dst col, at y, covers the src cols x*2 (thisCol) and x*2+1 (nextCol).
+            // Check that if are within srcBounds.
+            int srcx = x * 2;
+            bool pickThisCol = srcBounds.x1 <= (srcx + 0) && (srcx + 0) < srcBounds.x2;
+            bool pickNextCol = srcBounds.x1 <= (srcx + 1) && (srcx + 1) < srcBounds.x2;
+
+            const int sumW = (int)pickThisCol + (int)pickNextCol;
             assert(sumW == 1 || sumW == 2);
+            const int sum = sumW * sumH;
+            assert(0 < sum && sum <= 4);
+
             for (int k = 0; k < nComponents; ++k) {
                 ///a b
                 ///c d
 
-                PIX a = (pickThisCol && pickThisRow) ? srcLineStart[x * 2 * nComponents + k] : 0;
-                PIX b = (pickNextCol && pickThisRow) ? srcLineStart[(x * 2 + 1) * nComponents + k] : 0;
-                PIX c = (pickThisCol && pickNextRow) ? srcLineStart[(x * 2 * nComponents) + srcRowSize + k] : 0;
-                PIX d = (pickNextCol && pickNextRow) ? srcLineStart[(x * 2 + 1) * nComponents + srcRowSize + k] : 0;
+                const PIX a = (pickThisCol && pickThisRow) ? *(srcPixStart + k) : 0;
+                const PIX b = (pickNextCol && pickThisRow) ? *(srcPixStart + k + nComponents) : 0;
+                const PIX c = (pickThisCol && pickNextRow) ? *(srcPixStart + k + srcRowSize): 0;
+                const PIX d = (pickNextCol && pickNextRow) ? *(srcPixStart + k + srcRowSize  + nComponents)  : 0;
 
                 assert( sumW == 2 || ( sumW == 1 && ( (a == 0 && c == 0) || (b == 0 && d == 0) ) ) );
                 assert( sumH == 2 || ( sumH == 1 && ( (a == 0 && b == 0) || (c == 0 && d == 0) ) ) );
-                dstLineStart[x * nComponents + k] = (a + b + c + d) / (sumH * sumW);
+                dstPixStart[k] = (a + b + c + d) / sum;
             }
         }
     }
