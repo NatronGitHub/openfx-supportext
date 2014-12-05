@@ -160,7 +160,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
-    std::auto_ptr<OFX::Image> src( srcClip_->fetchImage(time) );
+    std::auto_ptr<const OFX::Image> src( srcClip_->fetchImage(time) );
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
@@ -485,7 +485,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
                                           OfxRectD &rod)
 {
     const double time = args.time;
-    const OfxRectD srcRoD = srcClip_->getRegionOfDefinition(time);
+    const OfxRectD& srcRoD = srcClip_->getRegionOfDefinition(time);
 
     if ( MergeImages2D::rectIsInfinite(srcRoD) ) {
         // return an infinite RoD
