@@ -875,12 +875,34 @@ toPixel(const OfxPointD & p_canonical,
     p_pixel->y = std::floor(p_canonical.y * renderScale.y);
 }
 
+// subpixel version (no rounding)
+inline void
+toPixelSub(const OfxPointD & p_canonical,
+           const OfxPointD & renderScale,
+           double par,
+           OfxPointD *p_pixel)
+{
+    p_pixel->x = p_canonical.x * renderScale.x / par - 0.5;
+    p_pixel->y = p_canonical.y * renderScale.y - 0.5;
+}
+
 // transforms the middle of the given pixel to canonical coordinates
 inline void
 toCanonical(const OfxPointI & p_pixel,
             const OfxPointD & renderScale,
             double par,
             OfxPointD *p_canonical)
+{
+    p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
+    p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
+}
+
+// subpixel version (no rounding)
+inline void
+toCanonicalSub(const OfxPointD & p_pixel,
+               const OfxPointD & renderScale,
+               double par,
+               OfxPointD *p_canonical)
 {
     p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
     p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
