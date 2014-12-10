@@ -17,7 +17,8 @@ namespace OFX {
 // Base class for the RGBA and the Alpha processor
 
 // template to do the RGBA processing
-template <class PIX, int nComponents, int maxValue>
+// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
+template <class PIX, int nComponents, int maxValue, int boundary_condition = 0>
 class PixelCopier
     : public OFX::PixelProcessorFilterBase
 {
@@ -33,41 +34,113 @@ public:
     {
         int rowBytes = sizeof(PIX) * nComponents * (procWindow.x2 - procWindow.x1);
 
-        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
             }
 
-            PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
+            PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
 
-            if ( (y < _srcBounds.y1) || (_srcBounds.y2 <= y) ) {
+            int srcy = dsty;
+
+            if (boundary_condition == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (boundary_condition == 2) {
+                // sub-optimal if there is a lot of repetition
+                while (_srcBounds.y2 <= srcy) {
+                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
+                }
+                while (srcy < _srcBounds.y1) {
+                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+
+            if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) || (_srcBounds.y2 <= _srcBounds.y1)) {
                 std::memset(dstPix, 0, rowBytes);
             } else {
                 int x1 = std::max(_srcBounds.x1, procWindow.x1);
                 int x2 = std::min(_srcBounds.x2, procWindow.x2);
                 // start of line may be black
                 if (procWindow.x1 < x1) {
-                    std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
-                    dstPix += nComponents * (x1 - procWindow.x1);
+                    if (boundary_condition != 1 && boundary_condition != 2) {
+                        std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
+                        dstPix += nComponents * (x1 - procWindow.x1);
+                    } else if (boundary_condition == 1) {
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
+                        assert(srcPix);
+                        for (int x = procWindow.x1; x < x1; ++x) {
+                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                            dstPix += nComponents;
+                        }
+                    } else if (boundary_condition == 2) {
+                        int srcx = procWindow.x1;
+                        while (srcx < _srcBounds.x1) {
+                            srcx += (_srcBounds.x2 - _srcBounds.x1);
+                        }
+
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
+                        assert(srcPix);
+                        for (int x = procWindow.x1; x < x1; ++x) {
+                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                            dstPix += nComponents;
+                            ++srcx;
+                            if (_srcBounds.x2 <= srcx) {
+                                srcx -= (_srcBounds.y2 - _srcBounds.y1);
+                                srcPix -= (_srcBounds.y2 - _srcBounds.y1)*nComponents;
+                            }
+                        }
+                    }
                 }
                 // then, copy the relevant fraction of src
                 if ( (x1 < x2) && (procWindow.x1 <= x1) && (x2 <= procWindow.x2) ) {
-                    const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, y);
+                    const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                     assert(srcPix);
                     std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1) );
                     dstPix += nComponents * (x2 - x1);
                 }
                 // end of line may be black
                 if (x2 < procWindow.x2) {
-                    std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
+                    if (boundary_condition != 1 && boundary_condition != 2) {
+                        std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
+                    } else if (boundary_condition == 1) {
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(x2-1, srcy);
+                        assert(srcPix);
+                        for (int x = x2; x < procWindow.x2; ++x) {
+                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                            dstPix += nComponents;
+                        }
+                    } else if (boundary_condition == 2) {
+                        int srcx = x2;
+                        while (_srcBounds.x2 <= srcx) {
+                            srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                        }
+
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
+                        assert(srcPix);
+                        for (int x = x2; x < procWindow.x2; ++x) {
+                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                            dstPix += nComponents;
+                            ++srcx;
+                            if (_srcBounds.x2 <= srcx) {
+                                srcx -= (_srcBounds.y2 - _srcBounds.y1);
+                                srcPix -= (_srcBounds.y2 - _srcBounds.y1)*nComponents;
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 };
 
-template <class PIX, int nComponents, int maxValue, bool masked>
+// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
+template <class PIX, int nComponents, int maxValue, bool masked, int boundary_condition = 0>
 class PixelCopierMaskMix
     : public OFX::PixelProcessorFilterBase
 {
@@ -83,23 +156,64 @@ public:
     {
         float tmpPix[nComponents];
 
-        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
             }
 
-            PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
+            int srcy = dsty;
+
+            if (boundary_condition == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (boundary_condition == 2) {
+                // sub-optimal if there is a lot of repetition
+                while (_srcBounds.y2 <= srcy) {
+                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
+                }
+                while (srcy < _srcBounds.y1) {
+                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+
+            PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
 
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const PIX *origPix = (const PIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
-                const PIX *srcPix = (const PIX *) getSrcPixelAddress(x, y);
+            for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
+
+                int srcx = dstx;
+
+                if (boundary_condition == 1) {
+                    if (_srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x2 - 1;
+                    }
+                    if (srcx < _srcBounds.x1) {
+                        srcx = _srcBounds.x1;
+                    }
+                } else if (boundary_condition == 2) {
+                    // sub-optimal if there is a lot of repetition
+                    while (_srcBounds.x2 <= srcx) {
+                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                    while (srcx < _srcBounds.x1) {
+                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                }
+
+                // origPix is at dstx,dsty
+                const PIX *origPix = (const PIX *)  (_origImg ? _origImg->getPixelAddress(dstx, dsty) : 0);
+                const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
                 if (srcPix) {
                     std::copy(srcPix, srcPix + nComponents, tmpPix);
                 } else {
                     std::fill(tmpPix, tmpPix + nComponents, 0.); // no src pixel here, be black and transparent
                 }
-                ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                // dstx,dsty are the mask image coordinates (no boundary conditions)
+                ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, dstx, dsty, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += nComponents;
             }
@@ -107,8 +221,9 @@ public:
     }
 };
 
+// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
 // be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
 class PixelCopierUnPremult
     : public OFX::PixelProcessorFilterBase
 {
@@ -125,16 +240,57 @@ public:
     {
         float unpPix[4];
 
-        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
+
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
             }
 
-            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
+            int srcy = dsty;
+
+            if (boundary_condition == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (boundary_condition == 2) {
+                // sub-optimal if there is a lot of repetition
+                while (_srcBounds.y2 <= srcy) {
+                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
+                }
+                while (srcy < _srcBounds.y1) {
+                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+
+            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
 
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
+            for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
+
+                int srcx = dstx;
+
+                if (boundary_condition == 1) {
+                    if (_srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x2 - 1;
+                    }
+                    if (srcx < _srcBounds.x1) {
+                        srcx = _srcBounds.x1;
+                    }
+                } else if (boundary_condition == 2) {
+                    // sub-optimal if there is a lot of repetition
+                    while (_srcBounds.x2 <= srcx) {
+                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                    while (srcx < _srcBounds.x1) {
+                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                }
+
+                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
                 ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
                 for (int c = 0; c < dstNComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
@@ -147,8 +303,9 @@ public:
     }
 };
 
+// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
 // be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
 class PixelCopierPremult
     : public OFX::PixelProcessorFilterBase
 {
@@ -165,16 +322,57 @@ public:
     {
         float unpPix[4];
 
-        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
+
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
             }
 
-            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
+            int srcy = dsty;
+
+            if (boundary_condition == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (boundary_condition == 2) {
+                // sub-optimal if there is a lot of repetition
+                while (_srcBounds.y2 <= srcy) {
+                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
+                }
+                while (srcy < _srcBounds.y1) {
+                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+
+            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
 
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
+            for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
+
+                int srcx = dstx;
+
+                if (boundary_condition == 1) {
+                    if (_srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x2 - 1;
+                    }
+                    if (srcx < _srcBounds.x1) {
+                        srcx = _srcBounds.x1;
+                    }
+                } else if (boundary_condition == 2) {
+                    // sub-optimal if there is a lot of repetition
+                    while (_srcBounds.x2 <= srcx) {
+                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                    while (srcx < _srcBounds.x1) {
+                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                }
+
+                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
                 ofxsPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
                 for (int c = 0; c < dstNComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
@@ -187,8 +385,9 @@ public:
     }
 };
 
+// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
 // template to do the RGBA processing
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
 class PixelCopierPremultMaskMix
     : public OFX::PixelProcessorFilterBase
 {
@@ -205,24 +404,66 @@ public:
     {
         float unpPix[4];
 
+        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
+
         if (srcNComponents == 3) {
             unpPix[3] = 1.;
         }
-        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
             }
 
-            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, y);
+            int srcy = dsty;
+
+            if (boundary_condition == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (boundary_condition == 2) {
+                // sub-optimal if there is a lot of repetition
+                while (_srcBounds.y2 <= srcy) {
+                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
+                }
+                while (srcy < _srcBounds.y1) {
+                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+            
+            DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
 
-            for (int x = procWindow.x1; x < procWindow.x2; x++) {
-                const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(x, y) : 0);
-                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(x, y);
+            for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
+
+                int srcx = dstx;
+
+                if (boundary_condition == 1) {
+                    if (_srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x2 - 1;
+                    }
+                    if (srcx < _srcBounds.x1) {
+                        srcx = _srcBounds.x1;
+                    }
+                } else if (boundary_condition == 2) {
+                    // sub-optimal if there is a lot of repetition
+                    while (_srcBounds.x2 <= srcx) {
+                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                    while (srcx < _srcBounds.x1) {
+                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                    }
+                }
+                 // origPix is at dstx,dsty
+                const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(dstx, dsty) : 0);
+                const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
                 for (int c = 0; c < srcNComponents; ++c) {
                     unpPix[c] = (srcPix ? (srcPix[c] / (double)srcMaxValue) : 0.);
                 }
-                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, x, y, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                // dstx,dsty are the mask image coordinates (no boundary conditions)
+                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += dstNComponents;
             }
