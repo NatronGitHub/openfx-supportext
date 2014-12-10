@@ -177,6 +177,7 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/
         return true;
     }
     case eGeneratorTypeDefault:
+      
         return false;
     }
     return false;
