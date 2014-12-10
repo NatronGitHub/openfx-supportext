@@ -134,8 +134,6 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &/*args*/,
             _size->setIsSecret(true);
             _btmLeft->setIsSecret(true);
             break;
-        default:
-            break;
         }
     }
 }
@@ -178,6 +176,8 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/
 
         return true;
     }
+    case eGeneratorTypeDefault:
+        return false;
     }
     return false;
 }
