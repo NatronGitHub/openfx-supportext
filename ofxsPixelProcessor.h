@@ -331,6 +331,7 @@ protected:
     OFX::BitDepthEnum _srcBitDepth;
     int _srcPixelBytes;
     int _srcRowBytes;
+    int _srcBoundary; // Boundary conditions 0: Black/Dirichlet 1:Nearest/Neymann 2:Repeat/Periodic
     const OFX::Image *_origImg;
     const OFX::Image *_maskImg;
     bool _premult;
@@ -349,6 +350,7 @@ public:
           , _srcBitDepth(OFX::eBitDepthNone)
           , _srcPixelBytes(0)
           , _srcRowBytes(0)
+          , _srcBoundary(0)
           , _maskImg(0)
           , _premult(false)
           , _premultChannel(3)
@@ -374,7 +376,8 @@ public:
                    const OfxRectI & srcBounds,
                    OFX::PixelComponentEnum srcPixelComponents,
                    OFX::BitDepthEnum srcPixelDepth,
-                   int srcRowBytes)
+                   int srcRowBytes,
+                   int srcBoundary)
     {
         _srcPixelData = srcPixelData;
         _srcBounds = srcBounds;
@@ -382,6 +385,7 @@ public:
         _srcBitDepth = srcPixelDepth;
         _srcPixelBytes = getPixelBytes(_srcPixelComponents, _srcBitDepth);
         _srcRowBytes = srcRowBytes;
+        _srcBoundary = srcBoundary;
     }
 
     void setOrigImg(const OFX::Image *v)
@@ -414,15 +418,46 @@ protected:
     const void* getSrcPixelAddress(int x,
                                    int y) const
     {
-        // are we in the image bounds
-        if ( !_srcPixelData  || (x < _srcBounds.x1) || ( x >= _srcBounds.x2) || ( y < _srcBounds.y1) || ( y >= _srcBounds.y2) || ( _srcPixelBytes == 0) ) {
+        if (!_srcPixelData  || _srcPixelBytes == 0 || _srcBounds.x2 <= _srcBounds.x1 || _srcBounds.y2 <= _srcBounds.y1) {
             return 0;
+        }
+        // are we in the image bounds
+        bool outside = (x < _srcBounds.x1) || ( x >= _srcBounds.x2) || ( y < _srcBounds.y1) || ( y >= _srcBounds.y2);
+        if (outside) {
+            if (_srcBoundary == 1) {
+                // Nearest/Neumann
+                if (x < _srcBounds.x1) {
+                    x = _srcBounds.x1;
+                } else if (x >= _srcBounds.x2) {
+                    x = _srcBounds.x2 - 1;
+                }
+                if (y < _srcBounds.y1) {
+                    y = _srcBounds.y1;
+                } else if (y >= _srcBounds.y2) {
+                    y = _srcBounds.y2 - 1;
+                }
+            } else if (_srcBoundary == 2) {
+                // Repeat/Periodic
+                if (x < _srcBounds.x1 || x >= _srcBounds.x2) {
+                    x = _srcBounds.x1 + positive_modulo(x - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
+                }
+                if (y < _srcBounds.y1 || y >= _srcBounds.y2) {
+                    y = _srcBounds.y1 + positive_modulo(y - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
+                }
+            } else {
+                // Black/Dirichlet
+                return 0;
+            }
         }
 
         char *pix = (char *) ( ( (char *) _srcPixelData ) + (size_t)(y - _srcBounds.y1) * _srcRowBytes );
         pix += (x - _srcBounds.x1) * _srcPixelBytes;
 
         return (void *) pix;
+    }
+
+    static int positive_modulo(int i, int n) {
+        return (i % n + n) % n;
     }
 };
 };

@@ -16,9 +16,7 @@
 namespace OFX {
 // Base class for the RGBA and the Alpha processor
 
-// template to do the RGBA processing
-// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
-template <class PIX, int nComponents, int maxValue, int boundary_condition = 0>
+template <class PIX, int nComponents, int maxValue>
 class PixelCopier
     : public OFX::PixelProcessorFilterBase
 {
@@ -32,6 +30,8 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2); // image should be non-empty
+
         int rowBytes = sizeof(PIX) * nComponents * (procWindow.x2 - procWindow.x1);
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
@@ -44,44 +44,41 @@ public:
 
             int srcy = dsty;
 
-            if (boundary_condition == 1) {
+            if (_srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (boundary_condition == 2) {
-                // sub-optimal if there is a lot of repetition
-                while (_srcBounds.y2 <= srcy) {
-                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
-                }
-                while (srcy < _srcBounds.y1) {
-                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             }
 
             if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) || (_srcBounds.y2 <= _srcBounds.y1)) {
+                assert(_srcBoundary == 0);
                 std::memset(dstPix, 0, rowBytes);
             } else {
                 int x1 = std::max(_srcBounds.x1, procWindow.x1);
                 int x2 = std::min(_srcBounds.x2, procWindow.x2);
                 // start of line may be black
                 if (procWindow.x1 < x1) {
-                    if (boundary_condition != 1 && boundary_condition != 2) {
+                    if (_srcBoundary != 1 && _srcBoundary != 2) {
                         std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
                         dstPix += nComponents * (x1 - procWindow.x1);
-                    } else if (boundary_condition == 1) {
+                    } else if (_srcBoundary == 1) {
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                         assert(srcPix);
                         for (int x = procWindow.x1; x < x1; ++x) {
                             std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
                             dstPix += nComponents;
                         }
-                    } else if (boundary_condition == 2) {
+                    } else if (_srcBoundary == 2) {
                         int srcx = procWindow.x1;
-                        while (srcx < _srcBounds.x1) {
-                            srcx += (_srcBounds.x2 - _srcBounds.x1);
+                        if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                            srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                         }
 
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
@@ -106,16 +103,16 @@ public:
                 }
                 // end of line may be black
                 if (x2 < procWindow.x2) {
-                    if (boundary_condition != 1 && boundary_condition != 2) {
+                    if (_srcBoundary != 1 && _srcBoundary != 2) {
                         std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
-                    } else if (boundary_condition == 1) {
+                    } else if (_srcBoundary == 1) {
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(x2-1, srcy);
                         assert(srcPix);
                         for (int x = x2; x < procWindow.x2; ++x) {
                             std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
                             dstPix += nComponents;
                         }
-                    } else if (boundary_condition == 2) {
+                    } else if (_srcBoundary == 2) {
                         int srcx = x2;
                         while (_srcBounds.x2 <= srcx) {
                             srcx -= (_srcBounds.x2 - _srcBounds.x1);
@@ -139,8 +136,7 @@ public:
     }
 };
 
-// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
-template <class PIX, int nComponents, int maxValue, bool masked, int boundary_condition = 0>
+template <class PIX, int nComponents, int maxValue, bool masked>
 class PixelCopierMaskMix
     : public OFX::PixelProcessorFilterBase
 {
@@ -163,20 +159,16 @@ public:
 
             int srcy = dsty;
 
-            if (boundary_condition == 1) {
+            if (_srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (boundary_condition == 2) {
-                // sub-optimal if there is a lot of repetition
-                while (_srcBounds.y2 <= srcy) {
-                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
-                }
-                while (srcy < _srcBounds.y1) {
-                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             }
 
@@ -187,20 +179,16 @@ public:
 
                 int srcx = dstx;
 
-                if (boundary_condition == 1) {
+                if (_srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (boundary_condition == 2) {
-                    // sub-optimal if there is a lot of repetition
-                    while (_srcBounds.x2 <= srcx) {
-                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
-                    }
-                    while (srcx < _srcBounds.x1) {
-                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                } else if (_srcBoundary == 2) {
+                    if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
                 }
 
@@ -221,9 +209,7 @@ public:
     }
 };
 
-// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
-// be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierUnPremult
     : public OFX::PixelProcessorFilterBase
 {
@@ -249,20 +235,16 @@ public:
 
             int srcy = dsty;
 
-            if (boundary_condition == 1) {
+            if (_srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (boundary_condition == 2) {
-                // sub-optimal if there is a lot of repetition
-                while (_srcBounds.y2 <= srcy) {
-                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
-                }
-                while (srcy < _srcBounds.y1) {
-                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             }
 
@@ -273,20 +255,16 @@ public:
 
                 int srcx = dstx;
 
-                if (boundary_condition == 1) {
+                if (_srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (boundary_condition == 2) {
-                    // sub-optimal if there is a lot of repetition
-                    while (_srcBounds.x2 <= srcx) {
-                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
-                    }
-                    while (srcx < _srcBounds.x1) {
-                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                } else if (_srcBoundary == 2) {
+                    if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
                 }
 
@@ -303,9 +281,7 @@ public:
     }
 };
 
-// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
-// be careful, if _premult is false this processor does nothing!
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremult
     : public OFX::PixelProcessorFilterBase
 {
@@ -331,20 +307,16 @@ public:
 
             int srcy = dsty;
 
-            if (boundary_condition == 1) {
+            if (_srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (boundary_condition == 2) {
-                // sub-optimal if there is a lot of repetition
-                while (_srcBounds.y2 <= srcy) {
-                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
-                }
-                while (srcy < _srcBounds.y1) {
-                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             }
 
@@ -355,20 +327,16 @@ public:
 
                 int srcx = dstx;
 
-                if (boundary_condition == 1) {
+                if (_srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (boundary_condition == 2) {
-                    // sub-optimal if there is a lot of repetition
-                    while (_srcBounds.x2 <= srcx) {
-                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
-                    }
-                    while (srcx < _srcBounds.x1) {
-                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                } else if (_srcBoundary == 2) {
+                    if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
                 }
 
@@ -385,9 +353,9 @@ public:
     }
 };
 
-// boundary_conditions The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
+// _srcBoundarys The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
 // template to do the RGBA processing
-template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue, int boundary_condition = 0>
+template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremultMaskMix
     : public OFX::PixelProcessorFilterBase
 {
@@ -416,20 +384,16 @@ public:
 
             int srcy = dsty;
 
-            if (boundary_condition == 1) {
+            if (_srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (boundary_condition == 2) {
-                // sub-optimal if there is a lot of repetition
-                while (_srcBounds.y2 <= srcy) {
-                    srcy -= (_srcBounds.y2 - _srcBounds.y1);
-                }
-                while (srcy < _srcBounds.y1) {
-                    srcy += (_srcBounds.y2 - _srcBounds.y1);
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             }
             
@@ -440,20 +404,16 @@ public:
 
                 int srcx = dstx;
 
-                if (boundary_condition == 1) {
+                if (_srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (boundary_condition == 2) {
-                    // sub-optimal if there is a lot of repetition
-                    while (_srcBounds.x2 <= srcx) {
-                        srcx -= (_srcBounds.x2 - _srcBounds.x1);
-                    }
-                    while (srcx < _srcBounds.x1) {
-                        srcx += (_srcBounds.x2 - _srcBounds.x1);
+                } else if (_srcBoundary == 2) {
+                    if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
                 }
                  // origPix is at dstx,dsty
