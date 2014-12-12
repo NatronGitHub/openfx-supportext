@@ -46,14 +46,17 @@
 #include "ofxsRectangleInteract.h"
 #include "ofxsFormatResolution.h"
 
-#define kParamType "type"
-#define kParamTypeLabel "Type"
-#define kParamTypeHint "Format: Use a pre-defined image format. " \
-    "Size: Use a specific width/height . "
-#define kParamTypeOptionFormat "Format"
-#define kParamTypeOptionSize "Size"
-#define kParamTypeOptionProject "Project"
-#define kParamTypeOptionDefault "Default"
+#define kParamExtent "extent"
+#define kParamExtentLabel "Extent"
+#define kParamExtentHint "Extent (size and offset) of the output."
+#define kParamExtentOptionFormat "Format"
+#define kParamExtentOptionFormatHint "Use a pre-defined image format."
+#define kParamExtentOptionSize "Size"
+#define kParamExtentOptionSizeHint "Use a specific extent (size and offset)."
+#define kParamExtentOptionProject "Project"
+#define kParamExtentOptionProjectHint "Use the project extent (size and offset)."
+#define kParamExtentOptionDefault "Default"
+#define kParamExtentOptionDefaultHint "Use the default extent (e.g. the source clip extent, if connected)."
 
 enum GeneratorTypeEnum
 {
@@ -94,11 +97,12 @@ public:
                              dstClip_->getPixelComponents() == OFX::ePixelComponentRGBA ||
                              dstClip_->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
-        _type = fetchChoiceParam(kParamType);
+        _type = fetchChoiceParam(kParamExtent);
         _format = fetchChoiceParam(kParamFormat);
         _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
         _size = fetchDouble2DParam(kParamRectangleInteractSize);
         assert(_type && _format && _btmLeft && _size);
+        updateParamsVisibility();
     }
 
 private:
@@ -106,35 +110,33 @@ private:
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE FINAL;
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE FINAL;
+    void updateParamsVisibility();
 };
 
 void
-GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &/*args*/,
-                              const std::string &paramName)
+GeneratorPlugin::updateParamsVisibility()
 {
-    if (paramName == kParamType) {
         int type_i;
         _type->getValue(type_i);
         GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
 
-        switch (type) {
-        case eGeneratorTypeFormat:
-            _format->setIsSecret(false);
-            _size->setIsSecret(true);
-            _btmLeft->setIsSecret(true);
-            break;
-        case eGeneratorTypeSize:
-            _format->setIsSecret(true);
-            _size->setIsSecret(false);
-            _btmLeft->setIsSecret(false);
-            break;
-        case eGeneratorTypeProject:
-        case eGeneratorTypeDefault:
-            _format->setIsSecret(true);
-            _size->setIsSecret(true);
-            _btmLeft->setIsSecret(true);
-            break;
-        }
+    bool hasFormat = (type == eGeneratorTypeFormat);
+    bool hasSize = (type == eGeneratorTypeSize);
+
+    _format->setEnabled(hasFormat);
+    _format->setIsSecret(!hasFormat);
+    _size->setEnabled(hasSize);
+    _size->setIsSecret(!hasSize);
+    _btmLeft->setEnabled(hasSize);
+    _btmLeft->setIsSecret(!hasSize);
+}
+
+void
+GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
+                              const std::string &paramName)
+{
+    if (paramName == kParamExtent && args.reason == OFX::eChangeUserEdit) {
+        updateParamsVisibility();
     }
 }
 
@@ -225,7 +227,7 @@ public:
           , _type(0)
           , _generatorType(eGeneratorTypeDefault)
     {
-        _type = effect->fetchChoiceParam(kParamType);
+        _type = effect->fetchChoiceParam(kParamExtent);
         assert(_type);
     }
 
@@ -350,17 +352,17 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            ContextEnum /*context*/)
 {
     {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamType);
-        param->setLabels(kParamTypeLabel, kParamTypeLabel, kParamTypeLabel);
-        param->setHint(kParamTypeHint);
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamExtent);
+        param->setLabels(kParamExtentLabel, kParamExtentLabel, kParamExtentLabel);
+        param->setHint(kParamExtentHint);
         assert(param->getNOptions() == eGeneratorTypeFormat);
-        param->appendOption(kParamTypeOptionFormat);
+        param->appendOption(kParamExtentOptionFormat, kParamExtentOptionFormatHint);
         assert(param->getNOptions() == eGeneratorTypeSize);
-        param->appendOption(kParamTypeOptionSize);
+        param->appendOption(kParamExtentOptionSize, kParamExtentOptionSizeHint);
         assert(param->getNOptions() == eGeneratorTypeProject);
-        param->appendOption(kParamTypeOptionProject);
+        param->appendOption(kParamExtentOptionProject, kParamExtentOptionProjectHint);
         assert(param->getNOptions() == eGeneratorTypeDefault);
-        param->appendOption(kParamTypeOptionDefault);
+        param->appendOption(kParamExtentOptionDefault, kParamExtentOptionDefaultHint);
         param->setAnimates(false);
         param->setDefault(3);
         page->addChild(*param);
@@ -402,7 +404,6 @@ generatorDescribeInContext(PageParamDescriptor *page,
         assert(param->getNOptions() == eParamFormatSquare2k);
         param->appendOption(kParamFormatSquare2kLabel);
         param->setDefault(0);
-        param->setIsSecret(true);
         param->setHint(kParamFormatHint);
         page->addChild(*param);
     }
