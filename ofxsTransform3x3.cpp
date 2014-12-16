@@ -535,7 +535,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         ofxsFilterExpandRoD(this, dstClip_->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
-    if ( doMasking && (mix != 1.) ) {
+    if ( doMasking && (mix != 1. || maskClip_->isConnected()) ) {
         // for masking or mixing, we also need the source image.
         // compute the union of both RODs
         MergeImages2D::rectBoundingBox(rod, srcRoD, &rod);
