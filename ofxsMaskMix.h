@@ -355,7 +355,7 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
 
     // are we doing masking/mixing? in this case, retrieve srcPix
     if (masked && srcImg) {
-        if ( (domask && maskImg) || (mix != 1.) ) {
+        if ( (domask /*&& maskImg*/) || (mix != 1.) ) {
             srcPix = (const PIX *)srcImg->getPixelAddress(x, y);
         }
     }
