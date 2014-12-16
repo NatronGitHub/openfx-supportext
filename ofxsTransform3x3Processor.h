@@ -214,6 +214,7 @@ private:
                     for (int c = 0; c < nComponents; ++c) {
                         accPix[c] = 0;
                         accPix2[c] = 0;
+                        mean[0] = 0.;
                     }
                     unsigned int seed = hash(hash(x + 0x10000 * _motionblur) + y);
                     int sample = 0;
