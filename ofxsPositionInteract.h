@@ -83,6 +83,7 @@ public:
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
         assert(_position);
+        _penPosition.x = _penPosition.y = 0;
     }
 
 private:

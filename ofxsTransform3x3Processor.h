@@ -214,7 +214,8 @@ private:
                     for (int c = 0; c < nComponents; ++c) {
                         accPix[c] = 0;
                         accPix2[c] = 0;
-                        mean[0] = 0.;
+                        mean[c] = 0.;
+                        var[c] = maxValue * maxValue;
                     }
                     unsigned int seed = hash(hash(x + 0x10000 * _motionblur) + y);
                     int sample = 0;
@@ -255,16 +256,20 @@ private:
                         // compute mean and variance (unbiased)
                         for (int c = 0; c < nComponents; ++c) {
                             mean[c] = accPix[c] / sample;
-                            var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
-                            // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
-                            // Note that this could be improved/optimized further by variance reduction and importance sampling
-                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
-                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
-                            // The threshold is computed by a simple rule of thumb:
-                            // - the error should be less than motionblur*maxValue/100
-                            // - the total number of iterations should be less than motionblur*100
-                            if (maxsamples < maxIt) {
-                                maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                            if (sample <= 1) {
+                                var[c] = maxValue * maxValue;
+                            } else {
+                                var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
+                                // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
+                                // Note that this could be improved/optimized further by variance reduction and importance sampling
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
+                                // The threshold is computed by a simple rule of thumb:
+                                // - the error should be less than motionblur*maxValue/100
+                                // - the total number of iterations should be less than motionblur*100
+                                if (maxsamples < maxIt) {
+                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                                }
                             }
                         }
                     }

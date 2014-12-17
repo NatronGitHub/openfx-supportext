@@ -351,6 +351,7 @@ public:
           , _srcPixelBytes(0)
           , _srcRowBytes(0)
           , _srcBoundary(0)
+          , _origImg(0)
           , _maskImg(0)
           , _premult(false)
           , _premultChannel(3)

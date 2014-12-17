@@ -19,6 +19,7 @@ public:
     ImageBlenderMaskedBase(OFX::ImageEffect &instance)
         : ImageBlenderBase(instance)
           , _doMasking(false)
+          , _maskImg(0)
           , _maskInvert(false)
     {
     }

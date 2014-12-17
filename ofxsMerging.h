@@ -625,9 +625,9 @@ mergePixel(MergingFunctionEnum f,
     PIX b = nComponents == 4 ? B[3] : maxValue;
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphA*alphaB
-    int maxComp = doAlphaMasking && nComponents == 4 ? 3 : nComponents;
-
-    if ( doAlphaMasking && ( nComponents == 4) ) {
+    int maxComp = nComponents;
+    if (doAlphaMasking && nComponents == 4) {
+        maxComp = 3;
         dst[3] = A[3] + B[3] - A[3] * B[3] / (double)maxValue;
     }
     for (int i = 0; i < maxComp; ++i) {
