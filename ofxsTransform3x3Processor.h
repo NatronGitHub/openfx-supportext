@@ -215,7 +215,7 @@ private:
                         accPix[c] = 0;
                         accPix2[c] = 0;
                         mean[c] = 0.;
-                        var[c] = maxValue * maxValue;
+                        var[c] = (double)maxValue * maxValue;
                     }
                     unsigned int seed = hash(hash(x + 0x10000 * _motionblur) + y);
                     int sample = 0;
@@ -257,7 +257,7 @@ private:
                         for (int c = 0; c < nComponents; ++c) {
                             mean[c] = accPix[c] / sample;
                             if (sample <= 1) {
-                                var[c] = maxValue * maxValue;
+                                var[c] = (double)maxValue * maxValue;
                             } else {
                                 var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
                                 // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
