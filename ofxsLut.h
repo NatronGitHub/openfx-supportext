@@ -711,26 +711,6 @@ public:
     }
 };
 
-
-namespace Linear {
-/////the following functions expects a float input buffer, one could extend it to cover all bitdepths.
-
-
-void to_byte_packed(unsigned char* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                    const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes);
-
-void to_short_packed(unsigned short* to, const float* from,const OfxRectI & renderWindow, int nComponents,
-                     const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes);
-
-
-void from_byte_packed(float* to, const unsigned char* from,const OfxRectI & renderWindow, int nComponents,
-                      const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes);
-
-void from_short_packed(float* to, const unsigned short* from,const OfxRectI & renderWindow, int nComponents,
-                       const OfxRectI & srcBounds,int srcRowBytes,const OfxRectI & dstBounds,int dstRowBytes);
-}                //namespace Linear
-
-
 inline float
 from_func_srgb(float v)
 {
@@ -878,6 +858,17 @@ to_func_AlexaV3LogC(float v)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
 void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b );
 
+void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l );
+void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b );
+
+void rgb_to_xyz_rec709( float r, float g, float b, float *h, float *s, float *l );
+void xyz_rec709_to_rgb( float h, float s, float l, float *r, float *g, float *b );
+
+void xyz_rec709_to_lab( float x, float y, float z, float *l, float *a, float *b );
+void lab_to_xyz_rec709( float l, float a, float b, float *x, float *y, float *z );
+
+void rgb_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
+void lab_to_rgb( float l, float a, float b, float *r, float *g, float *b_ );
 
 // a Singleton that holds precomputed LUTs for the whole application.
 // The m_instance member is static and is thus built before the first call to Instance().

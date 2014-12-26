@@ -143,159 +143,6 @@ LutManager::~LutManager()
     }
 }
 
-///////////////////////
-/////////////////////////////////////////// LINEAR //////////////////////////////////////////////
-///////////////////////
-
-namespace Linear {
-void
-to_byte_packed(const void* pixelData,
-               const OfxRectI & bounds,
-               OFX::PixelComponentEnum pixelComponents,
-               OFX::BitDepthEnum bitDepth,
-               int rowBytes,
-               const OfxRectI & renderWindow,
-               void* dstPixelData,
-               const OfxRectI & dstBounds,
-               OFX::PixelComponentEnum dstPixelComponents,
-               OFX::BitDepthEnum dstBitDepth,
-               int dstRowBytes)
-{
-    assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
-    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
-           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
-           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
-           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-
-    int nComponents = getNComponents(pixelComponents);
-
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
-        unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
-        const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
-
-        while (src_pixels != src_end) {
-            for (int k = 0; k < nComponents; ++k) {
-                dst_pixels[k] = floatToInt<256>(src_pixels[k]);
-            }
-            dst_pixels += nComponents;
-            src_pixels += nComponents;
-        }
-    }
-}
-
-void
-to_short_packed(const void* pixelData,
-                const OfxRectI & bounds,
-                OFX::PixelComponentEnum pixelComponents,
-                OFX::BitDepthEnum bitDepth,
-                int rowBytes,
-                const OfxRectI & renderWindow,
-                void* dstPixelData,
-                const OfxRectI & dstBounds,
-                OFX::PixelComponentEnum dstPixelComponents,
-                OFX::BitDepthEnum dstBitDepth,
-                int dstRowBytes)
-{
-    assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents);
-    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
-           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
-           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
-           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-
-    int nComponents = getNComponents(pixelComponents);
-
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
-        unsigned short *dst_pixels = (unsigned short*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
-        const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
-
-        while (src_pixels != src_end) {
-            for (int k = 0; k < nComponents; ++k) {
-                dst_pixels[k] = floatToInt<65536>(src_pixels[k]);
-            }
-            dst_pixels += nComponents;
-            src_pixels += nComponents;
-        }
-    }
-}
-
-void
-from_byte_packed(const void* pixelData,
-                 const OfxRectI & bounds,
-                 OFX::PixelComponentEnum pixelComponents,
-                 OFX::BitDepthEnum bitDepth,
-                 int rowBytes,
-                 const OfxRectI & renderWindow,
-                 void* dstPixelData,
-                 const OfxRectI & dstBounds,
-                 OFX::PixelComponentEnum dstPixelComponents,
-                 OFX::BitDepthEnum dstBitDepth,
-                 int dstRowBytes)
-{
-    assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
-    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
-           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
-           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
-           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-
-    int nComponents = getNComponents(pixelComponents);
-
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const unsigned char *src_pixels = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
-        float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
-        const unsigned char *src_end = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
-
-
-        while (src_pixels != src_end) {
-            for (int k = 0; k < nComponents; ++k) {
-                dst_pixels[k] = intToFloat<256>(src_pixels[k]);
-            }
-            dst_pixels += nComponents;
-            src_pixels += nComponents;
-        }
-    }
-}
-
-void
-from_short_packed(const void* pixelData,
-                  const OfxRectI & bounds,
-                  OFX::PixelComponentEnum pixelComponents,
-                  OFX::BitDepthEnum bitDepth,
-                  int rowBytes,
-                  const OfxRectI & renderWindow,
-                  void* dstPixelData,
-                  const OfxRectI & dstBounds,
-                  OFX::PixelComponentEnum dstPixelComponents,
-                  OFX::BitDepthEnum dstBitDepth,
-                  int dstRowBytes)
-{
-    assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
-    assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
-           bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
-           dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
-           dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-
-    int nComponents = getNComponents(pixelComponents);
-
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
-        const unsigned short *src_pixels = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
-        float *dst_pixels = (float*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
-        const unsigned short *src_end = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
-
-
-        while (src_pixels != src_end) {
-            for (int k = 0; k < nComponents; ++k) {
-                dst_pixels[k] = intToFloat<65536>(src_pixels[k]);
-            }
-            dst_pixels += nComponents;
-            src_pixels += nComponents;
-        }
-    }
-}
-} // namespace Linear
-
-
 // r,g,b values are from 0 to 1
 // h = [0,360], s = [0,1], v = [0,1]
 //		if s == 0, then h = 0 (undefined)
@@ -307,13 +154,11 @@ rgb_to_hsv( float r,
             float *s,
             float *v )
 {
-    float min, max, delta;
-
-    min = std::min(std::min(r, g), b);
-    max = std::max(std::max(r, g), b);
+    float min = std::min(std::min(r, g), b);
+    float max = std::max(std::max(r, g), b);
     *v = max;                               // v
 
-    delta = max - min;
+    float delta = max - min;
 
     if (max != 0.) {
         *s = delta / max;                       // s
@@ -348,9 +193,6 @@ hsv_to_rgb(float h,
            float *g,
            float *b)
 {
-    int i;
-    float f, p, q, t;
-
     if (s == 0) {
         // achromatic (grey)
         *r = *g = *b = v;
@@ -359,12 +201,12 @@ hsv_to_rgb(float h,
     }
 
     h /= 60;            // sector 0 to 5
-    i = std::floor(h);
-    f = h - i;          // factorial part of h
+    int i = std::floor(h);
+    float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
-    p = v * ( 1 - s );
-    q = v * ( 1 - s * f );
-    t = v * ( 1 - s * ( 1 - f ) );
+    float p = v * ( 1 - s );
+    float q = v * ( 1 - s * f );
+    float t = v * ( 1 - s * ( 1 - f ) );
 
     switch (i) {
     case 0:
@@ -399,6 +241,217 @@ hsv_to_rgb(float h,
         break;
     }
 } // hsv_to_rgb
+
+void
+rgb_to_hsl( float r,
+            float g,
+            float b,
+            float *h,
+            float *s,
+            float *l )
+{
+    float min = std::min(std::min(r, g), b);
+    float max = std::max(std::max(r, g), b);
+    *l = (min + max)/2;
+
+    float delta = max - min;
+
+    if (max != 0.) {
+        *s = (*l <= 0.5) ? (delta/(max+min)) : (delta/(2-max-min)); // s = delta/(1-abs(2L-1))
+    } else {
+        // r = g = b = 0		// s = 0
+        *s = 0.;
+        *h = 0.;
+
+        return;
+    }
+
+    if (delta == 0.) {
+        *h = 0.;                 // gray
+    } else if (r == max) {
+        *h = (g - b) / delta;                       // between yellow & magenta
+    } else if (g == max) {
+        *h = 2 + (b - r) / delta;                   // between cyan & yellow
+    } else {
+        *h = 4 + (r - g) / delta;                   // between magenta & cyan
+    }
+    *h *= 60;                               // degrees
+    if (*h < 0) {
+        *h += 360;
+    }
+}
+
+void
+hsl_to_rgb(float h,
+           float s,
+           float l,
+           float *r,
+           float *g,
+           float *b)
+{
+    if (s == 0) {
+        // achromatic (grey)
+        *r = *g = *b = l;
+
+        return;
+    }
+
+    h /= 60;            // sector 0 to 5
+    int i = std::floor(h);
+    float f = h - i;          // factorial part of h
+    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+    float v = (l <= 0.5) ? (l * (1.0 + s)) : (l + s - l * s);
+    float p = l + l - v;
+    float sv = (v - p ) / v;
+    float vsf = v * sv * f;
+    float t = p + vsf;
+    float q = v - vsf;
+
+    switch (i) {
+    case 0:
+        *r = v;
+        *g = t;
+        *b = p;
+        break;
+    case 1:
+        *r = q;
+        *g = v;
+        *b = p;
+        break;
+    case 2:
+        *r = p;
+        *g = v;
+        *b = t;
+        break;
+    case 3:
+        *r = p;
+        *g = q;
+        *b = v;
+        break;
+    case 4:
+        *r = t;
+        *g = p;
+        *b = v;
+        break;
+    default:                // case 5:
+        *r = v;
+        *g = p;
+        *b = q;
+        break;
+    }
+} // hsl_to_rgb
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB to XYZ_709 color spaces.
+// Uses the standard D65 white point.
+void
+rgb_to_xyz_rec709(float r,
+                  float g,
+                  float b,
+                  float *x,
+                  float *y,
+                  float *z)
+{
+    *x = 0.412453f*r + 0.357580f*g + 0.180423f*b;
+    *y = 0.212671f*r + 0.715160f*g + 0.072169f*b;
+    *z = 0.019334f*r + 0.119193f*g + 0.950227f*b;
+}
+
+// Convert pixel values from XYZ_709 to RGB color spaces.
+// Uses the standard D65 white point.
+void
+xyz_rec709_to_rgb(float x,
+                  float y,
+                  float z,
+                  float *r,
+                  float *g,
+                  float *b)
+{
+    *r = 3.240479f*x  - 1.537150f*y - 0.498535f*z;
+    *g = -0.969256f*x + 1.875992f*y + 0.041556f*z;
+    *b = 0.055648f*x  - 0.204043f*y + 1.057311f*z;
+}
+
+static inline
+float labf(float x)
+{
+    return ((x)>=0.008856f ? (std::pow(x,(float)1/3)):(7.787f*x+16.0f/116));
+}
+
+// Convert pixel values from XYZ_709 to Lab color spaces.
+// Uses the standard D65 white point.
+void
+xyz_rec709_to_lab(float x,
+                  float y,
+                  float z,
+                  float *l,
+                  float *a,
+                  float *b)
+{
+    const float fx = labf(x/(0.412453f + 0.357580f + 0.180423f));
+    const float fy = labf(y/(0.212671f + 0.715160f + 0.072169f));
+    const float fz = labf(z/(0.019334f + 0.119193f + 0.950227f));
+    *l = 116*fy - 16;
+    *a = 500*(fx - fy);
+    *b = 200*(fy - fz);
+}
+
+static inline
+float labfi(float x)
+{
+    return (x >= 0.206893f ? (x * x * x) : ((x-16.0f/116)/7.787f));
+}
+
+// Convert pixel values from Lab to XYZ_709 color spaces.
+// Uses the standard D65 white point.
+void
+lab_to_xyz_rec709(float l,
+                  float a,
+                  float b,
+                  float *x,
+                  float *y,
+                  float *z)
+{
+    const float yd = labfi((l+16)/116);
+    const float py = std::pow(yd,(float)1/3);
+    const float cx = a/500 + py;
+    const float cz = py - b/200;
+    *x = (0.412453f + 0.357580f + 0.180423f) * cx * cx * cx;
+    *y = (0.212671f + 0.715160f + 0.072169f) * yd;
+    *z = (0.019334f + 0.119193f + 0.950227f) * cz * cz * cz;
+}
+
+// Convert pixel values from RGB to Lab color spaces.
+// Uses the standard D65 white point.
+void
+rgb_to_lab(float r,
+           float g,
+           float b,
+           float *l,
+           float *a,
+           float *b_)
+{
+    float x, y, z;
+    rgb_to_xyz_rec709(r, g, b, &x, &y, &z);
+    xyz_rec709_to_lab(x, y, z, l, a, b_);
+}
+
+// Convert pixel values from RGB to Lab color spaces.
+// Uses the standard D65 white point.
+void
+lab_to_rgb(float l,
+           float a,
+           float b,
+           float *r,
+           float *g,
+           float *b_)
+{
+    float x, y, z;
+    lab_to_xyz_rec709(l, a, b, &x, &y, &z);
+    xyz_rec709_to_rgb(x, y, z, r, g, b_);
+}
+
+
 }         // namespace Color
 } //namespace OFX
 
