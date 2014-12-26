@@ -340,13 +340,13 @@ class GeneratorOverlayDescriptor
 {
 };
 
-void
+inline void
 generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
 {
     desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
 }
 
-void
+inline void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            ContextEnum /*context*/)
