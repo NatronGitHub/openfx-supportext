@@ -412,13 +412,12 @@ lab_to_xyz_rec709(float l,
                   float *y,
                   float *z)
 {
-    const float yd = labfi((l+16)/116);
-    const float py = std::pow(yd,(float)1/3);
-    const float cx = a/500 + py;
-    const float cz = py - b/200;
-    *x = (0.412453f + 0.357580f + 0.180423f) * cx * cx * cx;
-    *y = (0.212671f + 0.715160f + 0.072169f) * yd;
-    *z = (0.019334f + 0.119193f + 0.950227f) * cz * cz * cz;
+    const float cy = (l+16)/116;
+    *y = (0.212671f + 0.715160f + 0.072169f) * labfi(cy);
+    const float cx = a/500 + cy;
+    *x = (0.412453f + 0.357580f + 0.180423f) * labfi(cx);
+    const float cz = cy - b/200;
+    *z = (0.019334f + 0.119193f + 0.950227f) * labfi(cz);
 }
 
 // Convert pixel values from RGB to Lab color spaces.
