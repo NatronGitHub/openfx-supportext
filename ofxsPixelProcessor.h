@@ -75,11 +75,19 @@ getImageData(const OFX::Image* img,
              OFX::BitDepthEnum* bitDepth,
              int* rowBytes)
 {
-    *pixelData = img->getPixelData();
-    *bounds = img->getBounds();
-    *pixelComponents = img->getPixelComponents();
-    *bitDepth = img->getPixelDepth();
-    *rowBytes = img->getRowBytes();
+    if (img) {
+        *pixelData = img->getPixelData();
+        *bounds = img->getBounds();
+        *pixelComponents = img->getPixelComponents();
+        *bitDepth = img->getPixelDepth();
+        *rowBytes = img->getRowBytes();
+    } else {
+        *pixelData = 0;
+        bounds->x1 = bounds->x2 = bounds->y1 = bounds->y2 = 0.;
+        *pixelComponents = ePixelComponentNone;
+        *bitDepth = eBitDepthNone;
+        *rowBytes = 0;
+    }
 }
 
 inline
