@@ -16,7 +16,7 @@
 namespace OFX {
 // Base class for the RGBA and the Alpha processor
 
-template <class PIX, int nComponents, int maxValue>
+template <class PIX, int nComponents>
 class PixelCopier
     : public OFX::PixelProcessorFilterBase
 {
@@ -454,30 +454,33 @@ public:
 
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
             assert(dstPix);
-            std::fill(dstPix, dstPix + rowSize,0);
+            std::fill(dstPix, dstPix + rowSize, PIX());
         }
     }
 };
 
+// pixel copiers, non-threaded versions
 template<class PIX,int nComponents>
 void
-copyPixels(const OfxRectI & renderWindow,
-           const PIX *srcPixelData,
-           const OfxRectI & srcBounds,
-           OFX::PixelComponentEnum srcPixelComponents,
-           OFX::BitDepthEnum srcBitDepth,
-           int srcRowBytes,
-           PIX *dstPixelData,
-           const OfxRectI & dstBounds,
-           OFX::PixelComponentEnum dstPixelComponents,
-           OFX::BitDepthEnum dstBitDepth,
-           int dstRowBytes)
+copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
+                                  const OfxRectI & renderWindow,
+                                  const PIX *srcPixelData,
+                                  const OfxRectI & srcBounds,
+                                  OFX::PixelComponentEnum srcPixelComponents,
+                                  OFX::BitDepthEnum srcBitDepth,
+                                  int srcRowBytes,
+                                  PIX *dstPixelData,
+                                  const OfxRectI & dstBounds,
+                                  OFX::PixelComponentEnum dstPixelComponents,
+                                  OFX::BitDepthEnum dstBitDepth,
+                                  int dstRowBytes)
 {
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
     (void)srcPixelComponents;
     (void)srcBitDepth;
     (void)dstPixelComponents;
     (void)dstBitDepth;
+    (void)instance;
 
     int srcRowElements = srcRowBytes / sizeof(PIX);
     assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
@@ -491,6 +494,348 @@ copyPixels(const OfxRectI & renderWindow,
         std::memcpy(dstPixels, srcPixels, rowBytes);
     }
 }
+
+template<class PIX>
+void
+copyPixelsNTForDepth(OFX::ImageEffect &instance,
+                     const OfxRectI & renderWindow,
+                     const void *srcPixelData,
+                     const OfxRectI & srcBounds,
+                     OFX::PixelComponentEnum srcPixelComponents,
+                     OFX::BitDepthEnum srcBitDepth,
+                     int srcRowBytes,
+                     void *dstPixelData,
+                     const OfxRectI & dstBounds,
+                     OFX::PixelComponentEnum dstPixelComponents,
+                     OFX::BitDepthEnum dstBitDepth,
+                     int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    // do the rendering
+    if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+        copyPixelsNTForDepthAndComponents<PIX,4>(instance, renderWindow,
+                                                 (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                                 (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+        copyPixelsNTForDepthAndComponents<PIX,3>(instance, renderWindow,
+                                                 (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                                 (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+        copyPixelsNTForDepthAndComponents<PIX,1>(instance, renderWindow,
+                                                 (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                                 (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+inline void
+copyPixelsNT(OFX::ImageEffect &instance,
+             const OfxRectI & renderWindow,
+             const void *srcPixelData,
+             const OfxRectI & srcBounds,
+             OFX::PixelComponentEnum srcPixelComponents,
+             OFX::BitDepthEnum srcBitDepth,
+             int srcRowBytes,
+             void *dstPixelData,
+             const OfxRectI & dstBounds,
+             OFX::PixelComponentEnum dstPixelComponents,
+             OFX::BitDepthEnum dstBitDepth,
+             int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+
+    // do the rendering
+    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstBitDepth == OFX::eBitDepthUByte) {
+        copyPixelsNTForDepth<unsigned char>(instance, renderWindow,
+                                            srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                            dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
+        copyPixelsNTForDepth<unsigned short>(instance, renderWindow,
+                                             srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                             dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthFloat) {
+        copyPixelsNTForDepth<float>(instance, renderWindow,
+                                    srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                    dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+// pixel copiers, threaded versions
+template<class PIX,int nComponents>
+void
+copyPixelsForDepthAndComponents(OFX::ImageEffect &instance,
+                                const OfxRectI & renderWindow,
+                                const PIX *srcPixelData,
+                                const OfxRectI & srcBounds,
+                                OFX::PixelComponentEnum srcPixelComponents,
+                                OFX::BitDepthEnum srcBitDepth,
+                                int srcRowBytes,
+                                PIX *dstPixelData,
+                                const OfxRectI & dstBounds,
+                                OFX::PixelComponentEnum dstPixelComponents,
+                                OFX::BitDepthEnum dstBitDepth,
+                                int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
+    assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    (void)srcPixelComponents;
+    (void)srcBitDepth;
+    (void)dstPixelComponents;
+    (void)dstBitDepth;
+
+    OFX::PixelCopier<PIX, nComponents> processor(instance);
+    // set the images
+    processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    processor.setSrcImg(srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes, 0);
+
+    // set the render window
+    processor.setRenderWindow(renderWindow);
+
+    // Call the base class process member, this will call the derived templated process code
+    processor.process();
+}
+
+template<class PIX>
+void
+copyPixelsForDepth(OFX::ImageEffect &instance,
+                   const OfxRectI & renderWindow,
+                   const void *srcPixelData,
+                   const OfxRectI & srcBounds,
+                   OFX::PixelComponentEnum srcPixelComponents,
+                   OFX::BitDepthEnum srcBitDepth,
+                   int srcRowBytes,
+                   void *dstPixelData,
+                   const OfxRectI & dstBounds,
+                   OFX::PixelComponentEnum dstPixelComponents,
+                   OFX::BitDepthEnum dstBitDepth,
+                   int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    // do the rendering
+    if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+        copyPixelsForDepthAndComponents<PIX,4>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+        copyPixelsForDepthAndComponents<PIX,3>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+        copyPixelsForDepthAndComponents<PIX,1>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const void *srcPixelData,
+           const OfxRectI & srcBounds,
+           OFX::PixelComponentEnum srcPixelComponents,
+           OFX::BitDepthEnum srcBitDepth,
+           int srcRowBytes,
+           void *dstPixelData,
+           const OfxRectI & dstBounds,
+           OFX::PixelComponentEnum dstPixelComponents,
+           OFX::BitDepthEnum dstBitDepth,
+           int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    // do the rendering
+    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstBitDepth == OFX::eBitDepthUByte) {
+        copyPixelsForDepth<unsigned char>(instance, renderWindow,
+                                          srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
+        copyPixelsForDepth<unsigned short>(instance, renderWindow,
+                                           srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                           dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthFloat) {
+        copyPixelsForDepth<float>(instance, renderWindow,
+                                  srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes,
+                                  dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+// black fillers, non-threaded versions
+template<class PIX,int nComponents>
+void
+fillBlackNTForDepthAndComponents(OFX::ImageEffect &instance,
+                                 const OfxRectI & renderWindow,
+                                 PIX *dstPixelData,
+                                 const OfxRectI & dstBounds,
+                                 OFX::PixelComponentEnum dstPixelComponents,
+                                 OFX::BitDepthEnum dstBitDepth,
+                                 int dstRowBytes)
+{
+    (void)dstPixelComponents;
+    (void)dstBitDepth;
+    (void)instance;
+
+    int dstRowElements = dstRowBytes / sizeof(PIX);
+    PIX* dstPixels = dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * nComponents;
+    int rowBytes = sizeof(PIX) * nComponents * (renderWindow.x2 - renderWindow.x1);
+
+    for (int y = renderWindow.y1; y < renderWindow.y2; ++y, dstPixels += dstRowElements) {
+        std::fill(dstPixels, dstPixels + rowBytes, PIX()); // no src pixel here, be black and transparent
+    }
+}
+
+template<class PIX>
+void
+fillBlackNTForDepth(OFX::ImageEffect &instance,
+                    const OfxRectI & renderWindow,
+                    void *dstPixelData,
+                    const OfxRectI & dstBounds,
+                    OFX::PixelComponentEnum dstPixelComponents,
+                    OFX::BitDepthEnum dstBitDepth,
+                    int dstRowBytes)
+{
+    assert(dstPixelData);
+    // do the rendering
+    if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+        fillBlackNTForDepthAndComponents<PIX,4>(instance, renderWindow,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+        fillBlackNTForDepthAndComponents<PIX,3>(instance, renderWindow,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+        fillBlackNTForDepthAndComponents<PIX,1>(instance, renderWindow,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+inline void
+fillBlackNT(OFX::ImageEffect &instance,
+             const OfxRectI & renderWindow,
+             const void *srcPixelData,
+             const OfxRectI & srcBounds,
+             OFX::PixelComponentEnum srcPixelComponents,
+             OFX::BitDepthEnum srcBitDepth,
+             int srcRowBytes,
+             void *dstPixelData,
+             const OfxRectI & dstBounds,
+             OFX::PixelComponentEnum dstPixelComponents,
+             OFX::BitDepthEnum dstBitDepth,
+             int dstRowBytes)
+{
+    assert(dstPixelData);
+
+    // do the rendering
+    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstBitDepth == OFX::eBitDepthUByte) {
+        fillBlackNTForDepth<unsigned char>(instance, renderWindow,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
+        fillBlackNTForDepth<unsigned short>(instance, renderWindow,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthFloat) {
+        fillBlackNTForDepth<float>(instance, renderWindow,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+// black fillers, threaded versions
+template<class PIX,int nComponents>
+void
+fillBlackForDepthAndComponents(OFX::ImageEffect &instance,
+                               const OfxRectI & renderWindow,
+                               PIX *dstPixelData,
+                               const OfxRectI & dstBounds,
+                               OFX::PixelComponentEnum dstPixelComponents,
+                               OFX::BitDepthEnum dstBitDepth,
+                               int dstRowBytes)
+{
+    (void)dstPixelComponents;
+    (void)dstBitDepth;
+
+    OFX::BlackFiller<PIX, nComponents> processor(instance);
+    // set the images
+    processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+
+    // set the render window
+    processor.setRenderWindow(renderWindow);
+
+    // Call the base class process member, this will call the derived templated process code
+    processor.process();
+}
+
+template<class PIX>
+void
+fillBlackForDepth(OFX::ImageEffect &instance,
+                  const OfxRectI & renderWindow,
+                  void *dstPixelData,
+                  const OfxRectI & dstBounds,
+                  OFX::PixelComponentEnum dstPixelComponents,
+                  OFX::BitDepthEnum dstBitDepth,
+                  int dstRowBytes)
+{
+    assert(dstPixelData);
+    // do the rendering
+    if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+        fillBlackForDepthAndComponents<PIX,4>(instance, renderWindow,
+                                              (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+        fillBlackForDepthAndComponents<PIX,3>(instance, renderWindow,
+                                              (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+        fillBlackForDepthAndComponents<PIX,1>(instance, renderWindow,
+                                              (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+inline void
+fillBlack(OFX::ImageEffect &instance,
+          const OfxRectI & renderWindow,
+          void *dstPixelData,
+          const OfxRectI & dstBounds,
+          OFX::PixelComponentEnum dstPixelComponents,
+          OFX::BitDepthEnum dstBitDepth,
+          int dstRowBytes)
+{
+    assert(dstPixelData);
+    // do the rendering
+    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    }
+    if (dstBitDepth == OFX::eBitDepthUByte) {
+        fillBlackForDepth<unsigned char>(instance, renderWindow,
+                                         dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
+        fillBlackForDepth<unsigned short>(instance, renderWindow,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthFloat) {
+        fillBlackForDepth<float>(instance, renderWindow,
+                                 dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
 } // OFX
 
 #endif // ifndef IO_ofxsCopier_h
