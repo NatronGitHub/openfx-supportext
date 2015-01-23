@@ -80,11 +80,16 @@ drawPoint(bool draw,
           double y,
           RectangleInteract::DrawStateEnum id,
           RectangleInteract::DrawStateEnum ds,
+          bool keepAR,
           int l)
 {
     if (draw) {
         if (ds == id) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            if (keepAR) {
+                glColor3f(1. * l, 0. * l, 0. * l);
+            } else {
+                glColor3f(0. * l, 1. * l, 0. * l);
+            }
         } else {
             glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
         }
@@ -101,7 +106,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     pscale.y = args.pixelScale.y / args.renderScale.y;
 
     double x1, y1, w, h;
-    if (_ms != eMouseStateIdle) {
+    if (_mouseState != eMouseStateIdle) {
         x1 = _btmLeftDragPos.x;
         y1 = _btmLeftDragPos.y;
         w = _sizeDrag.x;
@@ -114,6 +119,9 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     double y2 = y1 + h;
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
+
+    const bool keepAR = _modifierStateShift > 0;
+    const bool centered = _modifierStateCtrl > 0;
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glMatrixMode(GL_PROJECTION);
@@ -145,21 +153,21 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
-        drawPoint(allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _ds, l);
-        drawPoint(allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _ds, l);
-        drawPoint(allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _ds, l);
-        drawPoint(allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _ds, l);
-        drawPoint(allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _ds, l);
-        drawPoint(allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _ds, l);
-        drawPoint(allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _ds, l);
-        drawPoint(allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _ds, l);
-        drawPoint(allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _ds, l);
+        drawPoint(allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _drawState, keepAR, l);
+        drawPoint(allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _drawState, false,  l);
+        drawPoint(allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _drawState, keepAR, l);
+        drawPoint(allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _drawState, false,  l);
+        drawPoint(allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _drawState, false,  l);
+        drawPoint(allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _drawState, false,  l);
+        drawPoint(allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _drawState, keepAR, l);
+        drawPoint(allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _drawState, false,  l);
+        drawPoint(allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _drawState, keepAR, l);
         glEnd();
         glPointSize(1);
 
         ///draw center cross hair
         glBegin(GL_LINES);
-        if (_ds == eDrawStateHoveringCenter) {
+        if (_drawState == eDrawStateHoveringCenter || (centered && _drawState != eDrawStateInactive)) {
             glColor3f(0. * l, 1. * l, 0. * l);
         } else if ( !allowCenterInteraction() ) {
             glColor3f(0.5 * l, 0.5 * l, 0.5 * l);
@@ -190,7 +198,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
     pscale.y = args.pixelScale.y / args.renderScale.y;
 
     double x1, y1, w, h;
-    if (_ms != eMouseStateIdle) {
+    if (_mouseState != eMouseStateIdle) {
         x1 = _btmLeftDragPos.x;
         y1 = _btmLeftDragPos.y;
         w = _sizeDrag.x;
@@ -208,43 +216,63 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
 
-    bool lastStateWasHovered = _ds != eDrawStateInactive;
+    bool lastStateWasHovered = _drawState != eDrawStateInactive;
 
 
     aboutToCheckInteractivity(args.time);
     // test center first
     if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
-        _ds = eDrawStateHoveringCenter;
+        _drawState = eDrawStateHoveringCenter;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
-        _ds = eDrawStateHoveringBtmLeft;
+        _drawState = eDrawStateHoveringBtmLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
-        _ds = eDrawStateHoveringBtmRight;
+        _drawState = eDrawStateHoveringBtmRight;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
-        _ds = eDrawStateHoveringTopLeft;
+        _drawState = eDrawStateHoveringTopLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
-        _ds = eDrawStateHoveringTopRight;
+        _drawState = eDrawStateHoveringTopRight;
         didSomething = true;
     } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
-        _ds = eDrawStateHoveringBtmMid;
+        _drawState = eDrawStateHoveringBtmMid;
         didSomething = true;
     } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
-        _ds = eDrawStateHoveringTopMid;
+        _drawState = eDrawStateHoveringTopMid;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
-        _ds = eDrawStateHoveringMidLeft;
+        _drawState = eDrawStateHoveringMidLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
-        _ds = eDrawStateHoveringMidRight;
+        _drawState = eDrawStateHoveringMidRight;
         didSomething = true;
     } else {
-        _ds = eDrawStateInactive;
+        _drawState = eDrawStateInactive;
     }
 
-    if (_ms == eMouseStateDraggingBtmLeft) {
+    const bool keepAR = _modifierStateShift > 0;
+    const bool centered = _modifierStateCtrl > 0;
+    if (keepAR && (_sizeDrag.x > 0.) && (_sizeDrag.y > 0.) &&
+        (_mouseState == eMouseStateDraggingTopLeft  ||
+         _mouseState == eMouseStateDraggingTopRight ||
+         _mouseState == eMouseStateDraggingBtmLeft  ||
+         _mouseState == eMouseStateDraggingBtmRight)) {
+        double r2 = _sizeDrag.x*_sizeDrag.x + _sizeDrag.y*_sizeDrag.y;
+        if (_mouseState == eMouseStateDraggingTopRight ||
+            _mouseState == eMouseStateDraggingBtmLeft) {
+            double dotprod = (delta.x * _sizeDrag.y + delta.y * _sizeDrag.x)/r2;
+            delta.x = _sizeDrag.x * dotprod;
+            delta.y = _sizeDrag.y * dotprod;
+        } else  {
+            double dotprod = (delta.x * _sizeDrag.y - delta.y * _sizeDrag.x)/r2;
+            delta.x = _sizeDrag.x * dotprod;
+            delta.y = -_sizeDrag.y * dotprod;
+        }
+    }
+    if (_mouseState == eMouseStateDraggingBtmLeft) {
+        _drawState = eDrawStateHoveringBtmLeft;
         OfxPointD topRight;
         topRight.x = _btmLeftDragPos.x + _sizeDrag.x;
         topRight.y = _btmLeftDragPos.y + _sizeDrag.y;
@@ -252,44 +280,86 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
         _btmLeftDragPos.y += delta.y;
         _sizeDrag.x = topRight.x - _btmLeftDragPos.x;
         _sizeDrag.y = topRight.y - _btmLeftDragPos.y;
+        if (centered) {
+            _sizeDrag.x -= delta.x;
+            _sizeDrag.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingTopLeft) {
+    } else if (_mouseState == eMouseStateDraggingTopLeft) {
+        _drawState = eDrawStateHoveringTopLeft;
         OfxPointD btmRight;
         btmRight.x = _btmLeftDragPos.x + _sizeDrag.x;
         btmRight.y = _btmLeftDragPos.y;
         _btmLeftDragPos.x += delta.x;
         _sizeDrag.y += delta.y;
         _sizeDrag.x = btmRight.x - _btmLeftDragPos.x;
+        if (centered) {
+            _sizeDrag.x -= delta.x;
+            _sizeDrag.y += delta.y;
+            _btmLeftDragPos.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingTopRight) {
+    } else if (_mouseState == eMouseStateDraggingTopRight) {
+        _drawState = eDrawStateHoveringTopRight;
         _sizeDrag.x += delta.x;
         _sizeDrag.y += delta.y;
+        if (centered) {
+            _sizeDrag.x += delta.x;
+            _btmLeftDragPos.x -= delta.x;
+            _sizeDrag.y += delta.y;
+            _btmLeftDragPos.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingBtmRight) {
+    } else if (_mouseState == eMouseStateDraggingBtmRight) {
+        _drawState = eDrawStateHoveringBtmRight;
         OfxPointD topLeft;
         topLeft.x = _btmLeftDragPos.x;
         topLeft.y = _btmLeftDragPos.y + _sizeDrag.y;
         _sizeDrag.x += delta.x;
         _btmLeftDragPos.y += delta.y;
         _sizeDrag.y = topLeft.y - _btmLeftDragPos.y;
+        if (centered) {
+            _sizeDrag.x += delta.x;
+            _btmLeftDragPos.x -= delta.x;
+            _sizeDrag.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingTopMid) {
+    } else if (_mouseState == eMouseStateDraggingTopMid) {
+        _drawState = eDrawStateHoveringTopMid;
         _sizeDrag.y += delta.y;
+        if (centered) {
+            _sizeDrag.y += delta.y;
+            _btmLeftDragPos.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingMidRight) {
+    } else if (_mouseState == eMouseStateDraggingMidRight) {
+        _drawState = eDrawStateHoveringMidRight;
         _sizeDrag.x += delta.x;
+        if (centered) {
+            _sizeDrag.x += delta.x;
+            _btmLeftDragPos.x -= delta.x;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingBtmMid) {
+    } else if (_mouseState == eMouseStateDraggingBtmMid) {
+        _drawState = eDrawStateHoveringBtmMid;
         double top = _btmLeftDragPos.y + _sizeDrag.y;
         _btmLeftDragPos.y += delta.y;
         _sizeDrag.y = top - _btmLeftDragPos.y;
+        if (centered) {
+            _sizeDrag.y -= delta.y;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingMidLeft) {
+    } else if (_mouseState == eMouseStateDraggingMidLeft) {
+        _drawState = eDrawStateHoveringMidLeft;
         double right = _btmLeftDragPos.x + _sizeDrag.x;
         _btmLeftDragPos.x += delta.x;
         _sizeDrag.x = right - _btmLeftDragPos.x;
+        if (centered) {
+            _sizeDrag.x -= delta.x;
+        }
         didSomething = true;
-    } else if (_ms == eMouseStateDraggingCenter) {
+    } else if (_mouseState == eMouseStateDraggingCenter) {
+        _drawState = eDrawStateHoveringCenter;
         _btmLeftDragPos.x += delta.x;
         _btmLeftDragPos.y += delta.y;
         didSomething = true;
@@ -298,36 +368,36 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 
     //if size is negative shift bottom left
     if (_sizeDrag.x < 0) {
-        if (_ms == eMouseStateDraggingBtmLeft) {
-            _ms = eMouseStateDraggingBtmRight;
-        } else if (_ms == eMouseStateDraggingMidLeft) {
-            _ms = eMouseStateDraggingMidRight;
-        } else if (_ms == eMouseStateDraggingTopLeft) {
-            _ms = eMouseStateDraggingTopRight;
-        } else if (_ms == eMouseStateDraggingBtmRight) {
-            _ms = eMouseStateDraggingBtmLeft;
-        } else if (_ms == eMouseStateDraggingMidRight) {
-            _ms = eMouseStateDraggingMidLeft;
-        } else if (_ms == eMouseStateDraggingTopRight) {
-            _ms = eMouseStateDraggingTopLeft;
+        if (_mouseState == eMouseStateDraggingBtmLeft) {
+            _mouseState = eMouseStateDraggingBtmRight;
+        } else if (_mouseState == eMouseStateDraggingMidLeft) {
+            _mouseState = eMouseStateDraggingMidRight;
+        } else if (_mouseState == eMouseStateDraggingTopLeft) {
+            _mouseState = eMouseStateDraggingTopRight;
+        } else if (_mouseState == eMouseStateDraggingBtmRight) {
+            _mouseState = eMouseStateDraggingBtmLeft;
+        } else if (_mouseState == eMouseStateDraggingMidRight) {
+            _mouseState = eMouseStateDraggingMidLeft;
+        } else if (_mouseState == eMouseStateDraggingTopRight) {
+            _mouseState = eMouseStateDraggingTopLeft;
         }
 
         _btmLeftDragPos.x += _sizeDrag.x;
         _sizeDrag.x = -_sizeDrag.x;
     }
     if (_sizeDrag.y < 0) {
-        if (_ms == eMouseStateDraggingTopLeft) {
-            _ms = eMouseStateDraggingBtmLeft;
-        } else if (_ms == eMouseStateDraggingTopMid) {
-            _ms = eMouseStateDraggingBtmMid;
-        } else if (_ms == eMouseStateDraggingTopRight) {
-            _ms = eMouseStateDraggingBtmRight;
-        } else if (_ms == eMouseStateDraggingBtmLeft) {
-            _ms = eMouseStateDraggingTopLeft;
-        } else if (_ms == eMouseStateDraggingBtmMid) {
-            _ms = eMouseStateDraggingTopMid;
-        } else if (_ms == eMouseStateDraggingBtmRight) {
-            _ms = eMouseStateDraggingTopRight;
+        if (_mouseState == eMouseStateDraggingTopLeft) {
+            _mouseState = eMouseStateDraggingBtmLeft;
+        } else if (_mouseState == eMouseStateDraggingTopMid) {
+            _mouseState = eMouseStateDraggingBtmMid;
+        } else if (_mouseState == eMouseStateDraggingTopRight) {
+            _mouseState = eMouseStateDraggingBtmRight;
+        } else if (_mouseState == eMouseStateDraggingBtmLeft) {
+            _mouseState = eMouseStateDraggingTopLeft;
+        } else if (_mouseState == eMouseStateDraggingBtmMid) {
+            _mouseState = eMouseStateDraggingTopMid;
+        } else if (_mouseState == eMouseStateDraggingBtmRight) {
+            _mouseState = eMouseStateDraggingTopRight;
         }
 
         _btmLeftDragPos.y += _sizeDrag.y;
@@ -361,7 +431,7 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
     pscale.y = args.pixelScale.y / args.renderScale.y;
 
     double x1, y1, w, h;
-    if (_ms != eMouseStateIdle) {
+    if (_mouseState != eMouseStateIdle) {
         x1 = _btmLeftDragPos.x;
         y1 = _btmLeftDragPos.y;
         w = _sizeDrag.x;
@@ -380,34 +450,34 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
 
     // test center first
     if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
-        _ms = eMouseStateDraggingCenter;
+        _mouseState = eMouseStateDraggingCenter;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
-        _ms = eMouseStateDraggingBtmLeft;
+        _mouseState = eMouseStateDraggingBtmLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
-        _ms = eMouseStateDraggingBtmRight;
+        _mouseState = eMouseStateDraggingBtmRight;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
-        _ms = eMouseStateDraggingTopLeft;
+        _mouseState = eMouseStateDraggingTopLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
-        _ms = eMouseStateDraggingTopRight;
+        _mouseState = eMouseStateDraggingTopRight;
         didSomething = true;
     } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
-        _ms = eMouseStateDraggingBtmMid;
+        _mouseState = eMouseStateDraggingBtmMid;
         didSomething = true;
     } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
-        _ms = eMouseStateDraggingTopMid;
+        _mouseState = eMouseStateDraggingTopMid;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
-        _ms = eMouseStateDraggingMidLeft;
+        _mouseState = eMouseStateDraggingMidLeft;
         didSomething = true;
     } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
-        _ms = eMouseStateDraggingMidRight;
+        _mouseState = eMouseStateDraggingMidRight;
         didSomething = true;
     } else {
-        _ms = eMouseStateIdle;
+        _mouseState = eMouseStateIdle;
     }
 
     _btmLeftDragPos.x = x1;
@@ -424,7 +494,7 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 {
     bool didSmthing = false;
 
-    if (_ms != eMouseStateIdle) {
+    if (_mouseState != eMouseStateIdle) {
         // round newx/y to the closest int, 1/10 int, etc
         // this make parameter editing easier
         OfxPointD pscale;
@@ -433,7 +503,7 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
         OfxPointD btmLeft = _btmLeftDragPos;
         OfxPointD size = _sizeDrag;
 
-        switch (_ms) {
+        switch (_mouseState) {
         case eMouseStateIdle:
             break;
         case eMouseStateDraggingTopLeft:
@@ -477,10 +547,72 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
         _size->setValue(size.x, size.y);
         didSmthing = true;
     }
-    _ms = eMouseStateIdle;
+    _mouseState = eMouseStateIdle;
 
     return didSmthing;
 } // penUp
+
+// keyDown just updates the modifier state
+bool
+RectangleInteract::keyDown(const OFX::KeyArgs &args)
+{
+    // Note that on the Mac:
+    // cmd/apple/cloverleaf is kOfxKey_Control_L
+    // ctrl is kOfxKey_Meta_L
+    // alt/option is kOfxKey_Alt_L
+    bool mustRedraw = false;
+
+    // the two control keys may be pressed consecutively, be aware about this
+    if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
+        mustRedraw = _modifierStateCtrl == 0;
+        ++_modifierStateCtrl;
+    }
+    if (args.keySymbol == kOfxKey_Shift_L || args.keySymbol == kOfxKey_Shift_R) {
+        mustRedraw = _modifierStateShift == 0;
+        ++_modifierStateShift;
+    }
+    if (mustRedraw) {
+        _effect->redrawOverlays();
+    }
+    //std::cout << std::hex << args.keySymbol << std::endl;
+    // modifiers are not "caught"
+    return false;
+}
+
+// keyUp just updates the modifier state
+bool
+RectangleInteract::keyUp(const OFX::KeyArgs &args)
+{
+    bool mustRedraw = false;
+
+    if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
+        // we may have missed a keypress
+        if (_modifierStateCtrl > 0) {
+            --_modifierStateCtrl;
+            mustRedraw = _modifierStateCtrl == 0;
+        }
+    }
+    if (args.keySymbol == kOfxKey_Shift_L || args.keySymbol == kOfxKey_Shift_R) {
+        if (_modifierStateShift > 0) {
+            --_modifierStateShift;
+            mustRedraw = _modifierStateShift == 0;
+        }
+    }
+    if (mustRedraw) {
+        _effect->redrawOverlays();
+    }
+    // modifiers are not "caught"
+    return false;
+}
+
+/** @brief Called when the interact is loses input focus */
+void
+RectangleInteract::loseFocus(const FocusArgs &/*args*/)
+{
+    // reset the modifiers state
+    _modifierStateCtrl = 0;
+    _modifierStateShift = 0;
+}
 
 OfxPointD
 RectangleInteract::getBtmLeft(OfxTime time) const

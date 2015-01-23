@@ -39,6 +39,7 @@
 
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
+#include "ofxsMacros.h"
 
 #define kParamRectangleInteractBtmLeft "bottomLeft"
 #define kParamRectangleInteractBtmLeftLabel "Bottom Left"
@@ -94,8 +95,10 @@ public:
                       OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
           , _lastMousePos()
-          , _ms(eMouseStateIdle)
-          , _ds(eDrawStateInactive)
+          , _mouseState(eMouseStateIdle)
+          , _drawState(eDrawStateInactive)
+          , _modifierStateCtrl(0)
+          , _modifierStateShift(0)
           , _btmLeft(0)
           , _size(0)
     {
@@ -109,19 +112,13 @@ public:
     }
 
     // overridden functions from OFX::Interact to do things
-    virtual bool draw(const OFX::DrawArgs &args);
-    virtual bool penMotion(const OFX::PenArgs &args);
-    virtual bool penDown(const OFX::PenArgs &args);
-    virtual bool penUp(const OFX::PenArgs &args);
-    virtual bool keyDown(const OFX::KeyArgs & /*args*/)
-    {
-        return false;
-    }
-
-    virtual bool keyUp(const OFX::KeyArgs & /*args*/)
-    {
-        return false;
-    }
+    virtual bool draw(const OFX::DrawArgs &args) OVERRIDE;
+    virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool penDown(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool penUp(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE;
+    virtual bool keyUp(const OFX::KeyArgs & args) OVERRIDE;
+    virtual void loseFocus(const FocusArgs &args) OVERRIDE FINAL;
 
 protected:
 
@@ -193,8 +190,10 @@ protected:
 private:
 
     OfxPointD _lastMousePos;
-    MouseStateEnum _ms;
-    DrawStateEnum _ds;
+    MouseStateEnum _mouseState;
+    DrawStateEnum _drawState;
+    int _modifierStateCtrl;
+    int _modifierStateShift;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OfxPointD _btmLeftDragPos;

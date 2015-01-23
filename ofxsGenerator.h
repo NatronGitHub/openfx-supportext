@@ -235,6 +235,8 @@ public:
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penDown(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
+    virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE FINAL;
+    virtual bool keyUp(const OFX::KeyArgs & args) OVERRIDE FINAL;
 
 private:
 
@@ -319,7 +321,8 @@ GeneratorInteract::penDown(const OFX::PenArgs &args)
     }
 
     return RectangleInteract::penDown(args);
-};
+}
+
 bool
 GeneratorInteract::penUp(const OFX::PenArgs &args)
 {
@@ -332,6 +335,35 @@ GeneratorInteract::penUp(const OFX::PenArgs &args)
     }
 
     return RectangleInteract::penUp(args);
+}
+
+
+bool
+GeneratorInteract::keyDown(const OFX::KeyArgs &args)
+{
+    int type_i;
+    _type->getValue(type_i);
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type != eGeneratorTypeSize) {
+        return false;
+    }
+    
+    return RectangleInteract::keyDown(args);
+}
+
+bool
+GeneratorInteract::keyUp(const OFX::KeyArgs & args)
+{
+    int type_i;
+    _type->getValue(type_i);
+    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+
+    if (type != eGeneratorTypeSize) {
+        return false;
+    }
+
+    return RectangleInteract::keyUp(args);
 }
 
 namespace OFX {
