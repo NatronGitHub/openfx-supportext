@@ -607,7 +607,7 @@ RectangleInteract::keyUp(const OFX::KeyArgs &args)
 
 /** @brief Called when the interact is loses input focus */
 void
-RectangleInteract::loseFocus(const FocusArgs &/*args*/)
+RectangleInteract::loseFocus(const OFX::FocusArgs &/*args*/)
 {
     // reset the modifiers state
     _modifierStateCtrl = 0;
