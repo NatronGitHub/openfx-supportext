@@ -513,11 +513,6 @@ fillBlackNTForDepth(OFX::ImageEffect &instance,
 inline void
 fillBlackNT(OFX::ImageEffect &instance,
              const OfxRectI & renderWindow,
-             const void *srcPixelData,
-             const OfxRectI & srcBounds,
-             OFX::PixelComponentEnum srcPixelComponents,
-             OFX::BitDepthEnum srcBitDepth,
-             int srcRowBytes,
              void *dstPixelData,
              const OfxRectI & dstBounds,
              OFX::PixelComponentEnum dstPixelComponents,
@@ -540,6 +535,20 @@ fillBlackNT(OFX::ImageEffect &instance,
         fillBlackNTForDepth<float>(instance, renderWindow,
                                           dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
     } // switch
+}
+
+inline void
+fillBlackNT(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    return fillBlackNT(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
 }
 
 // black fillers, threaded versions
@@ -618,6 +627,20 @@ fillBlack(OFX::ImageEffect &instance,
         fillBlackForDepth<float>(instance, renderWindow,
                                  dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
     } // switch
+}
+
+inline void
+fillBlack(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    return fillBlack(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
 }
 
 // pixel copiers, non-threaded versions
@@ -841,6 +864,58 @@ copyPixels(OFX::ImageEffect &instance,
     } // switch
 }
 
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const OFX::Image* srcImg,
+           void *dstPixelData,
+           const OfxRectI & dstBounds,
+           OFX::PixelComponentEnum dstPixelComponents,
+           OFX::BitDepthEnum dstBitDepth,
+           int dstRowBytes)
+{
+    const void* srcPixelData;
+    OfxRectI srcBounds;
+    OFX::PixelComponentEnum srcPixelComponents;
+    OFX::BitDepthEnum srcBitDepth;
+    int srcRowBytes;
+    getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
+    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+}
+
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const OFX::Image* srcImg,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    return copyPixels(instance, renderWindow, srcImg, dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+}
+
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const void *srcPixelData,
+           const OfxRectI & srcBounds,
+           OFX::PixelComponentEnum srcPixelComponents,
+           OFX::BitDepthEnum srcBitDepth,
+           int srcRowBytes,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+}
 
 } // OFX
 
