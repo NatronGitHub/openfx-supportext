@@ -448,7 +448,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(0., 0.);
         param->setIncrement(1.);
-        param->setHint("Coordinates of the bottom left corner of the size rectangle");
+        param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
         page->addChild(*param);
     }
@@ -461,8 +461,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(1., 1.);
         param->setIncrement(1.);
-        param->setDimensionLabels("width", "height");
-        param->setHint("Width and height of the size rectangle");
+        param->setDimensionLabels(kParamRectangleInteractSizeDim1, kParamRectangleInteractSizeDim1);
+        param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
         page->addChild(*param);
