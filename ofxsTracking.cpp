@@ -1130,7 +1130,7 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
     } else {
         _offset->getValue(offset.x, offset.y);
     }
-    
+    _effect->beginEditBlock("setTrackerRegion");
     {
         OfxPointD btmLeft;
         btmLeft.x = _innerBtmLeftDragPos.x - center.x - offset.x;
@@ -1161,7 +1161,8 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
     } else if (_ms == eMouseStateDraggingOffset) {
         _offset->setValueAtTime(args.time, _offsetDragPos.x, _offsetDragPos.y);
     }
-    
+    _effect->endEditBlock();
+
     _ms = eMouseStateIdle;
     
     return true;

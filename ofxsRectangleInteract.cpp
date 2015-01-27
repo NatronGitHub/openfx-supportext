@@ -543,8 +543,11 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
             btmLeft.x = fround(btmLeft.x, pscale.x);
             break;
         }
+        _effect->beginEditBlock("setRectangle");
         _btmLeft->setValue(btmLeft.x, btmLeft.y);
         _size->setValue(size.x, size.y);
+        _effect->endEditBlock();
+
         didSmthing = true;
     }
     _mouseState = eMouseStateIdle;

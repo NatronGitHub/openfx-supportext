@@ -94,6 +94,7 @@ public:
     RectangleInteract(OfxInteractHandle handle,
                       OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
+          , _effect(effect)
           , _lastMousePos()
           , _mouseState(eMouseStateIdle)
           , _drawState(eDrawStateInactive)
@@ -188,7 +189,7 @@ protected:
     }
 
 private:
-
+    OFX::ImageEffect* _effect;
     OfxPointD _lastMousePos;
     MouseStateEnum _mouseState;
     DrawStateEnum _drawState;
