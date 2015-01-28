@@ -501,69 +501,51 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
         pscale.x = args.pixelScale.x / args.renderScale.x;
         pscale.y = args.pixelScale.y / args.renderScale.y;
         OfxPointD btmLeft = _btmLeftDragPos;
-        bool btmLeftChanged = false;
         OfxPointD size = _sizeDrag;
-        bool sizeChanged = false;
 
         switch (_mouseState) {
         case eMouseStateIdle:
             break;
         case eMouseStateDraggingTopLeft:
             btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeftChanged = true;
             size.x = fround(size.x, pscale.x);
             size.y = fround(size.y, pscale.y);
-            sizeChanged = true;
             break;
         case eMouseStateDraggingTopRight:
             size.x = fround(size.x, pscale.x);
             size.y = fround(size.y, pscale.y);
-            sizeChanged = true;
             break;
         case eMouseStateDraggingBtmLeft:
             btmLeft.x = fround(btmLeft.x, pscale.x);
             btmLeft.y = fround(btmLeft.y, pscale.y);
-            btmLeftChanged = true;
             size.x = fround(size.x, pscale.x);
             size.y = fround(size.y, pscale.y);
-            sizeChanged = true;
             break;
         case eMouseStateDraggingBtmRight:
             size.x = fround(size.x, pscale.x);
             size.y = fround(size.y, pscale.y);
-            sizeChanged = true;
             btmLeft.y = fround(btmLeft.y, pscale.y);
-            btmLeftChanged = true;
             break;
         case eMouseStateDraggingCenter:
             btmLeft.x = fround(btmLeft.x, pscale.x);
             btmLeft.y = fround(btmLeft.y, pscale.y);
-            btmLeftChanged = true;
             break;
         case eMouseStateDraggingTopMid:
             size.y = fround(size.y, pscale.y);
-            sizeChanged = true;
             break;
         case eMouseStateDraggingMidRight:
             size.x = fround(size.x, pscale.x);
-            sizeChanged = true;
             break;
         case eMouseStateDraggingBtmMid:
             btmLeft.y = fround(btmLeft.y, pscale.y);
-            btmLeftChanged = true;
             break;
         case eMouseStateDraggingMidLeft:
             btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeftChanged = true;
             break;
         }
         _effect->beginEditBlock("setRectangle");
-        if (btmLeftChanged) {
-            _btmLeft->setValue(btmLeft.x, btmLeft.y);
-        }
-        if (sizeChanged) {
-            _size->setValue(size.x, size.y);
-        }
+        _btmLeft->setValue(btmLeft.x, btmLeft.y);
+        _size->setValue(size.x, size.y);
         _effect->endEditBlock();
 
         didSmthing = true;
