@@ -841,8 +841,8 @@ copyPixels(OFX::ImageEffect &instance,
     assert(dstPixelData);
     if (!srcPixelData) {
         // no input, be black and transparent
-        fillBlack(instance, renderWindow,
-                  dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+        return fillBlack(instance, renderWindow,
+                         dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
     }
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
     // do the rendering
