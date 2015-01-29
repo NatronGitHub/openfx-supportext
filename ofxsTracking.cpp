@@ -430,7 +430,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     
     
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glMatrixMode(GL_PROJECTION);
+    glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
     
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
