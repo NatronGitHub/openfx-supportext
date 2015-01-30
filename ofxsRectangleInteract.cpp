@@ -75,7 +75,8 @@ fround(double val,
 }
 
 static void
-drawPoint(bool draw,
+drawPoint(const OfxRGBColourD &color,
+          bool draw,
           double x,
           double y,
           RectangleInteract::DrawStateEnum id,
@@ -91,7 +92,7 @@ drawPoint(bool draw,
                 glColor3f(0.f * l, 1.f * l, 0.f * l);
             }
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(x, y);
     }
@@ -100,6 +101,8 @@ drawPoint(bool draw,
 bool
 RectangleInteract::draw(const OFX::DrawArgs &args)
 {
+    OfxRGBColourD color = { 0.8, 0.8, 0.8 };
+    getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
@@ -121,7 +124,6 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     const bool centered = _modifierStateCtrl > 0;
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
@@ -135,11 +137,14 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
-        if (l == 0) {
-            // translate (1,-1) pixels
-            glTranslated(pscale.x, -pscale.y, 0);
-        }
-        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+        // shadow (uses GL_PROJECTION)
+        glMatrixMode(GL_PROJECTION);
+        int direction = (l == 0) ? 1 : -1;
+        // translate (1,-1) pixels
+        glTranslated(direction * pscale.x / 256, -direction * pscale.y / 256, 0);
+        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+
+        glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
 
         glBegin(GL_LINE_LOOP);
         glVertex2d(x1, y1);
@@ -150,15 +155,15 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
-        drawPoint(allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _drawState, keepAR, l);
-        drawPoint(allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _drawState, false,  l);
-        drawPoint(allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _drawState, keepAR, l);
-        drawPoint(allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _drawState, false,  l);
-        drawPoint(allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _drawState, false,  l);
-        drawPoint(allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _drawState, false,  l);
-        drawPoint(allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _drawState, keepAR, l);
-        drawPoint(allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _drawState, false,  l);
-        drawPoint(allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _drawState, keepAR, l);
+        drawPoint(color, allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _drawState, keepAR, l);
+        drawPoint(color, allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _drawState, false,  l);
+        drawPoint(color, allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _drawState, keepAR, l);
+        drawPoint(color, allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _drawState, false,  l);
+        drawPoint(color, allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _drawState, false,  l);
+        drawPoint(color, allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _drawState, false,  l);
+        drawPoint(color, allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _drawState, keepAR, l);
+        drawPoint(color, allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _drawState, false,  l);
+        drawPoint(color, allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _drawState, keepAR, l);
         glEnd();
         glPointSize(1);
 
@@ -167,19 +172,15 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
         if (_drawState == eDrawStateHoveringCenter || (centered && _drawState != eDrawStateInactive)) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else if ( !allowCenterInteraction() ) {
-            glColor3f(0.5f * l, 0.5f * l, 0.5f * l);
+            glColor3f((float)(color.r/2) * l, (float)(color.g/2) * l, (float)(color.b/2) * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc - CROSS_SIZE * pscale.x, yc);
         glVertex2d(xc + CROSS_SIZE * pscale.x, yc);
         glVertex2d(xc, yc - CROSS_SIZE * pscale.y);
         glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
         glEnd();
-        if (l == 0) {
-            // translate (-1,1) pixels
-            glTranslated(-pscale.x, pscale.y, 0);
-        }
     }
     glPopAttrib();
 

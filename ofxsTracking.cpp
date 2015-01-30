@@ -390,6 +390,8 @@ isNearby(const OfxPointD & p,
 bool
 TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 {
+    OfxRGBColourD color = { 0.8, 0.8, 0.8 };
+    getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
     
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
@@ -427,8 +429,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     
     
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
-    
+
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
     //glEnable(GL_POINT_SMOOTH);
@@ -441,11 +442,14 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
-        if (l == 0) {
-            // translate (1,-1) pixels
-            glTranslated(pscale.x, -pscale.y, 0);
-        }
-        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+        // shadow (uses GL_PROJECTION)
+        glMatrixMode(GL_PROJECTION);
+        int direction = (l == 0) ? 1 : -1;
+        // translate (1,-1) pixels
+        glTranslated(direction * pscale.x / 256, -direction * pscale.y / 256, 0);
+        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+        
+        glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         glBegin(GL_LINE_LOOP);
         glVertex2d(xi1, yi1);
         glVertex2d(xi1, yi2);
@@ -467,7 +471,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringCenter) || (_ms == eMouseStateDraggingCenter)) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc, yc);
         
@@ -552,7 +556,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         
         if (xoff != 0 || yoff != 0) {
             glBegin(GL_LINES);
-            glColor3f(0.8f * l, 0.8f * l, 0.f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
             glVertex2d(xc, yc);
             glVertex2d(xc + xoff, yc + yoff);
             glEnd();
@@ -567,7 +571,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xi1, yc + yoff);
         glVertex2d(xi1 - handleSizeX, yc + yoff);
@@ -575,7 +579,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc + xoff, yi2);
         glVertex2d(xc + xoff, yi2 + handleSizeY);
@@ -583,7 +587,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xi2, yc + yoff);
         glVertex2d(xi2 + handleSizeX, yc + yoff);
@@ -591,7 +595,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc + xoff, yi1);
         glVertex2d(xc + xoff, yi1 - handleSizeY);
@@ -601,7 +605,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xo1, yc + yoff);
         glVertex2d(xo1 - handleSizeX, yc + yoff);
@@ -609,7 +613,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc + xoff, yo2);
         glVertex2d(xc + xoff, yo2 + handleSizeY);
@@ -617,7 +621,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xo2 + handleSizeX, yc + yoff);
         glVertex2d(xo2, yc + yoff);
@@ -625,22 +629,17 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         }
         glVertex2d(xc + xoff, yo1);
         glVertex2d(xc + xoff, yo1 - handleSizeY);
         glEnd();
         
         
-        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
+        glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
         std::string name;
         _name->getValue(name);
         TextRenderer::bitmapString( xc, yc, name.c_str() );
-        
-        if (l == 0) {
-            // translate (-1,1) pixels
-            glTranslated(-pscale.x, pscale.y, 0);
-        }
     }
     
     glPopAttrib();

@@ -132,12 +132,14 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 {
+    OfxRGBColourD color = { 0.8, 0.8, 0.8 };
+    getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
 
     OfxRGBColourF col;
     switch (_state) {
     case eMouseStateInactive:
-        col.r = col.g = col.b = 0.8f; break;
+        col.r = (float)color.r; col.g = (float)color.g; col.b = (float)color.b; break;
     case eMouseStatePoised:
         col.r = 0.f; col.g = 1.0f; col.b = 0.0f; break;
     case eMouseStatePicked:
@@ -151,29 +153,25 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
     glPointSize( (float)pointSize() );
 
-    glPushMatrix();
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
-        if (l == 0) {
-            // Draw a shadow for the cross hair
-            // shift by (1,1) pixel
-            glTranslated(pscale.x, -pscale.y, 0);
-        }
+        // shadow (uses GL_PROJECTION)
+        glMatrixMode(GL_PROJECTION);
+        int direction = (l == 0) ? 1 : -1;
+        // translate (1,-1) pixels
+        glTranslated(direction * pscale.x / 256, -direction * pscale.y / 256, 0);
+        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+
         glColor3f(col.r * l, col.g * l, col.b * l);
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);
         glEnd();
         OFX::TextRenderer::bitmapString( pos.x, pos.y, ParamName::name() );
-        if (l == 0) {
-            glTranslated(-pscale.x, pscale.y, 0);
-        }
     }
-    glPopMatrix();
 
     glPopAttrib();
 
