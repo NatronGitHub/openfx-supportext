@@ -802,13 +802,13 @@ to_func_Gamma2_2(float v)
 inline float
 from_func_Panalog(float v)
 {
-    return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408) / 0.96f;
+    return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408f) / 0.96f;
 }
 
 inline float
 to_func_Panalog(float v)
 {
-    return (444.f * std::log10(0.0408 + 0.96f * v) + 681.f) / 1023.f;
+    return (444.f * std::log10(0.0408f + 0.96f * v) + 681.f) / 1023.f;
 }
 
 inline float
@@ -839,7 +839,7 @@ inline float
 from_func_AlexaV3LogC(float v)
 {
     return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
-           : ( v / 0.9661776f - 0.04378604) * 0.18f - 0.00937677f;
+           : ( v / 0.9661776f - 0.04378604f) * 0.18f - 0.00937677f;
 }
 
 inline float

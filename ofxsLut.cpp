@@ -164,14 +164,14 @@ rgb_to_hsv( float r,
         *s = delta / max;                       // s
     } else {
         // r = g = b = 0		// s = 0, v is undefined
-        *s = 0.;
-        *h = 0.;
+        *s = 0.f;
+        *h = 0.f;
 
         return;
     }
 
     if (delta == 0.) {
-        *h = 0.;                 // gray
+        *h = 0.f;                 // gray
     } else if (r == max) {
         *h = (g - b) / delta;                       // between yellow & magenta
     } else if (g == max) {
@@ -260,14 +260,14 @@ rgb_to_hsl( float r,
         *s = (*l <= 0.5) ? (delta/(max+min)) : (delta/(2-max-min)); // s = delta/(1-abs(2L-1))
     } else {
         // r = g = b = 0		// s = 0
-        *s = 0.;
-        *h = 0.;
+        *s = 0.f;
+        *h = 0.f;
 
         return;
     }
 
     if (delta == 0.) {
-        *h = 0.;                 // gray
+        *h = 0.f;                 // gray
     } else if (r == max) {
         *h = (g - b) / delta;                       // between yellow & magenta
     } else if (g == max) {
@@ -300,7 +300,7 @@ hsl_to_rgb(float h,
     int i = std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
-    float v = (l <= 0.5) ? (l * (1.0 + s)) : (l + s - l * s);
+    float v = (l <= 0.5f) ? (l * (1.0f + s)) : (l + s - l * s);
     float p = l + l - v;
     float sv = (v - p ) / v;
     float vsf = v * sv * f;

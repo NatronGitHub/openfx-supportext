@@ -266,7 +266,7 @@ PIX
 averageFunctor(PIX A,
                PIX B)
 {
-    return (A + B) * 0.5;
+    return (A + B) / 2;
 }
 
 template <typename PIX>
@@ -310,7 +310,7 @@ PIX
 exclusionFunctor(PIX A,
                  PIX B)
 {
-    return A + B - 2 * A * B / (double)maxValue;
+    return PIX(A + B - 2 * A * B / (double)maxValue);
 }
 
 template <typename PIX>
@@ -334,7 +334,7 @@ PIX
 multiplyFunctor(PIX A,
                 PIX B)
 {
-    return A * B / (double)maxValue;
+    return PIX(A * B / (double)maxValue);
 }
 
 template <typename PIX,int maxValue>
@@ -342,7 +342,7 @@ PIX
 screenFunctor(PIX A,
               PIX B)
 {
-    return A + B - A * B / (double)maxValue;
+    return PIX(A + B - A * B / (double)maxValue);
 }
 
 template <typename PIX,int maxValue>
@@ -351,9 +351,9 @@ hardLightFunctor(PIX A,
                  PIX B)
 {
     if ( A < ( (double)maxValue / 2. ) ) {
-        return 2 * A * B / (double)maxValue;
+        return PIX(2 * A * B / (double)maxValue);
     } else {
-        return maxValue * ( 1. - 2 * (1. - A / (double)maxValue) * (1. - B / (double)maxValue) );
+        return PIX(maxValue * ( 1. - 2 * (1. - A / (double)maxValue) * (1. - B / (double)maxValue) ));
     }
 }
 
@@ -366,11 +366,11 @@ softLightFunctor(PIX A,
     double Bn = B / (double)maxValue;
 
     if (2 * An <= 1) {
-        return maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) );
+        return PIX(maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ));
     } else if (4 * Bn <= 1) {
-        return maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) );
+        return PIX(maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ));
     } else {
-        return maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) );
+        return PIX(maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ));
     }
 }
 
@@ -379,7 +379,7 @@ PIX
 hypotFunctor(PIX A,
              PIX B)
 {
-    return std::sqrt( (double)(A * A + B * B) );
+    return PIX(std::sqrt( (double)(A * A + B * B) ));
 }
 
 template <typename PIX>
@@ -416,10 +416,10 @@ overlayFunctor(PIX A,
 
     if (2 * Bn <= 1.) {
         // multiply
-        return maxValue * (2 * An * Bn);
+        return PIX(maxValue * (2 * An * Bn));
     } else {
         // screen
-        return maxValue * ( 1 - 2 * (1 - Bn) * (1 - An) );
+        return PIX(maxValue * ( 1 - 2 * (1 - Bn) * (1 - An) ));
     }
 }
 
@@ -431,7 +431,7 @@ colorDodgeFunctor(PIX A,
     if (A >= maxValue) {
         return A;
     } else {
-        return maxValue * std::min( 1., B / (maxValue - (double)A) );
+        return PIX(maxValue * std::min( 1., B / (maxValue - (double)A) ));
     }
 }
 
@@ -443,7 +443,7 @@ colorBurnFunctor(PIX A,
     if (A <= 0) {
         return A;
     } else {
-        return maxValue * ( 1. - std::min(1., (maxValue - B) / (double)A) );
+        return PIX(maxValue * ( 1. - std::min(1., (maxValue - B) / (double)A) ));
     }
 }
 
@@ -465,7 +465,7 @@ reflectFunctor(PIX A,
     if (B >= maxValue) {
         return maxValue;
     } else {
-        return std::min( (double)maxValue, A * A / (double)(maxValue - B) );
+        return PIX(std::min( (double)maxValue, A * A / (double)(maxValue - B) ));
     }
 }
 
@@ -480,7 +480,7 @@ freezeFunctor(PIX A,
         double An = A / (double)maxValue;
         double Bn = B / (double)maxValue;
 
-        return std::max( 0., maxValue * (1 - std::sqrt( std::max(0., 1. - An) ) / Bn) );
+        return PIX(std::max( 0., maxValue * (1 - std::sqrt( std::max(0., 1. - An) ) / Bn) ));
     }
 }
 
@@ -492,7 +492,7 @@ interpolatedFunctor(PIX A,
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
 
-    return maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) );
+    return PIX(maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) ));
 }
 
 template <typename PIX,int maxValue>
@@ -502,7 +502,7 @@ atopFunctor(PIX A,
             PIX alphaA,
             PIX alphaB)
 {
-    return A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue);
+    return PIX(A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue));
 }
 
 template <typename PIX,int maxValue>
@@ -540,7 +540,7 @@ inFunctor(PIX A,
           PIX /*alphaA*/,
           PIX alphaB)
 {
-    return A * alphaB / (double)maxValue;
+    return PIX(A * alphaB / (double)maxValue);
 }
 
 template <typename PIX,int maxValue>
@@ -550,7 +550,7 @@ matteFunctor(PIX A,
              PIX alphaA,
              PIX /*alphaB*/)
 {
-    return A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue);
+    return PIX(A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue));
 }
 
 template <typename PIX,int maxValue>
@@ -560,7 +560,7 @@ maskFunctor(PIX /*A*/,
             PIX alphaA,
             PIX /*alphaB*/)
 {
-    return B * alphaA / (double)maxValue;
+    return PIX(B * alphaA / (double)maxValue);
 }
 
 template <typename PIX,int maxValue>
@@ -570,7 +570,7 @@ outFunctor(PIX A,
            PIX /*alphaA*/,
            PIX alphaB)
 {
-    return A * (1. - alphaB / (double)maxValue);
+    return PIX(A * (1. - alphaB / (double)maxValue));
 }
 
 template <typename PIX,int maxValue>
@@ -580,7 +580,7 @@ overFunctor(PIX A,
             PIX alphaA,
             PIX /*alphaB*/)
 {
-    return A + B * (1 - alphaA / (double)maxValue);
+    return PIX(A + B * (1 - alphaA / (double)maxValue));
 }
 
 template <typename PIX,int maxValue>
@@ -590,7 +590,7 @@ stencilFunctor(PIX /*A*/,
                PIX alphaA,
                PIX /*alphaB*/)
 {
-    return B * (1 - alphaA / (double)maxValue);
+    return PIX(B * (1 - alphaA / (double)maxValue));
 }
 
 template <typename PIX,int maxValue>
@@ -600,7 +600,7 @@ underFunctor(PIX A,
              PIX /*alphaA*/,
              PIX alphaB)
 {
-    return A * (1 - alphaB / (double)maxValue) + B;
+    return PIX(A * (1 - alphaB / (double)maxValue) + B);
 }
 
 template <typename PIX,int maxValue>
@@ -610,7 +610,7 @@ xorFunctor(PIX A,
            PIX alphaA,
            PIX alphaB)
 {
-    return A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue);
+    return PIX(A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue));
 }
 
 template <typename PIX,int nComponents,int maxValue>
@@ -628,7 +628,7 @@ mergePixel(MergingFunctionEnum f,
     int maxComp = nComponents;
     if (doAlphaMasking && nComponents == 4) {
         maxComp = 3;
-        dst[3] = A[3] + B[3] - A[3] * B[3] / (double)maxValue;
+        dst[3] = PIX(A[3] + B[3] - A[3] * B[3] / (double)maxValue);
     }
     for (int i = 0; i < maxComp; ++i) {
         switch (f) {
@@ -859,10 +859,10 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
                  double par,
                  OfxRectI *rect)
 {
-    rect->x1 = std::floor(regionOfInterest.x1 * renderScale.x / par);
-    rect->y1 = std::floor(regionOfInterest.y1 * renderScale.y);
-    rect->x2 = std::ceil(regionOfInterest.x2 * renderScale.x / par);
-    rect->y2 = std::ceil(regionOfInterest.y2 * renderScale.y);
+    rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par);
+    rect->y1 = (int)std::floor(regionOfInterest.y1 * renderScale.y);
+    rect->x2 = (int)std::ceil(regionOfInterest.x2 * renderScale.x / par);
+    rect->y2 = (int)std::ceil(regionOfInterest.y2 * renderScale.y);
 }
 
 inline void
@@ -871,8 +871,8 @@ toPixel(const OfxPointD & p_canonical,
         double par,
         OfxPointI *p_pixel)
 {
-    p_pixel->x = std::floor(p_canonical.x * renderScale.x / par);
-    p_pixel->y = std::floor(p_canonical.y * renderScale.y);
+    p_pixel->x = (int)std::floor(p_canonical.x * renderScale.x / par);
+    p_pixel->y = (int)std::floor(p_canonical.y * renderScale.y);
 }
 
 // subpixel version (no rounding)
@@ -940,7 +940,7 @@ unsigned int
 mipmapLevelFromScale(double s)
 {
     assert(0. < s && s <= 1.);
-    int retval = -std::floor(std::log(s) / M_LN2 + 0.5);
+    int retval = -(int)std::floor(std::log(s) / M_LN2 + 0.5);
     assert(retval >= 0);
 
     return retval;

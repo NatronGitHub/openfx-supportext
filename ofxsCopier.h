@@ -201,7 +201,7 @@ public:
                     std::fill(tmpPix, tmpPix + nComponents, 0.); // no src pixel here, be black and transparent
                 }
                 // dstx,dsty are the mask image coordinates (no boundary conditions)
-                ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, dstx, dsty, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += nComponents;
             }
@@ -375,7 +375,7 @@ public:
         assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
 
         if (srcNComponents == 3) {
-            unpPix[3] = 1.;
+            unpPix[3] = 1.f;
         }
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
@@ -420,10 +420,10 @@ public:
                 const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(dstx, dsty) : 0);
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
                 for (int c = 0; c < srcNComponents; ++c) {
-                    unpPix[c] = (srcPix ? (srcPix[c] / (double)srcMaxValue) : 0.);
+                    unpPix[c] = (srcPix ? (srcPix[c] / (float)srcMaxValue) : 0.f);
                 }
                 // dstx,dsty are the mask image coordinates (no boundary conditions)
-                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, _mix, _maskInvert, dstPix);
+                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += dstNComponents;
             }

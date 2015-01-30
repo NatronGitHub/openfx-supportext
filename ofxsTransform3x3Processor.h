@@ -47,7 +47,7 @@
 // constants for the motion blur algorithm (may depend on _motionblur)
 #define kTransform3x3ProcessorMotionBlurMaxError (_motionblur * maxValue / 1000.)
 #define kTransform3x3ProcessorMotionBlurMinIterations ( std::max( 13, (int)(kTransform3x3ProcessorMotionBlurMaxIterations / 3) ) )
-#define kTransform3x3ProcessorMotionBlurMaxIterations (_motionblur * 40)
+#define kTransform3x3ProcessorMotionBlurMaxIterations ((int)(_motionblur * 40))
 
 namespace OFX {
 class Transform3x3ProcessorBase
@@ -185,7 +185,7 @@ private:
                         ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
                     }
 
-                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, _mix, _maskInvert, dstPix);
+                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
                 }
             }
         } else { // motion blur
@@ -217,7 +217,7 @@ private:
                         mean[c] = 0.;
                         var[c] = (double)maxValue * maxValue;
                     }
-                    unsigned int seed = hash(hash(x + 0x10000 * _motionblur) + y);
+                    unsigned int seed = (unsigned int)(hash(hash(x + (unsigned int)(0x10000 * _motionblur)) + y));
                     int sample = 0;
                     const int minsamples = kTransform3x3ProcessorMotionBlurMinIterations; // minimum number of samples (at most maxIt/3
                     int maxsamples = minsamples;
@@ -227,9 +227,9 @@ private:
                             int t;
                             if (sample < minsamples) {
                                 // distribute the first samples evenly over the interval
-                                t = ( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples;
+                                t = (int)(( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples);
                             } else {
-                                t = van_der_corput<2>(seed) * _invtransformsize;
+                                t = (int)(van_der_corput<2>(seed) * _invtransformsize);
                             }
                             // NON-GENERIC TRANSFORM
 
@@ -274,9 +274,9 @@ private:
                         }
                     }
                     for (int c = 0; c < nComponents; ++c) {
-                        tmpPix[c] = mean[c];
+                        tmpPix[c] = (float)mean[c];
                     }
-                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, _mix, _maskInvert, dstPix);
+                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
                 }
             }
         }

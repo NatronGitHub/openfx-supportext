@@ -132,19 +132,16 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 {
-    OfxPointD pscale;
-
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
 
     OfxRGBColourF col;
     switch (_state) {
     case eMouseStateInactive:
         col.r = col.g = col.b = 0.8f; break;
     case eMouseStatePoised:
-        col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
+        col.r = 0.f; col.g = 1.0f; col.b = 0.0f; break;
     case eMouseStatePicked:
-        col.r = 0.; col.g = 1.0; col.b = 0.0f; break;
+        col.r = 0.f; col.g = 1.0f; col.b = 0.0f; break;
     }
 
     OfxPointD pos;
@@ -155,7 +152,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     }
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
-    glPointSize( pointSize() );
+    glPointSize( (float)pointSize() );
 
     glPushMatrix();
     // Draw everything twice
@@ -188,10 +185,7 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 {
-    OfxPointD pscale;
-
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
     OfxPointD pos;
     _position->getValueAtTime(args.time, pos.x, pos.y);
 
@@ -252,9 +246,7 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
         return false;
     }
     if (_state == eMouseStatePicked) {
-        OfxPointD pscale;
-        pscale.x = args.pixelScale.x / args.renderScale.x;
-        pscale.y = args.pixelScale.y / args.renderScale.y;
+        const OfxPointD& pscale = args.pixelScale;
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         _state = eMouseStatePoised;
         penMotion(args);

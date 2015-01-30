@@ -390,10 +390,7 @@ isNearby(const OfxPointD & p,
 bool
 TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 {
-    OfxPointD pscale;
-    
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
     
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
     
@@ -437,7 +434,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     //glEnable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
-    glLineWidth(1.5);
+    glLineWidth(1.5f);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     
     // Draw everything twice
@@ -448,7 +445,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
             // translate (1,-1) pixels
             glTranslated(pscale.x, -pscale.y, 0);
         }
-        glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         glBegin(GL_LINE_LOOP);
         glVertex2d(xi1, yi1);
         glVertex2d(xi1, yi2);
@@ -468,9 +465,9 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         
         ///draw center
         if ( (_ds == eDrawStateHoveringCenter) || (_ms == eMouseStateDraggingCenter)) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc, yc);
         
@@ -480,37 +477,37 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         
         //////DRAWING INNER POINTS
         if ( (_ds == eDrawStateHoveringInnerBtmLeft) || (_ms == eMouseStateDraggingInnerBtmLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi1, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xc + xoff, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerBtmRight) || (_ms == eMouseStateDraggingInnerBtmRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi2, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi1, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi2, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringInnerTopLeft) || (_ms == eMouseStateDraggingInnerTopLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi1, yi2);
         }
         
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xc + xoff, yi2);
         }
         
         if ( (_ds == eDrawStateHoveringInnerTopRight) || (_ms == eMouseStateDraggingInnerTopRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi2, yi2);
         }
         
@@ -518,36 +515,36 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         //////DRAWING OUTTER POINTS
         
         if ( (_ds == eDrawStateHoveringOuterBtmLeft) || (_ms == eMouseStateDraggingOuterBtmLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo1, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xc + xoff, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterBtmRight) || (_ms == eMouseStateDraggingOuterBtmRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo2, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo1, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo2, yc + yoff);
         }
         
         if ( (_ds == eDrawStateHoveringOuterTopLeft) || (_ms == eMouseStateDraggingOuterTopLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo1, yo2);
         }
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xc + xoff, yo2);
         }
         if ( (_ds == eDrawStateHoveringOuterTopRight) || (_ms == eMouseStateDraggingOuterTopRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo2, yo2);
         }
         
@@ -555,7 +552,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         
         if (xoff != 0 || yoff != 0) {
             glBegin(GL_LINES);
-            glColor3f(0.8 * l, 0.8 * l, 0. * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.f * l);
             glVertex2d(xc, yc);
             glVertex2d(xc + xoff, yc + yoff);
             glEnd();
@@ -568,33 +565,33 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glBegin(GL_LINES);
         
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xi1, yc + yoff);
         glVertex2d(xi1 - handleSizeX, yc + yoff);
         
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc + xoff, yi2);
         glVertex2d(xc + xoff, yi2 + handleSizeY);
         
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xi2, yc + yoff);
         glVertex2d(xi2 + handleSizeX, yc + yoff);
         
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc + xoff, yi1);
         glVertex2d(xc + xoff, yi1 - handleSizeY);
@@ -602,40 +599,40 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         //////DRAWING OUTTER HANDLES
         
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xo1, yc + yoff);
         glVertex2d(xo1 - handleSizeX, yc + yoff);
         
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc + xoff, yo2);
         glVertex2d(xc + xoff, yo2 + handleSizeY);
         
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xo2 + handleSizeX, yc + yoff);
         glVertex2d(xo2, yc + yoff);
         
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc + xoff, yo1);
         glVertex2d(xc + xoff, yo1 - handleSizeY);
         glEnd();
         
         
-        glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         std::string name;
         _name->getValue(name);
         TextRenderer::bitmapString( xc, yc, name.c_str() );
@@ -654,10 +651,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 bool
 TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 {
-    OfxPointD pscale;
-    
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
     
     bool didSomething = false;
     OfxPointD delta;
@@ -979,10 +973,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 bool
 TrackerRegionInteract::penDown(const OFX::PenArgs &args)
 {
-    OfxPointD pscale;
-    
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
     
     bool didSomething = false;
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;

@@ -174,26 +174,26 @@ ofxsUnPremult(const PIX *srcPix,
     if (!srcPix) {
         // no src pixel here, be black and transparent
         for (int c = 0; c < 4; ++c) {
-            unpPix[c] = 0.;
+            unpPix[c] = 0.f;
         }
 
         return;
     }
 
     if (nComponents == 1) {
-        unpPix[0] = 0.;
-        unpPix[1] = 0.;
-        unpPix[2] = 0.;
-        unpPix[3] = srcPix[0] / (double)maxValue;
+        unpPix[0] = 0.f;
+        unpPix[1] = 0.f;
+        unpPix[2] = 0.f;
+        unpPix[3] = srcPix[0] / (float)maxValue;
 
         return;
     }
 
     if ( !premult || (nComponents == 3) || (srcPix[3] <= 0.) ) {
-        unpPix[0] = srcPix[0] / (double)maxValue;
-        unpPix[1] = srcPix[1] / (double)maxValue;
-        unpPix[2] = srcPix[2] / (double)maxValue;
-        unpPix[3] = (nComponents == 4) ? (srcPix[3] / (double)maxValue) : 1.0;
+        unpPix[0] = srcPix[0] / (float)maxValue;
+        unpPix[1] = srcPix[1] / (float)maxValue;
+        unpPix[2] = srcPix[2] / (float)maxValue;
+        unpPix[3] = (nComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
 
         return;
     }
@@ -206,11 +206,11 @@ ofxsUnPremult(const PIX *srcPix,
         unpPix[1] = srcPix[1] / alpha;
         unpPix[2] = srcPix[2] / alpha;
     } else {
-        unpPix[0] = srcPix[0] / (double)maxValue;
-        unpPix[1] = srcPix[1] / (double)maxValue;
-        unpPix[2] = srcPix[2] / (double)maxValue;
+        unpPix[0] = srcPix[0] / (float)maxValue;
+        unpPix[1] = srcPix[1] / (float)maxValue;
+        unpPix[2] = srcPix[2] / (float)maxValue;
     }
-    unpPix[3] = srcPix[3] / (double)maxValue;
+    unpPix[3] = srcPix[3] / (float)maxValue;
 }
 
 // premultiply and denormalize in [0, maxValue]
@@ -261,7 +261,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                PIX *dstPix) //!< destination pixel
 {
     const PIX *maskPix = NULL;
-    float maskScale = 1.;
+    float maskScale = 1.f;
 
     // are we doing masking
     if (!masked) {
@@ -275,7 +275,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             float alpha = mix;
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha + (1. - alpha) * srcPix[c];
+                    float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
                     dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
                 }
             } else {
@@ -291,18 +291,18 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             maskPix = maskImg ? (const PIX *)maskImg->getPixelAddress(x, y) : 0;
             // figure the scale factor from that pixel
             if (maskPix == 0) {
-                maskScale = maskInvert ? 1. : 0.;
+                maskScale = maskInvert ? 1.f : 0.f;
             } else {
                 maskScale = *maskPix / float(maxValue);
                 if (maskInvert) {
-                    maskScale = 1. - maskScale;
+                    maskScale = 1.f - maskScale;
                 }
             }
         }
         float alpha = maskScale * mix;
         if (srcPix) {
             for (int c = 0; c < nComponents; ++c) {
-                float v = tmpPix[c] * alpha + (1. - alpha) * srcPix[c];
+                float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
                 dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
             }
         } else {

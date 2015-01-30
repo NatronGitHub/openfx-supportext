@@ -76,7 +76,7 @@ public:
                 if ( masked && (fromPix || toPix) ) {
                     for (int c = 0; c < nComponents; ++c) {
                         // all images are supposed to be black and transparent outside o
-                        tmpPix[c] = toPix ? (float)toPix[c] : 0.;
+                        tmpPix[c] = toPix ? (float)toPix[c] : 0.f;
                     }
                     ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, fromPix, _doMasking, _maskImg, blend, _maskInvert, dstPix);
                 } else if (fromPix && toPix) {

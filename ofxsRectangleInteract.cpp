@@ -86,12 +86,12 @@ drawPoint(bool draw,
     if (draw) {
         if (ds == id) {
             if (keepAR) {
-                glColor3f(1. * l, 0. * l, 0. * l);
+                glColor3f(1.f * l, 0.f * l, 0.f * l);
             } else {
-                glColor3f(0. * l, 1. * l, 0. * l);
+                glColor3f(0.f * l, 1.f * l, 0.f * l);
             }
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(x, y);
     }
@@ -100,10 +100,7 @@ drawPoint(bool draw,
 bool
 RectangleInteract::draw(const OFX::DrawArgs &args)
 {
-    OfxPointD pscale;
-
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
     if (_mouseState != eMouseStateIdle) {
@@ -131,7 +128,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     //glEnable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
-    glLineWidth(1.5);
+    glLineWidth(1.5f);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -142,7 +139,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
             // translate (1,-1) pixels
             glTranslated(pscale.x, -pscale.y, 0);
         }
-        glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+        glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
 
         glBegin(GL_LINE_LOOP);
         glVertex2d(x1, y1);
@@ -168,11 +165,11 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
         ///draw center cross hair
         glBegin(GL_LINES);
         if (_drawState == eDrawStateHoveringCenter || (centered && _drawState != eDrawStateInactive)) {
-            glColor3f(0. * l, 1. * l, 0. * l);
+            glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else if ( !allowCenterInteraction() ) {
-            glColor3f(0.5 * l, 0.5 * l, 0.5 * l);
+            glColor3f(0.5f * l, 0.5f * l, 0.5f * l);
         } else {
-            glColor3f(0.8 * l, 0.8 * l, 0.8 * l);
+            glColor3f(0.8f * l, 0.8f * l, 0.8f * l);
         }
         glVertex2d(xc - CROSS_SIZE * pscale.x, yc);
         glVertex2d(xc + CROSS_SIZE * pscale.x, yc);
@@ -192,10 +189,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 bool
 RectangleInteract::penMotion(const OFX::PenArgs &args)
 {
-    OfxPointD pscale;
-
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
     if (_mouseState != eMouseStateIdle) {
@@ -425,10 +419,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 bool
 RectangleInteract::penDown(const OFX::PenArgs &args)
 {
-    OfxPointD pscale;
-
-    pscale.x = args.pixelScale.x / args.renderScale.x;
-    pscale.y = args.pixelScale.y / args.renderScale.y;
+    const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
     if (_mouseState != eMouseStateIdle) {
@@ -497,9 +488,7 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
     if (_mouseState != eMouseStateIdle) {
         // round newx/y to the closest int, 1/10 int, etc
         // this make parameter editing easier
-        OfxPointD pscale;
-        pscale.x = args.pixelScale.x / args.renderScale.x;
-        pscale.y = args.pixelScale.y / args.renderScale.y;
+        const OfxPointD& pscale = args.pixelScale;
         OfxPointD btmLeft = _btmLeftDragPos;
         OfxPointD size = _sizeDrag;
 

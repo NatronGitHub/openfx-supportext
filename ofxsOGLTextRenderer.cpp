@@ -144,7 +144,7 @@ OFX::TextRenderer::bitmapString(const char *string,
             glBitmap(
                 face[ 0 ], font->Height,          /* Bitmap's width and height    */
                 font->xorig, font->yorig,         /* The origin in the font glyph */
-                ( float )( face[ 0 ] ), 0.0,      /* The raster advance; inc. x,y */
+                ( float )( face[ 0 ] ), 0.0f,     /* The raster advance; inc. x,y */
                 ( face + 1 )                      /* The packed bitmap data...    */
                 );
 
@@ -162,7 +162,7 @@ OFX::TextRenderer::bitmapString(double x,
                                 TextRenderer::Font font)
 {
     glPushAttrib(GL_CURRENT_BIT);
-    glRasterPos2f(x, y);
+    glRasterPos2d(x, y);
     bitmapString(string, font);
     glPopAttrib();
 }

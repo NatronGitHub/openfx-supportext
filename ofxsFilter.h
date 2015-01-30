@@ -400,8 +400,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterImpulse: {
         ///nearest neighboor
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int mx = std::floor(fx);     // don't add 0.5
-        int my = std::floor(fy);     // don't add 0.5
+        int mx = (int)std::floor(fx);     // don't add 0.5
+        int my = (int)std::floor(fy);     // don't add 0.5
 
         if (!blackOutside) {
             OFXS_CLAMPXY(m);
@@ -422,8 +422,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterCubic: {
         // bilinear or cubic
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = std::floor(fx - 0.5);
-        int cy = std::floor(fy - 0.5);
+        int cx = (int)std::floor(fx - 0.5);
+        int cy = (int)std::floor(fy - 0.5);
         int nx = cx + 1;
         int ny = cy + 1;
         if (!blackOutside) {
@@ -441,11 +441,11 @@ ofxsFilterInterpolate2D(double fx,
                 if (filter == eFilterBilinear) {
                     double Ic = ofxsFilterLinear(Icc, Inc, dx);
                     double In = ofxsFilterLinear(Icn, Inn, dx);
-                    tmpPix[c] = ofxsFilterLinear(Ic, In, dy);
+                    tmpPix[c] = (float)ofxsFilterLinear(Ic, In, dy);
                 } else if (filter == eFilterCubic) {
                     double Ic = ofxsFilterCubic(Icc, Inc, dx);
                     double In = ofxsFilterCubic(Icn, Inn, dx);
-                    tmpPix[c] = ofxsFilterCubic(Ic, In, dy);
+                    tmpPix[c] = (float)ofxsFilterCubic(Ic, In, dy);
                 } else {
                     assert(0);
                 }
@@ -466,8 +466,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterParzen:
     case eFilterNotch: {
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = std::floor(fx - 0.5);
-        int cy = std::floor(fy - 0.5);
+        int cx = (int)std::floor(fx - 0.5);
+        int cy = (int)std::floor(fy - 0.5);
         int px = cx - 1;
         int py = cy - 1;
         int nx = cx + 1;
@@ -511,7 +511,7 @@ ofxsFilterInterpolate2D(double fx,
                 default:
                     assert(0);
                 }
-                tmpPix[c] = I;
+                tmpPix[c] = (float)I;
             }
         } else {
             for (int c = 0; c < nComponents; ++c) {

@@ -79,12 +79,12 @@ enum Font
  * @param font The font to use to render. If it doesn't correspond to one of the enum
  * this function will not draw anything.
  **/
-void bitmapString(const char *string,TextRenderer::Font font = FONT_HELVETICA_12);
+void bitmapString(const char *string, TextRenderer::Font font = FONT_HELVETICA_12);
 
 /**
  *@brief Same as strokeString() but translates the OpenGL matrix to the (x,y) position before drawing.
  **/
-void bitmapString(double x,double y,const char*string,TextRenderer::Font font = FONT_HELVETICA_12);
+void bitmapString(double x, double y, const char*string, TextRenderer::Font font = FONT_HELVETICA_12);
 } // TextRendered
 } // OFX
 
