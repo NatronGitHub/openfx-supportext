@@ -69,6 +69,9 @@ static double
 fround(double val,
        double pscale)
 {
+    if (pscale == 0) {
+        return val;
+    }
     double pscale10 = std::pow( 10.,std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
@@ -207,6 +210,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool didSomething = false;
+    bool valuesChanged = false;
     OfxPointD delta;
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
@@ -279,7 +283,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _sizeDrag.x -= delta.x;
             _sizeDrag.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingTopLeft) {
         _drawState = eDrawStateHoveringTopLeft;
         OfxPointD btmRight;
@@ -293,7 +297,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _sizeDrag.y += delta.y;
             _btmLeftDragPos.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingTopRight) {
         _drawState = eDrawStateHoveringTopRight;
         _sizeDrag.x += delta.x;
@@ -304,7 +308,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _sizeDrag.y += delta.y;
             _btmLeftDragPos.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingBtmRight) {
         _drawState = eDrawStateHoveringBtmRight;
         OfxPointD topLeft;
@@ -318,7 +322,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _btmLeftDragPos.x -= delta.x;
             _sizeDrag.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingTopMid) {
         _drawState = eDrawStateHoveringTopMid;
         _sizeDrag.y += delta.y;
@@ -326,7 +330,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _sizeDrag.y += delta.y;
             _btmLeftDragPos.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingMidRight) {
         _drawState = eDrawStateHoveringMidRight;
         _sizeDrag.x += delta.x;
@@ -334,7 +338,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
             _sizeDrag.x += delta.x;
             _btmLeftDragPos.x -= delta.x;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingBtmMid) {
         _drawState = eDrawStateHoveringBtmMid;
         double top = _btmLeftDragPos.y + _sizeDrag.y;
@@ -343,7 +347,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
         if (centered) {
             _sizeDrag.y -= delta.y;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingMidLeft) {
         _drawState = eDrawStateHoveringMidLeft;
         double right = _btmLeftDragPos.x + _sizeDrag.x;
@@ -352,12 +356,12 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
         if (centered) {
             _sizeDrag.x -= delta.x;
         }
-        didSomething = true;
+        valuesChanged = true;
     } else if (_mouseState == eMouseStateDraggingCenter) {
         _drawState = eDrawStateHoveringCenter;
         _btmLeftDragPos.x += delta.x;
         _btmLeftDragPos.y += delta.y;
-        didSomething = true;
+        valuesChanged = true;
     }
 
 
@@ -379,6 +383,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 
         _btmLeftDragPos.x += _sizeDrag.x;
         _sizeDrag.x = -_sizeDrag.x;
+        valuesChanged = true;
     }
     if (_sizeDrag.y < 0) {
         if (_mouseState == eMouseStateDraggingTopLeft) {
@@ -397,25 +402,37 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 
         _btmLeftDragPos.y += _sizeDrag.y;
         _sizeDrag.y = -_sizeDrag.y;
+        valuesChanged = true;
     }
 
     ///forbid 0 pixels wide crop rectangles
     if (_sizeDrag.x < 1) {
         _sizeDrag.x = 1;
+        valuesChanged = true;
     }
     if (_sizeDrag.y < 1) {
         _sizeDrag.y = 1;
+        valuesChanged = true;
     }
 
     ///repaint if we toggled off a hovered handle
-    if (lastStateWasHovered && !didSomething) {
+    if (lastStateWasHovered) {
         didSomething = true;
     }
 
+    if (_mouseState != eMouseStateIdle && _interactiveDrag && valuesChanged) {
+        setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
+        // no need to redraw overlay since it is slave to the paramaters
+    } else if (didSomething || valuesChanged) {
+        _effect->redrawOverlays();
+    }
+
+
     _lastMousePos = args.penPosition;
 
-    return didSomething;
+    return didSomething || valuesChanged;
 } // penMotion
+
 
 bool
 RectangleInteract::penDown(const OFX::PenArgs &args)
@@ -431,6 +448,9 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
     } else {
         _btmLeft->getValueAtTime(args.time, x1, y1);
         _size->getValueAtTime(args.time, w, h);
+        if (_interactive) {
+            _interactive->getValueAtTime(args.time, _interactiveDrag);
+        }
     }
     double x2 = x1 + w;
     double y2 = y1 + h;
@@ -477,6 +497,9 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
     _sizeDrag.x = w;
     _sizeDrag.y = h;
     _lastMousePos = args.penPosition;
+    if (didSomething) {
+        _effect->redrawOverlays();
+    }
 
     return didSomething;
 } // penDown
@@ -486,58 +509,9 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 {
     bool didSmthing = false;
 
-    if (_mouseState != eMouseStateIdle) {
-        // round newx/y to the closest int, 1/10 int, etc
-        // this make parameter editing easier
-        const OfxPointD& pscale = args.pixelScale;
-        OfxPointD btmLeft = _btmLeftDragPos;
-        OfxPointD size = _sizeDrag;
-
-        switch (_mouseState) {
-        case eMouseStateIdle:
-            break;
-        case eMouseStateDraggingTopLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
-            break;
-        case eMouseStateDraggingTopRight:
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
-            break;
-        case eMouseStateDraggingBtmLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
-            break;
-        case eMouseStateDraggingBtmRight:
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            break;
-        case eMouseStateDraggingCenter:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            break;
-        case eMouseStateDraggingTopMid:
-            size.y = fround(size.y, pscale.y);
-            break;
-        case eMouseStateDraggingMidRight:
-            size.x = fround(size.x, pscale.x);
-            break;
-        case eMouseStateDraggingBtmMid:
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            break;
-        case eMouseStateDraggingMidLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            break;
-        }
-        _effect->beginEditBlock("setRectangle");
-        _btmLeft->setValue(btmLeft.x, btmLeft.y);
-        _size->setValue(size.x, size.y);
-        _effect->endEditBlock();
-
+    if (_mouseState != eMouseStateIdle && !_interactiveDrag) {
+        setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
+        _effect->redrawOverlays();
         didSmthing = true;
     }
     _mouseState = eMouseStateIdle;
@@ -617,3 +591,53 @@ RectangleInteract::getBtmLeft(OfxTime time) const
     return ret;
 }
 
+void
+RectangleInteract::setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale)
+{
+    // round newx/y to the closest int, 1/10 int, etc
+    // this make parameter editing easier
+    switch (_mouseState) {
+        case eMouseStateIdle:
+            break;
+        case eMouseStateDraggingTopLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            break;
+        case eMouseStateDraggingTopRight:
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            break;
+        case eMouseStateDraggingBtmLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            break;
+        case eMouseStateDraggingBtmRight:
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            break;
+        case eMouseStateDraggingCenter:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            break;
+        case eMouseStateDraggingTopMid:
+            size.y = fround(size.y, pscale.y);
+            break;
+        case eMouseStateDraggingMidRight:
+            size.x = fround(size.x, pscale.x);
+            break;
+        case eMouseStateDraggingBtmMid:
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            break;
+        case eMouseStateDraggingMidLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            break;
+    }
+    _effect->beginEditBlock("setRectangle");
+    _btmLeft->setValue(btmLeft.x, btmLeft.y);
+    _size->setValue(size.x, size.y);
+    _effect->endEditBlock();
+} // penDown

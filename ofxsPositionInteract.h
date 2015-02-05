@@ -47,6 +47,7 @@
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
 #include "ofxsOGLTextRenderer.h"
+#include "ofxsMacros.h"
 
 namespace OFX {
 /// template for a generic position interact.
@@ -80,8 +81,12 @@ public:
                      OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
           , _state(eMouseStateInactive)
+          , _position(0)
+          , _interactive(0)
+          , _interactiveDrag(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
+        _interactive = effect->fetchBooleanParam( PositionInteractParam::name() );
         assert(_position);
         _penPosition.x = _penPosition.y = 0;
     }
@@ -103,7 +108,9 @@ private:
 
     MouseStateEnum _state;
     OFX::Double2DParam* _position;
+    OFX::BooleanParam* _interactive;
     OfxPointD _penPosition;
+    bool _interactiveDrag;
 
     double pointSize() const
     {
@@ -185,10 +192,17 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
     OfxPointD pos;
-    _position->getValueAtTime(args.time, pos.x, pos.y);
+    if (_state == eMouseStatePicked) {
+        pos = _penPosition;
+    } else {
+        _position->getValueAtTime(args.time, pos.x, pos.y);
+    }
 
     // pen position is in cannonical coords
-    OfxPointD penPos = args.penPosition;
+    const OfxPointD &penPos = args.penPosition;
+
+    bool didSomething = false;
+    bool valuesChanged = false;
 
     switch (_state) {
     case eMouseStateInactive:
@@ -204,19 +218,27 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 
         if (_state != newState) {
             _state = newState;
-            _effect->redrawOverlays();
+            didSomething = true;
         }
     }
     break;
 
     case eMouseStatePicked: {
         _penPosition = args.penPosition;
-        _effect->redrawOverlays();
+        valuesChanged = true;
     }
     break;
     }
+    
+    if (_state != eMouseStateInactive && _interactiveDrag && valuesChanged) {
+        _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
+    }
 
-    return _state != eMouseStateInactive;
+    if (didSomething || valuesChanged) {
+        _effect->redrawOverlays();
+    }
+
+    return didSomething || valuesChanged;
 }
 
 template <typename ParamName>
@@ -226,14 +248,20 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     if (!_position) {
         return false;
     }
+    bool didSomething = false;
     penMotion(args);
     if (_state == eMouseStatePoised) {
         _state = eMouseStatePicked;
         _penPosition = args.penPosition;
+        _interactive->getValueAtTime(args.time, _interactiveDrag);
+        didSomething = true;
+    }
+
+    if (didSomething) {
         _effect->redrawOverlays();
     }
 
-    return _state == eMouseStatePicked;
+    return didSomething;
 }
 
 template <typename ParamName>
@@ -243,17 +271,20 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     if (!_position) {
         return false;
     }
+    bool didSomething = false;
     if (_state == eMouseStatePicked) {
         const OfxPointD& pscale = args.pixelScale;
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         _state = eMouseStatePoised;
         penMotion(args);
-        _effect->redrawOverlays();
-
-        return true;
+        didSomething = true;
     }
 
-    return false;
+    if (didSomething) {
+        _effect->redrawOverlays();
+    }
+
+    return didSomething;
 }
 
 template <typename ParamName>

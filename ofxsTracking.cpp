@@ -653,28 +653,45 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     const OfxPointD& pscale = args.pixelScale;
     
     bool didSomething = false;
+    bool valuesChanged = false;
     OfxPointD delta;
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
     
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
-    _innerBtmLeft->getValueAtTime( args.time, xi1, yi1);
-    _innerTopRight->getValueAtTime(args.time, xi2, yi2);
-    _outerBtmLeft->getValueAtTime( args.time, xo1, yo1);
-    _outerTopRight->getValueAtTime(args.time, xo2, yo2);
-    _center->getValueAtTime(args.time, xc, yc);
-    _offset->getValueAtTime(args.time, xoff, yoff);
-    
-    ///innerBtmLeft and outerBtmLeft are relative to the center, make them absolute
-    xi1 += (xc + xoff);
-    yi1 += (yc + yoff);
-    xi2 += (xc + xoff);
-    yi2 += (yc + yoff);
-    xo1 += (xc + xoff);
-    yo1 += (yc + yoff);
-    xo2 += (xc + xoff);
-    yo2 += (yc + yoff);
-    
+    if (_ms == eMouseStateIdle) {
+        _innerBtmLeft->getValueAtTime( args.time, xi1, yi1);
+        _innerTopRight->getValueAtTime(args.time, xi2, yi2);
+        _outerBtmLeft->getValueAtTime( args.time, xo1, yo1);
+        _outerTopRight->getValueAtTime(args.time, xo2, yo2);
+        _center->getValueAtTime(args.time, xc, yc);
+        _offset->getValueAtTime(args.time, xoff, yoff);
+
+        ///innerBtmLeft and outerBtmLeft are relative to the center, make them absolute
+        xi1 += (xc + xoff);
+        yi1 += (yc + yoff);
+        xi2 += (xc + xoff);
+        yi2 += (yc + yoff);
+        xo1 += (xc + xoff);
+        yo1 += (yc + yoff);
+        xo2 += (xc + xoff);
+        yo2 += (yc + yoff);
+    } else {
+        xi1 = _innerBtmLeftDragPos.x;
+        yi1 = _innerBtmLeftDragPos.y;
+        xi2 = _innerTopRightDragPos.x;
+        yi2 = _innerTopRightDragPos.y;
+        xo1 = _outerBtmLeftDragPos.x;
+        yo1 = _outerBtmLeftDragPos.y;
+        xo2 = _outerTopRightDragPos.x;
+        yo2 = _outerTopRightDragPos.y;
+        xc = _centerDragPos.x;
+        yc = _centerDragPos.y;
+        xoff = _offsetDragPos.x;
+        yoff = _offsetDragPos.y;
+    }
+
+
     bool lastStateWasHovered = _ds != eDrawStateInactive;
     
     if (_ms == eMouseStateIdle) {
@@ -737,236 +754,321 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     
     double multiplier = _controlDown ? 0 : 1;
     if (_ms == eMouseStateDraggingInnerBtmLeft) {
-        _innerBtmLeftDragPos.x += delta.x;
-        _innerBtmLeftDragPos.y += delta.y;
-        _innerTopRightDragPos.x -= delta.x;
-        _innerTopRightDragPos.y -= delta.y;
+        xi1 += delta.x;
+        yi1 += delta.y;
+
+        xi2 -= delta.x;
+        yi2 -= delta.y;
+
         ///also move the outer rect
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerTopRightDragPos.x -= delta.x;
-        _outerTopRightDragPos.y -= delta.y;
-        didSomething = true;
+        xo1 += delta.x;
+        yo1 += delta.y;
+
+        xo2 -= delta.x;
+        yo2 -= delta.y;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerTopLeft) {
-        _innerBtmLeftDragPos.x += delta.x;
-        _innerBtmLeftDragPos.y -= delta.y;
+        xi1 += delta.x;
+        yi1 -= delta.y;
         
-        _innerTopRightDragPos.y += delta.y;
-        _innerTopRightDragPos.x -= delta.x;
+        yi2 += delta.y;
+        xi2 -= delta.x;
         
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerBtmLeftDragPos.y -= delta.y;
+        xo1 += delta.x;
+        yo1 -= delta.y;
         
-        _outerTopRightDragPos.y += delta.y;
-        _outerTopRightDragPos.x -= delta.x;
-        didSomething = true;
+        yo2 += delta.y;
+        xo2 -= delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerTopRight) {
-        _innerBtmLeftDragPos.x -= delta.x;
-        _innerBtmLeftDragPos.y -= delta.y;
+        xi1 -= delta.x;
+        yi1 -= delta.y;
         
-        _innerTopRightDragPos.y += delta.y;
-        _innerTopRightDragPos.x += delta.x;
+        yi2 += delta.y;
+        xi2 += delta.x;
         
-        _outerBtmLeftDragPos.x -= delta.x;
-        _outerBtmLeftDragPos.y -= delta.y;
+        xo1 -= delta.x;
+        yo1 -= delta.y;
         
-        _outerTopRightDragPos.y += delta.y;
-        _outerTopRightDragPos.x += delta.x;
-        didSomething = true;
+        yo2 += delta.y;
+        xo2 += delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerBtmRight) {
-        _innerTopRightDragPos.y -= delta.y;
-        _innerTopRightDragPos.x += delta.x;
-        _innerBtmLeftDragPos.y += delta.y;
-        _innerBtmLeftDragPos.x -= delta.x;
-        
-        
-        _outerTopRightDragPos.y -= delta.y;
-        _outerTopRightDragPos.x += delta.x;
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerBtmLeftDragPos.x -= delta.x;
-        
-        
-        didSomething = true;
+        yi1 += delta.y;
+        xi1 -= delta.x;
+
+        yi2 -= delta.y;
+        xi2 += delta.x;
+
+        yo1 += delta.y;
+        xo1 -= delta.x;
+
+        yo2 -= delta.y;
+        xo2 += delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerTopMid) {
-        _innerBtmLeftDragPos.y -= delta.y;
-        _outerBtmLeftDragPos.y -= delta.y;
+        yi1 -= delta.y;
+
+        yi2 += delta.y;
+
+        yo1 -= delta.y;
         
-        _innerTopRightDragPos.y += delta.y;
-        _outerTopRightDragPos.y += delta.y;
+        yo2 += delta.y;
         
-        didSomething = true;
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerMidRight) {
-        _innerTopRightDragPos.x += delta.x;
-        _outerTopRightDragPos.x += delta.x;
-        _innerBtmLeftDragPos.x -= delta.x;
-        _outerBtmLeftDragPos.x -= delta.x;
+        xi1 -= delta.x;
+
+        xi2 += delta.x;
+
+        xo1 -= delta.x;
+
+        xo2 += delta.x;
         
-        
-        didSomething = true;
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerBtmMid) {
-        _innerBtmLeftDragPos.y += delta.y;
-        _innerTopRightDragPos.y -= delta.y;
+        yi1 += delta.y;
+
+        yi2 -= delta.y;
         
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerTopRightDragPos.y -= delta.y;
+        yo1 += delta.y;
+
+        yo2 -= delta.y;
         
-        didSomething = true;
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingInnerMidLeft) {
-        _innerBtmLeftDragPos.x += delta.x;
-        _innerTopRightDragPos.x -= delta.x;
+        xi1 += delta.x;
+
+        xi2 -= delta.x;
         
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerTopRightDragPos.x -= delta.x;
-        didSomething = true;
+        xo1 += delta.x;
+
+        xo2 -= delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterBtmLeft) {
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerTopRightDragPos.x -= multiplier * delta.x;
-        _outerTopRightDragPos.y -= multiplier * delta.y;
-        didSomething = true;
+        xo1 += delta.x;
+        yo1 += delta.y;
+
+        xo2 -= multiplier * delta.x;
+        yo2 -= multiplier * delta.y;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterTopLeft) {
-        _outerBtmLeftDragPos.x += delta.x;
+        xo1 += delta.x;
         if (!_controlDown) {
-            _outerBtmLeftDragPos.y -= delta.y;
+            yo1 -= delta.y;
         }
-        _outerTopRightDragPos.y += delta.y;
-        _outerTopRightDragPos.x -= multiplier * delta.x;
-        didSomething = true;
+
+        yo2 += delta.y;
+        xo2 -= multiplier * delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterTopRight) {
         if (!_controlDown) {
-            _outerBtmLeftDragPos.x -= delta.x;
-            _outerBtmLeftDragPos.y -= delta.y;
+            xo1 -= delta.x;
+            yo1 -= delta.y;
         }
-        _outerTopRightDragPos.y +=  delta.y;
-        _outerTopRightDragPos.x +=  delta.x;
-        didSomething = true;
+
+        yo2 +=  delta.y;
+        xo2 +=  delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterBtmRight) {
-        _outerTopRightDragPos.y -= multiplier * delta.y;
-        _outerTopRightDragPos.x +=  delta.x;
-        _outerBtmLeftDragPos.y += delta.y;
+        yo1 += delta.y;
         if (!_controlDown) {
-            _outerBtmLeftDragPos.x -= delta.x;
+            xo1 -= delta.x;
         }
-        didSomething = true;
+
+        yo2 -= multiplier * delta.y;
+        xo2 +=  delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterTopMid) {
         if (!_controlDown) {
-            _outerBtmLeftDragPos.y -= delta.y;
+            yo1 -= delta.y;
         }
-        _outerTopRightDragPos.y += delta.y;
-        didSomething = true;
+
+        yo2 += delta.y;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterMidRight) {
-        _outerTopRightDragPos.x +=  delta.x;
         if (!_controlDown) {
-            _outerBtmLeftDragPos.x -= delta.x;
+            xo1 -= delta.x;
         }
-        didSomething = true;
+
+        xo2 +=  delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterBtmMid) {
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerTopRightDragPos.y -= multiplier * delta.y;
-        didSomething = true;
+        yo1 += delta.y;
+
+        yo2 -= multiplier * delta.y;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingOuterMidLeft) {
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerTopRightDragPos.x -= multiplier * delta.x;
-        didSomething = true;
+        xo1 += delta.x;
+
+        xo2 -= multiplier * delta.x;
+
+        valuesChanged = true;
+
     } else if (_ms == eMouseStateDraggingCenter || _ms == eMouseStateDraggingOffset) {
+        xi1 += delta.x;
+        yi1 += delta.y;
+
+        xi2 += delta.x;
+        yi2 += delta.y;
+
+        xo1 += delta.x;
+        yo1 += delta.y;
+
+        xo2 += delta.x;
+        yo2 += delta.y;
+
         if (_ms == eMouseStateDraggingCenter) {
-            _centerDragPos.x += delta.x;
-            _centerDragPos.y += delta.y;
+            xc += delta.x;
+            yc += delta.y;
         } else {
             assert(_ms == eMouseStateDraggingOffset);
-            _offsetDragPos.x += delta.x;
-            _offsetDragPos.y += delta.y;
+            xoff += delta.x;
+            yoff += delta.y;
         }
-        _innerBtmLeftDragPos.x += delta.x;
-        _innerBtmLeftDragPos.y += delta.y;
-        _innerTopRightDragPos.x += delta.x;
-        _innerTopRightDragPos.y += delta.y;
-        _outerBtmLeftDragPos.x += delta.x;
-        _outerBtmLeftDragPos.y += delta.y;
-        _outerTopRightDragPos.x += delta.x;
-        _outerTopRightDragPos.y += delta.y;
-        didSomething = true;
+
+        valuesChanged = true;
     }
     
     
     if ( isDraggingOuterPoint() ) {
         /// outer rect must at least contain the inner rect
         
-        if (_outerBtmLeftDragPos.x > xi1) {
-            _outerBtmLeftDragPos.x = xi1;
+        if (xo1 > xi1) {
+            xo1 = xi1;
+            valuesChanged = true;
         }
         
-        if (_outerBtmLeftDragPos.y > yi1) {
-            _outerBtmLeftDragPos.y = yi1;
+        if (yo1 > yi1) {
+            yo1 = yi1;
+            valuesChanged = true;
         }
         
-        if (_outerTopRightDragPos.x < xi2) {
-            _outerTopRightDragPos.x = xi2;
+        if (xo2 < xi2) {
+            xo2 = xi2;
+            valuesChanged = true;
         }
-        if (_outerTopRightDragPos.y < yi2) {
-            _outerTopRightDragPos.y = yi2;
+        if (yo2 < yi2) {
+            yo2 = yi2;
+            valuesChanged = true;
         }
     }
     
     if ( isDraggingInnerPoint() ) {
         /// inner rect must contain center point
-        if (_innerBtmLeftDragPos.x > (xc + xoff) ) {
-            double diffX = _innerBtmLeftDragPos.x - xc - xoff;
-            _innerBtmLeftDragPos.x = xc + xoff;
-            _outerBtmLeftDragPos.x -= diffX;
-            _outerTopRightDragPos.x += multiplier * diffX;
-            _innerTopRightDragPos.x += multiplier * diffX;
+        if (xi1 > (xc + xoff) ) {
+            double diffX = xi1 - xc - xoff;
+            xi1 = xc + xoff;
+            xo1 -= diffX;
+            xo2 += multiplier * diffX;
+            xi2 += multiplier * diffX;
+            valuesChanged = true;
         }
-        if (_innerBtmLeftDragPos.y > (yc + yoff)) {
-            double diffY = _innerBtmLeftDragPos.y - yc - yoff;
-            _innerBtmLeftDragPos.y = yc + yoff;
-            _outerBtmLeftDragPos.y -= diffY;
-            _outerTopRightDragPos.y += multiplier * diffY;
-            _innerTopRightDragPos.y += multiplier * diffY;
+        if (yi1 > (yc + yoff)) {
+            double diffY = yi1 - yc - yoff;
+            yi1 = yc + yoff;
+            yo1 -= diffY;
+            yo2 += multiplier * diffY;
+            yi2 += multiplier * diffY;
+            valuesChanged = true;
         }
-        if (_innerTopRightDragPos.x <= (xc + xoff)) {
-            double diffX = _innerTopRightDragPos.x - xc - xoff;
-            _innerTopRightDragPos.x = xc + xoff;
-            _outerTopRightDragPos.x += diffX;
-            _outerBtmLeftDragPos.x -= multiplier * diffX;
-            _innerBtmLeftDragPos.x -= multiplier * diffX;
+        if (xi2 <= (xc + xoff)) {
+            double diffX = xi2 - xc - xoff;
+            xi2 = xc + xoff;
+            xo2 += diffX;
+            xo1 -= multiplier * diffX;
+            xi1 -= multiplier * diffX;
+            valuesChanged = true;
         }
-        if (_innerTopRightDragPos.y <= (yc + yoff)) {
-            double diffY = _innerTopRightDragPos.y - yc - yoff;
-            _innerTopRightDragPos.y = yc + yoff;
-            _outerTopRightDragPos.y -= diffY;
-            _outerBtmLeftDragPos.y -= multiplier * diffY;
-            _innerBtmLeftDragPos.y -= multiplier * diffY;
+        if (yi2 <= (yc + yoff)) {
+            double diffY = yi2 - yc - yoff;
+            yi2 = yc + yoff;
+            yo2 -= diffY;
+            yo1 -= multiplier * diffY;
+            yi1 -= multiplier * diffY;
+            valuesChanged = true;
         }
     }
     
     ///forbid 0 pixels wide rectangles
-    if (_innerTopRightDragPos.x <= _innerBtmLeftDragPos.x) {
-        _innerBtmLeftDragPos.x = (_innerTopRightDragPos.x + _innerBtmLeftDragPos.x) / 2;
-        _innerTopRightDragPos.x = _innerBtmLeftDragPos.x + 1;
+    if (xi2 <= xi1) {
+        xi1 = (xi2 + xi1) / 2;
+        xi2 = xi1 + 1;
+        valuesChanged = true;
     }
-    if (_innerTopRightDragPos.y <= _innerBtmLeftDragPos.y) {
-        _innerBtmLeftDragPos.y = (_innerTopRightDragPos.y + _innerBtmLeftDragPos.y) / 2;
-        _innerTopRightDragPos.y = _innerBtmLeftDragPos.y + 1;
+    if (yi2 <= yi1) {
+        yi1 = (yi2 + yi1) / 2;
+        yi2 = yi1 + 1;
+        valuesChanged = true;
     }
-    if (_outerTopRightDragPos.x <= _outerBtmLeftDragPos.x) {
-        _outerBtmLeftDragPos.x = (_outerTopRightDragPos.x + _outerBtmLeftDragPos.x) / 2;
-        _outerTopRightDragPos.x = _outerBtmLeftDragPos.x + 1;
+    if (xo2 <= xo1) {
+        xo1 = (xo2 + xo1) / 2;
+        xo2 = xo1 + 1;
+        valuesChanged = true;
     }
-    if (_outerTopRightDragPos.y <= _outerBtmLeftDragPos.y) {
-        _outerBtmLeftDragPos.y = (_outerTopRightDragPos.y + _outerBtmLeftDragPos.y) / 2;
-        _outerTopRightDragPos.y = _outerBtmLeftDragPos.y + 1;
+    if (yo2 <= yo1) {
+        yo1 = (yo2 + yo1) / 2;
+        yo2 = yo1 + 1;
+        valuesChanged = true;
     }
     
     
     ///repaint if we toggled off a hovered handle
-    if (lastStateWasHovered && !didSomething) {
+    if (lastStateWasHovered) {
         didSomething = true;
     }
-    
+
+
+    if (valuesChanged) {
+        ///Keep the points in absolute coordinates
+        _innerBtmLeftDragPos.x  = xi1;
+        _innerBtmLeftDragPos.y  = yi1;
+        _innerTopRightDragPos.x = xi2;
+        _innerTopRightDragPos.y = yi2;
+        _outerBtmLeftDragPos.x  = xo1;
+        _outerBtmLeftDragPos.y  = yo1;
+        _outerTopRightDragPos.x = xo2;
+        _outerTopRightDragPos.y = yo2;
+        _centerDragPos.x        = xc;
+        _centerDragPos.y        = yc;
+        _offsetDragPos.x        = xoff;
+        _offsetDragPos.y        = yoff;
+    }
+
+    if (didSomething || valuesChanged) {
+        _effect->redrawOverlays();
+    }
+
     _lastMousePos = args.penPosition;
     
-    return didSomething;
+    return didSomething || valuesChanged;
 } // penMotion
 
 bool
@@ -1072,34 +1174,38 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     _offsetDragPos.y        = yoff;
     
     _lastMousePos = args.penPosition;
-    
+
+    if (didSomething) {
+        _effect->redrawOverlays();
+    }
+
     return didSomething;
 } // penDown
 
 bool
 TrackerRegionInteract::isDraggingInnerPoint() const
 {
-    return _ms == eMouseStateDraggingInnerTopLeft ||
-    _ms == eMouseStateDraggingInnerTopRight ||
-    _ms == eMouseStateDraggingInnerBtmLeft ||
-    _ms == eMouseStateDraggingInnerBtmRight ||
-    _ms == eMouseStateDraggingInnerTopMid ||
-    _ms == eMouseStateDraggingInnerMidRight ||
-    _ms == eMouseStateDraggingInnerBtmMid ||
-    _ms == eMouseStateDraggingInnerMidLeft;
+    return (_ms == eMouseStateDraggingInnerTopLeft  ||
+            _ms == eMouseStateDraggingInnerTopRight ||
+            _ms == eMouseStateDraggingInnerBtmLeft  ||
+            _ms == eMouseStateDraggingInnerBtmRight ||
+            _ms == eMouseStateDraggingInnerTopMid   ||
+            _ms == eMouseStateDraggingInnerMidRight ||
+            _ms == eMouseStateDraggingInnerBtmMid   ||
+            _ms == eMouseStateDraggingInnerMidLeft);
 }
 
 bool
 TrackerRegionInteract::isDraggingOuterPoint() const
 {
-    return _ms == eMouseStateDraggingOuterTopLeft ||
-    _ms == eMouseStateDraggingOuterTopRight ||
-    _ms == eMouseStateDraggingOuterBtmLeft ||
-    _ms == eMouseStateDraggingOuterBtmRight ||
-    _ms == eMouseStateDraggingOuterTopMid ||
-    _ms == eMouseStateDraggingOuterMidRight ||
-    _ms == eMouseStateDraggingOuterBtmMid ||
-    _ms == eMouseStateDraggingOuterMidLeft;
+    return (_ms == eMouseStateDraggingOuterTopLeft  ||
+            _ms == eMouseStateDraggingOuterTopRight ||
+            _ms == eMouseStateDraggingOuterBtmLeft  ||
+            _ms == eMouseStateDraggingOuterBtmRight ||
+            _ms == eMouseStateDraggingOuterTopMid   ||
+            _ms == eMouseStateDraggingOuterMidRight ||
+            _ms == eMouseStateDraggingOuterBtmMid   ||
+            _ms == eMouseStateDraggingOuterMidLeft);
 }
 
 bool
@@ -1109,17 +1215,8 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
         return false;
     }
     
-    OfxPointD center,offset;
-    if (_ms == eMouseStateDraggingCenter) {
-        center = _centerDragPos;
-    } else {
-        _center->getValue(center.x, center.y);
-    }
-    if (_ms == eMouseStateDraggingOffset) {
-        offset = _offsetDragPos;
-    } else {
-        _offset->getValue(offset.x, offset.y);
-    }
+    const OfxPointD &center = _centerDragPos;
+    const OfxPointD &offset = _offsetDragPos;
     _effect->beginEditBlock("setTrackerRegion");
     {
         OfxPointD btmLeft;
@@ -1147,14 +1244,16 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
     }
     
     if (_ms == eMouseStateDraggingCenter) {
-        _center->setValueAtTime(args.time,_centerDragPos.x, _centerDragPos.y);
+        _center->setValueAtTime(args.time, _centerDragPos.x, _centerDragPos.y);
     } else if (_ms == eMouseStateDraggingOffset) {
         _offset->setValueAtTime(args.time, _offsetDragPos.x, _offsetDragPos.y);
     }
     _effect->endEditBlock();
 
     _ms = eMouseStateIdle;
-    
+
+    _effect->redrawOverlays();
+
     return true;
 }
 

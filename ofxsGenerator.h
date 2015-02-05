@@ -81,6 +81,7 @@ protected:
     OFX::ChoiceParam* _format;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
+    OFX::BooleanParam* _interactive;
 
 public:
 
@@ -101,7 +102,8 @@ public:
         _format = fetchChoiceParam(kParamFormat);
         _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
         _size = fetchDouble2DParam(kParamRectangleInteractSize);
-        assert(_type && _format && _btmLeft && _size);
+        _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
+        assert(_type && _format && _btmLeft && _size && _interactive);
         updateParamsVisibility();
     }
 
@@ -129,6 +131,8 @@ GeneratorPlugin::updateParamsVisibility()
     _size->setIsSecret(!hasSize);
     _btmLeft->setEnabled(hasSize);
     _btmLeft->setIsSecret(!hasSize);
+    _interactive->setEnabled(hasSize);
+    _interactive->setIsSecret(!hasSize);
 }
 
 void
@@ -465,6 +469,14 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
+        page->addChild(*param);
+    }
+
+    // interactive
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRectangleInteractInteractive);
+        param->setLabels(kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel);
+        param->setHint(kParamRectangleInteractInteractiveHint);
         page->addChild(*param);
     }
 } // generatorDescribeInContext

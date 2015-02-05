@@ -51,6 +51,10 @@
 #define kParamRectangleInteractSizeDim1 "width"
 #define kParamRectangleInteractSizeDim2 "height"
 
+#define kParamRectangleInteractInteractive "interactive"
+#define kParamRectangleInteractInteractiveLabel "Interactive Update"
+#define kParamRectangleInteractInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
+
 namespace OFX {
 /**
  * @brief In order to work the plug-in using this interact must have 2 parameters named after
@@ -108,8 +112,10 @@ public:
         addParamToSlaveTo(_btmLeft);
         addParamToSlaveTo(_size);
         assert(_btmLeft && _size);
+        _interactive = effect->fetchBooleanParam(kParamRectangleInteractInteractive);
         _btmLeftDragPos.x = _btmLeftDragPos.y = 0;
         _sizeDrag.x = _sizeDrag.y = 0;
+        _interactiveDrag = false;
     }
 
     // overridden functions from OFX::Interact to do things
@@ -189,6 +195,9 @@ protected:
     }
 
 private:
+    void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
+
+private:
     OFX::ImageEffect* _effect;
     OfxPointD _lastMousePos;
     MouseStateEnum _mouseState;
@@ -197,8 +206,10 @@ private:
     int _modifierStateShift;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
+    OFX::BooleanParam* _interactive;
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
+    bool _interactiveDrag;
 };
 
 class RectangleOverlayDescriptor
