@@ -477,6 +477,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRectangleInteractInteractive);
         param->setLabels(kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel);
         param->setHint(kParamRectangleInteractInteractiveHint);
+        param->setEvaluateOnChange(false);
         page->addChild(*param);
     }
 } // generatorDescribeInContext

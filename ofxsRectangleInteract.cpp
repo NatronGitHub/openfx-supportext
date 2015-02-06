@@ -511,10 +511,12 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 {
     bool didSmthing = false;
 
-    if (_mouseState != eMouseStateIdle && !_interactiveDrag) {
+    if (!_interactiveDrag && _mouseState != eMouseStateIdle) {
+        // no need to redraw overlay since it is slave to the paramaters
         setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
-        _effect->redrawOverlays();
         didSmthing = true;
+    } else if (_mouseState != eMouseStateIdle) {
+        _effect->redrawOverlays();
     }
     _mouseState = eMouseStateIdle;
 
