@@ -448,8 +448,10 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
     } else {
         _btmLeft->getValueAtTime(args.time, x1, y1);
         _size->getValueAtTime(args.time, w, h);
-        if (_interactive) {
+        if (_interactive && _interactive->getIsEnable()) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
+        } else {
+            _interactiveDrag = false;
         }
     }
     double x2 = x1 + w;
