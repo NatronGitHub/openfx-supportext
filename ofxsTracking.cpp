@@ -263,6 +263,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
         param->setDefault(0.5, 0.5);
         param->setIncrement(1.);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
         page->addChild(*param);
     }
@@ -276,6 +277,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(0, 0);
         param->setIncrement(1.);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         page->addChild(*param);
     }
     
@@ -290,6 +292,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
         page->addChild(*param);
     }
@@ -305,6 +308,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDisplayRange(-50., -50., 50., 50.);
         param->setIncrement(1.);
         //innerTopRight->setIsSecret(true);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
         page->addChild(*param);
     }
@@ -320,6 +324,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
         page->addChild(*param);
     }
@@ -335,6 +340,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDisplayRange(-100., -100., 100., 100.);
         param->setIncrement(1.);
         //param->setIsSecret(true);
+        param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
         page->addChild(*param);
     }
