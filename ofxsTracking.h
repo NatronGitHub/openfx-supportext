@@ -132,8 +132,8 @@ protected:
     virtual void trackRange(const OFX::TrackArguments & args) = 0;
     
     // do not need to delete these, the ImageEffect is managing them for us
-    OFX::Clip *dstClip_;
-    OFX::Clip *srcClip_;
+    OFX::Clip *_dstClip;
+    OFX::Clip *_srcClip;
     OFX::Double2DParam* _center;
     OFX::Double2DParam* _offset;
     OFX::Double2DParam* _innerBtmLeft;

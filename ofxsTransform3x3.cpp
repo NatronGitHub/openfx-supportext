@@ -92,9 +92,9 @@ shutterRange(double time,
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked)
     : ImageEffect(handle)
-      , dstClip_(0)
-      , srcClip_(0)
-      , maskClip_(0)
+      , _dstClip(0)
+      , _srcClip(0)
+      , _maskClip(0)
       , _invert(0)
       , _filter(0)
       , _clamp(0)
@@ -107,14 +107,14 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _mix(0)
       , _maskInvert(0)
 {
-    dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
-    assert(dstClip_->getPixelComponents() == ePixelComponentAlpha || dstClip_->getPixelComponents() == ePixelComponentRGB || dstClip_->getPixelComponents() == ePixelComponentRGBA);
-    srcClip_ = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(srcClip_->getPixelComponents() == ePixelComponentAlpha || srcClip_->getPixelComponents() == ePixelComponentRGB || srcClip_->getPixelComponents() == ePixelComponentRGBA);
+    _dstClip = fetchClip(kOfxImageEffectOutputClipName);
+    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha || _dstClip->getPixelComponents() == ePixelComponentRGB || _dstClip->getPixelComponents() == ePixelComponentRGBA);
+    _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
+    assert(_srcClip->getPixelComponents() == ePixelComponentAlpha || _srcClip->getPixelComponents() == ePixelComponentRGB || _srcClip->getPixelComponents() == ePixelComponentRGBA);
     // name of mask clip depends on the context
     if (masked) {
-        maskClip_ = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
-        assert(!maskClip_ || maskClip_->getPixelComponents() == ePixelComponentAlpha);
+        _maskClip = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
+        assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
     // Transform3x3-GENERIC
@@ -149,9 +149,16 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                                     const OFX::RenderArguments &args)
 {
     const double time = args.time;
-    std::auto_ptr<OFX::Image> dst( dstClip_->fetchImage(time) );
+    std::auto_ptr<OFX::Image> dst( _dstClip->fetchImage(time) );
 
     if ( !dst.get() ) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+    OFX::BitDepthEnum         dstBitDepth    = dst->getPixelDepth();
+    OFX::PixelComponentEnum   dstComponents  = dst->getPixelComponents();
+    if (dstBitDepth != _dstClip->getPixelDepth() ||
+        dstComponents != _dstClip->getPixelComponents()) {
+        setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
     if ( (dst->getRenderScale().x != args.renderScale.x) ||
@@ -160,7 +167,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
-    std::auto_ptr<const OFX::Image> src( srcClip_->fetchImage(time) );
+    std::auto_ptr<const OFX::Image> src( _srcClip->fetchImage(time) );
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
@@ -267,10 +274,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     }
 
     // auto ptr for the mask.
-    std::auto_ptr<OFX::Image> mask( ( _masked && (getContext() != OFX::eContextFilter) ) ? maskClip_->fetchImage(time) : 0 );
+    std::auto_ptr<OFX::Image> mask( ( _masked && (getContext() != OFX::eContextFilter) ) ? _maskClip->fetchImage(time) : 0 );
 
     // do we do masking
-    if ( _masked && (getContext() != OFX::eContextFilter) && maskClip_->isConnected() ) {
+    if ( _masked && (getContext() != OFX::eContextFilter) && _maskClip->isConnected() ) {
         bool maskInvert;
         _maskInvert->getValueAtTime(time, maskInvert);
 
@@ -485,7 +492,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
                                           OfxRectD &rod)
 {
     const double time = args.time;
-    const OfxRectD& srcRoD = srcClip_->getRegionOfDefinition(time);
+    const OfxRectD& srcRoD = _srcClip->getRegionOfDefinition(time);
 
     if ( MergeImages2D::rectIsInfinite(srcRoD) ) {
         // return an infinite RoD
@@ -498,7 +505,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     }
 
     double mix = 1.;
-    const bool doMasking = _masked && getContext() != OFX::eContextFilter && maskClip_->isConnected();
+    const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
     if (doMasking) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
@@ -532,10 +539,10 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         bool blackOutside;
         _blackOutside->getValueAtTime(time, blackOutside);
 
-        ofxsFilterExpandRoD(this, dstClip_->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
+        ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
-    if ( doMasking && (mix != 1. || maskClip_->isConnected()) ) {
+    if ( doMasking && (mix != 1. || _maskClip->isConnected()) ) {
         // for masking or mixing, we also need the source image.
         // compute the union of both RODs
         MergeImages2D::rectBoundingBox(rod, srcRoD, &rod);
@@ -559,14 +566,14 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     const OfxRectD roi = args.regionOfInterest;
     OfxRectD srcRoI;
     double mix = 1.;
-    const bool doMasking = _masked && getContext() != OFX::eContextFilter && maskClip_->isConnected();
+    const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
 
     if (doMasking) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
             srcRoI = roi;
-            rois.setRegionOfInterest(*srcClip_, srcRoI);
+            rois.setRegionOfInterest(*_srcClip, srcRoI);
 
             return;
         }
@@ -594,7 +601,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
-    ofxsFilterExpandRoI(roi, srcClip_->getPixelAspectRatio(), args.renderScale, (FilterEnum)filter, doMasking, mix, &srcRoI);
+    ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, (FilterEnum)filter, doMasking, mix, &srcRoI);
 
     if ( MergeImages2D::rectIsInfinite(srcRoI) ) {
         // RoI cannot be infinite.
@@ -622,7 +629,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     }
 
     // no need to set it on mask (the default ROI is OK)
-    rois.setRegionOfInterest(*srcClip_, srcRoI);
+    rois.setRegionOfInterest(*_srcClip, srcRoI);
 } // getRegionsOfInterest
 
 template <class PIX, int nComponents, int maxValue, bool masked>
@@ -729,8 +736,8 @@ void
 Transform3x3Plugin::render(const OFX::RenderArguments &args)
 {
     // instantiate the render code based on the pixel depth of the dst clip
-    OFX::BitDepthEnum dstBitDepth    = dstClip_->getPixelDepth();
-    OFX::PixelComponentEnum dstComponents  = dstClip_->getPixelComponents();
+    OFX::BitDepthEnum dstBitDepth    = _dstClip->getPixelDepth();
+    OFX::PixelComponentEnum dstComponents  = _dstClip->getPixelComponents();
 
     assert(dstComponents == OFX::ePixelComponentAlpha || dstComponents == OFX::ePixelComponentRGB || dstComponents == OFX::ePixelComponentRGBA);
     if (dstComponents == OFX::ePixelComponentRGBA) {
@@ -774,7 +781,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     }
 
     if ( isIdentity(time) ) { // let's call the Transform-specific one first
-        identityClip = srcClip_;
+        identityClip = _srcClip;
         identityTime = time;
 
         return true;
@@ -785,7 +792,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
         double mix;
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
-            identityClip = srcClip_;
+            identityClip = _srcClip;
             identityTime = time;
 
             return true;
@@ -822,12 +829,12 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         return false; // no transform available, render as usual
     }
     OFX::Matrix3x3 transformCanonical = ofxsMatInverse(invtransform, det);
-    double pixelaspectratio = srcClip_->getPixelAspectRatio();
+    double pixelaspectratio = _srcClip->getPixelAspectRatio();
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
     OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
                                       transformCanonical *
                                       OFX::ofxsMatPixelToCanonical(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
-    transformClip = srcClip_;
+    transformClip = _srcClip;
     transformMatrix[0] = transformPixel.a;
     transformMatrix[1] = transformPixel.b;
     transformMatrix[2] = transformPixel.c;

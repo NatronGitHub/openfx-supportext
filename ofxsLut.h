@@ -262,8 +262,8 @@ class Lut
     /// and never change afterwards
     mutable unsigned short toFunc_hipart_to_uint8xx[0x10000];                 /// contains  2^16 = 65536 values between 0-255
     mutable float fromFunc_uint8_to_float[256];                 /// values between 0-1.f
-    mutable bool init_;                 ///< false if the tables are not yet initialized
-    mutable std::auto_ptr<MUTEX> _lock;                 ///< protects init_
+    mutable bool _init;                 ///< false if the tables are not yet initialized
+    mutable std::auto_ptr<MUTEX> _lock;                 ///< protects _init
 
     friend class LutManager;
     ///private constructor, used by LutManager
@@ -271,7 +271,7 @@ class Lut
         fromColorSpaceFunctionV1 fromFunc,
         toColorSpaceFunctionV1 toFunc)
         : LutBase(name,fromFunc,toFunc)
-          , init_(false)
+          , _init(false)
           , _lock( new MUTEX() )
     {
     }
@@ -285,7 +285,7 @@ class Lut
     ///Called by validate()
     void fillTables() const
     {
-        if (init_) {
+        if (_init) {
             return;
         }
         // fill all
@@ -314,13 +314,13 @@ public:
     {
         _lock->lock();
 
-        if (init_) {
+        if (_init) {
             _lock->unlock();
 
             return;
         }
         fillTables();
-        init_ = true;
+        _init = true;
         _lock->unlock();
     }
 
@@ -336,14 +336,14 @@ public:
 
     virtual unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
     {
-        assert(init_);
+        assert(_init);
 
         return Color::uint8xxToChar(toFunc_hipart_to_uint8xx[hipart(v)]);
     }
 
     virtual unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
     {
-        assert(init_);
+        assert(_init);
 
         return toFunc_hipart_to_uint8xx[hipart(v)];
     }
@@ -352,7 +352,7 @@ public:
 
     virtual unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
     {
-        assert(init_);
+        assert(_init);
         // algorithm:
         // - convert to 8 bits -> val8u
         // - convert val8u-1, val8u and val8u+1 to float
@@ -392,14 +392,14 @@ public:
 
     virtual float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const OVERRIDE FINAL WARN_UNUSED_RETURN
     {
-        assert(init_);
+        assert(_init);
 
         return fromFunc_uint8_to_float[v];
     }
 
     virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const OVERRIDE FINAL WARN_UNUSED_RETURN
     {
-        assert(init_);
+        assert(_init);
         // the following is from ImageMagick's quantum.h
         unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
         unsigned char v8u_next = v8u_prev + 1;

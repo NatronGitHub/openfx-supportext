@@ -58,8 +58,8 @@ using namespace OFX;
 
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 : ImageEffect(handle)
-, dstClip_(0)
-, srcClip_(0)
+, _dstClip(0)
+, _srcClip(0)
 , _center(0)
 , _offset(0)
 , _innerBtmLeft(0)
@@ -72,10 +72,10 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 , _forwardButton(0)
 , _instanceName(0)
 {
-    dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
-    assert(dstClip_->getPixelComponents() == ePixelComponentAlpha || dstClip_->getPixelComponents() == ePixelComponentRGB || dstClip_->getPixelComponents() == ePixelComponentRGBA);
-    srcClip_ = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(srcClip_->getPixelComponents() == ePixelComponentAlpha || srcClip_->getPixelComponents() == ePixelComponentRGB || srcClip_->getPixelComponents() == ePixelComponentRGBA);
+    _dstClip = fetchClip(kOfxImageEffectOutputClipName);
+    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha || _dstClip->getPixelComponents() == ePixelComponentRGB || _dstClip->getPixelComponents() == ePixelComponentRGBA);
+    _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
+    assert(_srcClip->getPixelComponents() == ePixelComponentAlpha || _srcClip->getPixelComponents() == ePixelComponentRGB || _srcClip->getPixelComponents() == ePixelComponentRGBA);
     
     
     _center = fetchDouble2DParam(kParamTrackingCenterPoint);
@@ -101,7 +101,7 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
     
-    identityClip = srcClip_;
+    identityClip = _srcClip;
     identityTime = args.time;
     
     return true;

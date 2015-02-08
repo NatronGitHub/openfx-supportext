@@ -88,9 +88,9 @@ class Transform3x3Plugin
 {
 protected:
     // do not need to delete these, the ImageEffect is managing them for us
-    OFX::Clip *dstClip_;
-    OFX::Clip *srcClip_;
-    OFX::Clip *maskClip_;
+    OFX::Clip *_dstClip;
+    OFX::Clip *_srcClip;
+    OFX::Clip *_maskClip;
 
 public:
     /** @brief ctor */
