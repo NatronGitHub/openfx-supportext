@@ -210,8 +210,7 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 }
 
 bool
-GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/*args*/,
-                                       OfxRectD &rod)
+GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 {
     int type_i;
     _type->getValue(type_i);
@@ -238,12 +237,12 @@ GeneratorPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/
         return true;
     }
     case eGeneratorTypeProject: {
-        OfxPointD ext = getProjectExtent();
+        OfxPointD siz = getProjectSize();
         OfxPointD off = getProjectOffset();
         rod.x1 = off.x;
-        rod.x2 = ext.x;
+        rod.x2 = off.x + siz.x;
         rod.y1 = off.y;
-        rod.y2 = ext.y;
+        rod.y2 = off.y + siz.y;
 
         return true;
     }
