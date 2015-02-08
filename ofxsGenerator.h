@@ -45,6 +45,7 @@
 #include "ofxsMacros.h"
 #include "ofxsRectangleInteract.h"
 #include "ofxsFormatResolution.h"
+#include "ofxsSupportPrivate.h"
 
 #define kParamExtent "extent"
 #define kParamExtentLabel "Extent"
@@ -57,6 +58,21 @@
 #define kParamExtentOptionProjectHint "Use the project extent (size and offset)."
 #define kParamExtentOptionDefault "Default"
 #define kParamExtentOptionDefaultHint "Use the default extent (e.g. the source clip extent, if connected)."
+
+#define kParamOutputComponents "outputComponents"
+#define kParamOutputComponentsLabel "Output Components"
+#define kParamOutputComponentsHint "Components in the output"
+#define kParamOutputComponentsOptionRGBA "RGBA"
+#define kParamOutputComponentsOptionRGB "RGB"
+#define kParamOutputComponentsOptionAlpha "Alpha"
+
+#define kParamOutputBitDepth "outputBitDepth"
+#define kParamOutputBitDepthLabel "Output Bit Depth"
+#define kParamOutputBitDepthHint "Bit depth of the output.\n8 bits uses the sRGB colorspace, 16-bits uses Rec.709."
+#define kParamOutputBitDepthOptionByte "Byte (8 bits)"
+#define kParamOutputBitDepthOptionShort "Short (16 bits)"
+#define kParamOutputBitDepthOptionFloat "Float (32 bits)"
+
 
 enum GeneratorTypeEnum
 {
@@ -76,27 +92,38 @@ class GeneratorPlugin
 {
 protected:
     // do not need to delete these, the ImageEffect is managing them for us
-    OFX::Clip *dstClip_;
+    OFX::Clip *_dstClip;
     OFX::ChoiceParam* _type;
     OFX::ChoiceParam* _format;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
+    OFX::ChoiceParam *_outputComponents;
+    OFX::ChoiceParam *_outputBitDepth;
 
 public:
 
     GeneratorPlugin(OfxImageEffectHandle handle)
         : OFX::ImageEffect(handle)
-          , dstClip_(0)
+          , _dstClip(0)
           , _type(0)
           , _format(0)
           , _btmLeft(0)
           , _size(0)
+          , _interactive(0)
+          , _outputComponents(0)
+          , _outputBitDepth(0)
+          , _supportsBytes(0)
+          , _supportsShorts(0)
+          , _supportsFloats(0)
+          , _supportsRGBA(0)
+          , _supportsRGB(0)
+          , _supportsAlpha(0)
     {
-        dstClip_ = fetchClip(kOfxImageEffectOutputClipName);
-        assert( dstClip_ && (dstClip_->getPixelComponents() == OFX::ePixelComponentRGB ||
-                             dstClip_->getPixelComponents() == OFX::ePixelComponentRGBA ||
-                             dstClip_->getPixelComponents() == OFX::ePixelComponentAlpha) );
+        _dstClip = fetchClip(kOfxImageEffectOutputClipName);
+        assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGB ||
+                             _dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
+                             _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
         _type = fetchChoiceParam(kParamExtent);
         _format = fetchChoiceParam(kParamFormat);
@@ -104,7 +131,112 @@ public:
         _size = fetchDouble2DParam(kParamRectangleInteractSize);
         _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
         assert(_type && _format && _btmLeft && _size && _interactive);
+        _outputComponents = fetchChoiceParam(kParamOutputComponents);
+        if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
+            _outputBitDepth = fetchChoiceParam(kParamOutputBitDepth);
+        }
         updateParamsVisibility();
+
+        const OFX::PropertySet &effectProps = getPropertySet();
+
+        int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
+        for(int i = 0; i < numPixelDepths; ++i) {
+            OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
+            bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
+            switch (pixelDepth) {
+                case OFX::eBitDepthUByte:
+                    _supportsBytes  = supported;
+                    break;
+                case OFX::eBitDepthUShort:
+                    _supportsShorts = supported;
+                    break;
+                case OFX::eBitDepthFloat:
+                    _supportsFloats = supported;
+                    break;
+                default:
+                    // other bitdepths are not supported by this plugin
+                    break;
+            }
+        }
+        {
+            int i = 0;
+            if (_supportsFloats) {
+                _outputBitDepthMap[i] = OFX::eBitDepthFloat;
+                ++i;
+            }
+            if (_supportsShorts) {
+                _outputBitDepthMap[i] = OFX::eBitDepthUShort;
+                ++i;
+            }
+            if (_supportsBytes) {
+                _outputBitDepthMap[i] = OFX::eBitDepthUByte;
+                ++i;
+            }
+            _outputBitDepthMap[i] = OFX::eBitDepthNone;
+        }
+
+        const OFX::PropertySet &dstClipProps = _dstClip->getPropertySet();
+
+        int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
+        for(int i = 0; i < numComponents; ++i) {
+            OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+            bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
+            switch (pixelComponents) {
+                case OFX::ePixelComponentRGBA:
+                    _supportsRGBA  = supported;
+                    break;
+                case OFX::ePixelComponentRGB:
+                    _supportsRGB = supported;
+                    break;
+                case OFX::ePixelComponentAlpha:
+                    _supportsAlpha = supported;
+                    break;
+                default:
+                    // other components are not supported by this plugin
+                    break;
+            }
+        }
+        {
+            int i = 0;
+            if (_supportsRGBA) {
+                _outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+                ++i;
+            }
+            if (_supportsRGB) {
+                _outputComponentsMap[i] = OFX::ePixelComponentRGB;
+                ++i;
+            }
+            if (_supportsAlpha) {
+                _outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+                ++i;
+            }
+            _outputComponentsMap[i] = OFX::ePixelComponentNone;
+        }
+    }
+
+protected:
+    void
+    checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
+    {
+        // get the components of _dstClip
+        int outputComponents_i;
+        _outputComponents->getValue(outputComponents_i);
+        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+        if (dstComponents != outputComponents) {
+            setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
+            OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+        }
+
+        if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
+            // get the bitDepth of _dstClip
+            int outputBitDepth_i;
+            _outputBitDepth->getValue(outputBitDepth_i);
+            OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
+            if (dstBitDepth != outputBitDepth) {
+                setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output bit depth");
+                OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+            }
+        }
     }
 
 private:
@@ -113,6 +245,16 @@ private:
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE FINAL;
     void updateParamsVisibility();
+
+private:
+    OFX::PixelComponentEnum _outputComponentsMap[4];
+    OFX::BitDepthEnum _outputBitDepthMap[4];
+    bool _supportsBytes;
+    bool _supportsShorts;
+    bool _supportsFloats;
+    bool _supportsRGBA;
+    bool _supportsRGB;
+    bool _supportsAlpha;
 };
 
 void
@@ -216,7 +358,21 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     }
 
     if (par != 0.) {
-      clipPreferences.setPixelAspectRatio(*dstClip_, par);
+      clipPreferences.setPixelAspectRatio(*_dstClip, par);
+    }
+
+    // set the components of _dstClip
+    int outputComponents_i;
+    _outputComponents->getValue(outputComponents_i);
+    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+    clipPreferences.setClipComponents(*_dstClip, outputComponents);
+
+    if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
+        // set the bitDepth of _dstClip
+        int outputBitDepth_i;
+        _outputBitDepth->getValue(outputBitDepth_i);
+        OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
+        clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
     }
 }
 
@@ -385,6 +541,7 @@ generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
 inline void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
+                           OFX::ClipDescriptor &dstClip,
                            ContextEnum /*context*/)
 {
     {
@@ -480,6 +637,149 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setEvaluateOnChange(false);
         page->addChild(*param);
     }
+
+    bool supportsBytes  = false;
+    bool supportsShorts = false;
+    bool supportsFloats = false;
+    OFX::BitDepthEnum outputBitDepthMap[4];
+
+    const OFX::PropertySet &effectProps = desc.getPropertySet();
+
+    int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
+    for(int i = 0; i < numPixelDepths; ++i) {
+        OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
+        bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
+        switch (pixelDepth) {
+            case OFX::eBitDepthUByte:
+                supportsBytes  = supported;
+                break;
+            case OFX::eBitDepthUShort:
+                supportsShorts = supported;
+                break;
+            case OFX::eBitDepthFloat:
+                supportsFloats = supported;
+                break;
+            default:
+                // other bitdepths are not supported by this plugin
+                break;
+        }
+    }
+    {
+        int i = 0;
+        if (supportsFloats) {
+            outputBitDepthMap[i] = OFX::eBitDepthFloat;
+            ++i;
+        }
+        if (supportsShorts) {
+            outputBitDepthMap[i] = OFX::eBitDepthUShort;
+            ++i;
+        }
+        if (supportsBytes) {
+            outputBitDepthMap[i] = OFX::eBitDepthUByte;
+            ++i;
+        }
+        outputBitDepthMap[i] = OFX::eBitDepthNone;
+    }
+
+    bool supportsRGBA   = false;
+    bool supportsRGB    = false;
+    bool supportsAlpha  = false;
+
+    OFX::PixelComponentEnum outputComponentsMap[4];
+
+    const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
+    int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
+    for(int i = 0; i < numComponents; ++i) {
+        OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+        bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
+        switch (pixelComponents) {
+            case OFX::ePixelComponentRGBA:
+                supportsRGBA  = supported;
+                break;
+            case OFX::ePixelComponentRGB:
+                supportsRGB = supported;
+                break;
+            case OFX::ePixelComponentAlpha:
+                supportsAlpha = supported;
+                break;
+            default:
+                // other components are not supported by this plugin
+                break;
+        }
+    }
+    {
+        int i = 0;
+        if (supportsRGBA) {
+            outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+            ++i;
+        }
+        if (supportsRGB) {
+            outputComponentsMap[i] = OFX::ePixelComponentRGB;
+            ++i;
+        }
+        if (supportsAlpha) {
+            outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+            ++i;
+        }
+        outputComponentsMap[i] = OFX::ePixelComponentNone;
+    }
+
+    // outputComponents
+    {
+        ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamOutputComponents);
+        param->setLabels(kParamOutputComponentsLabel, kParamOutputComponentsLabel, kParamOutputComponentsLabel);
+        param->setHint(kParamOutputComponentsHint);
+        // the following must be in the same order as in describe(), so that the map works
+        if (supportsRGBA) {
+            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
+            param->appendOption(kParamOutputComponentsOptionRGBA);
+        }
+        if (supportsRGB) {
+            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
+            param->appendOption(kParamOutputComponentsOptionRGB);
+        }
+        if (supportsAlpha) {
+            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
+            param->appendOption(kParamOutputComponentsOptionAlpha);
+        }
+        param->setDefault(0);
+        param->setAnimates(false);
+        desc.addClipPreferencesSlaveParam(*param);
+        page->addChild(*param);
+    }
+
+    // ouputBitDepth
+    if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
+        ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamOutputBitDepth);
+        param->setLabels(kParamOutputBitDepthLabel, kParamOutputBitDepthLabel, kParamOutputBitDepthLabel);
+        param->setHint(kParamOutputBitDepthHint);
+        // the following must be in the same order as in describe(), so that the map works
+        if (supportsFloats) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
+            param->appendOption(kParamOutputBitDepthOptionFloat);
+        }
+        if (supportsShorts) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
+            param->appendOption(kParamOutputBitDepthOptionShort);
+        }
+        if (supportsBytes) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
+            param->appendOption(kParamOutputBitDepthOptionByte);
+        }
+        param->setDefault(0);
+        param->setAnimates(false);
+#ifndef DEBUG
+        // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
+        // Disable it for now (in the future, there may be colorspace conversion options)
+        param->setIsSecret(true); // always secret
+#endif
+        desc.addClipPreferencesSlaveParam(*param);
+        page->addChild(*param);
+    }
+
 } // generatorDescribeInContext
 } // OFX
 
