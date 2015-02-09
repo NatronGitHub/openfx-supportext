@@ -126,7 +126,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     const bool keepAR = _modifierStateShift > 0;
     const bool centered = _modifierStateCtrl > 0;
 
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
@@ -185,7 +185,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
         glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
         glEnd();
     }
-    glPopAttrib();
+    //glPopAttrib();
 
     return true;
 } // draw

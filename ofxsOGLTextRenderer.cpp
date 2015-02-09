@@ -161,9 +161,9 @@ OFX::TextRenderer::bitmapString(double x,
                                 const char*string,
                                 TextRenderer::Font font)
 {
-    glPushAttrib(GL_CURRENT_BIT);
+    //glPushAttrib(GL_CURRENT_BIT); // caller is responsible for protecting attribs
     glRasterPos2d(x, y);
     bitmapString(string, font);
-    glPopAttrib();
+    //glPopAttrib();
 }
 

@@ -159,7 +159,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     } else {
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
     glPointSize( (float)pointSize() );
 
     // Draw everything twice
@@ -180,7 +180,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         OFX::TextRenderer::bitmapString( pos.x, pos.y, ParamName::name() );
     }
 
-    glPopAttrib();
+    //glPopAttrib();
 
     return true;
 } // draw

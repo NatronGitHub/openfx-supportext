@@ -434,7 +434,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     }
     
     
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
     //glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
@@ -648,7 +648,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         TextRenderer::bitmapString( xc, yc, name.c_str() );
     }
     
-    glPopAttrib();
+    //glPopAttrib();
     
     return true;
 } // draw
