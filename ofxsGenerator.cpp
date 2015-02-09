@@ -41,8 +41,6 @@
 #include <limits>
 
 #include "ofxsFormatResolution.h"
-#include "ofxsSupportPrivate.h"
-
 
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
