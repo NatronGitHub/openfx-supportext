@@ -399,7 +399,9 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
-    
+    GLfloat modelview[16];
+    glGetFloatv( GL_MODELVIEW_MATRIX, modelview);
+
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
     
     if (_ms != eMouseStateIdle) {
@@ -452,7 +454,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        glTranslated(direction * pscale.x / 256, -direction * pscale.y / 256, 0);
+        glTranslated(direction * pscale.x * modelview[0], -direction * pscale.y * modelview[5], 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
         
         glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);

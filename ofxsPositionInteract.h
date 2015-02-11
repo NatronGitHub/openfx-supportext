@@ -144,6 +144,8 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
+    GLfloat modelview[16];
+    glGetFloatv( GL_MODELVIEW_MATRIX, modelview);
 
     OfxRGBColourF col;
     switch (_state) {
@@ -172,7 +174,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        glTranslated(direction * pscale.x / 256, -direction * pscale.y / 256, 0);
+        glTranslated(direction * pscale.x * modelview[0], -direction * pscale.y * modelview[5], 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
         glColor3f(col.r * l, col.g * l, col.b * l);
