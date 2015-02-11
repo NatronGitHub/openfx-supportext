@@ -86,7 +86,9 @@ public:
           , _interactiveDrag(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
-        _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
+        if (PositionInteractParam::interactiveName()) {
+            _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
+        }
         assert(_position);
         _penPosition.x = _penPosition.y = 0;
     }
@@ -253,7 +255,9 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     if (_state == eMouseStatePoised) {
         _state = eMouseStatePicked;
         _penPosition = args.penPosition;
-        _interactive->getValueAtTime(args.time, _interactiveDrag);
+        if (_interactive) {
+            _interactive->getValueAtTime(args.time, _interactiveDrag);
+        }
         didSomething = true;
     }
 
