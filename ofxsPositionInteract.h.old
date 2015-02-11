@@ -86,7 +86,7 @@ public:
           , _interactiveDrag(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
-        _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
+        _interactive = effect->fetchBooleanParam( PositionInteractParam::name() );
         assert(_position);
         _penPosition.x = _penPosition.y = 0;
     }
