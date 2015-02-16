@@ -51,6 +51,10 @@
 #define kParamTransform3x3MotionBlurLabel "Motion Blur"
 #define kParamTransform3x3MotionBlurHint "Number of motion blur samples. 0 disables motion blur, 1 is a good value. Increasing this slows down rendering."
 
+#define kParamTransform3x3DirectionalBlur "directionalBlur"
+#define kParamTransform3x3DirectionalBlurLabel "Directional Blur Mode"
+#define kParamTransform3x3DirectionalBlurHint "Motion blur is computed from the original image to the transformed image, each parameter being interpolated linearly. The motionBlur parameter must be set to a nonzero value, and the blackOutside parameter may have an important effect on the result."
+
 #define kParamTransform3x3Shutter "shutter"
 #define kParamTransform3x3ShutterLabel "Shutter"
 #define kParamTransform3x3ShutterHint "Controls how long (in frames) the shutter should remain open."
@@ -107,7 +111,7 @@ public:
     };
 
     /** @brief recover a transform matrix from an effect */
-    virtual bool getInverseTransformCanonical(double time, bool invert, OFX::Matrix3x3* invtransform) const = 0;
+    virtual bool getInverseTransformCanonical(double time, double amount, bool invert, OFX::Matrix3x3* invtransform) const = 0;
 
 
     // The following functions override those is OFX::ImageEffect
@@ -159,7 +163,24 @@ private:
                                 OFX::Matrix3x3* invtransform,
                                 size_t invtransformsizealloc) const;
 
-    void transformRegion(const OfxRectD &rectFrom, double time, bool invert, double motionblur, double shutter, int shutteroffset_i, double shuttercustomoffset,const bool isIdentity, OfxRectD *rectTo);
+    size_t getInverseTransformsBlur(double time,
+                                    OfxPointD renderscale,
+                                    bool fielded,
+                                    double pixelaspectratio,
+                                    bool invert,
+                                    OFX::Matrix3x3* invtransform,
+                                    size_t invtransformsizealloc) const;
+
+    void transformRegion(const OfxRectD &rectFrom,
+                         double time,
+                         bool invert,
+                         double motionblur,
+                         bool directionalBlur,
+                         double shutter,
+                         int shutteroffset_i,
+                         double shuttercustomoffset,
+                         bool isIdentity,
+                         OfxRectD *rectTo);
 
 private:
     // Transform3x3-GENERIC
@@ -169,6 +190,7 @@ private:
     OFX::BooleanParam* _clamp;
     OFX::BooleanParam* _blackOutside;
     OFX::DoubleParam* _motionblur;
+    OFX::BooleanParam* _directionalBlur;
     OFX::DoubleParam* _shutter;
     OFX::ChoiceParam* _shutteroffset;
     OFX::DoubleParam* _shuttercustomoffset;
