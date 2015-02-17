@@ -90,7 +90,8 @@ shutterRange(double time,
 }
 
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
-                                       bool masked)
+                                       bool masked,
+                                       bool isDirBlur)
     : ImageEffect(handle)
       , _dstClip(0)
       , _srcClip(0)
@@ -100,6 +101,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _clamp(0)
       , _blackOutside(0)
       , _motionblur(0)
+      , _directionalBlur(0)
       , _shutter(0)
       , _shutteroffset(0)
       , _shuttercustomoffset(0)
@@ -124,22 +126,27 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     _clamp = fetchBooleanParam(kParamFilterClamp);
     _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
     _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur);
-    _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
-    _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
-    _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
-    _shuttercustomoffset = fetchDoubleParam(kParamTransform3x3ShutterCustomOffset);
-    assert(_invert && _filter && _clamp && _blackOutside && _motionblur && _directionalBlur && _shutter && _shutteroffset && _shuttercustomoffset);
+    assert(_invert && _filter && _clamp && _blackOutside && _motionblur);
+    if (!isDirBlur) {
+        _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
+        _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
+        _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
+        _shuttercustomoffset = fetchDoubleParam(kParamTransform3x3ShutterCustomOffset);
+        assert(_directionalBlur && _shutter && _shutteroffset && _shuttercustomoffset);
+    }
     if (masked) {
         _mix = fetchDoubleParam(kParamMix);
         _maskInvert = fetchBooleanParam(kParamMaskInvert);
         assert(_mix && _maskInvert);
     }
 
-    bool directionalBlur;
-    _directionalBlur->getValue(directionalBlur);
-    _shutter->setEnabled(!directionalBlur);
-    _shutteroffset->setEnabled(!directionalBlur);
-    _shuttercustomoffset->setEnabled(!directionalBlur);
+    if (!isDirBlur) {
+        bool directionalBlur;
+        _directionalBlur->getValue(directionalBlur);
+        _shutter->setEnabled(!directionalBlur);
+        _shutteroffset->setEnabled(!directionalBlur);
+        _shuttercustomoffset->setEnabled(!directionalBlur);
+    }
 }
 
 Transform3x3Plugin::~Transform3x3Plugin()
@@ -181,7 +188,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
     double motionblur = 0.;
-    bool directionalBlur = false;
+    bool directionalBlur = (_directionalBlur == 0);
     bool blackOutside = true;
     double mix = 1.;
 
@@ -216,9 +223,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             _mix->getValueAtTime(time, mix);
         }
         _motionblur->getValueAtTime(time, motionblur);
-        _directionalBlur->getValueAtTime(time, directionalBlur);
+        if (_directionalBlur) {
+            _directionalBlur->getValueAtTime(time, directionalBlur);
+        }
         double shutter = 0.;
         if (!directionalBlur) {
+            assert(_shutter);
             _shutter->getValueAtTime(time, shutter);
         }
         const bool fielded = args.fieldToRender == OFX::eFieldLower || args.fieldToRender == OFX::eFieldUpper;
@@ -228,8 +238,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
             int shutteroffset_i;
+            assert(_shutteroffset);
             _shutteroffset->getValueAtTime(time, shutteroffset_i);
             double shuttercustomoffset;
+            assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
             invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
@@ -547,14 +559,16 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     invert = !invert; // only for getRoD
     double motionblur;
     _motionblur->getValueAtTime(time, motionblur);
-    bool directionalBlur;
-    _directionalBlur->getValueAtTime(time, directionalBlur);
-    double shutter;
-    _shutter->getValueAtTime(time, shutter);
-    int shutteroffset_i;
-    _shutteroffset->getValueAtTime(time, shutteroffset_i);
-    double shuttercustomoffset;
-    _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+    bool directionalBlur = (_directionalBlur == 0);
+    double shutter = 0.;
+    int shutteroffset_i = 0;
+    double shuttercustomoffset = 0.;
+    if (_directionalBlur) {
+        _directionalBlur->getValueAtTime(time, directionalBlur);
+        _shutter->getValueAtTime(time, shutter);
+        _shutteroffset->getValueAtTime(time, shutteroffset_i);
+        _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+    }
 
     bool identity = isIdentity(args.time);
 
@@ -612,15 +626,16 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     //invert = !invert; // only for getRoD
     double motionblur;
     _motionblur->getValueAtTime(time, motionblur);
-    bool directionalBlur;
-    _directionalBlur->getValueAtTime(time, directionalBlur);
-    double shutter;
-    _shutter->getValueAtTime(time, shutter);
-    int shutteroffset_i;
-    _shutteroffset->getValueAtTime(time, shutteroffset_i);
-    double shuttercustomoffset;
-    _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
-
+    bool directionalBlur = (_directionalBlur == 0);
+    double shutter = 0.;
+    int shutteroffset_i = 0;
+    double shuttercustomoffset = 0.;
+    if (_directionalBlur) {
+        _directionalBlur->getValueAtTime(time, directionalBlur);
+        _shutter->getValueAtTime(time, shutter);
+        _shutteroffset->getValueAtTime(time, shutteroffset_i);
+        _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+    }
     // set srcRoI from roi
     transformRegion(roi, time, invert, motionblur, directionalBlur, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
@@ -800,11 +815,13 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     const double time = args.time;
 
     // if there is motion blur, we suppose the transform is not identity
-    double motionblur;
+    double motionblur = 0.;
 
     _motionblur->getValueAtTime(time, motionblur);
-    double shutter;
-    _shutter->getValueAtTime(time, shutter);
+    double shutter = 0.;
+    if (_shutter) {
+        _shutter->getValueAtTime(time, shutter);
+    }
     bool hasmotionblur = (shutter != 0. && motionblur != 0.);
     if (hasmotionblur) {
         return false;
@@ -1112,7 +1129,8 @@ void
 OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
                                       OFX::ContextEnum /*context*/,
                                       OFX::PageParamDescriptor* page,
-                                      bool masked)
+                                      bool masked,
+                                      bool isDirBlur)
 {
     // invert
     {
@@ -1126,72 +1144,74 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
     // GENERIC PARAMETERS
     //
 
-    ofxsFilterDescribeParamsInterpolate2D(desc, page);
+    ofxsFilterDescribeParamsInterpolate2D(desc, page, !isDirBlur);
 
     // motionBlur
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
         param->setLabels(kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel);
         param->setHint(kParamTransform3x3MotionBlurHint);
-        param->setDefault(0.);
+        param->setDefault(isDirBlur ? 1. : 0.);
         param->setRange(0., 100.);
         param->setIncrement(0.01);
         param->setDisplayRange(0., 4.);
         page->addChild(*param);
     }
 
-    // directionalBlur
-    {
-        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);
-        param->setLabels(kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel);
-        param->setHint(kParamTransform3x3DirectionalBlurHint);
-        param->setDefault(false);
-        param->setAnimates(true);
-        page->addChild(*param);
-    }
+    if (!isDirBlur) {
+        // directionalBlur
+        {
+            BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);
+            param->setLabels(kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel);
+            param->setHint(kParamTransform3x3DirectionalBlurHint);
+            param->setDefault(false);
+            param->setAnimates(true);
+            page->addChild(*param);
+        }
 
-    // shutter
-    {
-        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3Shutter);
-        param->setLabels(kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel);
-        param->setHint(kParamTransform3x3ShutterHint);
-        param->setDefault(0.5);
-        param->setRange(0., 2.);
-        param->setIncrement(0.01);
-        param->setDisplayRange(0., 2.);
-        page->addChild(*param);
-    }
+        // shutter
+        {
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3Shutter);
+            param->setLabels(kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel);
+            param->setHint(kParamTransform3x3ShutterHint);
+            param->setDefault(0.5);
+            param->setRange(0., 2.);
+            param->setIncrement(0.01);
+            param->setDisplayRange(0., 2.);
+            page->addChild(*param);
+        }
 
-    // shutteroffset
-    {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
-        param->setLabels(kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel);
-        param->setHint(kParamTransform3x3ShutterOffsetHint);
-        assert(param->getNOptions() == eTransform3x3ShutterOffsetCentered);
-        param->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
-        assert(param->getNOptions() == eTransform3x3ShutterOffsetStart);
-        param->appendOption(kParamTransform3x3ShutterOffsetOptionStart, kParamTransform3x3ShutterOffsetOptionStartHint);
-        assert(param->getNOptions() == eTransform3x3ShutterOffsetEnd);
-        param->appendOption(kParamTransform3x3ShutterOffsetOptionEnd, kParamTransform3x3ShutterOffsetOptionEndHint);
-        assert(param->getNOptions() == eTransform3x3ShutterOffsetCustom);
-        param->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
-        param->setAnimates(true);
-        param->setDefault(eTransform3x3ShutterOffsetStart);
-        page->addChild(*param);
-    }
+        // shutteroffset
+        {
+            ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
+            param->setLabels(kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel);
+            param->setHint(kParamTransform3x3ShutterOffsetHint);
+            assert(param->getNOptions() == eTransform3x3ShutterOffsetCentered);
+            param->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
+            assert(param->getNOptions() == eTransform3x3ShutterOffsetStart);
+            param->appendOption(kParamTransform3x3ShutterOffsetOptionStart, kParamTransform3x3ShutterOffsetOptionStartHint);
+            assert(param->getNOptions() == eTransform3x3ShutterOffsetEnd);
+            param->appendOption(kParamTransform3x3ShutterOffsetOptionEnd, kParamTransform3x3ShutterOffsetOptionEndHint);
+            assert(param->getNOptions() == eTransform3x3ShutterOffsetCustom);
+            param->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
+            param->setAnimates(true);
+            param->setDefault(eTransform3x3ShutterOffsetStart);
+            page->addChild(*param);
+        }
 
-    // shuttercustomoffset
-    {
-        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
-        param->setLabels(kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel);
-        param->setHint(kParamTransform3x3ShutterCustomOffsetHint);
-        param->setDefault(0.);
-        param->setRange(-1., 1.);
-        param->setIncrement(0.1);
-        param->setDisplayRange(-1., 1.);
-        page->addChild(*param);
+        // shuttercustomoffset
+        {
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
+            param->setLabels(kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel);
+            param->setHint(kParamTransform3x3ShutterCustomOffsetHint);
+            param->setDefault(0.);
+            param->setRange(-1., 1.);
+            param->setIncrement(0.1);
+            param->setDisplayRange(-1., 1.);
+            page->addChild(*param);
+        }
     }
-
+    
     if (masked) {
         // GENERIC (MASKED)
         //

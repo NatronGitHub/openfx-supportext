@@ -99,7 +99,8 @@ protected:
 public:
     /** @brief ctor */
     Transform3x3Plugin(OfxImageEffectHandle handle,
-                       bool masked);
+                       bool masked,
+                       bool isDirBlur);
 
     /** @brief destructor */
     virtual ~Transform3x3Plugin();
@@ -201,6 +202,6 @@ private:
 
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
-void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked);
+void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, bool isDirBlur = false);
 }
 #endif /* defined(__Misc__Transform3x3__) */

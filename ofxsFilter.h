@@ -91,7 +91,8 @@ enum FilterEnum
 inline
 void
 ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
-                                      OFX::PageParamDescriptor *page)
+                                      OFX::PageParamDescriptor *page,
+                                      bool blackOutsideDefault = true)
 {
     // GENERIC PARAMETERS
     //
@@ -138,7 +139,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterBlackOutside);
         param->setLabels(kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel);
         param->setHint(kParamFilterBlackOutsideHint);
-        param->setDefault(true);
+        param->setDefault(blackOutsideDefault);
         param->setAnimates(true);
         page->addChild(*param);
     }
