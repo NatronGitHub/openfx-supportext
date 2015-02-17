@@ -861,8 +861,17 @@ void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b );
 void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l );
 void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b );
 
-void rgb_to_xyz_rec709( float r, float g, float b, float *h, float *s, float *l );
-void xyz_rec709_to_rgb( float h, float s, float l, float *r, float *g, float *b );
+void rgb_to_hsi( float r, float g, float b, float *h, float *s, float *i );
+void hsi_to_rgb( float h, float s, float i, float *r, float *g, float *b );
+
+void rgb_to_ycbcr( float r, float g, float b, float *y, float *cb, float *cr );
+void ycbcr_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
+
+void rgb_to_yuv( float r, float g, float b, float *y, float *u, float *v );
+void yuv_to_rgb( float y, float u, float v, float *r, float *g, float *b );
+
+void rgb_to_xyz_rec709( float r, float g, float b, float *x, float *y, float *z );
+void xyz_rec709_to_rgb( float x, float y, float z, float *r, float *g, float *b );
 
 void xyz_rec709_to_lab( float x, float y, float z, float *l, float *a, float *b );
 void lab_to_xyz_rec709( float l, float a, float b, float *x, float *y, float *z );

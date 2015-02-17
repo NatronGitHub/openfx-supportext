@@ -35,6 +35,7 @@
  */
 
 #include "ofxsLut.h"
+
 #ifdef _WIN32
 typedef unsigned __int32 uint32_t;
 typedef unsigned char uint8_t;
@@ -42,6 +43,11 @@ typedef unsigned char uint8_t;
 #include <stdint.h>
 #endif
 #include <limits>
+#include <cmath>
+
+#ifndef M_PI
+#define M_PI        3.14159265358979323846264338327950288   /* pi             */
+#endif
 
 namespace OFX {
 namespace Color {
@@ -340,6 +346,140 @@ hsl_to_rgb(float h,
         break;
     }
 } // hsl_to_rgb
+
+//! Convert pixel values from RGB to HSI color spaces.
+void
+rgb_to_hsi( float r,
+            float g,
+            float b,
+            float *h,
+            float *s,
+            float *i )
+{
+    float nR = (r < 0 ? 0 : (r > 1. ? 1. : r));
+    float nG = (g < 0 ? 0 : (g > 1. ? 1. : g));
+    float nB = (b < 0 ? 0 : (b > 1. ? 1. : b));
+    float m =std::min(std::min(nR,nG),nB);
+    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.,std::pow(nR-nG,2)+(nR-nB)*(nG-nB))))*180/M_PI);
+    float sum = nR + nG + nB;
+    if (theta > 0) {
+        *h = (nB<=nG) ? theta : (360 - theta);
+    } else {
+        *h = 0.;
+    }
+    if (sum > 0) {
+        *s = 1 - 3/sum*m;
+    } else {
+        *s = 0.;
+    }
+    *i = sum/3;
+
+}
+
+void
+hsi_to_rgb(float h,
+           float s,
+           float i,
+           float *r,
+           float *g,
+           float *b)
+{
+    float a = i * (1 - s);
+    if (h < 120) {
+        *b = a;
+        *r = (float)(i*(1 + s * std::cos(h * M_PI/180)/std::cos((60-h) * M_PI/180)));
+        *g = 3 * i-(*r +*b);
+    } else if (h < 240) {
+        h -= 120;
+        *r = a;
+        *g = (float)(i * (1 + s * std::cos(h * M_PI/180)/std::cos((60 - h) * M_PI/180)));
+        *b = 3 * i - (*r + *g);
+    } else {
+        h -= 240;
+        *g = a;
+        *b = (float)(i * (1 + s * std::cos(h * M_PI/180)/std::cos((60 - h) * M_PI/180)));
+        *r = 3 * i - (*g + *b);
+    }
+} // hsi_to_rgb
+
+void
+rgb_to_ycbcr(float r,
+             float g,
+             float b,
+             float *y,
+             float *cb,
+             float *cr)
+{
+    /// ref: CImg (BT.601)
+    //*y  = ((255*(66*r + 129*g + 25*b) + 128)/256 + 16)/255;
+    //*cb = ((255*(-38*r - 74*g + 112*b) + 128)/256 + 128)/255,
+    //*cr = ((255*(112*r - 94*g - 18*b) + 128)/256 + 128)/255;
+
+    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
+    *y  = 0.2215 * r + 0.7154 * g + 0.0721 * b;
+    *cb = -0.1145 * r - 0.3855 * g + 0.5000 * b + 128./255;
+    *cr = 0.5016 * r - 0.4556 * g  - 0.0459 * b + 128./255;
+}
+
+void
+ycbcr_to_rgb(float y,
+             float cb,
+             float cr,
+             float *r,
+             float *g,
+             float *b)
+{
+    /// ref: CImg (BT.601)
+    //y  = y * 255 - 16;
+    //cb = cb * 255 - 128;
+    //cr = cr * 255 - 128;
+    //*r = (298 * y + 409 * cr + 128)/256/255;
+    //*g = (298 * y - 100 * cb - 208 * cr + 128)/256/255;
+    //*b = (298 * y + 516 * cb + 128)/256/255;
+
+    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
+    *r = y + 0.0000 * (cb - 128./255) + 1.5701 * (cr - 128./255);
+    *g = y - 0.1870 * (cb - 128./255) - 0.4664 * (cr - 128./255);
+    *b = y - 1.8556 * (cb - 128./255) + 0.0000 * (cr - 128./255);
+} // ycbcr_to_rgb
+
+void
+rgb_to_yuv(float r,
+           float g,
+           float b,
+           float *y,
+           float *u,
+           float *v)
+{
+    /// ref: CImg (BT.601)
+    //*y = 0.299f * r + 0.587f * g + 0.114f * b;
+    //*u = 0.492f * (b - *y);
+    //*v = 0.877f * (r - *y);
+
+    /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
+    *y = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+    *u = -0.09991f * r - 0.33609f * g + 0.436f * b;
+    *v = 0.615f * r - 0.55861f * g - 0.05639f * b;
+}
+
+void
+yuv_to_rgb(float y,
+           float u,
+           float v,
+           float *r,
+           float *g,
+           float *b)
+{
+    /// ref: CImg (BT.601)
+    //*r = y + 1.140f * v,
+    //*g = y - 0.395f * u - 0.581f * v;
+    //*b = y + 2.032f * u;
+
+    /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
+    *r = y + 1.28033f * v,
+    *g = y - 0.21482f * u - 0.38059f * v;
+    *b = y + 2.12798f * u;
+} // yuv_to_rgb
 
 // r,g,b values are from 0 to 1
 // Convert pixel values from RGB to XYZ_709 color spaces.
