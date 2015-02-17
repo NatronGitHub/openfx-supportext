@@ -356,11 +356,11 @@ rgb_to_hsi( float r,
             float *s,
             float *i )
 {
-    float nR = (r < 0 ? 0 : (r > 1. ? 1. : r));
-    float nG = (g < 0 ? 0 : (g > 1. ? 1. : g));
-    float nB = (b < 0 ? 0 : (b > 1. ? 1. : b));
+    float nR = r; //(r < 0 ? 0 : (r > 1. ? 1. : r));
+    float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
+    float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
     float m =std::min(std::min(nR,nG),nB);
-    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.,std::pow(nR-nG,2)+(nR-nB)*(nG-nB))))*180/M_PI);
+    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.f,(nR-nG)*(nR-nG)+(nR-nB)*(nG-nB))))*180/M_PI);
     float sum = nR + nG + nB;
     if (theta > 0) {
         *h = (nB<=nG) ? theta : (360 - theta);
