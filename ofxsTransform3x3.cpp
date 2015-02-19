@@ -127,6 +127,7 @@ shutterRange(double time,
 
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
+                                       bool hasblur,
                                        bool isDirBlur)
     : ImageEffect(handle)
       , _dstClip(0)
@@ -161,8 +162,11 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     _filter = fetchChoiceParam(kParamFilterType);
     _clamp = fetchBooleanParam(kParamFilterClamp);
     _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
-    _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur);
-    assert(_invert && _filter && _clamp && _blackOutside && _motionblur);
+    assert(_invert && _filter && _clamp && _blackOutside);
+    if (hasblur) {
+        _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays doesn't have _motionblur
+        assert(_motionblur);
+    }
     if (!isDirBlur) {
         _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
         _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
@@ -200,6 +204,7 @@ void
 Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                                     const OFX::RenderArguments &args)
 {
+    assert(_motionblur); // this method should be overridden in GodRays
     const double time = args.time;
     std::auto_ptr<OFX::Image> dst( _dstClip->fetchImage(time) );
 
@@ -593,8 +598,10 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     bool invert;
     _invert->getValueAtTime(time, invert);
     invert = !invert; // only for getRoD
-    double motionblur;
-    _motionblur->getValueAtTime(time, motionblur);
+    double motionblur = 1.; // default for GodRays
+    if (_motionblur) {
+        _motionblur->getValueAtTime(time, motionblur);
+    }
     bool directionalBlur = (_directionalBlur == 0);
     double shutter = 0.;
     int shutteroffset_i = 0;
@@ -660,8 +667,10 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     bool invert;
     _invert->getValueAtTime(time, invert);
     //invert = !invert; // only for getRoD
-    double motionblur;
-    _motionblur->getValueAtTime(time, motionblur);
+    double motionblur = 1; // default for GodRays
+    if (_motionblur) {
+        _motionblur->getValueAtTime(time, motionblur);
+    }
     bool directionalBlur = (_directionalBlur == 0);
     double shutter = 0.;
     int shutteroffset_i = 0;
@@ -851,9 +860,10 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     const double time = args.time;
 
     // if there is motion blur, we suppose the transform is not identity
-    double motionblur = 0.;
-
-    _motionblur->getValueAtTime(time, motionblur);
+    double motionblur = 1.; // default for GodRays
+    if (_motionblur) {
+        _motionblur->getValueAtTime(time, motionblur);
+    }
     double shutter = 0.;
     if (_shutter) {
         _shutter->getValueAtTime(time, shutter);

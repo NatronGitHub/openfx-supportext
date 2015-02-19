@@ -100,6 +100,7 @@ public:
     /** @brief ctor */
     Transform3x3Plugin(OfxImageEffectHandle handle,
                        bool masked,
+                       bool hasblur,
                        bool isDirBlur);
 
     /** @brief destructor */
@@ -140,19 +141,7 @@ public:
     // this method must be called by the derived class when the transform was changed
     void changedTransform(const OFX::InstanceChangedArgs &args);
 
-private:
-    /* internal render function */
-    template <class PIX, int nComponents, int maxValue, bool masked>
-    void renderInternalForBitDepth(const OFX::RenderArguments &args);
-
-    template <int nComponents, bool masked>
-    void renderInternal(const OFX::RenderArguments &args, OFX::BitDepthEnum dstBitDepth);
-
-    /* set up and run a processor */
-    void setupAndProcess(Transform3x3ProcessorBase &, const OFX::RenderArguments &args);
-
-    bool isIdentity(double time, OFX::Clip * &identityClip, double &identityTime);
-
+protected:
     size_t getInverseTransforms(double time,
                                 OfxPointD renderscale,
                                 bool fielded,
@@ -171,6 +160,18 @@ private:
                                     bool invert,
                                     OFX::Matrix3x3* invtransform,
                                     size_t invtransformsizealloc) const;
+private:
+    /* internal render function */
+    template <class PIX, int nComponents, int maxValue, bool masked>
+    void renderInternalForBitDepth(const OFX::RenderArguments &args);
+
+    template <int nComponents, bool masked>
+    void renderInternal(const OFX::RenderArguments &args, OFX::BitDepthEnum dstBitDepth);
+
+    /* set up and run a processor (overridden in GodRays) */
+    virtual void setupAndProcess(Transform3x3ProcessorBase &, const OFX::RenderArguments &args);
+
+    bool isIdentity(double time, OFX::Clip * &identityClip, double &identityTime);
 
     void transformRegion(const OfxRectD &rectFrom,
                          double time,
@@ -183,7 +184,7 @@ private:
                          bool isIdentity,
                          OfxRectD *rectTo);
 
-private:
+protected:
     // Transform3x3-GENERIC
     OFX::BooleanParam* _invert;
     // GENERIC
