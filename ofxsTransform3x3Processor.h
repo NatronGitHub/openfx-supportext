@@ -43,6 +43,7 @@
 #include "ofxsMatrix2D.h"
 #include "ofxsFilter.h"
 #include "ofxsMaskMix.h"
+#include "ofxsMacros.h"
 
 // constants for the motion blur algorithm (may depend on _motionblur)
 #define kTransform3x3ProcessorMotionBlurMaxError (_motionblur * maxValue / 1000.)
@@ -135,154 +136,163 @@ public:
     {
     }
 
-    virtual FilterEnum getFilter() const
+private:
+    virtual FilterEnum getFilter() const OVERRIDE FINAL
     {
         return filter;
     }
 
-    virtual bool getClamp() const
+    virtual bool getClamp() const OVERRIDE FINAL
     {
         return clamp;
     }
 
-private:
-    void multiThreadProcessImages(OfxRectI procWindow)
+    void multiThreadProcessImages(OfxRectI procWindow) OVERRIDE
     {
-        float tmpPix[nComponents];
-
         assert(_invtransform);
         if (_motionblur == 0.) { // no motion blur
-            const OFX::Matrix3x3 & H = _invtransform[0];
-            for (int y = procWindow.y1; y < procWindow.y2; ++y) {
-                if ( _effect.abort() ) {
-                    break;
-                }
-
-                PIX *dstPix = (PIX *) _dstImg->getPixelAddress(procWindow.x1, y);
-
-                // the coordinates of the center of the pixel in canonical coordinates
-                // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
-                OFX::Point3D canonicalCoords;
-                canonicalCoords.z = 1;
-                canonicalCoords.y = (double)y + 0.5;
-
-                for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
-                    // NON-GENERIC TRANSFORM
-
-                    // the coordinates of the center of the pixel in canonical coordinates
-                    // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
-                    canonicalCoords.x = (double)x + 0.5;
-                    OFX::Point3D transformed = H * canonicalCoords;
-                    if ( !_srcImg || (transformed.z == 0.) ) {
-                        // the back-transformed point is at infinity
-                        for (int c = 0; c < nComponents; ++c) {
-                            tmpPix[c] = 0;
-                        }
-                    } else {
-                        double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
-                        double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
-
-                        ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
-                    }
-
-                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
-                }
-            }
+            return multiThreadProcessImagesNoBlur(procWindow);
         } else { // motion blur
-            const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
-            const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations
-            // Monte Carlo intergation, starting with at least 13 regularly spaced samples, and then low discrepancy
-            // samples from the van der Corput sequence.
-            for (int y = procWindow.y1; y < procWindow.y2; ++y) {
-                if ( _effect.abort() ) {
-                    break;
-                }
-
-                PIX *dstPix = (PIX *) _dstImg->getPixelAddress(procWindow.x1, y);
-
-                // the coordinates of the center of the pixel in canonical coordinates
-                // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
-                OFX::Point3D canonicalCoords;
-                canonicalCoords.z = 1;
-                canonicalCoords.y = (double)y + 0.5;
-
-                for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
-                    double accPix[nComponents];
-                    double accPix2[nComponents];
-                    double mean[nComponents];
-                    double var[nComponents];
-                    for (int c = 0; c < nComponents; ++c) {
-                        accPix[c] = 0;
-                        accPix2[c] = 0;
-                        mean[c] = 0.;
-                        var[c] = (double)maxValue * maxValue;
-                    }
-                    unsigned int seed = (unsigned int)(hash(hash(x + (unsigned int)(0x10000 * _motionblur)) + y));
-                    int sample = 0;
-                    const int minsamples = kTransform3x3ProcessorMotionBlurMinIterations; // minimum number of samples (at most maxIt/3
-                    int maxsamples = minsamples;
-                    while (sample < maxsamples) {
-                        for (; sample < maxsamples; ++sample, ++seed) {
-                            //int t = 0.5*(van_der_corput<2>(seed1) + van_der_corput<3>(seed2)) * _invtransform.size();
-                            int t;
-                            if (sample < minsamples) {
-                                // distribute the first samples evenly over the interval
-                                t = (int)(( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples);
-                            } else {
-                                t = (int)(van_der_corput<2>(seed) * _invtransformsize);
-                            }
-                            // NON-GENERIC TRANSFORM
-
-                            // the coordinates of the center of the pixel in canonical coordinates
-                            // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
-                            canonicalCoords.x = (double)x + 0.5;
-                            OFX::Point3D transformed = _invtransform[t] * canonicalCoords;
-                            if ( !_srcImg || (transformed.z == 0.) ) {
-                                // the back-transformed point is at infinity
-                                for (int c = 0; c < nComponents; ++c) {
-                                    tmpPix[c] = 0;
-                                }
-                            } else {
-                                double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
-                                double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
-
-                                ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
-                            }
-                            for (int c = 0; c < nComponents; ++c) {
-                                accPix[c] += tmpPix[c];
-                                accPix2[c] += tmpPix[c] * tmpPix[c];
-                            }
-                        }
-                        // compute mean and variance (unbiased)
-                        for (int c = 0; c < nComponents; ++c) {
-                            mean[c] = accPix[c] / sample;
-                            if (sample <= 1) {
-                                var[c] = (double)maxValue * maxValue;
-                            } else {
-                                var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
-                                // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
-                                // Note that this could be improved/optimized further by variance reduction and importance sampling
-                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
-                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
-                                // The threshold is computed by a simple rule of thumb:
-                                // - the error should be less than motionblur*maxValue/100
-                                // - the total number of iterations should be less than motionblur*100
-                                if (maxsamples < maxIt) {
-                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
-                                }
-                            }
-                        }
-                    }
-                    for (int c = 0; c < nComponents; ++c) {
-                        tmpPix[c] = (float)mean[c];
-                    }
-                    ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
-                }
-            }
+            return multiThreadProcessImagesMotionBlur(procWindow);
         }
     } // multiThreadProcessImages
 
 private:
+    void multiThreadProcessImagesNoBlur(const OfxRectI &procWindow)
+    {
+        float tmpPix[nComponents];
+        const OFX::Matrix3x3 & H = _invtransform[0];
+        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+            if ( _effect.abort() ) {
+                break;
+            }
+
+            PIX *dstPix = (PIX *) _dstImg->getPixelAddress(procWindow.x1, y);
+
+            // the coordinates of the center of the pixel in canonical coordinates
+            // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
+            OFX::Point3D canonicalCoords;
+            canonicalCoords.z = 1;
+            canonicalCoords.y = (double)y + 0.5;
+
+            for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
+                // NON-GENERIC TRANSFORM
+
+                // the coordinates of the center of the pixel in canonical coordinates
+                // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
+                canonicalCoords.x = (double)x + 0.5;
+                OFX::Point3D transformed = H * canonicalCoords;
+                if ( !_srcImg || (transformed.z == 0.) ) {
+                    // the back-transformed point is at infinity
+                    for (int c = 0; c < nComponents; ++c) {
+                        tmpPix[c] = 0;
+                    }
+                } else {
+                    double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
+                    double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
+
+                    ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
+                }
+
+                ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
+            }
+        }
+    }
+
+    void multiThreadProcessImagesMotionBlur(const OfxRectI &procWindow)
+    {
+        float tmpPix[nComponents];
+        const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
+        const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations
+        // Monte Carlo intergation, starting with at least 13 regularly spaced samples, and then low discrepancy
+        // samples from the van der Corput sequence.
+        for (int y = procWindow.y1; y < procWindow.y2; ++y) {
+            if ( _effect.abort() ) {
+                break;
+            }
+
+            PIX *dstPix = (PIX *) _dstImg->getPixelAddress(procWindow.x1, y);
+
+            // the coordinates of the center of the pixel in canonical coordinates
+            // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
+            OFX::Point3D canonicalCoords;
+            canonicalCoords.z = 1;
+            canonicalCoords.y = (double)y + 0.5;
+
+            for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
+                double accPix[nComponents];
+                double accPix2[nComponents];
+                double mean[nComponents];
+                double var[nComponents];
+                for (int c = 0; c < nComponents; ++c) {
+                    accPix[c] = 0;
+                    accPix2[c] = 0;
+                    mean[c] = 0.;
+                    var[c] = (double)maxValue * maxValue;
+                }
+                unsigned int seed = (unsigned int)(hash(hash(x + (unsigned int)(0x10000 * _motionblur)) + y));
+                int sample = 0;
+                const int minsamples = kTransform3x3ProcessorMotionBlurMinIterations; // minimum number of samples (at most maxIt/3
+                int maxsamples = minsamples;
+                while (sample < maxsamples) {
+                    for (; sample < maxsamples; ++sample, ++seed) {
+                        //int t = 0.5*(van_der_corput<2>(seed1) + van_der_corput<3>(seed2)) * _invtransform.size();
+                        int t;
+                        if (sample < minsamples) {
+                            // distribute the first samples evenly over the interval
+                            t = (int)(( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples);
+                        } else {
+                            t = (int)(van_der_corput<2>(seed) * _invtransformsize);
+                        }
+                        // NON-GENERIC TRANSFORM
+
+                        // the coordinates of the center of the pixel in canonical coordinates
+                        // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
+                        canonicalCoords.x = (double)x + 0.5;
+                        OFX::Point3D transformed = _invtransform[t] * canonicalCoords;
+                        if ( !_srcImg || (transformed.z == 0.) ) {
+                            // the back-transformed point is at infinity
+                            for (int c = 0; c < nComponents; ++c) {
+                                tmpPix[c] = 0;
+                            }
+                        } else {
+                            double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
+                            double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
+
+                            ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
+                        }
+                        for (int c = 0; c < nComponents; ++c) {
+                            accPix[c] += tmpPix[c];
+                            accPix2[c] += tmpPix[c] * tmpPix[c];
+                        }
+                    }
+                    // compute mean and variance (unbiased)
+                    for (int c = 0; c < nComponents; ++c) {
+                        mean[c] = accPix[c] / sample;
+                        if (sample <= 1) {
+                            var[c] = (double)maxValue * maxValue;
+                        } else {
+                            var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
+                            // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
+                            // Note that this could be improved/optimized further by variance reduction and importance sampling
+                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
+                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
+                            // The threshold is computed by a simple rule of thumb:
+                            // - the error should be less than motionblur*maxValue/100
+                            // - the total number of iterations should be less than motionblur*100
+                            if (maxsamples < maxIt) {
+                                maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                            }
+                        }
+                    }
+                }
+                for (int c = 0; c < nComponents; ++c) {
+                    tmpPix[c] = (float)mean[c];
+                }
+                ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
+            }
+        }
+    }
 
     // Compute the /seed/th element of the van der Corput sequence
     // see http://en.wikipedia.org/wiki/Van_der_Corput_sequence
