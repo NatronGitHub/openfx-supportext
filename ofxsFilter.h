@@ -98,7 +98,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
     //
     OFX::ChoiceParamDescriptor* filter = desc.defineChoiceParam(kParamFilterType);
 
-    filter->setLabels(kParamFilterTypeLabel, kParamFilterTypeLabel, kParamFilterTypeLabel);
+    filter->setLabel(kParamFilterTypeLabel);
     filter->setHint(kParamFilterTypeHint);
     assert(filter->getNOptions() == eFilterImpulse);
     filter->appendOption(kFilterImpulse, kFilterImpulseHint);
@@ -126,7 +126,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
     // clamp
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterClamp);
-        param->setLabels(kParamFilterClampLabel, kParamFilterClampLabel, kParamFilterClampLabel);
+        param->setLabel(kParamFilterClampLabel);
         param->setHint(kParamFilterClampHint);
         param->setDefault(false);
         param->setAnimates(true);
@@ -137,7 +137,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
     // blackOutside
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterBlackOutside);
-        param->setLabels(kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel, kParamFilterBlackOutsideLabel);
+        param->setLabel(kParamFilterBlackOutsideLabel);
         param->setHint(kParamFilterBlackOutsideHint);
         param->setDefault(blackOutsideDefault);
         param->setAnimates(true);

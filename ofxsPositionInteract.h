@@ -65,7 +65,7 @@ namespace OFX {
 
    // The position param should be defined is describeInContext() as follows:
    Double2DParamDescriptor* position = desc.defineDouble2DParam(kMyName);
-   position->setLabels(kMyLabel, kMyLabel, kMyLabel);
+   position->setLabel(kMyLabel, kMyLabel, kMyLabel);
    position->setHint(kMyHint);
    position->setDoubleType(eDoubleTypeXYAbsolute);
    position->setDefaultCoordinateSystem(eCoordinatesNormalised);

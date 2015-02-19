@@ -78,7 +78,7 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
 {
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamPremult);
-        param->setLabels(kParamPremultLabel, kParamPremultLabel, kParamPremultLabel);
+        param->setLabel(kParamPremultLabel);
         param->setHint(kParamPremultHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
         page->addChild(*param);
@@ -86,7 +86,7 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
     {
         // not yet implemented, for future use (whenever deep compositing is supported)
         OFX::ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamPremultChannel);
-        param->setLabels(kParamPremultChannelLabel, kParamPremultChannelLabel, kParamPremultChannelLabel);
+        param->setLabel(kParamPremultChannelLabel);
         param->setHint(kParamPremultChannelHint);
         param->appendOption(kParamPremultChannelR, kParamPremultChannelRHint);
         param->appendOption(kParamPremultChannelG, kParamPremultChannelGHint);
@@ -105,7 +105,7 @@ ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
 {
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
-        param->setLabels(kParamMaskInvertLabel, kParamMaskInvertLabel, kParamMaskInvertLabel);
+        param->setLabel(kParamMaskInvertLabel);
         param->setHint(kParamMaskInvertHint);
         page->addChild(*param);
     }
@@ -120,7 +120,7 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
     //
     {
         OFX::DoubleParamDescriptor* param = desc.defineDoubleParam(kParamMix);
-        param->setLabels(kParamMixLabel, kParamMixLabel, kParamMixLabel);
+        param->setLabel(kParamMixLabel);
         param->setHint(kParamMixHint);
         param->setDefault(1.);
         param->setRange(0.,1.);

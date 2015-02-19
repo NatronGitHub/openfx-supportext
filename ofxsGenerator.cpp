@@ -444,7 +444,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
 {
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
-        param->setLabels(kParamGeneratorExtentLabel, kParamGeneratorExtentLabel, kParamGeneratorExtentLabel);
+        param->setLabel(kParamGeneratorExtentLabel);
         param->setHint(kParamGeneratorExtentHint);
         assert(param->getNOptions() == eGeneratorTypeFormat);
         param->appendOption(kParamGeneratorExtentOptionFormat, kParamGeneratorExtentOptionFormatHint);
@@ -460,7 +460,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     }
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorFormat);
-        param->setLabels(kParamGeneratorFormatLabel, kParamGeneratorFormatLabel, kParamGeneratorFormatLabel);
+        param->setLabel(kParamGeneratorFormatLabel);
         param->setAnimates(false);
         assert(param->getNOptions() == eParamFormatPCVideo);
         param->appendOption(kParamFormatPCVideoLabel);
@@ -502,7 +502,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     // btmLeft
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractBtmLeft);
-        param->setLabels(kParamRectangleInteractBtmLeftLabel,kParamRectangleInteractBtmLeftLabel,kParamRectangleInteractBtmLeftLabel);
+        param->setLabel(kParamRectangleInteractBtmLeftLabel);
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(0., 0.);
@@ -515,7 +515,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     // size
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractSize);
-        param->setLabels(kParamRectangleInteractSizeLabel, kParamRectangleInteractSizeLabel, kParamRectangleInteractSizeLabel);
+        param->setLabel(kParamRectangleInteractSizeLabel);
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(1., 1.);
@@ -530,7 +530,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     // interactive
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRectangleInteractInteractive);
-        param->setLabels(kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel, kParamRectangleInteractInteractiveLabel);
+        param->setLabel(kParamRectangleInteractInteractiveLabel);
         param->setHint(kParamRectangleInteractInteractiveHint);
         param->setEvaluateOnChange(false);
         page->addChild(*param);
@@ -625,7 +625,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     // outputComponents
     {
         ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
-        param->setLabels(kParamGeneratorOutputComponentsLabel, kParamGeneratorOutputComponentsLabel, kParamGeneratorOutputComponentsLabel);
+        param->setLabel(kParamGeneratorOutputComponentsLabel);
         param->setHint(kParamGeneratorOutputComponentsHint);
         // the following must be in the same order as in describe(), so that the map works
         if (supportsRGBA) {
@@ -649,7 +649,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     // ouputBitDepth
     if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
         ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
-        param->setLabels(kParamGeneratorOutputBitDepthLabel, kParamGeneratorOutputBitDepthLabel, kParamGeneratorOutputBitDepthLabel);
+        param->setLabel(kParamGeneratorOutputBitDepthLabel);
         param->setHint(kParamGeneratorOutputBitDepthHint);
         // the following must be in the same order as in describe(), so that the map works
         if (supportsFloats) {

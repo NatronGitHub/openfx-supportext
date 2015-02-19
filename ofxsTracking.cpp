@@ -244,7 +244,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // name
     {
         OFX::StringParamDescriptor* param = desc.defineStringParam(kParamTrackingLabel);
-        param->setLabels(kParamTrackingLabelLabel, kParamTrackingLabelLabel, kParamTrackingLabelLabel);
+        param->setLabel(kParamTrackingLabelLabel);
         param->setHint(kParamTrackingLabelHint);
         param->setDefault(kParamTrackingLabelDefault);
         ////param->setIsSecret(false); // it has to be user-editable
@@ -257,7 +257,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // center
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingCenterPoint);
-        param->setLabels(kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel, kParamTrackingCenterPointLabel);
+        param->setLabel(kParamTrackingCenterPointLabel);
         param->setHint(kParamTrackingCenterPointHint);
         param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
@@ -271,7 +271,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // offset
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingOffset);
-        param->setLabels(kParamTrackingOffsetLabel, kParamTrackingOffsetLabel, kParamTrackingOffsetLabel);
+        param->setLabel(kParamTrackingOffsetLabel);
         param->setHint(kParamTrackingOffsetHint);
         param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
@@ -284,7 +284,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // innerBtmLeft
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingPatternBoxBtmLeft);
-        param->setLabels(kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel, kParamTrackingPatternBoxBtmLeftLabel);
+        param->setLabel(kParamTrackingPatternBoxBtmLeftLabel);
         param->setHint(kParamTrackingPatternBoxBtmLeftHint);
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
@@ -300,7 +300,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // innerTopRight
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingPatternBoxTopRight);
-        param->setLabels(kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel, kParamTrackingPatternBoxTopRightLabel);
+        param->setLabel(kParamTrackingPatternBoxTopRightLabel);
         param->setHint(kParamTrackingPatternBoxTopRightHint);
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
@@ -316,7 +316,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // outerBtmLeft
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingSearchBoxBtmLeft);
-        param->setLabels(kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel, kParamTrackingSearchBoxBtmLeftLabel);
+        param->setLabel(kParamTrackingSearchBoxBtmLeftLabel);
         param->setHint(kParamTrackingSearchBoxBtmLeftHint);
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
@@ -332,7 +332,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // outerTopRight
     {
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingSearchBoxTopRight);
-        param->setLabels(kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel, kParamTrackingSearchBoxTopRightLabel);
+        param->setLabel(kParamTrackingSearchBoxTopRightLabel);
         param->setHint(kParamTrackingSearchBoxBtmLeftHint);
         param->setDoubleType(eDoubleTypeXY);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
@@ -348,7 +348,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // backward
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
-        param->setLabels(kParamTrackingBackwardLabel, kParamTrackingBackwardLabel,kParamTrackingBackwardLabel);
+        param->setLabel(kParamTrackingBackwardLabel);
         param->setHint(kParamTrackingBackwardHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
         page->addChild(*param);
@@ -357,7 +357,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // prev
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
-        param->setLabels(kParamTrackingPreviousLabel, kParamTrackingPreviousLabel, kParamTrackingPreviousLabel);
+        param->setLabel(kParamTrackingPreviousLabel);
         param->setHint(kParamTrackingPreviousHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
         page->addChild(*param);
@@ -366,7 +366,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // next
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
-        param->setLabels(kParamTrackingNextLabel, kParamTrackingNextLabel, kParamTrackingNextLabel);
+        param->setLabel(kParamTrackingNextLabel);
         param->setHint(kParamTrackingNextHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
         page->addChild(*param);
@@ -375,7 +375,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
     // forward
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
-        param->setLabels(kParamTrackingForwardLabel, kParamTrackingForwardLabel, kParamTrackingForwardLabel);
+        param->setLabel(kParamTrackingForwardLabel);
         param->setHint(kParamTrackingForwardHint);
         page->addChild(*param);
     }

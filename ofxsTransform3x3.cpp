@@ -1135,7 +1135,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
     // invert
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3Invert);
-        param->setLabels(kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel, kParamTransform3x3InvertLabel);
+        param->setLabel(kParamTransform3x3InvertLabel);
         param->setHint(kParamTransform3x3InvertHint);
         param->setDefault(false);
         param->setAnimates(true);
@@ -1149,7 +1149,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
     // motionBlur
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
-        param->setLabels(kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel, kParamTransform3x3MotionBlurLabel);
+        param->setLabel(kParamTransform3x3MotionBlurLabel);
         param->setHint(kParamTransform3x3MotionBlurHint);
         param->setDefault(isDirBlur ? 1. : 0.);
         param->setRange(0., 100.);
@@ -1162,7 +1162,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         // directionalBlur
         {
             BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);
-            param->setLabels(kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel, kParamTransform3x3DirectionalBlurLabel);
+            param->setLabel(kParamTransform3x3DirectionalBlurLabel);
             param->setHint(kParamTransform3x3DirectionalBlurHint);
             param->setDefault(false);
             param->setAnimates(true);
@@ -1172,7 +1172,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         // shutter
         {
             DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3Shutter);
-            param->setLabels(kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel, kParamTransform3x3ShutterLabel);
+            param->setLabel(kParamTransform3x3ShutterLabel);
             param->setHint(kParamTransform3x3ShutterHint);
             param->setDefault(0.5);
             param->setRange(0., 2.);
@@ -1184,7 +1184,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         // shutteroffset
         {
             ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
-            param->setLabels(kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel, kParamTransform3x3ShutterOffsetLabel);
+            param->setLabel(kParamTransform3x3ShutterOffsetLabel);
             param->setHint(kParamTransform3x3ShutterOffsetHint);
             assert(param->getNOptions() == eTransform3x3ShutterOffsetCentered);
             param->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
@@ -1202,7 +1202,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         // shuttercustomoffset
         {
             DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
-            param->setLabels(kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel, kParamTransform3x3ShutterCustomOffsetLabel);
+            param->setLabel(kParamTransform3x3ShutterCustomOffsetLabel);
             param->setHint(kParamTransform3x3ShutterCustomOffsetHint);
             param->setDefault(0.);
             param->setRange(-1., 1.);
