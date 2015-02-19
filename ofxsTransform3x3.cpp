@@ -35,11 +35,47 @@
    78153 Le Chesnay Cedex - France
  */
 
+/*
+ Although the indications from nuke/fnOfxExtensions.h were followed, and the
+ kFnOfxImageEffectActionGetTransform action was implemented in the Support
+ library, that action is never called by the Nuke host.
+
+ The extension was implemented as specified in Natron and in the Support library.
+ 
+ @see gHostDescription.canTransform, ImageEffectDescriptor::setCanTransform(),
+ and ImageEffect::getTransform().
+
+ There is also an open question about how the last plugin in a transform chain
+ may get the concatenated transform from upstream, the untransformed source image,
+ concatenate its own transform and apply the resulting transform in its render
+ action.
+ 
+ Our solution is to have kFnOfxImageEffectCanTransform set on source clips for which
+ a transform can be attached to fetched images.
+ @see ClipDescriptor::setCanTransform().
+
+ In this case, images fetched from the host may have a kFnOfxPropMatrix2D attached,
+ which must be combined with the transformation applied by the effect (which
+ may be any deformation function, not only a homography).
+ @see ImageBase::getTransform() and ImageBase::getTransformIsIdentity
+ */
+// Uncomment the following to enable the experimental host transform code.
+#define ENABLE_HOST_TRANSFORM
+
 #include <memory>
 
 #include "ofxsTransform3x3.h"
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsMerging.h"
+
+
+#ifndef ENABLE_HOST_TRANSFORM
+#undef OFX_EXTENSIONS_NUKE // host transform is the only nuke extension used
+#endif
+
+#ifdef OFX_EXTENSIONS_NUKE
+#include "nuke/fnOfxExtensions.h"
+#endif
 
 #define kSupportsTiles 1
 #define kSupportsMultiResolution 1
