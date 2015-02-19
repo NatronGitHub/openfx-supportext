@@ -143,7 +143,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 {
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
-    const OfxPointD& pscale = args.pixelScale;
+    //const OfxPointD& pscale = args.pixelScale;
     GLdouble projection[16];
     glGetDoublev( GL_PROJECTION_MATRIX, projection);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
