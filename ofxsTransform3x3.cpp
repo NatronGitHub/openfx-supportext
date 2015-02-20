@@ -901,6 +901,10 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
                                  Clip * &transformClip,
                                  double transformMatrix[9])
 {
+    assert(!_masked); // this should never get called for masked plugins, since they don't advertise that they can transform
+    if (_masked) {
+        return false;
+    }
     const double time = args.time;
     bool invert;
 
