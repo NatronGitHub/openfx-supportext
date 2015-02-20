@@ -1014,7 +1014,8 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
     OFX::Matrix3x3 invtransformCanonical;
 
     for (size_t i = 0; i < invtransformsize; ++i) {
-        double amount = 1. - i / (double)(invtransformsizealloc - 1);
+        //double amount = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
+        double amount = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
         bool success = getInverseTransformCanonical(time, amount, invert, &invtransformCanonical); // virtual function
         if (success) {
             invtransform[i] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
