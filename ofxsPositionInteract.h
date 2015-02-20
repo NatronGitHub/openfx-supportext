@@ -84,12 +84,14 @@ public:
           , _position(0)
           , _interactive(0)
           , _interactiveDrag(false)
+          , _hasNativeHostPositionHandle(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
         if (PositionInteractParam::interactiveName()) {
             _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
         }
         assert(_position);
+        _hasNativeHostPositionHandle = _position->getHostHasNativeOverlayHandle();
         _penPosition.x = _penPosition.y = 0;
     }
 
@@ -113,7 +115,8 @@ private:
     OFX::BooleanParam* _interactive;
     OfxPointD _penPosition;
     bool _interactiveDrag;
-
+    bool _hasNativeHostPositionHandle;
+    
     double pointSize() const
     {
         return 5;
@@ -141,6 +144,10 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 {
+    if (_hasNativeHostPositionHandle) {
+        return false;
+    }
+    
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     //const OfxPointD& pscale = args.pixelScale;
@@ -197,6 +204,10 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 {
+    if (_hasNativeHostPositionHandle) {
+        return false;
+    }
+    
     const OfxPointD& pscale = args.pixelScale;
     OfxPointD pos;
     if (_state == eMouseStatePicked) {
@@ -252,6 +263,10 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
 {
+    if (_hasNativeHostPositionHandle) {
+        return false;
+    }
+    
     if (!_position) {
         return false;
     }
@@ -277,6 +292,11 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
 {
+    
+    if (_hasNativeHostPositionHandle) {
+        return false;
+    }
+    
     if (!_position) {
         return false;
     }
