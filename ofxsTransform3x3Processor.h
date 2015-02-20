@@ -204,7 +204,7 @@ private:
         float tmpPix[nComponents];
         const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
         const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations
-        // Monte Carlo intergation, starting with at least 13 regularly spaced samples, and then low discrepancy
+        // Monte Carlo integration, starting with at least 13 regularly spaced samples, and then low discrepancy
         // samples from the van der Corput sequence.
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
             if ( _effect.abort() ) {

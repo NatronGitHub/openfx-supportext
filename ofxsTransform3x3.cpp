@@ -127,7 +127,6 @@ shutterRange(double time,
 
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
-                                       bool hasblur,
                                        bool isDirBlur)
     : ImageEffect(handle)
       , _dstClip(0)
@@ -163,8 +162,8 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     _clamp = fetchBooleanParam(kParamFilterClamp);
     _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
     assert(_invert && _filter && _clamp && _blackOutside);
-    if (hasblur) {
-        _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays doesn't have _motionblur
+    if (paramExists(kParamTransform3x3MotionBlur)) {
+        _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
         assert(_motionblur);
     }
     if (!isDirBlur) {

@@ -100,7 +100,6 @@ public:
     /** @brief ctor */
     Transform3x3Plugin(OfxImageEffectHandle handle,
                        bool masked,
-                       bool hasblur,
                        bool isDirBlur);
 
     /** @brief destructor */
@@ -125,7 +124,7 @@ public:
     virtual void getRegionsOfInterest(const OFX::RegionsOfInterestArguments &args, OFX::RegionOfInterestSetter &rois) OVERRIDE FINAL;
 
     /* Override the render */
-    virtual void render(const OFX::RenderArguments &args) OVERRIDE FINAL;
+    virtual void render(const OFX::RenderArguments &args) OVERRIDE;
 
     // override isIdentity
     virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
@@ -168,8 +167,8 @@ private:
     template <int nComponents, bool masked>
     void renderInternal(const OFX::RenderArguments &args, OFX::BitDepthEnum dstBitDepth);
 
-    /* set up and run a processor (overridden in GodRays) */
-    virtual void setupAndProcess(Transform3x3ProcessorBase &, const OFX::RenderArguments &args);
+    /* set up and run a processor */
+    void setupAndProcess(Transform3x3ProcessorBase &, const OFX::RenderArguments &args);
 
     bool isIdentity(double time, OFX::Clip * &identityClip, double &identityTime);
 
