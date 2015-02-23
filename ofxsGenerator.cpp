@@ -461,6 +461,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
         param->setAnimates(false);
         param->setDefault(3);
+        desc.addClipPreferencesSlaveParam(*param);
         page->addChild(*param);
     }
     {
