@@ -270,7 +270,12 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     }
     case eGeneratorTypeProject:
     case eGeneratorTypeDefault: {
-        par = getProjectPixelAspectRatio();
+        /// this should be the defalut value given by the host, no need to set it.
+        /// @see Instance::setupClipPreferencesArgs() in HostSupport, it should have
+        /// the line:
+        /// double inputPar = getProjectPixelAspectRatio();
+
+        //par = getProjectPixelAspectRatio();
         break;
     }
     case eGeneratorTypeSize:
