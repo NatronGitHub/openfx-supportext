@@ -501,6 +501,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamFormatSquare2kLabel);
         param->setDefault(0);
         param->setHint(kParamGeneratorFormatHint);
+        desc.addClipPreferencesSlaveParam(*param);
         page->addChild(*param);
     }
 
