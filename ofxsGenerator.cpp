@@ -523,7 +523,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractSize);
         param->setLabel(kParamRectangleInteractSizeLabel);
-        param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
+        param->setDoubleType(OFX::eDoubleTypeXY);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(1., 1.);
         param->setIncrement(1.);
