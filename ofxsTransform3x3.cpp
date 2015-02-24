@@ -223,7 +223,8 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
-    std::auto_ptr<const OFX::Image> src( _srcClip->fetchImage(time) );
+    std::auto_ptr<const OFX::Image> src((_srcClip && _srcClip->isConnected()) ?
+                                        _srcClip->fetchImage(args.time) : 0);
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
@@ -342,7 +343,8 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     }
 
     // auto ptr for the mask.
-    std::auto_ptr<OFX::Image> mask( ( _masked && (getContext() != OFX::eContextFilter) ) ? _maskClip->fetchImage(time) : 0 );
+    std::auto_ptr<const OFX::Image> mask((_masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected()) ?
+                                         _maskClip->fetchImage(time) : 0);
 
     // do we do masking
     if ( _masked && (getContext() != OFX::eContextFilter) && _maskClip->isConnected() ) {
