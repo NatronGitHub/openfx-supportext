@@ -117,33 +117,33 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
     
     OFX::TrackArguments trackArgs;
     trackArgs.renderScale = args.renderScale;
-    if (paramName == kParamTrackingBackward) {
+    if (paramName == kParamTrackingBackward && _srcClip && _srcClip->isConnected()) {
         trackArgs.first = args.time;
-        double first,last;
-        timeLineGetBounds(first, last);
-        trackArgs.last = first + 1;
+        //double first,last; timeLineGetBounds(first, last); trackArgs.last = first + 1;// wrong: we want the srcClip range
+        OfxRangeD range = _srcClip->getFrameRange();
+        trackArgs.last = range.min + 1;
         if (trackArgs.last <= trackArgs.first) {
             trackArgs.forward = false;
             trackArgs.reason = args.reason;
             trackRange(trackArgs);
         }
-    } else if (paramName == kParamTrackingPrevious) {
+    } else if (paramName == kParamTrackingPrevious && _srcClip && _srcClip->isConnected()) {
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = false;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kParamTrackingNext) {
+    } else if (paramName == kParamTrackingNext && _srcClip && _srcClip->isConnected()) {
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = true;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kParamTrackingForward) {
+    } else if (paramName == kParamTrackingForward && _srcClip && _srcClip->isConnected()) {
         trackArgs.first = args.time;
-        double first,last;
-        timeLineGetBounds(first, last);
-        trackArgs.last = last - 1;
+        //double first,last; timeLineGetBounds(first, last); trackArgs.last = last - 1; // wrong: we want the srcClip range
+        OfxRangeD range = _srcClip->getFrameRange();
+        trackArgs.last = range.max - 1;
         if (trackArgs.last >= trackArgs.first) {
             trackArgs.forward = true;
             trackArgs.reason = args.reason;
