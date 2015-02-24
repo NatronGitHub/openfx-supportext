@@ -347,7 +347,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                                          _maskClip->fetchImage(time) : 0);
 
     // do we do masking
-    if ( _masked && (getContext() != OFX::eContextFilter) && _maskClip->isConnected() ) {
+    if ( _masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected() ) {
         bool maskInvert;
         _maskInvert->getValueAtTime(time, maskInvert);
 
