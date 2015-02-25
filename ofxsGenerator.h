@@ -102,6 +102,7 @@ public:
 protected:
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
     bool getRegionOfDefinition(OfxRectD &rod);
+    virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
 
 private:
 
@@ -109,7 +110,6 @@ private:
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/*args*/, OfxRectD &rod) OVERRIDE FINAL {
         return getRegionOfDefinition(rod);
     }
-    virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE FINAL;
     void updateParamsVisibility();
 
 private:
