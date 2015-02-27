@@ -703,7 +703,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     // set srcRoI from roi
     transformRegion(roi, time, invert, motionblur, directionalBlur, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
-    int filter = eFilterBilinear;
+    int filter = eFilterImpulse;
     if (_filter) {
         _filter->getValueAtTime(time, filter);
     }
@@ -750,7 +750,7 @@ void
 Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 {
     const double time = args.time;
-    int filter = eFilterBilinear;
+    int filter = eFilterImpulse;
     if (_filter) {
         _filter->getValueAtTime(time, filter);
     }
