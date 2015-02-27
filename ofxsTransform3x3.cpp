@@ -266,8 +266,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         if (_blackOutside) {
             _blackOutside->getValueAtTime(time, blackOutside);
         }
-        if (_masked) {
-            assert(_mix);
+        if (_masked && _mix) {
             _mix->getValueAtTime(time, mix);
         }
         if (_motionblur) {
@@ -358,10 +357,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
     // do we do masking
     if ( _masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected() ) {
-        bool maskInvert;
-        assert(_maskInvert);
-        _maskInvert->getValueAtTime(time, maskInvert);
-
+        bool maskInvert = false;
+        if (_maskInvert) {
+            _maskInvert->getValueAtTime(time, maskInvert);
+        }
         // say we are masking
         processor.doMasking(true);
 
@@ -597,8 +596,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
 
     double mix = 1.;
     const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
-    if (doMasking) {
-        assert(_mix);
+    if (doMasking && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
@@ -917,8 +915,10 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
 
     // GENERIC
     if (_masked) {
-        double mix;
-        _mix->getValueAtTime(time, mix);
+        double mix = 1.;
+        if (_mix) {
+            _mix->getValueAtTime(time, mix);
+        }
         if (mix == 0.) {
             identityClip = _srcClip;
             identityTime = time;
