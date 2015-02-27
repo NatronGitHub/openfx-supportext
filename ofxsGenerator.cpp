@@ -462,7 +462,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setAnimates(false);
         param->setDefault(3);
         desc.addClipPreferencesSlaveParam(*param);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorFormat);
@@ -503,7 +505,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDefault(0);
         param->setHint(kParamGeneratorFormatHint);
         desc.addClipPreferencesSlaveParam(*param);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     // btmLeft
@@ -516,7 +520,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setIncrement(1.);
         param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     // size
@@ -531,7 +537,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     // interactive
@@ -540,7 +548,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setLabel(kParamRectangleInteractInteractiveLabel);
         param->setHint(kParamRectangleInteractInteractiveHint);
         param->setEvaluateOnChange(false);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     bool supportsBytes  = false;
@@ -650,7 +660,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDefault(0);
         param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     // ouputBitDepth
@@ -682,7 +694,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setIsSecret(true); // always secret
 #endif
         desc.addClipPreferencesSlaveParam(*param);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
 } // generatorDescribeInContext

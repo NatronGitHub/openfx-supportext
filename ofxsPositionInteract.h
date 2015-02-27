@@ -70,7 +70,9 @@ namespace OFX {
    position->setDoubleType(eDoubleTypeXYAbsolute);
    position->setDefaultCoordinateSystem(eCoordinatesNormalised);
    position->setDefault(0.5, 0.5);
-   page->addChild(*position);
+   if (page) {
+       page->addChild(*position);
+   }
  */
 template<typename PositionInteractParam>
 class PositionInteract
@@ -301,7 +303,7 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
         return false;
     }
     bool didSomething = false;
-    if (_state == eMouseStatePicked) {
+    if (_state == eMouseStatePicked && !_interactiveDrag) {
         const OfxPointD& pscale = args.pixelScale;
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         _state = eMouseStatePoised;

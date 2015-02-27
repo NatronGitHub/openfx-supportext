@@ -1191,7 +1191,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         param->setHint(kParamTransform3x3InvertHint);
         param->setDefault(false);
         param->setAnimates(true);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     // GENERIC PARAMETERS
     //
@@ -1207,7 +1209,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         param->setRange(0., 100.);
         param->setIncrement(0.01);
         param->setDisplayRange(0., 4.);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     if (!isDirBlur) {

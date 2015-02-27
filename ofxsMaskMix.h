@@ -81,7 +81,9 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamPremultLabel);
         param->setHint(kParamPremultHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     {
         // not yet implemented, for future use (whenever deep compositing is supported)
@@ -94,7 +96,9 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->appendOption(kParamPremultChannelA, kParamPremultChannelAHint);
         param->setDefault(3); // alpha
         param->setIsSecret(true); // not yet implemented
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 }
 
@@ -107,7 +111,9 @@ ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
         param->setLabel(kParamMaskInvertLabel);
         param->setHint(kParamMaskInvertHint);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 }
 
@@ -126,7 +132,9 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setRange(0.,1.);
         param->setIncrement(0.01);
         param->setDisplayRange(0.,1.);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     ofxsMaskDescribeParams(desc, page);
 }

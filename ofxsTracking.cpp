@@ -251,7 +251,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         ////param->setEnabled(true); // it has to be user-editable
         ////param->setIsPersistant(true); // it has to be saved with the instance parameters
         param->setEvaluateOnChange(false); // it is meaningless
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // center
@@ -265,7 +267,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setIncrement(1.);
         param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // offset
@@ -278,7 +282,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setDefault(0, 0);
         param->setIncrement(1.);
         param->setEvaluateOnChange(false); // The tracker is identity always
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // innerBtmLeft
@@ -294,7 +300,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         //param->setIsSecret(true);
         param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // innerTopRight
@@ -310,7 +318,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         //innerTopRight->setIsSecret(true);
         param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // outerBtmLeft
@@ -326,7 +336,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         //param->setIsSecret(true);
         param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // outerTopRight
@@ -342,7 +354,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         //param->setIsSecret(true);
         param->setEvaluateOnChange(false); // The tracker is identity always
         param->getPropertySet().propSetInt(kOfxParamPropPluginMayWrite, 1);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // backward
@@ -351,7 +365,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTrackingBackwardLabel);
         param->setHint(kParamTrackingBackwardHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // prev
@@ -360,7 +376,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTrackingPreviousLabel);
         param->setHint(kParamTrackingPreviousHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // next
@@ -369,7 +387,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTrackingNextLabel);
         param->setHint(kParamTrackingNextHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
     
     // forward
@@ -377,7 +397,9 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
         param->setLabel(kParamTrackingForwardLabel);
         param->setHint(kParamTrackingForwardHint);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 } // genericTrackerDescribePointParameters
 

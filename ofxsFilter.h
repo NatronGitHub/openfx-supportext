@@ -96,32 +96,36 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
 {
     // GENERIC PARAMETERS
     //
-    OFX::ChoiceParamDescriptor* filter = desc.defineChoiceParam(kParamFilterType);
+    {
+        OFX::ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamFilterType);
 
-    filter->setLabel(kParamFilterTypeLabel);
-    filter->setHint(kParamFilterTypeHint);
-    assert(filter->getNOptions() == eFilterImpulse);
-    filter->appendOption(kFilterImpulse, kFilterImpulseHint);
-    assert(filter->getNOptions() == eFilterBilinear);
-    filter->appendOption(kFilterBilinear, kFilterBilinearHint);
-    assert(filter->getNOptions() == eFilterCubic);
-    filter->appendOption(kFilterCubic, kFilterCubicHint);
-    assert(filter->getNOptions() == eFilterKeys);
-    filter->appendOption(kFilterKeys, kFilterKeysHint);
-    assert(filter->getNOptions() == eFilterSimon);
-    filter->appendOption(kFilterSimon, kFilterSimonHint);
-    assert(filter->getNOptions() == eFilterRifman);
-    filter->appendOption(kFilterRifman, kFilterRifmanHint);
-    assert(filter->getNOptions() == eFilterMitchell);
-    filter->appendOption(kFilterMitchell, kFilterMitchellHint);
-    assert(filter->getNOptions() == eFilterParzen);
-    filter->appendOption(kFilterParzen, kFilterParzenHint);
-    assert(filter->getNOptions() == eFilterNotch);
-    filter->appendOption(kFilterNotch, kFilterNotchHint);
-    filter->setDefault(eFilterCubic);
-    filter->setAnimates(true);
-    filter->setLayoutHint(OFX::eLayoutHintNoNewLine);
-    page->addChild(*filter);
+        param->setLabel(kParamFilterTypeLabel);
+        param->setHint(kParamFilterTypeHint);
+        assert(param->getNOptions() == eFilterImpulse);
+        param->appendOption(kFilterImpulse, kFilterImpulseHint);
+        assert(param->getNOptions() == eFilterBilinear);
+        param->appendOption(kFilterBilinear, kFilterBilinearHint);
+        assert(param->getNOptions() == eFilterCubic);
+        param->appendOption(kFilterCubic, kFilterCubicHint);
+        assert(param->getNOptions() == eFilterKeys);
+        param->appendOption(kFilterKeys, kFilterKeysHint);
+        assert(param->getNOptions() == eFilterSimon);
+        param->appendOption(kFilterSimon, kFilterSimonHint);
+        assert(param->getNOptions() == eFilterRifman);
+        param->appendOption(kFilterRifman, kFilterRifmanHint);
+        assert(param->getNOptions() == eFilterMitchell);
+        param->appendOption(kFilterMitchell, kFilterMitchellHint);
+        assert(param->getNOptions() == eFilterParzen);
+        param->appendOption(kFilterParzen, kFilterParzenHint);
+        assert(param->getNOptions() == eFilterNotch);
+        param->appendOption(kFilterNotch, kFilterNotchHint);
+        param->setDefault(eFilterCubic);
+        param->setAnimates(true);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        if (page) {
+            page->addChild(*param);
+        }
+    }
 
     // clamp
     {
@@ -131,7 +135,9 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setDefault(false);
         param->setAnimates(true);
         param->setLayoutHint(OFX::eLayoutHintNoNewLine);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 
     // blackOutside
@@ -141,7 +147,9 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setHint(kParamFilterBlackOutsideHint);
         param->setDefault(blackOutsideDefault);
         param->setAnimates(true);
-        page->addChild(*param);
+        if (page) {
+            page->addChild(*param);
+        }
     }
 } // ofxsFilterDescribeParamsInterpolate2D
 
