@@ -155,36 +155,38 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
         assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
-    // Transform3x3-GENERIC
-    _invert = fetchBooleanParam(kParamTransform3x3Invert);
-    // GENERIC
-    _filter = fetchChoiceParam(kParamFilterType);
-    _clamp = fetchBooleanParam(kParamFilterClamp);
-    _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
-    assert(_invert && _filter && _clamp && _blackOutside);
-    if (paramExists(kParamTransform3x3MotionBlur)) {
-        _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
-        assert(_motionblur);
-    }
-    if (!isDirBlur) {
-        _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
-        _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
-        _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
-        _shuttercustomoffset = fetchDoubleParam(kParamTransform3x3ShutterCustomOffset);
-        assert(_directionalBlur && _shutter && _shutteroffset && _shuttercustomoffset);
-    }
-    if (masked) {
-        _mix = fetchDoubleParam(kParamMix);
-        _maskInvert = fetchBooleanParam(kParamMaskInvert);
-        assert(_mix && _maskInvert);
-    }
+    if (paramExists(kParamTransform3x3Invert)) {
+        // Transform3x3-GENERIC
+        _invert = fetchBooleanParam(kParamTransform3x3Invert);
+        // GENERIC
+        _filter = fetchChoiceParam(kParamFilterType);
+        _clamp = fetchBooleanParam(kParamFilterClamp);
+        _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
+        assert(_invert && _filter && _clamp && _blackOutside);
+        if (paramExists(kParamTransform3x3MotionBlur)) {
+            _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
+            assert(_motionblur);
+        }
+        if (!isDirBlur) {
+            _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
+            _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
+            _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
+            _shuttercustomoffset = fetchDoubleParam(kParamTransform3x3ShutterCustomOffset);
+            assert(_directionalBlur && _shutter && _shutteroffset && _shuttercustomoffset);
+        }
+        if (masked) {
+            _mix = fetchDoubleParam(kParamMix);
+            _maskInvert = fetchBooleanParam(kParamMaskInvert);
+            assert(_mix && _maskInvert);
+        }
 
-    if (!isDirBlur) {
-        bool directionalBlur;
-        _directionalBlur->getValue(directionalBlur);
-        _shutter->setEnabled(!directionalBlur);
-        _shutteroffset->setEnabled(!directionalBlur);
-        _shuttercustomoffset->setEnabled(!directionalBlur);
+        if (!isDirBlur) {
+            bool directionalBlur;
+            _directionalBlur->getValue(directionalBlur);
+            _shutter->setEnabled(!directionalBlur);
+            _shutteroffset->setEnabled(!directionalBlur);
+            _shuttercustomoffset->setEnabled(!directionalBlur);
+        }
     }
 }
 
@@ -203,7 +205,7 @@ void
 Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                                     const OFX::RenderArguments &args)
 {
-    assert(_motionblur); // this method should be overridden in GodRays
+    assert(!_invert || _motionblur); // this method should be overridden in GodRays
     const double time = args.time;
     std::auto_ptr<OFX::Image> dst( _dstClip->fetchImage(time) );
 
@@ -230,7 +232,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     std::vector<OFX::Matrix3x3> invtransform;
     double motionblur = 0.;
     bool directionalBlur = (_directionalBlur == 0);
-    bool blackOutside = true;
+    bool blackOutside = false;
     double mix = 1.;
 
     if ( !src.get() ) {
@@ -256,21 +258,29 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             OFX::throwSuiteStatusException(kOfxStatFailed);
         }
 
-        bool invert;
-        _invert->getValueAtTime(time, invert);
+        bool invert = false;
+        if (_invert) {
+            _invert->getValueAtTime(time, invert);
+        }
 
-        _blackOutside->getValueAtTime(time, blackOutside);
+        if (_blackOutside) {
+            _blackOutside->getValueAtTime(time, blackOutside);
+        }
         if (_masked) {
+            assert(_mix);
             _mix->getValueAtTime(time, mix);
         }
-        _motionblur->getValueAtTime(time, motionblur);
+        if (_motionblur) {
+            _motionblur->getValueAtTime(time, motionblur);
+        }
         if (_directionalBlur) {
             _directionalBlur->getValueAtTime(time, directionalBlur);
         }
         double shutter = 0.;
         if (!directionalBlur) {
-            assert(_shutter);
-            _shutter->getValueAtTime(time, shutter);
+            if (_shutter) {
+                _shutter->getValueAtTime(time, shutter);
+            }
         }
         const bool fielded = args.fieldToRender == OFX::eFieldLower || args.fieldToRender == OFX::eFieldUpper;
         const double pixelAspectRatio = src->getPixelAspectRatio();
@@ -349,6 +359,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     // do we do masking
     if ( _masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected() ) {
         bool maskInvert;
+        assert(_maskInvert);
         _maskInvert->getValueAtTime(time, maskInvert);
 
         // say we are masking
@@ -587,6 +598,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     double mix = 1.;
     const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
     if (doMasking) {
+        assert(_mix);
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
@@ -596,8 +608,10 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         }
     }
 
-    bool invert;
-    _invert->getValueAtTime(time, invert);
+    bool invert = false;
+    if (_invert) {
+        _invert->getValueAtTime(time, invert);
+    }
     invert = !invert; // only for getRoD
     double motionblur = 1.; // default for GodRays
     if (_motionblur) {
@@ -622,8 +636,10 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity.
     if (!identity) {
-        bool blackOutside;
-        _blackOutside->getValueAtTime(time, blackOutside);
+        bool blackOutside = false;
+        if (_blackOutside) {
+            _blackOutside->getValueAtTime(time, blackOutside);
+        }
 
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
@@ -665,8 +681,10 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         }
     }
 
-    bool invert;
-    _invert->getValueAtTime(time, invert);
+    bool invert = false;
+    if (_invert) {
+        _invert->getValueAtTime(time, invert);
+    }
     //invert = !invert; // only for getRoD
     double motionblur = 1; // default for GodRays
     if (_motionblur) {
@@ -685,10 +703,14 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     // set srcRoI from roi
     transformRegion(roi, time, invert, motionblur, directionalBlur, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
-    int filter;
-    _filter->getValueAtTime(time, filter);
-    bool blackOutside;
-    _blackOutside->getValueAtTime(time, blackOutside);
+    int filter = eFilterBilinear;
+    if (_filter) {
+        _filter->getValueAtTime(time, filter);
+    }
+    bool blackOutside = false;
+    if (_blackOutside) {
+        _blackOutside->getValueAtTime(time, blackOutside);
+    }
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
@@ -728,11 +750,14 @@ void
 Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 {
     const double time = args.time;
-    int filter;
-
-    _filter->getValueAtTime(time, filter);
-    bool clamp;
-    _clamp->getValueAtTime(time, clamp);
+    int filter = eFilterBilinear;
+    if (_filter) {
+        _filter->getValueAtTime(time, filter);
+    }
+    bool clamp = false;
+    if (_clamp) {
+        _clamp->getValueAtTime(time, clamp);
+    }
 
     // as you may see below, some filters don't need explicit clamping, since they are
     // "clamped" by construction.
@@ -861,7 +886,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     const double time = args.time;
 
     // if there is motion blur, we suppose the transform is not identity
-    double motionblur = 1.; // default for GodRays
+    double motionblur = _invert ? 1. : 0.; // default is 1 for GodRays, 0 for Mirror
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
     }
@@ -872,6 +897,15 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     bool hasmotionblur = (shutter != 0. && motionblur != 0.);
     if (hasmotionblur) {
         return false;
+    }
+
+    if (_clamp) {
+        // if image has values above 1., they will be clamped.
+        bool clamp;
+        _clamp->getValueAtTime(time, clamp);
+        if (clamp) {
+            return false;
+        }
     }
 
     if ( isIdentity(time) ) { // let's call the Transform-specific one first
@@ -908,11 +942,13 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         return false;
     }
     const double time = args.time;
-    bool invert;
+    bool invert = false;
 
     //std::cout << "getTransform called!" << std::endl;
     // Transform3x3-GENERIC
-    _invert->getValueAtTime(time, invert);
+    if (_invert) {
+        _invert->getValueAtTime(time, invert);
+    }
 
     OFX::Matrix3x3 invtransform;
     bool success = getInverseTransformCanonical(time, 1., invert, &invtransform);
