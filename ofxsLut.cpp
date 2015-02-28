@@ -438,9 +438,10 @@ ycbcr_to_rgb(float y,
     //*b = (298 * y + 516 * cb + 128)/256/255;
 
     /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
+    /// that document has the wrong sign for 1.8556
     *r = y + 0.0000 * (cb - 128./255) + 1.5701 * (cr - 128./255);
     *g = y - 0.1870 * (cb - 128./255) - 0.4664 * (cr - 128./255);
-    *b = y - 1.8556 * (cb - 128./255) + 0.0000 * (cr - 128./255);
+    *b = y + 1.8556 * (cb - 128./255) + 0.0000 * (cr - 128./255);
 } // ycbcr_to_rgb
 
 void
