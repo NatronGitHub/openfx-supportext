@@ -768,8 +768,8 @@ copyPixelsForDepthAndComponents(OFX::ImageEffect &instance,
                                 int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
-    assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
-    assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
+    //assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2); // not necessary, PixelCopier should handle this
+    //assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2); // not necessary, PixelCopier should handle this
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
     (void)srcPixelComponents;
     (void)srcBitDepth;
