@@ -404,6 +404,13 @@ GeneratorInteract::penUp(const OFX::PenArgs &args)
     return RectangleInteract::penUp(args);
 }
 
+void
+GeneratorInteract::loseFocus(const OFX::FocusArgs &args)
+{
+    return RectangleInteract::loseFocus(args);
+}
+
+
 
 bool
 GeneratorInteract::keyDown(const OFX::KeyArgs &args)

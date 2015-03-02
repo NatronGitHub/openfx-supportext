@@ -1325,5 +1325,7 @@ TrackerRegionInteract::loseFocus(const FocusArgs & /*args*/)
     // reset the modifiers state
     _controlDown = 0;
     _altDown = 0;
+    _ds = eDrawStateInactive;
+    _ms = eMouseStateIdle;
 }
 

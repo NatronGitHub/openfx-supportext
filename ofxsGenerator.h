@@ -138,6 +138,7 @@ public:
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE FINAL;
     virtual bool keyUp(const OFX::KeyArgs & args) OVERRIDE FINAL;
+    virtual void loseFocus(const OFX::FocusArgs &args) OVERRIDE FINAL;
 
 private:
 

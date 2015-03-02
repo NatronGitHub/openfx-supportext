@@ -1243,4 +1243,6 @@ void TransformInteract::loseFocus(const FocusArgs &/*args*/)
     _modifierStateCtrl = 0;
     _modifierStateShift = 0;
     _interactiveDrag = false;
+    _mouseState = eReleased;
+    _drawState = eInActive;
 }
