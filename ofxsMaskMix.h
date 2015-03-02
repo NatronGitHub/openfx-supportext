@@ -301,7 +301,11 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (maskPix == 0) {
                 maskScale = maskInvert ? 1.f : 0.f;
             } else {
-                maskScale = *maskPix / float(maxValue);
+				if (maskImg->getPixelComponents() == ePixelComponentAlpha)
+					maskScale = *maskPix / float(maxValue);
+				else
+					maskScale = *(maskPix + 3) / float(maxValue);
+
                 if (maskInvert) {
                     maskScale = 1.f - maskScale;
                 }
