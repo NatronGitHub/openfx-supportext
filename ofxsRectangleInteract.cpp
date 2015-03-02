@@ -588,6 +588,7 @@ RectangleInteract::loseFocus(const OFX::FocusArgs &/*args*/)
     // reset the modifiers state
     _modifierStateCtrl = 0;
     _modifierStateShift = 0;
+    _interactiveDrag = false;
 }
 
 OfxPointD

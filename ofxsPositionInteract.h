@@ -99,10 +99,11 @@ public:
 
 private:
     // overridden functions from OFX::Interact to do things
-    virtual bool draw(const OFX::DrawArgs &args);
-    virtual bool penMotion(const OFX::PenArgs &args);
-    virtual bool penDown(const OFX::PenArgs &args);
-    virtual bool penUp(const OFX::PenArgs &args);
+    virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
+    virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
+    virtual bool penDown(const OFX::PenArgs &args) OVERRIDE FINAL;
+    virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
+    virtual void loseFocus(const FocusArgs &args) OVERRIDE FINAL;
 
 private:
     enum MouseStateEnum
@@ -303,10 +304,12 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
         return false;
     }
     bool didSomething = false;
-    if (_state == eMouseStatePicked && !_interactiveDrag) {
-        const OfxPointD& pscale = args.pixelScale;
-        _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
-        _state = eMouseStatePoised;
+    if (_state == eMouseStatePicked) {
+        if (!_interactiveDrag) {
+            const OfxPointD& pscale = args.pixelScale;
+            _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
+        }
+        _state = eMouseStateInactive;
         penMotion(args);
         didSomething = true;
     }
@@ -316,6 +319,16 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     }
 
     return didSomething;
+}
+
+/** @brief Called when the interact is loses input focus */
+template <typename ParamName>
+void
+PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs &/*args*/)
+{
+    // reset the modifiers state
+    _state = eMouseStateInactive;
+    _interactiveDrag = false;
 }
 
 template <typename ParamName>
