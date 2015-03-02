@@ -454,6 +454,9 @@ public:
 
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
             assert(dstPix);
+            if (!dstPix) {
+                continue;
+            }
             std::fill(dstPix, dstPix + rowSize, PIX());
         }
     }

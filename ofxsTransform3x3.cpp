@@ -1258,7 +1258,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             param->setHint(kParamTransform3x3DirectionalBlurHint);
             param->setDefault(false);
             param->setAnimates(true);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
 
         // shutter
@@ -1270,7 +1272,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             param->setRange(0., 2.);
             param->setIncrement(0.01);
             param->setDisplayRange(0., 2.);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
 
         // shutteroffset
@@ -1288,7 +1292,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             param->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
             param->setAnimates(true);
             param->setDefault(eTransform3x3ShutterOffsetStart);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
 
         // shuttercustomoffset
@@ -1300,7 +1306,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             param->setRange(-1., 1.);
             param->setIncrement(0.1);
             param->setDisplayRange(-1., 1.);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
     }
     
