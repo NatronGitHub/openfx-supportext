@@ -136,8 +136,8 @@ struct Point4D
             return w;
         default:
             assert(false);
+            return x;
         }
-        ;
     }
 
     double operator() (int i) const
@@ -157,8 +157,8 @@ struct Point4D
             return w;
         default:
             assert(false);
+            return x;
         }
-        ;
     }
 
     bool operator==(const Point4D & o)
