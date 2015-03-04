@@ -779,6 +779,11 @@ ofxsFilterInterpolate2DSuperInternal(double fx,
 } // ofxsFilterInterpolate2DSuperInternal
 #undef _DBG_COUNT
 
+inline bool ofxsFilterOutside(double x, double y, const OfxRectI &bounds)
+{
+    return x < bounds.x1 || bounds.x2 <= x || y < bounds.y1 || bounds.y2 <= y;
+}
+
 // Interpolation using the given filter and supersampling for minification
 // note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
@@ -797,8 +802,17 @@ ofxsFilterInterpolate2DSuper(double fx,
     bool inside = ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
 
     if (!inside) {
+        // Center of the pixel is outside.
         // no supersampling if we're outside (we don't want to supersample black and transparent areas)
-        return;
+        // ... but we still have to check wether the entire pixel is outside
+        const OfxRectI &bounds = srcImg->getBounds();
+        // we check the four corners of the pixel
+        if (ofxsFilterOutside(fx - Jxx*0.5 - Jxy*0.5, fy - Jyx*0.5 - Jyy*0.5, bounds) &&
+            ofxsFilterOutside(fx + Jxx*0.5 - Jxy*0.5, fy + Jyx*0.5 - Jyy*0.5, bounds) &&
+            ofxsFilterOutside(fx - Jxx*0.5 + Jxy*0.5, fy - Jyx*0.5 + Jyy*0.5, bounds) &&
+            ofxsFilterOutside(fx + Jxx*0.5 + Jxy*0.5, fy + Jyx*0.5 + Jyy*0.5, bounds)) {
+            return;
+        }
     }
 
     double dx = Jxx*Jxx+Jyx*Jyx; // squared norm of the derivative over x
