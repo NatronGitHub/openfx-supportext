@@ -192,16 +192,16 @@ ofxsUnPremult(const PIX *srcPix,
         unpPix[0] = 0.f;
         unpPix[1] = 0.f;
         unpPix[2] = 0.f;
-        unpPix[3] = srcPix[0] / (float)maxValue;
+		unpPix[3] = (float)srcPix[0] / (float)maxValue;
 
         return;
     }
 
     if ( !premult || (nComponents == 3) || (srcPix[3] <= 0.) ) {
-        unpPix[0] = srcPix[0] / (float)maxValue;
-        unpPix[1] = srcPix[1] / (float)maxValue;
-        unpPix[2] = srcPix[2] / (float)maxValue;
-        unpPix[3] = (nComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
+		unpPix[0] = (float)srcPix[0] / (float)maxValue;
+		unpPix[1] = (float)srcPix[1] / (float)maxValue;
+		unpPix[2] = (float)srcPix[2] / (float)maxValue;
+		unpPix[3] = (nComponents == 4) ? ((float)srcPix[3] / (float)maxValue) : 1.0f;
 
         return;
     }
@@ -210,15 +210,15 @@ ofxsUnPremult(const PIX *srcPix,
     const float fltmin = std::numeric_limits<float>::min();
     PIX alpha = srcPix[3];
     if ( alpha > (PIX)(fltmin * maxValue) ) {
-        unpPix[0] = srcPix[0] / alpha;
-        unpPix[1] = srcPix[1] / alpha;
-        unpPix[2] = srcPix[2] / alpha;
+		unpPix[0] = (float)srcPix[0] / (float)alpha;
+		unpPix[1] = (float)srcPix[1] / (float)alpha;
+		unpPix[2] = (float)srcPix[2] / (float)alpha;
     } else {
-        unpPix[0] = srcPix[0] / (float)maxValue;
-        unpPix[1] = srcPix[1] / (float)maxValue;
-        unpPix[2] = srcPix[2] / (float)maxValue;
+		unpPix[0] = (float)srcPix[0] / (float)maxValue;
+		unpPix[1] = (float)srcPix[1] / (float)maxValue;
+		unpPix[2] = (float)srcPix[2] / (float)maxValue;
     }
-    unpPix[3] = srcPix[3] / (float)maxValue;
+	unpPix[3] = (float)srcPix[3] / (float)maxValue;
 }
 
 // premultiply and denormalize in [0, maxValue]
