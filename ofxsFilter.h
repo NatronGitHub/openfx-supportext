@@ -395,13 +395,14 @@ ofxsGetPixComp(const PIX* p,
 
 // note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
-void
+bool
 ofxsFilterInterpolate2D(double fx,
                         double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
                         const OFX::Image *srcImg, //!< image to be transformed
                         bool blackOutside,
                         float *tmpPix) //!< destination pixel in float format
 {
+    bool inside = true; // return true, except if outside and black
     // GENERIC TRANSFORM
     // from here on, everything is generic, and should be moved to a generic transform class
     // Important: (0,0) is the *corner*, not the *center* of the first pixel (see OpenFX specs)
@@ -424,6 +425,7 @@ ofxsFilterInterpolate2D(double fx,
             for (int c = 0; c < nComponents; ++c) {
                 tmpPix[c] = 0;
             }
+            inside = false;
         }
         break;
     }
@@ -463,6 +465,7 @@ ofxsFilterInterpolate2D(double fx,
             for (int c = 0; c < nComponents; ++c) {
                 tmpPix[c] = 0;
             }
+            inside = false;
         }
         break;
     }
@@ -526,6 +529,7 @@ ofxsFilterInterpolate2D(double fx,
             for (int c = 0; c < nComponents; ++c) {
                 tmpPix[c] = 0;
             }
+            inside = false;
         }
         break;
     }
@@ -534,7 +538,310 @@ ofxsFilterInterpolate2D(double fx,
         assert(0);
         break;
     } // switch
+
+    return inside;
 } // ofxsFilterInterpolate2D
+
+/*
+ * Interpolation with SuperSampling, to avoid moire artifacts when minimizing.
+ *
+
+ ofxsFilterInterpolate2D() does not take into account scaling or distortion effects.
+ A consequence is that the transform nodes may produce aliasing artifacts when downscaling by a factor of 2 or more.
+
+ There are several solutions to this problem is the case where the same texture has to be mapped *several times*:
+
+ * Trilinear mipmapping (as implemented by OpenGL) still produces artifacts when scaling is anisotropic (i.e. the scaling factor is different along two directions)
+ * [Feline (McCormack, 1999)](http://www.hpl.hp.com/techreports/Compaq-DEC/WRL-99-1.pdf), which is close to what is proposed in [OpenGL's anisotropic texture filter](http://www.opengl.org/registry/specs/EXT/texture_filter_anisotropic.txt) is probably 4-5 times slower than mipmapping, but produces less artifacts
+ * [EWA (Heckbert 1989)](https://www.cs.cmu.edu/~ph/texfund/texfund.pdf) would give the highest quality, but is probably 20 times slower than mipmapping.
+
+ A sample implementation of the three methods is given in [Mesa 3D](http://mesa3d.org/)'s [software rasterizer, src/mesa/swrast/s_texfilter.c](http://cgit.freedesktop.org/mesa/mesa/tree/src/mesa/swrast/s_texfilter.c).
+
+ *However*, in our case, the texture usually has to be mapped only once. Thus it is more appropriate to use one of the techniques described in this document: <http://people.cs.clemson.edu/~dhouse/courses/405/notes/antialiasing.pdf>.
+
+ # Our implementation:
+
+ We chose to use a standard supersampling method without jitter (to avoid randomness in rendered images).
+ 
+ The first implementation was interpolating accross scales between supersampled pixels (see OFX_FILTER_SUPERSAMPLING_TRILINEAR below), but since we noticed that using the highest scale produces less moire, and it even costs a bit less (less tests in the processing).
+
+ We also noticed that supersampled pixels don't need to use anything better than bilinear filter. The impulse filter still produces moire, and other filters are overkill or may even produce more moire.
+
+ */
+
+#ifdef DEBUG
+#define _DBG_COUNT(x) (x)
+#else
+#define _DBG_COUNT(x) ((void)0)
+#endif
+
+// Internal function for supersampling (should never be called by the user)
+// note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
+template <class PIX, int nComponents, FilterEnum filter, int subx, int suby>
+void
+ofxsFilterInterpolate2DSuperInternal(double fx,
+                                     double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
+                                     double Jxx, //!< derivative of fx over x
+                                     double Jxy, //!< derivative of fx over y
+                                     double Jyx, //!< derivative of fy over x
+                                     double Jyy, //!< derivative of fy over y
+                                     double sx, //!< scale over x as a power of 3
+                                     double sy, //!< scale over y as a power of 3
+                                     int isx, //!< floor(sx)
+                                     int isy,  //!< floor(sy)
+                                     const OFX::Image *srcImg, //!< image to be transformed
+                                     bool blackOutside,
+                                     float *tmpPix) //!< input: interpolated center filter. output: destination pixel in float format
+{
+    // do supersampling.
+    // All values are computed using nearest neighbor interpolation, except for the center value
+
+    // compute number of samples over each dimension, i.e. pow(nis*,3)
+    // see http://stackoverflow.com/a/101613/2607517
+    int nisx;
+    {
+        int base = 3;
+        int exp = isx;
+        int result = 1;
+        while (exp) {
+            if (exp & 1) {
+                result *= base;
+            }
+            exp >>= 1;
+            base *= base;
+        }
+        nisx = result;
+    }
+    /// linear version:
+    //nisx = 1;
+    //for (int p = 0; p < isx; ++p) {
+    //    nisx *= 3;
+    //}
+    int nisy;
+    {
+        int base = 3;
+        int exp = isy;
+        int result = 1;
+        while (exp) {
+            if (exp & 1) {
+                result *= base;
+            }
+            exp >>= 1;
+            base *= base;
+        }
+        nisy = result;
+    }
+    /// linear version:
+    //nisy = 1;
+    //for (int p = 0; p < isy; ++p) {
+    //    nisy *= 3;
+    //}
+    assert(nisx == std::pow((double)3,(double)isx) && nisy == std::pow((double)3,(double)isy));
+
+    // compute the pixel value at scales (isx,isy) (nsx,isy) (isx,nsy) (nsx,nsy), and interpolate bilinearly using sx,sy
+    float *pii = tmpPix;
+    float pni[nComponents];
+    float pin[nComponents];
+    float pnn[nComponents];
+#ifdef DEBUG
+    int piicount = 1;
+    int pnicount = 0;
+    int pincount = 0;
+    int pnncount = 0;
+#endif
+
+    // initialize to value of center pixel
+    if (subx) {
+        std::copy(tmpPix, tmpPix + nComponents, pni);
+        _DBG_COUNT(pnicount = 1);
+        if (suby) {
+            std::copy(tmpPix, tmpPix + nComponents, pnn);
+            _DBG_COUNT(pnncount = 1);
+        }
+    }
+    if (suby) {
+        std::copy(tmpPix, tmpPix + nComponents, pin);
+        _DBG_COUNT(pincount = 1);
+    }
+
+    // accumulate
+    for (int y = -nisy/2; y <= nisy/2; ++y) {
+        for (int x = -nisx/2; x <= nisx/2; ++x) {
+            // subsample position
+            double sfx = fx + (Jxx * x) / nisx + (Jxy * y) / nisy;
+            double sfy = fy + (Jyx * x) / nisx + (Jyy * y) / nisy;
+            if (x != 0 || y != 0) { // center pixel was already accumulated
+                float tmp[nComponents];
+                ofxsFilterInterpolate2D<PIX,nComponents,filter,false>(sfx, sfy, srcImg, blackOutside, tmp);
+                for (int c = 0; c < nComponents; ++c) {
+                    pii[c] += tmp[c];
+                    _DBG_COUNT(piicount += (c == 0));
+                    // other scales
+                    if (subx) {
+                        pni[c] += tmp[c];
+                        _DBG_COUNT(pnicount += (c == 0));
+                        if (suby) {
+                            pnn[c] += tmp[c];
+                            _DBG_COUNT(pnncount += (c == 0));
+                        }
+                    }
+                    if (suby) {
+                        pin[c] += tmp[c];
+                        _DBG_COUNT(pincount += (c == 0));
+                    }
+                }
+            }
+            // subsamples from next scales
+            for (int j = -suby; j <= suby; ++j) {
+                for (int i = -subx; i <= subx; ++i) {
+                    if (i != 0 || j != 0) { // center subsample was already accumulated
+                        double subfx = sfx + (Jxx * i) / (nisx * 3) + (Jxy * j) / (nisy * 3);
+                        double subfy = sfy + (Jyx * i) / (nisx * 3) + (Jyy * j) / (nisy * 3);
+                        {
+                            float tmp[nComponents];
+                            ofxsFilterInterpolate2D<PIX,nComponents,filter,false>(subfx, subfy, srcImg, blackOutside, tmp);
+                            for (int c = 0; c < nComponents; ++c) {
+                                // other scales
+                                if (subx) {
+                                    if (j == 0) {
+                                        pni[c] += tmp[c];
+                                        _DBG_COUNT(pnicount += (c == 0));
+                                    }
+                                    if (suby) {
+                                        pnn[c] += tmp[c];
+                                        _DBG_COUNT(pnncount += (c == 0));
+                                    }
+                                }
+                                if (suby) {
+                                    if (i == 0) {
+                                        pin[c] += tmp[c];
+                                        _DBG_COUNT(pincount += (c == 0));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // divide by number of values
+    int insamples = nisx * nisy;
+
+#ifdef DEBUG
+    assert(piicount == insamples);
+    if (subx) {
+        assert(pnicount == insamples * 3);
+        if (suby) {
+            assert(pnncount == insamples * 9);
+        }
+    }
+    if (suby) {
+        assert(pincount == insamples * 3);
+    }
+#endif
+
+    for (int c = 0; c < nComponents; ++c) {
+        pii[c] /= insamples;
+        if (subx) {
+            pni[c] /= insamples * 3;
+            if (suby) {
+                pnn[c] /= insamples * 9;
+            }
+        }
+        if (suby) {
+            pin[c] /= insamples * 3;
+        }
+    }
+    if (subx) {
+        // interpolate linearly over sx
+        float alpha = sx - isx;
+        for (int c = 0; c < nComponents; ++c) {
+            pii[c] = pii[c] + alpha * (pni[c] - pii[c]);
+        }
+        if (suby) {
+            for (int c = 0; c < nComponents; ++c) {
+                pin[c] = pin[c] + alpha * (pnn[c] - pin[c]);
+            }
+        }
+    }
+    if (suby) {
+        // interpolate linearly over sy
+        float alpha = sy - isy;
+        for (int c = 0; c < nComponents; ++c) {
+            pii[c] = pii[c] + alpha * (pin[c] - pii[c]);
+        }
+    }
+
+    // pii is actually an alias to tmpPix, so everything is done
+
+} // ofxsFilterInterpolate2DSuperInternal
+#undef _DBG_COUNT
+
+// Interpolation using the given filter and supersampling for minification
+// note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
+template <class PIX, int nComponents, FilterEnum filter, bool clamp>
+void
+ofxsFilterInterpolate2DSuper(double fx,
+                             double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
+                             double Jxx, //!< derivative of fx over x
+                             double Jxy, //!< derivative of fx over y
+                             double Jyx, //!< derivative of fy over x
+                             double Jyy, //!< derivative of fy over y
+                             const OFX::Image *srcImg, //!< image to be transformed
+                             bool blackOutside,
+                             float *tmpPix) //!< destination pixel in float format
+{
+    // first, compute the center value
+    bool inside = ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+
+    if (!inside) {
+        // no supersampling if we're outside (we don't want to supersample black and transparent areas)
+        return;
+    }
+
+    double dx = Jxx*Jxx+Jyx*Jyx; // squared norm of the derivative over x
+    double dy = Jxy*Jxy+Jyy*Jyy; // squared norm of the derivative over x
+
+    if (dx <= 1. && dy <= 1.) {
+        // no minificationin either direction, means no supersampling
+        return;
+    }
+
+    double sx = (dx <= 1.) ? 0. : std::log(dx)/(2*std::log(3.)); // scale over x as a power of 3
+    double sy = (dy <= 1.) ? 0. : std::log(dy)/(2*std::log(3.)); // scale over y as a power of 3
+//#define OFX_FILTER_SUPERSAMPLING_TRILINEAR
+#ifdef OFX_FILTER_SUPERSAMPLING_TRILINEAR
+    // produces artifacts
+    int isx = std::floor(sx);
+    int isy = std::floor(sy);
+    int subx = (sx > isx);
+    int suby = (sy > isy);
+
+    // we use bilinear filtering for the supersamples (except for the center point).
+    if (subx) {
+        if (suby) {
+            return ofxsFilterInterpolate2DSuperInternal<PIX,nComponents, eFilterBilinear, true, true>(fx, fy, Jxx, Jxy, Jyx, Jyy, sx, sy, isx, isy, srcImg, blackOutside, tmpPix);
+        } else {
+            return ofxsFilterInterpolate2DSuperInternal<PIX,nComponents, eFilterBilinear, true, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, sx, sy, isx, isy, srcImg, blackOutside, tmpPix);
+        }
+    } else {
+        if (suby) {
+            return ofxsFilterInterpolate2DSuperInternal<PIX,nComponents, eFilterBilinear, false, true>(fx, fy, Jxx, Jxy, Jyx, Jyy, sx, sy, isx, isy, srcImg, blackOutside, tmpPix);
+        } else {
+            return ofxsFilterInterpolate2DSuperInternal<PIX,nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, sx, sy, isx, isy, srcImg, blackOutside, tmpPix);
+        }
+    }
+#else
+    // always use the supersampled data
+    // produces less artifacts, costs less
+    int isx = std::ceil(sx);
+    int isy = std::ceil(sy);
+    return ofxsFilterInterpolate2DSuperInternal<PIX,nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, isx, isy, isx, isy, srcImg, blackOutside, tmpPix);
+#endif
+} // ofxsFilterInterpolate2DSuper
+
 
 #undef OFXS_CLAMPXY
 #undef OFXS_GETPIX
