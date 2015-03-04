@@ -823,8 +823,10 @@ ofxsFilterInterpolate2DSuper(double fx,
         return;
     }
 
-    double sx = (dx <= 1.) ? 0. : std::log(dx)/(2*std::log(3.)); // scale over x as a power of 3
-    double sy = (dy <= 1.) ? 0. : std::log(dy)/(2*std::log(3.)); // scale over y as a power of 3
+    // maximum scale is 4, which is 81x81 pixels for a scale factor < 1/81
+    // rather than taking sqrt(dx), we divide its log by 2
+    double sx = (dx <= 1.) ? 0. : std::min(std::log(dx)/(2*std::log(3.)), 4.); // scale over x as a power of 3
+    double sy = (dy <= 1.) ? 0. : std::min(std::log(dy)/(2*std::log(3.)), 4.); // scale over y as a power of 3
 //#define OFX_FILTER_SUPERSAMPLING_TRILINEAR
 #ifdef OFX_FILTER_SUPERSAMPLING_TRILINEAR
     // produces artifacts
