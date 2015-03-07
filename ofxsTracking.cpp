@@ -88,7 +88,7 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     _prevButton = fetchPushButtonParam(kParamTrackingPrevious);
     _nextButton = fetchPushButtonParam(kParamTrackingNext);
     _forwardButton = fetchPushButtonParam(kParamTrackingForward);
-    _instanceName = fetchStringParam(kOfxParamStringSublabelName);
+    _instanceName = fetchStringParam(kNatronOfxParamStringSublabelName);
     assert(_center && _offset &&  _innerTopRight && _innerBtmLeft && _outerTopRight && _outerBtmLeft && _backwardButton && _prevButton && _nextButton && _forwardButton && _instanceName);
 }
 
