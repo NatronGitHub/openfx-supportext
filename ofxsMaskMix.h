@@ -344,9 +344,6 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
     float tmpPix[nComponents];
 
     ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
-    //for (int c = 0; c < nComponents; ++c) {
-        //tmpPix[c] *= maxValue;
-    //}
 	ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 
