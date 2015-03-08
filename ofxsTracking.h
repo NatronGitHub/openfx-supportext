@@ -80,7 +80,7 @@
 #define kParamTrackingForwardLabel "Track Forward"
 #define kParamTrackingForwardHint "Track pattern to the end of the sequence"
 
-#define kParamTrackingLabel kOfxParamStringSublabelName // defined in ofxNatron.h
+#define kParamTrackingLabel kNatronOfxParamStringSublabelName // defined in ofxNatron.h
 #define kParamTrackingLabelLabel "Track Name"
 #define kParamTrackingLabelHint "The name of the track, as it appears in the user interface."
 #define kParamTrackingLabelDefault "Track"
@@ -247,7 +247,7 @@ public:
         _innerTopRight = effect->fetchDouble2DParam(kParamTrackingPatternBoxTopRight);
         _outerBtmLeft = effect->fetchDouble2DParam(kParamTrackingSearchBoxBtmLeft);
         _outerTopRight = effect->fetchDouble2DParam(kParamTrackingSearchBoxTopRight);
-        _name = effect->fetchStringParam(kOfxParamStringSublabelName);
+        _name = effect->fetchStringParam(kNatronOfxParamStringSublabelName);
         addParamToSlaveTo(_center);
         addParamToSlaveTo(_offset);
         addParamToSlaveTo(_innerBtmLeft);
