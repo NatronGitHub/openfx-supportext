@@ -269,7 +269,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                bool maskInvert, //<! invert mask behavior
                PIX *dstPix) //!< destination pixel
 {
-    assert(maskImg->getPixelComponents() == ePixelComponentAlpha);
+    assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
     const PIX *maskPix = NULL;
     float maskScale = 1.f;
 
@@ -339,7 +339,7 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
                       bool maskInvert, //<! invert mask behavior
                       PIX *dstPix) //!< destination pixel
 {
-    assert(maskImg->getPixelComponents() == ePixelComponentAlpha);
+    assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
     float tmpPix[nComponents];
 
     // unpPix is in [0..1]
@@ -361,7 +361,7 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
             bool maskInvert, //<! invert mask behavior
             PIX *dstPix) //!< destination pixel
 {
-    assert(maskImg->getPixelComponents() == ePixelComponentAlpha);
+    assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
     const PIX *srcPix = NULL;
 
     // are we doing masking/mixing? in this case, retrieve srcPix
