@@ -402,6 +402,12 @@ ofxsFilterInterpolate2D(double fx,
                         bool blackOutside,
                         float *tmpPix) //!< destination pixel in float format
 {
+    if (!srcImg) {
+        for (int c = 0; c < nComponents; ++c) {
+            tmpPix[c] = 0;
+        }
+        return false;
+    }
     bool inside = true; // return true, except if outside and black
     // GENERIC TRANSFORM
     // from here on, everything is generic, and should be moved to a generic transform class
