@@ -431,21 +431,23 @@ public:
     }
 };
 
-template <class PIX, int nComponents>
+template <class PIX>
 class BlackFiller
     : public OFX::PixelProcessorFilterBase
 {
 public:
     // ctor
-    BlackFiller(OFX::ImageEffect &instance)
+    BlackFiller(OFX::ImageEffect &instance,
+                int comps)
         : OFX::PixelProcessorFilterBase(instance)
+        , _nComponents(comps)
     {
     }
 
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
-        int rowSize =  nComponents * (procWindow.x2 - procWindow.x1);
+        int rowSize =  _nComponents * (procWindow.x2 - procWindow.x1);
 
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
             if ( _effect.abort() ) {
@@ -461,6 +463,8 @@ public:
             std::fill(dstPix, dstPix + rowSize, PIX());
         }
     }
+private:
+    int _nComponents;
 };
 
 // black fillers, non-threaded versions
@@ -569,7 +573,7 @@ fillBlackForDepthAndComponents(OFX::ImageEffect &instance,
     (void)dstPixelComponents;
     (void)dstBitDepth;
 
-    OFX::BlackFiller<PIX, nComponents> processor(instance);
+    OFX::BlackFiller<PIX> processor(instance, nComponents);
     // set the images
     processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
 
