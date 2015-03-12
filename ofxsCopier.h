@@ -431,29 +431,27 @@ public:
     }
 };
 
-template <class PIX>
-class BlackFillerBase
-: public OFX::PixelProcessorFilterBase
+template <class PIX, int nComponents>
+class BlackFiller
+    : public OFX::PixelProcessorFilterBase
 {
-    int _nComponents;
 public:
     // ctor
-    BlackFillerBase(int nComponents,OFX::ImageEffect &instance)
-    : OFX::PixelProcessorFilterBase(instance)
-    , _nComponents(nComponents)
+    BlackFiller(OFX::ImageEffect &instance)
+        : OFX::PixelProcessorFilterBase(instance)
     {
     }
-    
+
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
-        int rowSize =  _nComponents * (procWindow.x2 - procWindow.x1);
-        
+        int rowSize =  nComponents * (procWindow.x2 - procWindow.x1);
+
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
             if ( _effect.abort() ) {
                 break;
             }
-            
+
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, y);
             assert(dstPix);
             if (!dstPix) {
@@ -462,18 +460,6 @@ public:
             }
             std::fill(dstPix, dstPix + rowSize, PIX());
         }
-    }
-};
-    
-template <class PIX, int nComponents>
-class BlackFiller
-: public OFX::BlackFillerBase<PIX>
-{
-public:
-    // ctor
-    BlackFiller(OFX::ImageEffect &instance)
-    : OFX::BlackFillerBase<PIX>(nComponents,instance)
-    {
     }
 };
 
