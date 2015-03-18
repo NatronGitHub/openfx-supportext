@@ -247,6 +247,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTrackingLabelLabel);
         param->setHint(kParamTrackingLabelHint);
         param->setDefault(kParamTrackingLabelDefault);
+        param->setInstanceSpecific(true);
         ////param->setIsSecret(false); // it has to be user-editable
         ////param->setEnabled(true); // it has to be user-editable
         ////param->setIsPersistant(true); // it has to be saved with the instance parameters
@@ -261,6 +262,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingCenterPoint);
         param->setLabel(kParamTrackingCenterPointLabel);
         param->setHint(kParamTrackingCenterPointHint);
+        param->setInstanceSpecific(true);
         param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
         param->setDefault(0.5, 0.5);
@@ -277,6 +279,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTrackingOffset);
         param->setLabel(kParamTrackingOffsetLabel);
         param->setHint(kParamTrackingOffsetHint);
+        param->setInstanceSpecific(true);
         param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesCanonical);
         param->setDefault(0, 0);

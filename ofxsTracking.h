@@ -64,19 +64,19 @@
 #define kParamTrackingSearchBoxTopRightLabel "Search Area Top Right"
 #define kParamTrackingSearchBoxTopRightHint "The top right corner of the search area. The coordinates are relative to the center point."
 
-#define kParamTrackingPrevious "trackPrevious"
+#define kParamTrackingPrevious kNatronParamTrackingPrevious
 #define kParamTrackingPreviousLabel "Track Previous"
 #define kParamTrackingPreviousHint "Track pattern to previous frame"
 
-#define kParamTrackingNext "trackNext"
+#define kParamTrackingNext kNatronParamTrackingNext
 #define kParamTrackingNextLabel "Track Next"
 #define kParamTrackingNextHint "Track pattern to next frame"
 
-#define kParamTrackingBackward "trackBackward"
+#define kParamTrackingBackward kNatronParamTrackingBackward
 #define kParamTrackingBackwardLabel "Track Backward"
 #define kParamTrackingBackwardHint "Track pattern to the beginning of the sequence"
 
-#define kParamTrackingForward "trackForward"
+#define kParamTrackingForward kNatronParamTrackingForward
 #define kParamTrackingForwardLabel "Track Forward"
 #define kParamTrackingForwardHint "Track pattern to the end of the sequence"
 
