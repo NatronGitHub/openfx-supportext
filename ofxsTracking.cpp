@@ -168,7 +168,7 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
 {
     desc.addSupportedContext(eContextGeneral);
     desc.addSupportedContext(eContextFilter);
-    
+    desc.addSupportedContext(eContextTracker);
     // supported bit depths depend on the tracking algorithm.
     //desc.addSupportedBitDepth(eBitDepthUByte);
     //desc.addSupportedBitDepth(eBitDepthUShort);
