@@ -134,12 +134,7 @@ protected:
     // do not need to delete these, the ImageEffect is managing them for us
     OFX::Clip *_dstClip;
     OFX::Clip *_srcClip;
-    OFX::Double2DParam* _center;
-    OFX::Double2DParam* _offset;
-    OFX::Double2DParam* _innerBtmLeft;
-    OFX::Double2DParam* _innerTopRight;
-    OFX::Double2DParam* _outerBtmLeft;
-    OFX::Double2DParam* _outerTopRight;
+    
     OFX::PushButtonParam* _backwardButton;
     OFX::PushButtonParam* _prevButton;
     OFX::PushButtonParam* _nextButton;
