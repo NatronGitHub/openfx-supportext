@@ -106,20 +106,20 @@ public:
     /**
      * @brief Nothing to do since we're identity. The host should always render the image of the input.
      **/
-    virtual void render(const OFX::RenderArguments & /*args*/) OVERRIDE FINAL
+    virtual void render(const OFX::RenderArguments & /*args*/) OVERRIDE
     {
     }
     
     /**
      * @brief Returns true always at the same time and for the source clip.
      **/
-    virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE FINAL;
+    virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE;
     
     /**
      * @brief Handles the push buttons actions.
      **/
-    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE FINAL;
-    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE FINAL;
+    virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
+    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE;
     
 protected:
     
