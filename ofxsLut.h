@@ -504,35 +504,46 @@ public:
                                          OFX::BitDepthEnum dstBitDepth,
                                          int dstRowBytes) const OVERRIDE FINAL
     {
-        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte);
+        assert(pixelComponents == ePixelComponentRGBA || pixelComponents == ePixelComponentRGB || pixelComponents == ePixelComponentAlpha);
+        assert(dstPixelComponents == ePixelComponentRGBA || dstPixelComponents == ePixelComponentRGB || dstPixelComponents == ePixelComponentAlpha);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int nComponents = getNComponents(pixelComponents);
+        int srcComponents = getNComponents(pixelComponents);
+        int dstComponents = getNComponents(dstPixelComponents);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
             unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
             const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
 
+            unsigned char tmpPixel[4] = {0, 0, 0, 0};
             while (src_pixels != src_end) {
-                if (nComponents == 1) {
+                if (srcComponents == 1) {
                     // alpha channel: no colorspace conversion
-                    dst_pixels[0] = floatToInt<256>(src_pixels[0]);
+                    tmpPixel[3] = floatToInt<256>(src_pixels[0]);
                 } else {
                     for (int k = 0; k < 3; ++k) {
-                        dst_pixels[k] = toColorSpaceUint8FromLinearFloatFast(src_pixels[k]);
+                        tmpPixel[k] = toColorSpaceUint8FromLinearFloatFast(src_pixels[k]);
                     }
-                    if (nComponents == 4) {
+                    if (srcComponents == 4) {
                         // alpha channel: no colorspace conversion
-                        dst_pixels[3] = floatToInt<256>(src_pixels[3]);
+                        tmpPixel[3] = floatToInt<256>(src_pixels[3]);
                     }
                 }
-                dst_pixels += nComponents;
-                src_pixels += nComponents;
+                if (dstComponents == 1) {
+                    dst_pixels[0] = tmpPixel[3];
+                } else {
+                    for (int k = 0; k < dstComponents; ++k) {
+                        dst_pixels[k] = tmpPixel[k];
+                    }
+                }
+                dst_pixels += dstComponents;
+                src_pixels += srcComponents;
             }
         }
     } // to_byte_packed_nodither
