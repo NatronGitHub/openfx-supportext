@@ -907,8 +907,10 @@ public:
         if ( found != LutManager::m_instance.luts.end() ) {
             return found->second;
         } else {
+            Lut<MUTEX>* lut = new Lut<MUTEX>(name,fromFunc,toFunc);
+            lut->validate();
             std::pair<LutsMap::iterator,bool> ret =
-                LutManager::m_instance.luts.insert( std::make_pair( name,new Lut<MUTEX>(name,fromFunc,toFunc) ) );
+                LutManager::m_instance.luts.insert( std::make_pair( name, lut ) );
             assert(ret.second);
 
             return ret.first->second;
