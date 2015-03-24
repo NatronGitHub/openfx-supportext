@@ -80,7 +80,9 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamPremult);
         param->setLabel(kParamPremultLabel);
         param->setHint(kParamPremultHint);
+#ifdef OFX_EXTENSIONS_NUKE
         param->setLayoutHint(eLayoutHintNoNewLine);
+#endif
         if (page) {
             page->addChild(*param);
         }
