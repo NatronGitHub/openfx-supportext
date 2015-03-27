@@ -1160,6 +1160,8 @@ OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc,
             //std::cout << "kFnOfxImageEffectCanTransform (describe) =" << desc.getPropertySet().propGetInt(kFnOfxImageEffectCanTransform) << std::endl;
         }
     }
+    // ask the host to render all planes
+    desc.setPassThroughForNotProcessedPlanes(ePassThroughLevelRenderAllRequestedPlanes);
 #endif
 }
 

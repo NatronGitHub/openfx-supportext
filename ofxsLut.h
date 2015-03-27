@@ -211,38 +211,90 @@ public:
 
     /* @brief convert from float to byte with dithering (error diffusion).
        It uses random numbers for error diffusion, and thus the result is different at each function call. */
-    virtual void to_byte_packed_dither(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+    virtual void to_byte_packed_dither(const void* pixelData,
+                                       const OfxRectI & bounds,
+                                       OFX::PixelComponentEnum pixelComponents,
+                                       int pixelComponentCount,
+                                       OFX::BitDepthEnum bitDepth,
+                                       int rowBytes,
                                        const OfxRectI & renderWindow,
-                                       void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
+                                       void* dstPixelData,
+                                       const OfxRectI & dstBounds,
+                                       OFX::PixelComponentEnum dstPixelComponents,
+                                       int dstPixelComponentCount,
+                                       OFX::BitDepthEnum dstBitDepth,
+                                       int dstRowBytes) const = 0;
 
     /* @brief convert from float to byte without dithering. */
-    virtual void to_byte_packed_nodither(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+    virtual void to_byte_packed_nodither(const void* pixelData,
+                                         const OfxRectI & bounds,
+                                         OFX::PixelComponentEnum pixelComponents,
+                                         int pixelComponentCount,
+                                         OFX::BitDepthEnum bitDepth,
+                                         int rowBytes,
                                          const OfxRectI & renderWindow,
-                                         void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
+                                         void* dstPixelData,
+                                         const OfxRectI & dstBounds,
+                                         OFX::PixelComponentEnum dstPixelComponents,
+                                         int dstPixelComponentCount,
+                                         OFX::BitDepthEnum dstBitDepth,
+                                         int dstRowBytes) const = 0;
 
     /* @brief uses Rec.709 to convert from color to grayscale. */
     virtual void to_byte_grayscale_nodither(const void* pixelData,
                                             const OfxRectI & bounds,
                                             OFX::PixelComponentEnum pixelComponents,
+                                            int pixelComponentCount,
                                             OFX::BitDepthEnum bitDepth,
                                             int rowBytes,
                                             const OfxRectI & renderWindow,
                                             void* dstPixelData,
                                             const OfxRectI & dstBounds,
                                             OFX::PixelComponentEnum dstPixelComponents,
+                                            int dstPixelComponentCount,
                                             OFX::BitDepthEnum dstBitDepth,
                                             int dstRowBytes) const = 0;
 
     /* @brief convert from float to short without dithering. */
-    virtual void to_short_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+    virtual void to_short_packed(const void* pixelData,
+                                 const OfxRectI & bounds,
+                                 OFX::PixelComponentEnum pixelComponents,
+                                 int pixelComponentCount,
+                                 OFX::BitDepthEnum bitDepth,
+                                 int rowBytes,
                                  const OfxRectI & renderWindow,
-                                 void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
-    virtual void from_byte_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                 void* dstPixelData,
+                                 const OfxRectI & dstBounds,
+                                 OFX::PixelComponentEnum dstPixelComponents,
+                                 int dstPixelComponentCount,
+                                 OFX::BitDepthEnum dstBitDepth,
+                                 int dstRowBytes) const = 0;
+    virtual void from_byte_packed(const void* pixelData,
+                                  const OfxRectI & bounds,
+                                  OFX::PixelComponentEnum pixelComponents,
+                                  int pixelComponentCount,
+                                  OFX::BitDepthEnum bitDepth,
+                                  int rowBytes,
                                   const OfxRectI & renderWindow,
-                                  void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
-    virtual void from_short_packed(const void* pixelData, const OfxRectI & bounds, OFX::PixelComponentEnum pixelComponents, OFX::BitDepthEnum bitDepth, int rowBytes,
+                                  void* dstPixelData,
+                                  const OfxRectI & dstBounds,
+                                  OFX::PixelComponentEnum dstPixelComponents,
+                                  int dstPixelComponentCount,
+                                  OFX::BitDepthEnum dstBitDepth,
+                                  int dstRowBytes) const = 0;
+    virtual void from_short_packed(const void* pixelData,
+                                   const OfxRectI & bounds,
+                                   OFX::PixelComponentEnum pixelComponents,
+                                   int pixelComponentCount,
+                                   OFX::BitDepthEnum bitDepth,
+                                   int rowBytes,
                                    const OfxRectI & renderWindow,
-                                   void* dstPixelData, const OfxRectI & dstBounds, OFX::PixelComponentEnum dstPixelComponents, OFX::BitDepthEnum dstBitDepth, int dstRowBytes) const = 0;
+                                   void* dstPixelData,
+                                   const OfxRectI & dstBounds,
+                                   OFX::PixelComponentEnum dstPixelComponents,
+                                   int dstPixelComponentCount,
+                                   OFX::BitDepthEnum dstBitDepth,
+                                   int dstRowBytes) const = 0;
 
 protected:
 
@@ -415,12 +467,14 @@ public:
     virtual void to_byte_packed_dither(const void* pixelData,
                                        const OfxRectI & bounds,
                                        OFX::PixelComponentEnum pixelComponents,
+                                       int pixelComponentCount,
                                        OFX::BitDepthEnum bitDepth,
                                        int rowBytes,
                                        const OfxRectI & renderWindow,
                                        void* dstPixelData,
                                        const OfxRectI & dstBounds,
                                        OFX::PixelComponentEnum dstPixelComponents,
+                                       int dstPixelComponentCount,
                                        OFX::BitDepthEnum dstBitDepth,
                                        int dstRowBytes) const OVERRIDE FINAL
     {
@@ -437,8 +491,8 @@ public:
         }
         validate();
 
-        int nComponents = getNComponents(pixelComponents);
-        assert(nComponents == 3 || nComponents == 4);
+        const int nComponents = dstPixelComponentCount;
+        assert(dstPixelComponentCount == 3 || dstPixelComponentCount == 4);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             int xstart = renderWindow.x1 + std::rand() % (renderWindow.x2 - renderWindow.x1);
@@ -495,12 +549,14 @@ public:
     virtual void to_byte_packed_nodither(const void* pixelData,
                                          const OfxRectI & bounds,
                                          OFX::PixelComponentEnum pixelComponents,
+                                         int pixelComponentCount,
                                          OFX::BitDepthEnum bitDepth,
                                          int rowBytes,
                                          const OfxRectI & renderWindow,
                                          void* dstPixelData,
                                          const OfxRectI & dstBounds,
                                          OFX::PixelComponentEnum dstPixelComponents,
+                                         int dstPixelComponentCount,
                                          OFX::BitDepthEnum dstBitDepth,
                                          int dstRowBytes) const OVERRIDE FINAL
     {
@@ -513,8 +569,8 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcComponents = getNComponents(pixelComponents);
-        int dstComponents = getNComponents(dstPixelComponents);
+        const int srcComponents = pixelComponentCount;
+        const int dstComponents = dstPixelComponentCount;
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
@@ -552,12 +608,14 @@ public:
     virtual void to_byte_grayscale_nodither(const void* pixelData,
                                             const OfxRectI & bounds,
                                             OFX::PixelComponentEnum pixelComponents,
+                                            int pixelComponentCount,
                                             OFX::BitDepthEnum bitDepth,
                                             int rowBytes,
                                             const OfxRectI & renderWindow,
                                             void* dstPixelData,
                                             const OfxRectI & dstBounds,
                                             OFX::PixelComponentEnum dstPixelComponents,
+                                            int dstPixelComponentCount,
                                             OFX::BitDepthEnum dstBitDepth,
                                             int dstRowBytes) const OVERRIDE FINAL
     {
@@ -570,7 +628,7 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int srcComponents = getNComponents(pixelComponents);
+        const int srcComponents = pixelComponentCount;
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
@@ -589,12 +647,14 @@ public:
     virtual void to_short_packed(const void* pixelData,
                                  const OfxRectI & bounds,
                                  OFX::PixelComponentEnum pixelComponents,
+                                 int pixelComponentCount,
                                  OFX::BitDepthEnum bitDepth,
                                  int rowBytes,
                                  const OfxRectI & renderWindow,
                                  void* dstPixelData,
                                  const OfxRectI & dstBounds,
                                  OFX::PixelComponentEnum dstPixelComponents,
+                                 int dstPixelComponentCount,
                                  OFX::BitDepthEnum dstBitDepth,
                                  int dstRowBytes) const OVERRIDE FINAL
     {
@@ -605,7 +665,7 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int nComponents = getNComponents(pixelComponents);
+        const int nComponents = pixelComponentCount;
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
@@ -634,12 +694,14 @@ public:
     virtual void from_byte_packed(const void* pixelData,
                                   const OfxRectI & bounds,
                                   OFX::PixelComponentEnum pixelComponents,
+                                  int pixelComponentCount,
                                   OFX::BitDepthEnum bitDepth,
                                   int rowBytes,
                                   const OfxRectI & renderWindow,
                                   void* dstPixelData,
                                   const OfxRectI & dstBounds,
                                   OFX::PixelComponentEnum dstPixelComponents,
+                                  int dstPixelComponentCount,
                                   OFX::BitDepthEnum dstBitDepth,
                                   int dstRowBytes) const OVERRIDE FINAL
     {
@@ -650,7 +712,7 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int nComponents = getNComponents(pixelComponents);
+        const int nComponents = pixelComponentCount;
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const unsigned char *src_pixels = (const unsigned char*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
@@ -679,12 +741,14 @@ public:
     virtual void from_short_packed(const void* pixelData,
                                    const OfxRectI & bounds,
                                    OFX::PixelComponentEnum pixelComponents,
+                                   int pixelComponentCount,
                                    OFX::BitDepthEnum bitDepth,
                                    int rowBytes,
                                    const OfxRectI & renderWindow,
                                    void* dstPixelData,
                                    const OfxRectI & dstBounds,
                                    OFX::PixelComponentEnum dstPixelComponents,
+                                   int dstPixelComponentCount,
                                    OFX::BitDepthEnum dstBitDepth,
                                    int dstRowBytes) const OVERRIDE FINAL
     {
@@ -695,7 +759,7 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         validate();
 
-        int nComponents = getNComponents(pixelComponents);
+        const int nComponents = pixelComponentCount;
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const unsigned short *src_pixels = (const unsigned short*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);

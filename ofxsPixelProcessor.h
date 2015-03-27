@@ -92,24 +92,6 @@ getImageData(const OFX::Image* img,
 
 inline
 int
-getNComponents(OFX::PixelComponentEnum pixelComponents)
-{
-    switch (pixelComponents) {
-    case OFX::ePixelComponentNone:            return 0; break;
-    case OFX::ePixelComponentRGBA:            return 4; break;
-    case OFX::ePixelComponentRGB:             return 3; break;
-    case OFX::ePixelComponentAlpha:           return 1; break;
-#ifdef OFX_EXTENSIONS_NUKE
-    case OFX::ePixelComponentMotionVectors:   return 2; break;
-    case OFX::ePixelComponentStereoDisparity: return 2; break;
-#endif
-    case OFX::ePixelComponentCustom:          return 0; break;
-    }
-    return 0;
-}
-
-inline
-int
 getComponentBytes(OFX::BitDepthEnum bitDepth)
 {
     // compute bytes per component
@@ -130,25 +112,16 @@ getComponentBytes(OFX::BitDepthEnum bitDepth)
 }
 
 inline
-int
-getPixelBytes(OFX::PixelComponentEnum pixelComponents,
-              OFX::BitDepthEnum bitDepth)
-{
-    // compute bytes per pixel
-    return getNComponents(pixelComponents) * getComponentBytes(bitDepth);
-}
-
-inline
 void*
 getPixelAddress(void* pixelData,
                 const OfxRectI & bounds,
-                OFX::PixelComponentEnum pixelComponents,
+                int pixelComponentCount,
                 OFX::BitDepthEnum bitDepth,
                 int rowBytes,
                 int x,
                 int y)
 {
-    int pixelBytes = getPixelBytes(pixelComponents, bitDepth);
+    int pixelBytes = pixelComponentCount * getComponentBytes(bitDepth);
 
     // are we in the image bounds
     if ( ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0) ) {
@@ -164,14 +137,14 @@ inline
 const void*
 getPixelAddress(const void* pixelData,
                 const OfxRectI & bounds,
-                OFX::PixelComponentEnum pixelComponents,
+                int pixelComponentCount,
                 OFX::BitDepthEnum bitDepth,
                 int rowBytes,
                 int x,
                 int y,
                 bool withinBoundsCheck = true)
 {
-    int pixelBytes = getPixelBytes(pixelComponents, bitDepth);
+    int pixelBytes = pixelComponentCount * getComponentBytes(bitDepth);
 
     // are we in the image bounds
     if ( withinBoundsCheck && (
@@ -195,6 +168,7 @@ protected:
     void* _dstPixelData;
     OfxRectI _dstBounds;
     OFX::PixelComponentEnum _dstPixelComponents;
+    int _dstPixelComponentCount;
     OFX::BitDepthEnum _dstBitDepth;
     int _dstPixelBytes;
     int _dstRowBytes;
@@ -207,6 +181,7 @@ public:
           , _dstPixelData(0)
           , _dstBounds()
           , _dstPixelComponents(OFX::ePixelComponentNone)
+          , _dstPixelComponentCount(0)
           , _dstBitDepth(OFX::eBitDepthNone)
           , _dstPixelBytes(0)
           , _dstRowBytes(0)
@@ -220,8 +195,9 @@ public:
         _dstPixelData = v->getPixelData();
         _dstBounds = v->getBounds();
         _dstPixelComponents = v->getPixelComponents();
+        _dstPixelComponentCount = v->getPixelComponentCount();
         _dstBitDepth = v->getPixelDepth();
-        _dstPixelBytes = getPixelBytes(_dstPixelComponents, _dstBitDepth);
+        _dstPixelBytes = _dstPixelComponentCount * getComponentBytes(_dstBitDepth);
         _dstRowBytes = v->getRowBytes();
     }
 
@@ -229,14 +205,16 @@ public:
     void setDstImg(void *dstPixelData,
                    const OfxRectI & dstBounds,
                    OFX::PixelComponentEnum dstPixelComponents,
+                   int dstPixelComponentCount,
                    OFX::BitDepthEnum dstPixelDepth,
                    int dstRowBytes)
     {
         _dstPixelData = dstPixelData;
         _dstBounds = dstBounds;
         _dstPixelComponents = dstPixelComponents;
+        _dstPixelComponentCount = dstPixelComponentCount;
         _dstBitDepth = dstPixelDepth;
-        _dstPixelBytes = getPixelBytes(_dstPixelComponents, _dstBitDepth);
+        _dstPixelBytes = _dstPixelComponentCount * getComponentBytes(_dstBitDepth);
         _dstRowBytes = dstRowBytes;
     }
 
@@ -342,6 +320,7 @@ protected:
     const void *_srcPixelData;
     OfxRectI _srcBounds;
     OFX::PixelComponentEnum _srcPixelComponents;
+    int _srcPixelComponentCount;
     OFX::BitDepthEnum _srcBitDepth;
     int _srcPixelBytes;
     int _srcRowBytes;
@@ -361,6 +340,7 @@ public:
           , _srcPixelData(0)
           , _srcBounds()
           , _srcPixelComponents(OFX::ePixelComponentNone)
+          , _srcPixelComponentCount(0)
           , _srcBitDepth(OFX::eBitDepthNone)
           , _srcPixelBytes(0)
           , _srcRowBytes(0)
@@ -381,8 +361,9 @@ public:
         _srcPixelData = v->getPixelData();
         _srcBounds = v->getBounds();
         _srcPixelComponents = v->getPixelComponents();
+        _srcPixelComponentCount = v->getPixelComponentCount();
         _srcBitDepth = v->getPixelDepth();
-        _srcPixelBytes = getPixelBytes(_srcPixelComponents, _srcBitDepth);
+        _srcPixelBytes = _srcPixelComponentCount * getComponentBytes(_srcBitDepth);
         _srcRowBytes = v->getRowBytes();
     }
 
@@ -390,6 +371,7 @@ public:
     void setSrcImg(const void *srcPixelData,
                    const OfxRectI & srcBounds,
                    OFX::PixelComponentEnum srcPixelComponents,
+                   int srcPixelComponentCount,
                    OFX::BitDepthEnum srcPixelDepth,
                    int srcRowBytes,
                    int srcBoundary)
@@ -397,8 +379,9 @@ public:
         _srcPixelData = srcPixelData;
         _srcBounds = srcBounds;
         _srcPixelComponents = srcPixelComponents;
+        _srcPixelComponentCount = srcPixelComponentCount;
         _srcBitDepth = srcPixelDepth;
-        _srcPixelBytes = getPixelBytes(_srcPixelComponents, _srcBitDepth);
+        _srcPixelBytes = _srcPixelComponentCount * getComponentBytes(_srcBitDepth);
         _srcRowBytes = srcRowBytes;
         _srcBoundary = srcBoundary;
     }
