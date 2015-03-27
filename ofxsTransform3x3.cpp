@@ -1181,6 +1181,10 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     srcClip->addSupportedComponent(ePixelComponentRGBA);
     srcClip->addSupportedComponent(ePixelComponentRGB);
     srcClip->addSupportedComponent(ePixelComponentAlpha);
+#ifdef OFX_EXTENSIONS_NATRON
+    //This will add only if host supports Natron extensions
+    srcClip->addSupportedComponent(ePixelComponentsXY);
+#endif
     srcClip->setTemporalClipAccess(false);
     srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
@@ -1206,6 +1210,10 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     dstClip->addSupportedComponent(ePixelComponentRGBA);
     dstClip->addSupportedComponent(ePixelComponentRGB);
     dstClip->addSupportedComponent(ePixelComponentAlpha);
+#ifdef OFX_EXTENSIONS_NATRON
+    //This will add only if host supports Natron extensions
+    dstClip->addSupportedComponent(ePixelComponentsXY);
+#endif
     dstClip->setSupportsTiles(kSupportsTiles);
 
 
