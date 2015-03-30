@@ -485,9 +485,9 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         if (pixelComponents == ePixelComponentAlpha) {
             // alpha: no dither
-            return to_byte_packed_nodither(pixelData, bounds, pixelComponents, bitDepth, rowBytes,
+            return to_byte_packed_nodither(pixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, rowBytes,
                                            renderWindow,
-                                           dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+                                           dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }
         validate();
 
