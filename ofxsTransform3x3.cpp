@@ -146,9 +146,9 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _maskInvert(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha || _dstClip->getPixelComponents() == ePixelComponentRGB || _dstClip->getPixelComponents() == ePixelComponentRGBA);
+    assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
     _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(_srcClip->getPixelComponents() == ePixelComponentAlpha || _srcClip->getPixelComponents() == ePixelComponentRGB || _srcClip->getPixelComponents() == ePixelComponentRGBA);
+    assert(1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4);
     // name of mask clip depends on the context
     if (masked) {
         _maskClip = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
@@ -851,28 +851,40 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
 {
     // instantiate the render code based on the pixel depth of the dst clip
     OFX::BitDepthEnum dstBitDepth    = _dstClip->getPixelDepth();
-    OFX::PixelComponentEnum dstComponents  = _dstClip->getPixelComponents();
+    int dstComponentCount  = _dstClip->getPixelComponentCount();
 
-    assert(dstComponents == OFX::ePixelComponentAlpha || dstComponents == OFX::ePixelComponentRGB || dstComponents == OFX::ePixelComponentRGBA);
-    if (dstComponents == OFX::ePixelComponentRGBA) {
-        if (_masked) {
-            renderInternal<4,true>(args, dstBitDepth);
-        } else {
-            renderInternal<4,false>(args, dstBitDepth);
-        }
-    } else if (dstComponents == OFX::ePixelComponentRGB) {
-        if (_masked) {
-            renderInternal<3,true>(args, dstBitDepth);
-        } else {
-            renderInternal<3,false>(args, dstBitDepth);
-        }
-    } else {
-        assert(dstComponents == OFX::ePixelComponentAlpha);
-        if (_masked) {
-            renderInternal<1,true>(args, dstBitDepth);
-        } else {
-            renderInternal<1,false>(args, dstBitDepth);
-        }
+    assert(1 <= dstComponentCount && dstComponentCount <= 4);
+    switch (dstComponentCount) {
+        case 4:
+            if (_masked) {
+                renderInternal<4,true>(args, dstBitDepth);
+            } else {
+                renderInternal<4,false>(args, dstBitDepth);
+            }
+            break;
+        case 3:
+            if (_masked) {
+                renderInternal<3,true>(args, dstBitDepth);
+            } else {
+                renderInternal<3,false>(args, dstBitDepth);
+            }
+            break;
+        case 2:
+            if (_masked) {
+                renderInternal<2,true>(args, dstBitDepth);
+            } else {
+                renderInternal<2,false>(args, dstBitDepth);
+            }
+            break;
+        case 1:
+            if (_masked) {
+                renderInternal<1,true>(args, dstBitDepth);
+            } else {
+                renderInternal<1,false>(args, dstBitDepth);
+            }
+            break;
+        default:
+            break;
     }
 }
 
