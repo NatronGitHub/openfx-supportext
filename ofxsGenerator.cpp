@@ -164,6 +164,7 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
     if (dstComponents != outputComponents) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
         OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+        return;
     }
 
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
@@ -174,6 +175,7 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
         if (dstBitDepth != outputBitDepth) {
             setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output bit depth");
             OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+            return;
         }
     }
 }

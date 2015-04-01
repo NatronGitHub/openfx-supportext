@@ -87,6 +87,7 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+        return false;
     }
     
     identityClip = _srcClip;
@@ -101,6 +102,7 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+        return;
     }
     
     OFX::TrackArguments trackArgs;
