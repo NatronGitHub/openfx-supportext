@@ -146,9 +146,9 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _maskInvert(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha || _dstClip->getPixelComponents() == ePixelComponentRGB || _dstClip->getPixelComponents() == ePixelComponentRGBA);
+    assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
     _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(_srcClip->getPixelComponents() == ePixelComponentAlpha || _srcClip->getPixelComponents() == ePixelComponentRGB || _srcClip->getPixelComponents() == ePixelComponentRGBA);
+    assert(1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4);
     // name of mask clip depends on the context
     if (masked) {
         _maskClip = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
@@ -211,6 +211,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
     if ( !dst.get() ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+        return;
     }
     OFX::BitDepthEnum         dstBitDepth    = dst->getPixelDepth();
     OFX::PixelComponentEnum   dstComponents  = dst->getPixelComponents();
@@ -218,12 +219,14 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         dstComponents != _dstClip->getPixelComponents()) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
         OFX::throwSuiteStatusException(kOfxStatFailed);
+        return;
     }
     if ( (dst->getRenderScale().x != args.renderScale.x) ||
          ( dst->getRenderScale().y != args.renderScale.y) ||
          ( (dst->getField() != OFX::eFieldNone /* for DaVinci Resolve */ && dst->getField() != args.fieldToRender)) ) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
         OFX::throwSuiteStatusException(kOfxStatFailed);
+        return;
     }
     std::auto_ptr<const OFX::Image> src((_srcClip && _srcClip->isConnected()) ?
                                         _srcClip->fetchImage(args.time) : 0);
@@ -256,6 +259,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         OFX::PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
             OFX::throwSuiteStatusException(kOfxStatFailed);
+            return;
         }
 
         bool invert = false;
@@ -851,28 +855,40 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
 {
     // instantiate the render code based on the pixel depth of the dst clip
     OFX::BitDepthEnum dstBitDepth    = _dstClip->getPixelDepth();
-    OFX::PixelComponentEnum dstComponents  = _dstClip->getPixelComponents();
+    int dstComponentCount  = _dstClip->getPixelComponentCount();
 
-    assert(dstComponents == OFX::ePixelComponentAlpha || dstComponents == OFX::ePixelComponentRGB || dstComponents == OFX::ePixelComponentRGBA);
-    if (dstComponents == OFX::ePixelComponentRGBA) {
-        if (_masked) {
-            renderInternal<4,true>(args, dstBitDepth);
-        } else {
-            renderInternal<4,false>(args, dstBitDepth);
-        }
-    } else if (dstComponents == OFX::ePixelComponentRGB) {
-        if (_masked) {
-            renderInternal<3,true>(args, dstBitDepth);
-        } else {
-            renderInternal<3,false>(args, dstBitDepth);
-        }
-    } else {
-        assert(dstComponents == OFX::ePixelComponentAlpha);
-        if (_masked) {
-            renderInternal<1,true>(args, dstBitDepth);
-        } else {
-            renderInternal<1,false>(args, dstBitDepth);
-        }
+    assert(1 <= dstComponentCount && dstComponentCount <= 4);
+    switch (dstComponentCount) {
+        case 4:
+            if (_masked) {
+                renderInternal<4,true>(args, dstBitDepth);
+            } else {
+                renderInternal<4,false>(args, dstBitDepth);
+            }
+            break;
+        case 3:
+            if (_masked) {
+                renderInternal<3,true>(args, dstBitDepth);
+            } else {
+                renderInternal<3,false>(args, dstBitDepth);
+            }
+            break;
+        case 2:
+            if (_masked) {
+                renderInternal<2,true>(args, dstBitDepth);
+            } else {
+                renderInternal<2,false>(args, dstBitDepth);
+            }
+            break;
+        case 1:
+            if (_masked) {
+                renderInternal<1,true>(args, dstBitDepth);
+            } else {
+                renderInternal<1,false>(args, dstBitDepth);
+            }
+            break;
+        default:
+            break;
     }
 }
 
@@ -1182,8 +1198,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     srcClip->addSupportedComponent(ePixelComponentRGB);
     srcClip->addSupportedComponent(ePixelComponentAlpha);
 #ifdef OFX_EXTENSIONS_NATRON
-    //This will add only if host supports Natron extensions
-    srcClip->addSupportedComponent(ePixelComponentsXY);
+    srcClip->addSupportedComponent(ePixelComponentXY);
 #endif
     srcClip->setTemporalClipAccess(false);
     srcClip->setSupportsTiles(kSupportsTiles);
@@ -1211,8 +1226,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     dstClip->addSupportedComponent(ePixelComponentRGB);
     dstClip->addSupportedComponent(ePixelComponentAlpha);
 #ifdef OFX_EXTENSIONS_NATRON
-    //This will add only if host supports Natron extensions
-    dstClip->addSupportedComponent(ePixelComponentsXY);
+    dstClip->addSupportedComponent(ePixelComponentXY);
 #endif
     dstClip->setSupportsTiles(kSupportsTiles);
 

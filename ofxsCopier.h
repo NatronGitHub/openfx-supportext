@@ -506,7 +506,9 @@ fillBlackNTForDepth(OFX::ImageEffect &instance,
 {
     assert(dstPixelData);
     // do the rendering
-    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstPixelComponentCount == 4) {
         fillBlackNTForDepthAndComponents<PIX,4>(instance, renderWindow,
@@ -538,6 +540,7 @@ fillBlackNT(OFX::ImageEffect &instance,
     // do the rendering
     if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstBitDepth == OFX::eBitDepthUByte) {
         fillBlackNTForDepth<unsigned char>(instance, renderWindow,
@@ -605,7 +608,9 @@ fillBlackForDepth(OFX::ImageEffect &instance,
 {
     assert(dstPixelData);
     // do the rendering
-    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstPixelComponentCount == 4) {
         fillBlackForDepthAndComponents<PIX,4>(instance, renderWindow,
@@ -636,6 +641,7 @@ fillBlack(OFX::ImageEffect &instance,
     // do the rendering
     if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstBitDepth == OFX::eBitDepthUByte) {
         fillBlackForDepth<unsigned char>(instance, renderWindow,
@@ -727,6 +733,7 @@ copyPixelsNTForDepth(OFX::ImageEffect &instance,
     // do the rendering
     if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstPixelComponents == OFX::ePixelComponentRGBA) {
         copyPixelsNTForDepthAndComponents<PIX,4>(instance, renderWindow,
@@ -766,6 +773,7 @@ copyPixelsNT(OFX::ImageEffect &instance,
     // do the rendering
     if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstBitDepth == OFX::eBitDepthUByte) {
         copyPixelsNTForDepth<unsigned char>(instance, renderWindow,
@@ -845,6 +853,7 @@ copyPixelsForDepth(OFX::ImageEffect &instance,
     // do the rendering
     if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstPixelComponentCount == 4) {
         copyPixelsForDepthAndComponents<PIX,4>(instance, renderWindow,
@@ -891,6 +900,7 @@ copyPixels(OFX::ImageEffect &instance,
     // do the rendering
     if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
     }
     if (dstBitDepth == OFX::eBitDepthUByte) {
         copyPixelsForDepth<unsigned char>(instance, renderWindow,

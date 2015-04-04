@@ -485,9 +485,9 @@ public:
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
         if (pixelComponents == ePixelComponentAlpha) {
             // alpha: no dither
-            return to_byte_packed_nodither(pixelData, bounds, pixelComponents, bitDepth, rowBytes,
+            return to_byte_packed_nodither(pixelData, bounds, pixelComponents, pixelComponentCount, bitDepth, rowBytes,
                                            renderWindow,
-                                           dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes);
+                                           dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }
         validate();
 
@@ -621,7 +621,9 @@ public:
     {
         assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte &&
                (pixelComponents == ePixelComponentRGB || pixelComponents == ePixelComponentRGBA) &&
-               dstPixelComponents == ePixelComponentAlpha);
+               dstPixelComponents == ePixelComponentAlpha &&
+               (pixelComponentCount == 3 || pixelComponentCount == 4) &&
+               dstPixelComponentCount == 1);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
@@ -658,7 +660,7 @@ public:
                                  OFX::BitDepthEnum dstBitDepth,
                                  int dstRowBytes) const OVERRIDE FINAL
     {
-        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents);
+        assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
@@ -705,7 +707,7 @@ public:
                                   OFX::BitDepthEnum dstBitDepth,
                                   int dstRowBytes) const OVERRIDE FINAL
     {
-        assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+        assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
@@ -752,7 +754,7 @@ public:
                                    OFX::BitDepthEnum dstBitDepth,
                                    int dstRowBytes) const OVERRIDE FINAL
     {
-        assert(bitDepth == eBitDepthUShort && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents);
+        assert(bitDepth == eBitDepthUShort && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
