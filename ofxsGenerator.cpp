@@ -42,6 +42,7 @@
 
 #include "ofxsFormatResolution.h"
 
+static bool gHostIsNatron = false;
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
         : OFX::ImageEffect(handle)
@@ -71,7 +72,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
     assert(_type && _format && _btmLeft && _size && _interactive);
-    _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
+    if (!gHostIsNatron) {
+        _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
+    }
+
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
         _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
     }
@@ -80,7 +84,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
     const OFX::PropertySet &effectProps = getPropertySet();
 
     int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
-    for(int i = 0; i < numPixelDepths; ++i) {
+    for (int i = 0; i < numPixelDepths; ++i) {
         OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
         bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
         switch (pixelDepth) {
@@ -98,7 +102,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
                 break;
         }
     }
-    {
+    if (!gHostIsNatron) {
         int i = 0;
         if (_supportsFloats) {
             _outputBitDepthMap[i] = OFX::eBitDepthFloat;
@@ -157,13 +161,15 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
 void
 GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
 {
-    // get the components of _dstClip
-    int outputComponents_i;
-    _outputComponents->getValue(outputComponents_i);
-    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
-    if (dstComponents != outputComponents) {
-        setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
-        OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+    if (!gHostIsNatron) {
+        // get the components of _dstClip
+        int outputComponents_i;
+        _outputComponents->getValue(outputComponents_i);
+        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+        if (dstComponents != outputComponents) {
+            setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
+            OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+        }
     }
 
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
@@ -283,15 +289,17 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     }
 
     if (par != 0.) {
-      clipPreferences.setPixelAspectRatio(*_dstClip, par);
+        clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
-
-    // set the components of _dstClip
-    int outputComponents_i;
-    _outputComponents->getValue(outputComponents_i);
-    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
-    clipPreferences.setClipComponents(*_dstClip, outputComponents);
-
+    
+    if (!gHostIsNatron) {
+        // set the components of _dstClip
+        int outputComponents_i;
+        _outputComponents->getValue(outputComponents_i);
+        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+        clipPreferences.setClipComponents(*_dstClip, outputComponents);
+    }
+    
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
         // set the bitDepth of _dstClip
         int outputBitDepth_i;
@@ -454,6 +462,11 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ClipDescriptor &dstClip,
                            ContextEnum /*context*/)
 {
+#ifdef OFX_EXTENSIONS_NATRON
+    if (OFX::getImageEffectHostDescription()->isNatron) {
+        gHostIsNatron = true;
+    }
+#endif
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
         param->setLabel(kParamGeneratorExtentLabel);
@@ -603,72 +616,74 @@ generatorDescribeInContext(PageParamDescriptor *page,
         outputBitDepthMap[i] = OFX::eBitDepthNone;
     }
 
-    bool supportsRGBA   = false;
-    bool supportsRGB    = false;
-    bool supportsAlpha  = false;
-
-    OFX::PixelComponentEnum outputComponentsMap[4];
-
-    const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
-    int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
-    for(int i = 0; i < numComponents; ++i) {
-        OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
-        bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
-        switch (pixelComponents) {
-            case OFX::ePixelComponentRGBA:
-                supportsRGBA  = supported;
-                break;
-            case OFX::ePixelComponentRGB:
-                supportsRGB = supported;
-                break;
-            case OFX::ePixelComponentAlpha:
-                supportsAlpha = supported;
-                break;
-            default:
-                // other components are not supported by this plugin
-                break;
+    if (!gHostIsNatron) {
+        bool supportsRGBA   = false;
+        bool supportsRGB    = false;
+        bool supportsAlpha  = false;
+        
+        OFX::PixelComponentEnum outputComponentsMap[4];
+        
+        const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
+        int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
+        for(int i = 0; i < numComponents; ++i) {
+            OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+            bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
+            switch (pixelComponents) {
+                case OFX::ePixelComponentRGBA:
+                    supportsRGBA  = supported;
+                    break;
+                case OFX::ePixelComponentRGB:
+                    supportsRGB = supported;
+                    break;
+                case OFX::ePixelComponentAlpha:
+                    supportsAlpha = supported;
+                    break;
+                default:
+                    // other components are not supported by this plugin
+                    break;
+            }
         }
-    }
-    {
-        int i = 0;
-        if (supportsRGBA) {
-            outputComponentsMap[i] = OFX::ePixelComponentRGBA;
-            ++i;
+        {
+            int i = 0;
+            if (supportsRGBA) {
+                outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+                ++i;
+            }
+            if (supportsRGB) {
+                outputComponentsMap[i] = OFX::ePixelComponentRGB;
+                ++i;
+            }
+            if (supportsAlpha) {
+                outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+                ++i;
+            }
+            outputComponentsMap[i] = OFX::ePixelComponentNone;
         }
-        if (supportsRGB) {
-            outputComponentsMap[i] = OFX::ePixelComponentRGB;
-            ++i;
-        }
-        if (supportsAlpha) {
-            outputComponentsMap[i] = OFX::ePixelComponentAlpha;
-            ++i;
-        }
-        outputComponentsMap[i] = OFX::ePixelComponentNone;
-    }
-
-    // outputComponents
-    {
-        ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
-        param->setLabel(kParamGeneratorOutputComponentsLabel);
-        param->setHint(kParamGeneratorOutputComponentsHint);
-        // the following must be in the same order as in describe(), so that the map works
-        if (supportsRGBA) {
-            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
-            param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
-        }
-        if (supportsRGB) {
-            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
-            param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
-        }
-        if (supportsAlpha) {
-            assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
-            param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
-        }
-        param->setDefault(0);
-        param->setAnimates(false);
-        desc.addClipPreferencesSlaveParam(*param);
-        if (page) {
-            page->addChild(*param);
+        
+        // outputComponents
+        {
+            ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
+            param->setLabel(kParamGeneratorOutputComponentsLabel);
+            param->setHint(kParamGeneratorOutputComponentsHint);
+            // the following must be in the same order as in describe(), so that the map works
+            if (supportsRGBA) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
+                param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
+            }
+            if (supportsRGB) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
+                param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
+            }
+            if (supportsAlpha) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
+                param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
+            }
+            param->setDefault(0);
+            param->setAnimates(false);
+            desc.addClipPreferencesSlaveParam(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
     }
 
