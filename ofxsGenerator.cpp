@@ -102,7 +102,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
                 break;
         }
     }
-    if (!gHostIsNatron) {
+    {
         int i = 0;
         if (_supportsFloats) {
             _outputBitDepthMap[i] = OFX::eBitDepthFloat;
@@ -140,7 +140,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
                 break;
         }
     }
-    {
+    if (!gHostIsNatron) {
         int i = 0;
         if (_supportsRGBA) {
             _outputComponentsMap[i] = OFX::ePixelComponentRGBA;
