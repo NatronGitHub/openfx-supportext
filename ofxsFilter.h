@@ -808,6 +808,9 @@ ofxsFilterInterpolate2DSuper(double fx,
     bool inside = ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
 
     if (!inside) {
+        if (!srcImg) {
+            return;
+        }
         // Center of the pixel is outside.
         // no supersampling if we're outside (we don't want to supersample black and transparent areas)
         // ... but we still have to check wether the entire pixel is outside
