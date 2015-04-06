@@ -42,11 +42,6 @@
 
 #include "ofxsFormatResolution.h"
 
-/* In the generator context, the OpenFX host may handle output components.
- */
-
-static bool gHostHandlesOutputComponents = false;
-
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
         : OFX::ImageEffect(handle)
         , _dstClip(0)
@@ -75,9 +70,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
     assert(_type && _format && _btmLeft && _size && _interactive);
-    if (getContext() != OFX::eContextGenerator || !gHostHandlesOutputComponents) {
-        _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
-    }
+    _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
 
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
         _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
@@ -143,37 +136,33 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
                 break;
         }
     }
-    if (_outputComponents) {
-        int i = 0;
-        if (_supportsRGBA) {
-            _outputComponentsMap[i] = OFX::ePixelComponentRGBA;
-            ++i;
-        }
-        if (_supportsRGB) {
-            _outputComponentsMap[i] = OFX::ePixelComponentRGB;
-            ++i;
-        }
-        if (_supportsAlpha) {
-            _outputComponentsMap[i] = OFX::ePixelComponentAlpha;
-            ++i;
-        }
-        _outputComponentsMap[i] = OFX::ePixelComponentNone;
+    int i = 0;
+    if (_supportsRGBA) {
+        _outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+        ++i;
     }
+    if (_supportsRGB) {
+        _outputComponentsMap[i] = OFX::ePixelComponentRGB;
+        ++i;
+    }
+    if (_supportsAlpha) {
+        _outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+        ++i;
+    }
+    _outputComponentsMap[i] = OFX::ePixelComponentNone;
 }
 
 void
 GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
 {
-    if (_outputComponents) {
-        // get the components of _dstClip
-        int outputComponents_i;
-        _outputComponents->getValue(outputComponents_i);
-        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
-        if (dstComponents != outputComponents) {
-            setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
-            OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
-            return;
-        }
+    // get the components of _dstClip
+    int outputComponents_i;
+    _outputComponents->getValue(outputComponents_i);
+    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+    if (dstComponents != outputComponents) {
+        setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
+        OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+        return;
     }
 
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
@@ -297,14 +286,12 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
     
-    if (_outputComponents) {
-        // set the components of _dstClip
-        int outputComponents_i;
-        _outputComponents->getValue(outputComponents_i);
-        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
-        clipPreferences.setClipComponents(*_dstClip, outputComponents);
-    }
-    
+    // set the components of _dstClip
+    int outputComponents_i;
+    _outputComponents->getValue(outputComponents_i);
+    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+    clipPreferences.setClipComponents(*_dstClip, outputComponents);
+
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
         // set the bitDepth of _dstClip
         int outputBitDepth_i;
@@ -458,13 +445,6 @@ namespace OFX {
 void
 generatorDescribe(OFX::ImageEffectDescriptor &desc)
 {
-    // set gHostHandlesOutputComponents depending on host properties
-#ifdef OFX_EXTENSIONS_NATRON
-    if (OFX::getImageEffectHostDescription()->isNatron) {
-        // Natron handles output components in the generator
-        gHostHandlesOutputComponents = true;
-    }
-#endif
     desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
 }
 
@@ -623,7 +603,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         outputBitDepthMap[i] = OFX::eBitDepthNone;
     }
 
-    if (context != eContextGenerator || !gHostHandlesOutputComponents) {
+    {
         bool supportsRGBA   = false;
         bool supportsRGB    = false;
         bool supportsAlpha  = false;
