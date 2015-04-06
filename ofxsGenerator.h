@@ -161,7 +161,7 @@ class GeneratorOverlayDescriptor
 {
 };
 
-void generatorDescribeInteract(OFX::ImageEffectDescriptor &desc);
+void generatorDescribe(OFX::ImageEffectDescriptor &desc);
 
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,

@@ -42,7 +42,10 @@
 
 #include "ofxsFormatResolution.h"
 
-static bool gHostIsNatron = false;
+/* In the generator context, the OpenFX host may handle output components.
+ */
+
+static bool gHostHandlesOutputComponents = false;
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
         : OFX::ImageEffect(handle)
@@ -72,7 +75,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
     assert(_type && _format && _btmLeft && _size && _interactive);
-    if (!gHostIsNatron) {
+    if (getContext() != OFX::eContextGenerator || !gHostHandlesOutputComponents) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
     }
 
@@ -140,7 +143,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
                 break;
         }
     }
-    if (!gHostIsNatron) {
+    if (_outputComponents) {
         int i = 0;
         if (_supportsRGBA) {
             _outputComponentsMap[i] = OFX::ePixelComponentRGBA;
@@ -161,7 +164,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
 void
 GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
 {
-    if (!gHostIsNatron) {
+    if (_outputComponents) {
         // get the components of _dstClip
         int outputComponents_i;
         _outputComponents->getValue(outputComponents_i);
@@ -294,7 +297,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
     
-    if (!gHostIsNatron) {
+    if (_outputComponents) {
         // set the components of _dstClip
         int outputComponents_i;
         _outputComponents->getValue(outputComponents_i);
@@ -453,8 +456,15 @@ GeneratorInteract::keyUp(const OFX::KeyArgs & args)
 namespace OFX {
 
 void
-generatorDescribeInteract(OFX::ImageEffectDescriptor &desc)
+generatorDescribe(OFX::ImageEffectDescriptor &desc)
 {
+    // set gHostHandlesOutputComponents depending on host properties
+#ifdef OFX_EXTENSIONS_NATRON
+    if (OFX::getImageEffectHostDescription()->isNatron) {
+        // Natron handles output components in the generator
+        gHostHandlesOutputComponents = true;
+    }
+#endif
     desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
 }
 
@@ -462,13 +472,8 @@ void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
-                           ContextEnum /*context*/)
+                           ContextEnum context)
 {
-#ifdef OFX_EXTENSIONS_NATRON
-    if (OFX::getImageEffectHostDescription()->isNatron) {
-        gHostIsNatron = true;
-    }
-#endif
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
         param->setLabel(kParamGeneratorExtentLabel);
@@ -618,7 +623,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         outputBitDepthMap[i] = OFX::eBitDepthNone;
     }
 
-    if (!gHostIsNatron) {
+    if (context != eContextGenerator || !gHostHandlesOutputComponents) {
         bool supportsRGBA   = false;
         bool supportsRGB    = false;
         bool supportsAlpha  = false;
