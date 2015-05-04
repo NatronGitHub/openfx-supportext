@@ -136,6 +136,88 @@ public:
     }
 };
 
+/*
+     * @brief Same as PixelCopier except that the alpha channel is set to maxValue instead of being copied
+     */
+template <class PIX, int nComponents, int maxValue>
+class PixelCopierAlphaOne
+        : public OFX::PixelProcessorFilterBase
+{
+public:
+    // ctor
+    PixelCopierAlphaOne(OFX::ImageEffect &instance)
+        : OFX::PixelProcessorFilterBase(instance)
+    {
+    }
+
+    // and do some processing
+    void multiThreadProcessImages(OfxRectI procWindow)
+    {
+
+        for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
+            if ( _effect.abort() ) {
+                break;
+            }
+
+            int srcy = dsty;
+
+            if (_srcBoundary == 1) {
+                if (_srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y2 - 1;
+                }
+                if (srcy < _srcBounds.y1) {
+                    srcy = _srcBounds.y1;
+                }
+            } else if (_srcBoundary == 2) {
+                if (srcy < _srcBounds.y1 || _srcBounds.y2 <= srcy) {
+                    srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
+                }
+            }
+
+            PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
+            assert(dstPix);
+
+            for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
+
+                int srcx = dstx;
+
+                if (_srcBoundary == 1) {
+                    if (_srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x2 - 1;
+                    }
+                    if (srcx < _srcBounds.x1) {
+                        srcx = _srcBounds.x1;
+                    }
+                } else if (_srcBoundary == 2) {
+                    if (srcx < _srcBounds.x1 || _srcBounds.x2 <= srcx) {
+                        srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
+                    }
+                }
+
+                // origPix is at dstx,dsty
+                const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
+                if (srcPix) {
+                    if (nComponents == 4) {
+                        for (int k = 0; k < nComponents - 1; ++k) {
+                            dstPix[k] = srcPix[k];
+                        }
+                        dstPix[nComponents - 1] = maxValue;
+                    } else {
+                        std::copy(srcPix, srcPix + nComponents, dstPix);
+                    }
+
+
+                } else {
+                    std::fill(dstPix, dstPix + nComponents, 0); // no src pixel here, be black and transparent
+                }
+                // increment the dst pixel
+                dstPix += nComponents;
+            }
+        }
+    }
+};
+
+
 template <class PIX, int nComponents, int maxValue, bool masked>
 class PixelCopierMaskMix
     : public OFX::PixelProcessorFilterBase
@@ -917,6 +999,134 @@ copyPixels(OFX::ImageEffect &instance,
     } // switch
 }
 
+// pixel copiers, threaded versions
+template<class PIX,int nComponents, int maxValue>
+void
+copyPixelsAndSetAlphaOneForDepthAndComponents(OFX::ImageEffect &instance,
+                                const OfxRectI & renderWindow,
+                                const PIX *srcPixelData,
+                                const OfxRectI & srcBounds,
+                                OFX::PixelComponentEnum srcPixelComponents,
+                                int srcPixelComponentCount,
+                                OFX::BitDepthEnum srcBitDepth,
+                                int srcRowBytes,
+                                PIX *dstPixelData,
+                                const OfxRectI & dstBounds,
+                                OFX::PixelComponentEnum dstPixelComponents,
+                                int dstPixelComponentCount,
+                                OFX::BitDepthEnum dstBitDepth,
+                                int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    //assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2); // not necessary, PixelCopier should handle this
+    //assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2); // not necessary, PixelCopier should handle this
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcPixelComponentCount == dstPixelComponentCount);
+    (void)srcPixelComponents;
+    (void)srcBitDepth;
+    (void)dstPixelComponents;
+    (void)dstBitDepth;
+
+    OFX::PixelCopierAlphaOne<PIX, nComponents, maxValue> processor(instance);
+    // set the images
+    processor.setDstImg(dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    processor.setSrcImg(srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, 0);
+
+    // set the render window
+    processor.setRenderWindow(renderWindow);
+
+    // Call the base class process member, this will call the derived templated process code
+    processor.process();
+}
+
+template<class PIX, int maxValue>
+void
+copyPixelsAndSetAlphaOneForDepth(OFX::ImageEffect &instance,
+                   const OfxRectI & renderWindow,
+                   const void *srcPixelData,
+                   const OfxRectI & srcBounds,
+                   OFX::PixelComponentEnum srcPixelComponents,
+                   int srcPixelComponentCount,
+                   OFX::BitDepthEnum srcBitDepth,
+                   int srcRowBytes,
+                   void *dstPixelData,
+                   const OfxRectI & dstBounds,
+                   OFX::PixelComponentEnum dstPixelComponents,
+                   int dstPixelComponentCount,
+                   OFX::BitDepthEnum dstBitDepth,
+                   int dstRowBytes)
+{
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcPixelComponentCount == dstPixelComponentCount);
+    // do the rendering
+    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
+    }
+    if (dstPixelComponentCount == 4) {
+        copyPixelsAndSetAlphaOneForDepthAndComponents<PIX,4, maxValue>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponentCount == 3) {
+        copyPixelsAndSetAlphaOneForDepthAndComponents<PIX,3, maxValue>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } else if (dstPixelComponentCount == 2) {
+        copyPixelsAndSetAlphaOneForDepthAndComponents<PIX,2, maxValue>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    }  else if (dstPixelComponentCount == 1) {
+        copyPixelsAndSetAlphaOneForDepthAndComponents<PIX,1, maxValue>(instance, renderWindow,
+                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
+
+inline void
+copyPixelsAndSetAlphaOne(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const void *srcPixelData,
+           const OfxRectI & srcBounds,
+           OFX::PixelComponentEnum srcPixelComponents,
+           int srcPixelComponentCount,
+           OFX::BitDepthEnum srcBitDepth,
+           int srcRowBytes,
+           void *dstPixelData,
+           const OfxRectI & dstBounds,
+           OFX::PixelComponentEnum dstPixelComponents,
+           int dstPixelComponentCount,
+           OFX::BitDepthEnum dstBitDepth,
+           int dstRowBytes)
+{
+    assert(dstPixelData);
+    if (!srcPixelData) {
+        // no input, be black and transparent
+        return fillBlack(instance, renderWindow,
+                         dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    }
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    // do the rendering
+    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
+    }
+    if (dstBitDepth == OFX::eBitDepthUByte) {
+        copyPixelsAndSetAlphaOneForDepth<unsigned char, 255>(instance, renderWindow,
+                                          srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
+        copyPixelsAndSetAlphaOneForDepth<unsigned short, 65535>(instance, renderWindow,
+                                           srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                           dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } else if (dstBitDepth == OFX::eBitDepthFloat) {
+        copyPixelsAndSetAlphaOneForDepth<float, 1>(instance, renderWindow,
+                                  srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                  dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    } // switch
+}
+
 inline void
 copyPixels(OFX::ImageEffect &instance,
            const OfxRectI & renderWindow,
@@ -937,7 +1147,7 @@ copyPixels(OFX::ImageEffect &instance,
     int srcPixelComponentCount = srcImg->getPixelComponentCount();
     return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
-
+    
 inline void
 copyPixels(OFX::ImageEffect &instance,
            const OfxRectI & renderWindow,
