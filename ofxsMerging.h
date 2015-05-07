@@ -613,22 +613,22 @@ xorFunctor(PIX A,
     return PIX(A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue));
 }
 
-template <typename PIX,int nComponents,int maxValue>
+template <MergingFunctionEnum f,typename PIX,int nComponents,int maxValue>
 void
-mergePixel(MergingFunctionEnum f,
-           bool doAlphaMasking,
-           const PIX* A,
-           const PIX* B,
+mergePixel(bool doAlphaMasking,
+           const PIX A[4],
+           const PIX B[4],
            PIX* dst)
 {
-    PIX a = nComponents == 4 ? A[3] : maxValue;
-    PIX b = nComponents == 4 ? B[3] : maxValue;
+    doAlphaMasking = doAlphaMasking && isMaskable(f);
+    PIX a = A[3];
+    PIX b = B[3];
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphA*alphaB
     int maxComp = nComponents;
     if (doAlphaMasking && nComponents == 4) {
         maxComp = 3;
-        dst[3] = PIX(A[3] + B[3] - A[3] * B[3] / (double)maxValue);
+        dst[3] = PIX(a + b - a * b / (double)maxValue);
     }
     for (int i = 0; i < maxComp; ++i) {
         switch (f) {
@@ -740,6 +740,126 @@ mergePixel(MergingFunctionEnum f,
         } // switch
     }
 } // mergePixel
+
+#if 0
+/// slower version of mergePixel, testing the operation for each pixel
+template <typename PIX,int nComponents,int maxValue>
+void
+mergePixelSlow(MergingFunctionEnum f,
+               bool doAlphaMasking,
+               const PIX A[4],
+               const PIX B[4],
+               PIX* dst)
+{
+    switch (f) {
+        case eMergeATop:
+            mergePixel<eMergeATop,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeAverage:
+            mergePixel<eMergeAverage,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeColorBurn:
+            mergePixel<eMergeColorBurn,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeColorDodge:
+            mergePixel<eMergeColorDodge,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeConjointOver:
+            mergePixel<eMergeConjointOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeCopy:
+            mergePixel<eMergeCopy,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeDifference:
+            mergePixel<eMergeDifference,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeDisjointOver:
+            mergePixel<eMergeDisjointOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeDivide:
+            mergePixel<eMergeDivide,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeExclusion:
+            mergePixel<eMergeExclusion,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeFreeze:
+            mergePixel<eMergeFreeze,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeFrom:
+            mergePixel<eMergeFrom,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeGeometric:
+            mergePixel<eMergeGeometric,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeHardLight:
+            mergePixel<eMergeHardLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeHypot:
+            mergePixel<eMergeHypot,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeIn:
+            mergePixel<eMergeIn,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeInterpolated:
+            mergePixel<eMergeInterpolated,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeMask:
+            mergePixel<eMergeMask,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeMatte:
+            mergePixel<eMergeMatte,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeLighten:
+            mergePixel<eMergeLighten,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeDarken:
+            mergePixel<eMergeDarken,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeMinus:
+            mergePixel<eMergeMinus,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeMultiply:
+            mergePixel<eMergeMultiply,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeOut:
+            mergePixel<eMergeOut,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeOver:
+            mergePixel<eMergeOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeOverlay:
+            mergePixel<eMergeOverlay,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergePinLight:
+            mergePixel<eMergePinLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergePlus:
+            mergePixel<eMergePlus,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeReflect:
+            mergePixel<eMergeReflect,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeScreen:
+            mergePixel<eMergeScreen,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeSoftLight:
+            mergePixel<eMergeSoftLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeStencil:
+            mergePixel<eMergeStencil,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeUnder:
+            mergePixel<eMergeUnder,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        case eMergeXOR:
+            mergePixel<eMergeXOR,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
+            break;
+        default:
+            std::fill(dst, dst+nComponents, PIX());
+            break;
+    } // switch
+} // mergePixelSlow
+#endif //0
 
 ///Bounding box of two rectangles
 inline void
