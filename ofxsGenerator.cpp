@@ -452,7 +452,7 @@ void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
-                           ContextEnum context)
+                           ContextEnum /*context*/)
 {
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);

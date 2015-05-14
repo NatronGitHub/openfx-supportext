@@ -1106,10 +1106,6 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
     assert(dstPixelData && srcPixelData);
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
     // do the rendering
-    if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
-        OFX::throwSuiteStatusException(kOfxStatErrFormat);
-        return;
-    }
     switch (dstBitDepth) {
         case OFX::eBitDepthUByte: {
             copyPixelsOpaqueForDepth<unsigned char, 255>(instance, renderWindow,
@@ -1138,6 +1134,9 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
                                                srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                                                dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }
+        default:
+            OFX::throwSuiteStatusException(kOfxStatErrFormat);
+            return;
     } // switch
 }
 
