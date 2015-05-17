@@ -432,7 +432,7 @@ public:
                         unpPix[0] = srcPix[0] / (float)srcMaxValue;
                         unpPix[1] = srcPix[1] / (float)srcMaxValue;
                         unpPix[2] = srcPix[2] / (float)srcMaxValue;
-                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
+                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] / (float)srcMaxValue) : 1.0f;
                     }
                     float pPix[dstNComponents];
                     // unpPix is in [0, 1]
