@@ -416,10 +416,32 @@ public:
                 }
 
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
-                ofxsPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
-                for (int c = 0; c < dstNComponents; ++c) {
-                    float v = unpPix[c] * dstMaxValue;
-                    dstPix[c] = DSTPIX( ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue) );
+                if (!srcPix) {
+                    // no source, be black and transparent
+                    for (int c = 0; c < dstNComponents; ++c) {
+                        dstPix[c] = DSTPIX();
+                    }
+                } else {
+                    float unpPix[4];
+                    if (srcNComponents == 1) {
+                        unpPix[0] = 0.f;
+                        unpPix[1] = 0.f;
+                        unpPix[2] = 0.f;
+                        unpPix[3] = srcPix[0] / (float)srcMaxValue;
+                    } else {
+                        unpPix[0] = srcPix[0] / (float)srcMaxValue;
+                        unpPix[1] = srcPix[1] / (float)srcMaxValue;
+                        unpPix[2] = srcPix[2] / (float)srcMaxValue;
+                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
+                    }
+                    float pPix[dstNComponents];
+                    // unpPix is in [0, 1]
+                    // premultiply and denormalize in [0, maxValue]
+                    // if premult is false, just denormalize
+                    ofxsPremult<DSTPIX, dstNComponents, dstMaxValue>(unpPix, pPix, _premult, _premultChannel);
+                    for (int c = 0; c < dstNComponents; ++c) {
+                        dstPix[c] = DSTPIX( ofxsClampIfInt<dstMaxValue>(pPix[c], 0, dstMaxValue) );
+                    }
                 }
                 // increment the dst pixel
                 dstPix += dstNComponents;
@@ -1049,15 +1071,15 @@ copyPixelsOpaqueForDepth(OFX::ImageEffect &instance,
                    OFX::BitDepthEnum dstBitDepth,
                    int dstRowBytes)
 {
+    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
+        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        return;
+    }
+    assert(srcPixelData && dstPixelData);
+    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcPixelComponentCount == dstPixelComponentCount);
+    // do the rendering
     if (dstPixelComponentCount == 4 || dstPixelComponentCount == 1) {
-        assert(srcPixelData && dstPixelData);
-        assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
-        assert(srcPixelComponentCount == dstPixelComponentCount);
-        // do the rendering
-        if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
-            OFX::throwSuiteStatusException(kOfxStatErrFormat);
-            return;
-        }
         copyPixelsOpaqueForDepthAndComponents<PIX,4, maxValue>(instance, renderWindow,
                                                (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                                                (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
