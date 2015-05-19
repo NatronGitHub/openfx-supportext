@@ -371,8 +371,6 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
-        float unpPix[4];
-
         assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
