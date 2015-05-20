@@ -1153,6 +1153,7 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
             copyPixelsOpaqueForDepth<float, 1>(instance, renderWindow,
                                                srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                                                dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+            break;
         }
         default:
             OFX::throwSuiteStatusException(kOfxStatErrFormat);
