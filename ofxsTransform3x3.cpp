@@ -1193,6 +1193,9 @@ OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc,
     // ask the host to render all planes
     desc.setPassThroughForNotProcessedPlanes(ePassThroughLevelRenderAllRequestedPlanes);
 #endif
+#ifdef OFX_EXTENSIONS_NATRON
+    desc.setChannelSelector(ePixelComponentNone);
+#endif
 }
 
 OFX::PageParamDescriptor *

@@ -190,6 +190,9 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
     
     ///We support multi-resolution (which does not mean we support render scale)
     desc.setSupportsMultiResolution(kSupportsMultiResolution);
+#ifdef OFX_EXTENSIONS_NATRON
+    desc.setChannelSelector(ePixelComponentNone);
+#endif
 }
 
 OFX::PageParamDescriptor*
