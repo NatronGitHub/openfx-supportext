@@ -1012,6 +1012,64 @@ copyPixels(OFX::ImageEffect &instance,
     } // switch
 }
 
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const OFX::Image* srcImg,
+           void *dstPixelData,
+           const OfxRectI & dstBounds,
+           OFX::PixelComponentEnum dstPixelComponents,
+           int dstPixelComponentCount,
+           OFX::BitDepthEnum dstBitDepth,
+           int dstRowBytes)
+{
+    const void* srcPixelData;
+    OfxRectI srcBounds;
+    OFX::PixelComponentEnum srcPixelComponents;
+    OFX::BitDepthEnum srcBitDepth;
+    int srcRowBytes;
+    getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
+    int srcPixelComponentCount = srcImg->getPixelComponentCount();
+    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+}
+    
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const OFX::Image* srcImg,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    int dstPixelComponentCount = dstImg->getPixelComponentCount();
+    return copyPixels(instance, renderWindow, srcImg, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+}
+
+inline void
+copyPixels(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           const void *srcPixelData,
+           const OfxRectI & srcBounds,
+           OFX::PixelComponentEnum srcPixelComponents,
+           int srcPixelComponentCount,
+           OFX::BitDepthEnum srcBitDepth,
+           int srcRowBytes,
+           OFX::Image* dstImg)
+{
+    void* dstPixelData;
+    OfxRectI dstBounds;
+    OFX::PixelComponentEnum dstPixelComponents;
+    OFX::BitDepthEnum dstBitDepth;
+    int dstRowBytes;
+    getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
+    int dstPixelComponentCount = dstImg->getPixelComponentCount();
+    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+}
+
 // pixel copiers, threaded versions
 template<class PIX,int nComponents, int maxValue>
 void
@@ -1123,8 +1181,12 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
                           dstBitDepth,
                           dstRowBytes);
     }
-    assert(dstPixelData && srcPixelData);
+    assert(dstPixelData);
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    if (!srcPixelData) {
+        fillBlack(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        return;
+    }
     // do the rendering
     switch (dstBitDepth) {
         case OFX::eBitDepthUByte: {
@@ -1162,15 +1224,15 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
 }
 
 inline void
-copyPixels(OFX::ImageEffect &instance,
-           const OfxRectI & renderWindow,
-           const OFX::Image* srcImg,
-           void *dstPixelData,
-           const OfxRectI & dstBounds,
-           OFX::PixelComponentEnum dstPixelComponents,
-           int dstPixelComponentCount,
-           OFX::BitDepthEnum dstBitDepth,
-           int dstRowBytes)
+copyPixelsOpaque(OFX::ImageEffect &instance,
+                 const OfxRectI & renderWindow,
+                 const OFX::Image* srcImg,
+                 void *dstPixelData,
+                 const OfxRectI & dstBounds,
+                 OFX::PixelComponentEnum dstPixelComponents,
+                 int dstPixelComponentCount,
+                 OFX::BitDepthEnum dstBitDepth,
+                 int dstRowBytes)
 {
     const void* srcPixelData;
     OfxRectI srcBounds;
@@ -1179,14 +1241,14 @@ copyPixels(OFX::ImageEffect &instance,
     int srcRowBytes;
     getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
     int srcPixelComponentCount = srcImg->getPixelComponentCount();
-    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    return copyPixelsOpaque(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
     
 inline void
-copyPixels(OFX::ImageEffect &instance,
-           const OfxRectI & renderWindow,
-           const OFX::Image* srcImg,
-           OFX::Image* dstImg)
+copyPixelsOpaque(OFX::ImageEffect &instance,
+                 const OfxRectI & renderWindow,
+                 const OFX::Image* srcImg,
+                 OFX::Image* dstImg)
 {
     void* dstPixelData;
     OfxRectI dstBounds;
@@ -1195,19 +1257,19 @@ copyPixels(OFX::ImageEffect &instance,
     int dstRowBytes;
     getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
-    return copyPixels(instance, renderWindow, srcImg, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    return copyPixelsOpaque(instance, renderWindow, srcImg, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
 
 inline void
-copyPixels(OFX::ImageEffect &instance,
-           const OfxRectI & renderWindow,
-           const void *srcPixelData,
-           const OfxRectI & srcBounds,
-           OFX::PixelComponentEnum srcPixelComponents,
-           int srcPixelComponentCount,
-           OFX::BitDepthEnum srcBitDepth,
-           int srcRowBytes,
-           OFX::Image* dstImg)
+copyPixelsOpaque(OFX::ImageEffect &instance,
+                 const OfxRectI & renderWindow,
+                 const void *srcPixelData,
+                 const OfxRectI & srcBounds,
+                 OFX::PixelComponentEnum srcPixelComponents,
+                 int srcPixelComponentCount,
+                 OFX::BitDepthEnum srcBitDepth,
+                 int srcRowBytes,
+                 OFX::Image* dstImg)
 {
     void* dstPixelData;
     OfxRectI dstBounds;
@@ -1216,7 +1278,7 @@ copyPixels(OFX::ImageEffect &instance,
     int dstRowBytes;
     getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
-    return copyPixels(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    return copyPixelsOpaque(instance, renderWindow, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
 
 } // OFX
