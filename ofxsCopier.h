@@ -1181,12 +1181,8 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
                           dstBitDepth,
                           dstRowBytes);
     }
-    assert(dstPixelData);
+    assert(dstPixelData && srcPixelData);
     assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
-    if (!srcPixelData) {
-        fillBlack(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-        return;
-    }
     // do the rendering
     switch (dstBitDepth) {
         case OFX::eBitDepthUByte: {
