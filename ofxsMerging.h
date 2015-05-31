@@ -38,6 +38,7 @@
 #define Misc_Merging_helper_h
 
 #include <cmath>
+#include <cfloat>
 #include "ofxsImageEffect.h"
 
 #ifndef M_PI
@@ -100,7 +101,11 @@ enum MergingFunctionEnum
     eMergeSoftLight,
     eMergeStencil,
     eMergeUnder,
-    eMergeXOR
+    eMergeXOR,
+    eMergeHue,
+    eMergeSaturation,
+    eMergeColor,
+    eMergeLuminosity
 };
 
 inline bool
@@ -143,11 +148,33 @@ isMaskable(MergingFunctionEnum operation)
     case eMergeStencil:
     case eMergeUnder:
     case eMergeXOR:
+    case eMergeHue:
+    case eMergeSaturation:
+    case eMergeColor:
+    case eMergeLuminosity:
 
         return false;
     }
 
     return true;
+}
+
+// is the operator separable for R,G,B components, or do they have to be processed simultaneously?
+inline bool
+isSeparable(MergingFunctionEnum operation)
+{
+    switch (operation) {
+    case eMergeHue:
+    case eMergeSaturation:
+    case eMergeColor:
+    case eMergeLuminosity:
+
+        return false;
+
+    default:
+
+        return true;
+    }
 }
 
 inline std::string
@@ -256,6 +283,18 @@ getOperationString(MergingFunctionEnum operation)
     case eMergeXOR:
 
         return "xor";
+    case eMergeHue:
+
+        return "hue";
+    case eMergeSaturation:
+
+        return "saturation";
+    case eMergeColor:
+
+        return "color";
+    case eMergeLuminosity:
+
+        return "luminosity";
     } // switch
 
     return "unknown";
@@ -613,6 +652,327 @@ xorFunctor(PIX A,
     return PIX(A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue));
 }
 
+///////////////////////////////////////////////////////////////////////////////
+//
+// Code from pixman-combine-float.c
+// START
+/*
+ * Copyright © 2010, 2012 Soren Sandmann Pedersen
+ * Copyright © 2010, 2012 Red Hat, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a
+ * copy of this software and associated documentation files (the "Software"),
+ * to deal in the Software without restriction, including without limitation
+ * the rights to use, copy, modify, merge, publish, distribute, sublicense,
+ * and/or sell copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice (including the next
+ * paragraph) shall be included in all copies or substantial portions of the
+ * Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
+ *
+ * Author: Soren Sandmann Pedersen (sandmann@cs.au.dk)
+ */
+/*
+ * PDF nonseperable blend modes are implemented using the following functions
+ * to operate in Hsl space, with Cmax, Cmid, Cmin referring to the max, mid
+ * and min value of the red, green and blue components.
+ *
+ * LUM (C) = 0.3 × Cred + 0.59 × Cgreen + 0.11 × Cblue
+ *
+ * clip_color (C):
+ *     l = LUM (C)
+ *     min = Cmin
+ *     max = Cmax
+ *     if n < 0.0
+ *         C = l + (((C – l) × l) ⁄ (l – min))
+ *     if x > 1.0
+ *         C = l + (((C – l) × (1 – l) ) ⁄ (max – l))
+ *     return C
+ *
+ * set_lum (C, l):
+ *     d = l – LUM (C)
+ *     C += d
+ *     return clip_color (C)
+ *
+ * SAT (C) = CH_MAX (C) - CH_MIN (C)
+ *
+ * set_sat (C, s):
+ *     if Cmax > Cmin
+ *         Cmid = ( ( ( Cmid – Cmin ) × s ) ⁄ ( Cmax – Cmin ) )
+ *         Cmax = s
+ *     else
+ *         Cmid = Cmax = 0.0
+ *         Cmin = 0.0
+ *     return C
+ */
+
+/* For premultiplied colors, we need to know what happens when C is
+ * multiplied by a real number. LUM and SAT are linear:
+ *
+ *     LUM (r × C) = r × LUM (C)	SAT (r * C) = r * SAT (C)
+ *
+ * If we extend clip_color with an extra argument a and change
+ *
+ *     if x >= 1.0
+ *
+ * into
+ *
+ *     if x >= a
+ *
+ * then clip_color is also linear:
+ *
+ *     r * clip_color (C, a) = clip_color (r * C, r * a);
+ *
+ * for positive r.
+ *
+ * Similarly, we can extend set_lum with an extra argument that is just passed
+ * on to clip_color:
+ *
+ *       r * set_lum (C, l, a)
+ *
+ *     = r × clip_color (C + l - LUM (C), a)
+ *
+ *     = clip_color (r * C + r × l - r * LUM (C), r * a)
+ *
+ *     = set_lum (r * C, r * l, r * a)
+ *
+ * Finally, set_sat:
+ *
+ *       r * set_sat (C, s) = set_sat (x * C, r * s)
+ *
+ * The above holds for all non-zero x, because the x'es in the fraction for
+ * C_mid cancel out. Specifically, it holds for x = r:
+ *
+ *       r * set_sat (C, s) = set_sat (r * C, r * s)
+ *
+ */
+typedef struct
+{
+    float	r;
+    float	g;
+    float	b;
+} rgb_t;
+
+inline bool
+float_is_zero(float f) {
+    return (-FLT_MIN < (f) && (f) < FLT_MIN);
+}
+
+inline float
+channel_min (const rgb_t *c)
+{
+    return std::min(std::min(c->r, c->g), c->b);
+}
+
+inline float
+channel_max (const rgb_t *c)
+{
+    return std::max(std::max(c->r, c->g), c->b);
+}
+
+inline float
+get_lum (const rgb_t *c)
+{
+    return c->r * 0.3f + c->g * 0.59f + c->b * 0.11f;
+}
+
+inline float
+get_sat (const rgb_t *c)
+{
+    return channel_max(c) - channel_min(c);
+}
+
+inline void
+clip_color (rgb_t *color, float a)
+{
+    float l = get_lum(color);
+    float n = channel_min(color);
+    float x = channel_max(color);
+    float t;
+
+    if (n < 0.0f) {
+	t = l - n;
+	if (float_is_zero(t)) {
+	    color->r = 0.0f;
+	    color->g = 0.0f;
+	    color->b = 0.0f;
+	} else {
+	    color->r = l + (((color->r - l) * l) / t);
+	    color->g = l + (((color->g - l) * l) / t);
+	    color->b = l + (((color->b - l) * l) / t);
+	}
+    }
+    if (x > a) {
+	t = x - l;
+	if (float_is_zero(t)) {
+	    color->r = a;
+	    color->g = a;
+	    color->b = a;
+	} else {
+	    color->r = l + (((color->r - l) * (a - l) / t));
+	    color->g = l + (((color->g - l) * (a - l) / t));
+	    color->b = l + (((color->b - l) * (a - l) / t));
+	}
+    }
+}
+
+static void
+set_lum (rgb_t *color, float sa, float l)
+{
+    float d = l - get_lum(color);
+
+    color->r = color->r + d;
+    color->g = color->g + d;
+    color->b = color->b + d;
+
+    clip_color(color, sa);
+}
+
+inline void
+set_sat (rgb_t *src, float sat)
+{
+    float *max, *mid, *min;
+    float t;
+
+    if (src->r > src->g) {
+        if (src->r > src->b) {
+            max = &(src->r);
+
+            if (src->g > src->b) {
+                mid = &(src->g);
+                min = &(src->b);
+            } else {
+                mid = &(src->b);
+                min = &(src->g);
+            }
+        } else {
+            max = &(src->b);
+            mid = &(src->r);
+            min = &(src->g);
+        }
+    } else {
+        if (src->r > src->b) {
+            max = &(src->g);
+            mid = &(src->r);
+            min = &(src->b);
+        } else {
+            min = &(src->r);
+
+            if (src->g > src->b) {
+                max = &(src->g);
+                mid = &(src->b);
+            } else {
+                max = &(src->b);
+                mid = &(src->g);
+            }
+        }
+    }
+
+    t = *max - *min;
+
+    if (float_is_zero(t)) {
+        *mid = *max = 0.0f;
+    } else {
+        *mid = ((*mid - *min) * sat) / t;
+        *max = sat;
+    }
+    
+    *min = 0.0f;
+}
+
+/* Hue:
+ *
+ *       as * ad * B(s/as, d/as)
+ *     = as * ad * set_lum (set_sat (s/as, SAT (d/ad)), LUM (d/ad), 1)
+ *     = set_lum (set_sat (ad * s, as * SAT (d)), as * LUM (d), as * ad)
+ *
+ */
+inline void
+blend_hsl_hue (rgb_t *res,
+	       const rgb_t *dest, float da,
+	       const rgb_t *src, float sa)
+{
+    res->r = src->r * da;
+    res->g = src->g * da;
+    res->b = src->b * da;
+
+    set_sat(res, get_sat(dest) * sa);
+    set_lum(res, sa * da, get_lum(dest) * sa);
+}
+
+/* 
+ * Saturation
+ *
+ *     as * ad * B(s/as, d/ad)
+ *   = as * ad * set_lum (set_sat (d/ad, SAT (s/as)), LUM (d/ad), 1)
+ *   = set_lum (as * ad * set_sat (d/ad, SAT (s/as)),
+ *                                       as * LUM (d), as * ad)
+ *   = set_lum (set_sat (as * d, ad * SAT (s), as * LUM (d), as * ad))
+ */
+inline void
+blend_hsl_saturation (rgb_t *res,
+		      const rgb_t *dest, float da,
+		      const rgb_t *src, float sa)
+{
+    res->r = dest->r * sa;
+    res->g = dest->g * sa;
+    res->b = dest->b * sa;
+
+    set_sat(res, get_sat(src) * da);
+    set_lum(res, sa * da, get_lum(dest) * sa);
+}
+
+/* 
+ * Color
+ *
+ *     as * ad * B(s/as, d/as)
+ *   = as * ad * set_lum (s/as, LUM (d/ad), 1)
+ *   = set_lum (s * ad, as * LUM (d), as * ad)
+ */
+inline void
+blend_hsl_color (rgb_t *res,
+		 const rgb_t *dest, float da,
+		 const rgb_t *src, float sa)
+{
+    res->r = src->r * da;
+    res->g = src->g * da;
+    res->b = src->b * da;
+
+    set_lum(res, sa * da, get_lum(dest) * sa);
+}
+
+/*
+ * Luminosity
+ *
+ *     as * ad * B(s/as, d/ad)
+ *   = as * ad * set_lum (d/ad, LUM (s/as), 1)
+ *   = set_lum (as * d, ad * LUM (s), as * ad)
+ */
+inline void
+blend_hsl_luminosity (rgb_t *res,
+		      const rgb_t *dest, float da,
+		      const rgb_t *src, float sa)
+{
+    res->r = dest->r * sa;
+    res->g = dest->g * sa;
+    res->b = dest->b * sa;
+
+    set_lum (res, sa * da, get_lum (src) * da);
+}
+
+// END
+// Code from pixman-combine-float.c
+///////////////////////////////////////////////////////////////////////////////
+
 template <MergingFunctionEnum f,typename PIX,int nComponents,int maxValue>
 void
 mergePixel(bool doAlphaMasking,
@@ -624,8 +984,62 @@ mergePixel(bool doAlphaMasking,
     PIX a = A[3];
     PIX b = B[3];
 
-    ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphA*alphaB
+    ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphaA*alphaB
     int maxComp = nComponents;
+    if (!isSeparable(f)) {
+        // HSL modes
+        rgb_t src, dest, res;
+        if (a == 0) {
+            src.r = src.g = src.b = 0;
+        } else {
+            src.r = A[0] / (float)a;
+            src.g = A[1] / (float)a;
+            src.b = A[2] / (float)a;
+        }
+        if (b == 0) {
+            dest.r = dest.g = dest.b = 0;
+        } else {
+            dest.r = B[0] / (float)b;
+            dest.g = B[1] / (float)b;
+            dest.b = B[2] / (float)b;
+        }
+        float sa = a/(float)maxValue;
+        float da = b/(float)maxValue;
+
+        switch (f) {
+            case eMergeHue:
+                blend_hsl_hue(&res, &dest, da, &src, sa);
+                break;
+
+            case eMergeSaturation:
+                blend_hsl_saturation(&res, &dest, da, &src, sa);
+                break;
+
+            case eMergeColor:
+                blend_hsl_color(&res, &dest, da, &src, sa);
+                break;
+
+            case eMergeLuminosity:
+                blend_hsl_luminosity(&res, &dest, da, &src, sa);
+                break;
+
+            default:
+                res.r = res.g = res.b = 0.f;
+                assert(false);
+                break;
+        }
+        float R[3] = { res.r, res.g, res.b };
+        for (int i = 0; i < std::min(nComponents, 3); ++i) {
+            dst[i] = PIX((1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue);
+        }
+        if (nComponents == 4) {
+            dst[3] = PIX(a + b - a * b / (double)maxValue);
+        }
+
+        return;
+    }
+
+    // separable modes
     if (doAlphaMasking && nComponents == 4) {
         maxComp = 3;
         dst[3] = PIX(a + b - a * b / (double)maxValue);
@@ -736,130 +1150,12 @@ mergePixel(bool doAlphaMasking,
             break;
         default:
             dst[i] = 0;
+            assert(false);
             break;
         } // switch
     }
 } // mergePixel
 
-#if 0
-/// slower version of mergePixel, testing the operation for each pixel
-template <typename PIX,int nComponents,int maxValue>
-void
-mergePixelSlow(MergingFunctionEnum f,
-               bool doAlphaMasking,
-               const PIX A[4],
-               const PIX B[4],
-               PIX* dst)
-{
-    switch (f) {
-        case eMergeATop:
-            mergePixel<eMergeATop,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeAverage:
-            mergePixel<eMergeAverage,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeColorBurn:
-            mergePixel<eMergeColorBurn,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeColorDodge:
-            mergePixel<eMergeColorDodge,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeConjointOver:
-            mergePixel<eMergeConjointOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeCopy:
-            mergePixel<eMergeCopy,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeDifference:
-            mergePixel<eMergeDifference,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeDisjointOver:
-            mergePixel<eMergeDisjointOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeDivide:
-            mergePixel<eMergeDivide,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeExclusion:
-            mergePixel<eMergeExclusion,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeFreeze:
-            mergePixel<eMergeFreeze,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeFrom:
-            mergePixel<eMergeFrom,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeGeometric:
-            mergePixel<eMergeGeometric,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeHardLight:
-            mergePixel<eMergeHardLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeHypot:
-            mergePixel<eMergeHypot,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeIn:
-            mergePixel<eMergeIn,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeInterpolated:
-            mergePixel<eMergeInterpolated,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeMask:
-            mergePixel<eMergeMask,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeMatte:
-            mergePixel<eMergeMatte,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeLighten:
-            mergePixel<eMergeLighten,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeDarken:
-            mergePixel<eMergeDarken,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeMinus:
-            mergePixel<eMergeMinus,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeMultiply:
-            mergePixel<eMergeMultiply,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeOut:
-            mergePixel<eMergeOut,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeOver:
-            mergePixel<eMergeOver,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeOverlay:
-            mergePixel<eMergeOverlay,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergePinLight:
-            mergePixel<eMergePinLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergePlus:
-            mergePixel<eMergePlus,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeReflect:
-            mergePixel<eMergeReflect,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeScreen:
-            mergePixel<eMergeScreen,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeSoftLight:
-            mergePixel<eMergeSoftLight,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeStencil:
-            mergePixel<eMergeStencil,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeUnder:
-            mergePixel<eMergeUnder,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        case eMergeXOR:
-            mergePixel<eMergeXOR,PIX,nComponents,maxValue>(doAlphaMasking, A, B, dst);
-            break;
-        default:
-            std::fill(dst, dst+nComponents, PIX());
-            break;
-    } // switch
-} // mergePixelSlow
-#endif //0
 
 ///Bounding box of two rectangles
 inline void
