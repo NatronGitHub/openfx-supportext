@@ -897,6 +897,9 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                OFX::Clip * &identityClip,
                                double &identityTime)
 {
+    // must clear persistent message in isIdentity, or render() is not called by Nuke after an error
+    clearPersistentMessage();
+
     const double time = args.time;
 
     // if there is motion blur, we suppose the transform is not identity
