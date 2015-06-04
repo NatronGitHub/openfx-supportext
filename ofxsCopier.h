@@ -71,8 +71,13 @@ public:
                     } else if (_srcBoundary == 1) {
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                         assert(srcPix);
+#                     ifdef DEBUG
+                        for (int c = 0; c < nComponents; ++c) {
+                            assert(srcPix[c] == srcPix[c]); // check for NaN
+                        }
+#                     endif
                         for (int x = procWindow.x1; x < x1; ++x) {
-                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                            std::copy(srcPix, srcPix + nComponents, dstPix);
                             dstPix += nComponents;
                         }
                     } else if (_srcBoundary == 2) {
@@ -84,7 +89,12 @@ public:
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
                         assert(srcPix);
                         for (int x = procWindow.x1; x < x1; ++x) {
-                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+#                         ifdef DEBUG
+                            for (int c = 0; c < nComponents; ++c) {
+                                assert(srcPix[c] == srcPix[c]); // check for NaN
+                            }
+#                         endif
+                            std::copy(srcPix, srcPix + nComponents, dstPix);
                             dstPix += nComponents;
                             ++srcx;
                             if (_srcBounds.x2 <= srcx) {
@@ -98,6 +108,11 @@ public:
                 if ( (x1 < x2) && (procWindow.x1 <= x1) && (x2 <= procWindow.x2) ) {
                     const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                     assert(srcPix);
+#                 ifdef DEBUG
+                    for (int c = 0; c < nComponents * (x2 - x1); ++c) {
+                        assert(srcPix[c] == srcPix[c]); // check for NaN
+                    }
+#                 endif
                     std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1) );
                     dstPix += nComponents * (x2 - x1);
                 }
@@ -121,7 +136,12 @@ public:
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
                         assert(srcPix);
                         for (int x = x2; x < procWindow.x2; ++x) {
-                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+#                         ifdef DEBUG
+                            for (int c = 0; c < nComponents; ++c) {
+                                assert(srcPix[c] == srcPix[c]); // check for NaN
+                            }
+#                         endif
+                            std::copy(srcPix, srcPix + nComponents, dstPix);
                             dstPix += nComponents;
                             ++srcx;
                             if (_srcBounds.x2 <= srcx) {
