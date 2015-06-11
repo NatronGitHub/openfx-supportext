@@ -300,6 +300,73 @@ getOperationString(MergingFunctionEnum operation)
     return "unknown";
 } // getOperationString
 
+inline std::string
+getOperationGroupString(MergingFunctionEnum operation)
+{
+    switch (operation) {
+            // Porter Duff Compositing Operators
+        case eMergeCopy: // aka source
+        case eMergeOver:
+        case eMergeIn:
+        case eMergeOut:
+        case eMergeATop:
+        case eMergeUnder: // aka dest-over
+        case eMergeMask: // aka dest-in
+        case eMergeStencil: // aka dest-out
+        case eMergeXOR:
+        case eMergePlus:
+
+            return "Operator";
+
+            // Blend modes, see https://en.wikipedia.org/wiki/Blend_modes
+
+            // Multiply and screen
+        case eMergeMultiply:
+        case eMergeScreen:
+        case eMergeOverlay:
+        case eMergeDarken:
+        case eMergeLighten:
+
+            return "Multiply & Screen";
+
+            // Dodge and burn
+        case eMergeColorDodge:
+        case eMergeColorBurn:
+        case eMergeHardLight:
+        case eMergeSoftLight:
+        case eMergePinLight:
+        case eMergeDifference:
+        case eMergeExclusion:
+        case eMergeDivide:
+
+            return "Dodge & Burn";
+
+            // Nonseparable blend modes
+        case eMergeHue:
+        case eMergeSaturation:
+        case eMergeColor:
+        case eMergeLuminosity:
+
+            return "HSL";
+
+        case eMergeAverage:
+        case eMergeConjointOver:
+        case eMergeDisjointOver:
+        case eMergeFreeze:
+        case eMergeFrom:
+        case eMergeGeometric:
+        case eMergeHypot:
+        case eMergeInterpolated:
+        case eMergeMatte:
+        case eMergeMinus:
+        case eMergeReflect:
+            
+            return "Other";
+    } // switch
+
+    return "unknown";
+} // getOperationGroupString
+
 template <typename PIX>
 PIX
 averageFunctor(PIX A,
