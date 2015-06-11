@@ -327,7 +327,7 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeDarken:
         case eMergeLighten:
 
-            return "Multiply & Screen";
+            return "Multiply and Screen";
 
             // Dodge and burn
         case eMergeColorDodge:
@@ -339,7 +339,7 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeExclusion:
         case eMergeDivide:
 
-            return "Dodge & Burn";
+            return "Dodge and Burn";
 
             // Nonseparable blend modes
         case eMergeHue:
