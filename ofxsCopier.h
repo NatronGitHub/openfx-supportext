@@ -583,69 +583,29 @@ private:
 };
 
 // black fillers, non-threaded versions
-template<class PIX, int nComponents>
+template<class PIX>
 void
-fillBlackNTForDepthAndComponents(OFX::ImageEffect &instance,
-                                 const OfxRectI & renderWindow,
-                                 PIX *dstPixelData,
-                                 const OfxRectI & dstBounds,
-                                 OFX::PixelComponentEnum dstPixelComponents,
-                                 int dstPixelComponentCount,
-                                 OFX::BitDepthEnum dstBitDepth,
-                                 int dstRowBytes)
+fillBlackNTForDepth(const OfxRectI & renderWindow,
+                    void *dstPixelData,
+                    const OfxRectI & dstBounds,
+                    int dstPixelComponentCount,
+                    int dstRowBytes)
 {
-    (void)dstPixelComponents;
-    assert(dstPixelComponentCount == nComponents);
-    (void)dstBitDepth;
-    (void)instance;
-
+    assert(dstPixelData);
+    // do the rendering
     int dstRowElements = dstRowBytes / sizeof(PIX);
-    PIX* dstPixels = dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * nComponents;
-    int rowBytes = sizeof(PIX) * nComponents * (renderWindow.x2 - renderWindow.x1);
+    PIX* dstPixels = (PIX*)dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * dstPixelComponentCount;
+    int rowBytes = sizeof(PIX) * dstPixelComponentCount * (renderWindow.x2 - renderWindow.x1);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y, dstPixels += dstRowElements) {
         std::fill(dstPixels, dstPixels + rowBytes, PIX()); // no src pixel here, be black and transparent
     }
 }
 
-template<class PIX>
-void
-fillBlackNTForDepth(OFX::ImageEffect &instance,
-                    const OfxRectI & renderWindow,
-                    void *dstPixelData,
-                    const OfxRectI & dstBounds,
-                    OFX::PixelComponentEnum dstPixelComponents,
-                    int dstPixelComponentCount,
-                    OFX::BitDepthEnum dstBitDepth,
-                    int dstRowBytes)
-{
-    assert(dstPixelData);
-    // do the rendering
-    if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
-        OFX::throwSuiteStatusException(kOfxStatErrFormat);
-        return;
-    }
-    if (dstPixelComponentCount == 4) {
-        fillBlackNTForDepthAndComponents<PIX,4>(instance, renderWindow,
-                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-    } else if (dstPixelComponentCount == 3) {
-        fillBlackNTForDepthAndComponents<PIX,3>(instance, renderWindow,
-                                                (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-    } else if (dstPixelComponentCount == 2) {
-        fillBlackNTForDepthAndComponents<PIX,2>(instance, renderWindow,
-                                                (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-    }  else if (dstPixelComponentCount == 1) {
-        fillBlackNTForDepthAndComponents<PIX,1>(instance, renderWindow,
-                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-    } // switch
-}
-
 inline void
-fillBlackNT(OFX::ImageEffect &instance,
-            const OfxRectI & renderWindow,
+fillBlackNT(const OfxRectI & renderWindow,
             void *dstPixelData,
             const OfxRectI & dstBounds,
-            OFX::PixelComponentEnum dstPixelComponents,
             int dstPixelComponentCount,
             OFX::BitDepthEnum dstBitDepth,
             int dstRowBytes)
@@ -658,21 +618,20 @@ fillBlackNT(OFX::ImageEffect &instance,
         return;
     }
     if (dstBitDepth == OFX::eBitDepthUByte) {
-        fillBlackNTForDepth<unsigned char>(instance, renderWindow,
-                                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        fillBlackNTForDepth<unsigned char>(renderWindow,
+                                           dstPixelData, dstBounds, dstPixelComponentCount, dstRowBytes);
     } else if (dstBitDepth == OFX::eBitDepthUShort || dstBitDepth == OFX::eBitDepthHalf) {
-        fillBlackNTForDepth<unsigned short>(instance, renderWindow,
-                                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        fillBlackNTForDepth<unsigned short>(renderWindow,
+                                            dstPixelData, dstBounds, dstPixelComponentCount, dstRowBytes);
     } else if (dstBitDepth == OFX::eBitDepthFloat) {
-        fillBlackNTForDepth<float>(instance, renderWindow,
-                                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+        fillBlackNTForDepth<float>(renderWindow,
+                                   dstPixelData, dstBounds, dstPixelComponentCount, dstRowBytes);
     } // switch
 }
 
 inline void
-fillBlackNT(OFX::ImageEffect &instance,
-           const OfxRectI & renderWindow,
-           OFX::Image* dstImg)
+fillBlackNT(const OfxRectI & renderWindow,
+            OFX::Image* dstImg)
 {
     void* dstPixelData;
     OfxRectI dstBounds;
@@ -681,8 +640,10 @@ fillBlackNT(OFX::ImageEffect &instance,
     int dstRowBytes;
     getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
-    return fillBlackNT(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+    return fillBlackNT(renderWindow, dstPixelData, dstBounds, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
+
+#if 0 // Don't use threaded version: very probably less efficient
 
 // black fillers, threaded versions
 template<class PIX,int nComponents>
@@ -784,6 +745,34 @@ fillBlack(OFX::ImageEffect &instance,
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
     return fillBlack(instance, renderWindow, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
+#else
+
+// Use non-threaded version: probably more efficient
+
+inline void
+fillBlack(OFX::ImageEffect &instance,
+          const OfxRectI & renderWindow,
+          void *dstPixelData,
+          const OfxRectI & dstBounds,
+          OFX::PixelComponentEnum dstPixelComponents,
+          int dstPixelComponentCount,
+          OFX::BitDepthEnum dstBitDepth,
+          int dstRowBytes)
+{
+    (void)instance;
+    (void)dstPixelComponents;
+    return fillBlackNT(renderWindow, dstPixelData, dstBounds, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+}
+
+inline void
+fillBlack(OFX::ImageEffect &instance,
+           const OfxRectI & renderWindow,
+           OFX::Image* dstImg)
+{
+    (void)instance;
+    return fillBlackNT(renderWindow, dstImg);
+}
+#endif
 
 // pixel copiers, non-threaded versions
 template<class PIX,int nComponents>
