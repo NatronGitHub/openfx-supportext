@@ -42,7 +42,6 @@
 #include <limits>
 
 #include <ofxsImageEffect.h>
-#include <ofxsImageBlender.H>
 
 #define kParamPremult "premult"
 #define kParamPremultLabel "(Un)premult"

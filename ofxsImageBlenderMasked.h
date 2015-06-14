@@ -3,6 +3,7 @@
 
 #include "ofxsProcessing.H"
 #include "ofxsMaskMix.h"
+#include "ofxsImageBlender.H"
 
 namespace OFX {
 /** @brief  Base class used to blend two images together */
