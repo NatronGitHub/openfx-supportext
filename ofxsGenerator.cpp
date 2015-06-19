@@ -452,6 +452,7 @@ void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
+                           GeneratorTypeEnum defaultType,
                            ContextEnum /*context*/)
 {
     {
@@ -467,7 +468,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         assert(param->getNOptions() == eGeneratorTypeDefault);
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
         param->setAnimates(false);
-        param->setDefault(3);
+        param->setDefault((int)defaultType);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);

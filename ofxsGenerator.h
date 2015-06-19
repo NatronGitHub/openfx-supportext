@@ -166,6 +166,7 @@ void generatorDescribe(OFX::ImageEffectDescriptor &desc);
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
+                                GeneratorTypeEnum defaultType,
                                 ContextEnum context);
 } // OFX
 
