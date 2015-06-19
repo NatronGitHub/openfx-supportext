@@ -66,10 +66,13 @@ namespace OFX {
 // It was fixed in the March 2009 SVG specification, which was used for this implementation.
 
 namespace MergeImages2D {
+
+// please keep this long list sorted alphabetically
 enum MergingFunctionEnum
 {
     eMergeATop = 0,
     eMergeAverage,
+    eMergeColor,
     eMergeColorBurn,
     eMergeColorDodge,
     eMergeConjointOver,
@@ -82,13 +85,15 @@ enum MergingFunctionEnum
     eMergeFrom,
     eMergeGeometric,
     eMergeHardLight,
+    eMergeHue,
     eMergeHypot,
     eMergeIn,
-    eMergeInterpolated,
+    //eMergeInterpolated,
+    eMergeLuminosity,
     eMergeMask,
     eMergeMatte,
-    eMergeLighten,
-    eMergeDarken,
+    eMergeMax,
+    eMergeMin,
     eMergeMinus,
     eMergeMultiply,
     eMergeOut,
@@ -97,15 +102,12 @@ enum MergingFunctionEnum
     eMergePinLight,
     eMergePlus,
     eMergeReflect,
+    eMergeSaturation,
     eMergeScreen,
     eMergeSoftLight,
     eMergeStencil,
     eMergeUnder,
     eMergeXOR,
-    eMergeHue,
-    eMergeSaturation,
-    eMergeColor,
-    eMergeLuminosity
 };
 
 inline bool
@@ -123,9 +125,9 @@ isMaskable(MergingFunctionEnum operation)
     case eMergeGeometric:
     case eMergeHardLight:
     case eMergeHypot:
-    case eMergeInterpolated:
-    case eMergeLighten:
-    case eMergeDarken:
+    //case eMergeInterpolated:
+    case eMergeMax:
+    case eMergeMin:
     case eMergeMinus:
     case eMergeMultiply:
     case eMergeOverlay:
@@ -229,19 +231,19 @@ getOperationString(MergingFunctionEnum operation)
     case eMergeIn:
 
         return "in";
-    case eMergeInterpolated:
+    //case eMergeInterpolated:
 
-        return "interpolated";
+    //    return "interpolated";
     case eMergeMask:
 
         return "mask";
     case eMergeMatte:
 
         return "matte";
-    case eMergeLighten:
+    case eMergeMax:
 
         return "max";
-    case eMergeDarken:
+    case eMergeMin:
 
         return "min";
     case eMergeMinus:
@@ -324,8 +326,8 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeMultiply:
         case eMergeScreen:
         case eMergeOverlay:
-        case eMergeDarken:
-        case eMergeLighten:
+        case eMergeMin:
+        case eMergeMax:
 
             return "Multiply and Screen";
 
@@ -356,7 +358,7 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeFrom:
         case eMergeGeometric:
         case eMergeHypot:
-        case eMergeInterpolated:
+        //case eMergeInterpolated:
         case eMergeMatte:
         case eMergeMinus:
         case eMergeReflect:
@@ -590,6 +592,8 @@ freezeFunctor(PIX A,
     }
 }
 
+// This functions seems wrong. Is it a confusion with cosine interpolation?
+// see http://paulbourke.net/miscellaneous/interpolation/
 template <typename PIX,int maxValue>
 PIX
 interpolatedFunctor(PIX A,
@@ -1161,19 +1165,19 @@ mergePixel(bool doAlphaMasking,
         case eMergeIn:
             dst[i] = inFunctor<PIX, maxValue>(A[i], B[i], a, b);
             break;
-        case eMergeInterpolated:
-            dst[i] = interpolatedFunctor<PIX, maxValue>(A[i], B[i]);
-            break;
+        //case eMergeInterpolated:
+        //    dst[i] = interpolatedFunctor<PIX, maxValue>(A[i], B[i]);
+        //    break;
         case eMergeMask:
             dst[i] = maskFunctor<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeMatte:
             dst[i] = matteFunctor<PIX, maxValue>(A[i], B[i], a, b);
             break;
-        case eMergeLighten:
+        case eMergeMax:
             dst[i] = lightenFunctor(A[i], B[i]);
             break;
-        case eMergeDarken:
+        case eMergeMin:
             dst[i] = darkenFunctor(A[i], B[i]);
             break;
         case eMergeMinus:
