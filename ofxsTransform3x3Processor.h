@@ -162,10 +162,10 @@ private:
     {
         float tmpPix[nComponents];
         const OFX::Matrix3x3 & H = _invtransform[0];
-        const int x1 = _srcImg->getBounds().x1;
-        const int x2 = _srcImg->getBounds().x2;
-        const int y1 = _srcImg->getBounds().y1;
-        const int y2 = _srcImg->getBounds().y2;
+        const int x1 = _srcImg ? _srcImg->getBounds().x1 : 0;
+        const int x2 = _srcImg ? _srcImg->getBounds().x2 : 0;
+        const int y1 = _srcImg ? _srcImg->getBounds().y1 : 0;
+        const int y2 = _srcImg ? _srcImg->getBounds().y2 : 0;
 
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
             if ( _effect.abort() ) {
@@ -222,10 +222,10 @@ private:
         float tmpPix[nComponents];
         const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
         const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations
-        const int x1 = _srcImg->getBounds().x1;
-        const int x2 = _srcImg->getBounds().x2;
-        const int y1 = _srcImg->getBounds().y1;
-        const int y2 = _srcImg->getBounds().y2;
+        const int x1 = _srcImg ? _srcImg->getBounds().x1 : 0;
+        const int x2 = _srcImg ? _srcImg->getBounds().x2 : 0;
+        const int y1 = _srcImg ? _srcImg->getBounds().y1 : 0;
+        const int y2 = _srcImg ? _srcImg->getBounds().y2 : 0;
 
         // Monte Carlo integration, starting with at least 13 regularly spaced samples, and then low discrepancy
         // samples from the van der Corput sequence.
