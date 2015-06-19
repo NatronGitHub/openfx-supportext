@@ -70,7 +70,7 @@ namespace OFX {
 
 inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform, OfxPointD* scale)
 {
-    const double SCALE_MIN = 1e-8;
+    const double SCALE_MIN = 0.0001;
     scale->x = scaleParam.x;
     if (std::fabs(scale->x) < SCALE_MIN) {
         scale->x = (scale->x >= 0) ? SCALE_MIN : -SCALE_MIN;
