@@ -1083,39 +1083,30 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                              size_t invtransformsizealloc) const
 {
     bool allequal = true;
-    size_t invtransformsize = invtransformsizealloc;
     OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(pixelaspectratio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelaspectratio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 invtransformCanonical;
 
-    for (size_t i = 0; i < invtransformsize; ++i) {
+    size_t invtransformsize = 0;
+    for (size_t i = 0; i < invtransformsizealloc; ++i) {
         //double amount = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
         double amount = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
         bool success = getInverseTransformCanonical(time, amount, invert, &invtransformCanonical); // virtual function
         if (success) {
-            invtransform[i] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
-        } else {
-            invtransform[i].a = 0.;
-            invtransform[i].b = 0.;
-            invtransform[i].c = 0.;
-            invtransform[i].d = 0.;
-            invtransform[i].e = 0.;
-            invtransform[i].f = 0.;
-            invtransform[i].g = 0.;
-            invtransform[i].h = 0.;
-            invtransform[i].i = 1.;
+            invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
+            ++invtransformsize;
+            allequal = allequal && (invtransform[i].a == invtransform[0].a &&
+                                    invtransform[i].b == invtransform[0].b &&
+                                    invtransform[i].c == invtransform[0].c &&
+                                    invtransform[i].d == invtransform[0].d &&
+                                    invtransform[i].e == invtransform[0].e &&
+                                    invtransform[i].f == invtransform[0].f &&
+                                    invtransform[i].g == invtransform[0].g &&
+                                    invtransform[i].h == invtransform[0].h &&
+                                    invtransform[i].i == invtransform[0].i);
         }
-        allequal = allequal && (invtransform[i].a == invtransform[0].a &&
-                                invtransform[i].b == invtransform[0].b &&
-                                invtransform[i].c == invtransform[0].c &&
-                                invtransform[i].d == invtransform[0].d &&
-                                invtransform[i].e == invtransform[0].e &&
-                                invtransform[i].f == invtransform[0].f &&
-                                invtransform[i].g == invtransform[0].g &&
-                                invtransform[i].h == invtransform[0].h &&
-                                invtransform[i].i == invtransform[0].i);
     }
-    if (allequal) { // there is only one transform, no need to do motion blur!
+    if (invtransformsize != 0 && allequal) { // there is only one transform, no need to do motion blur!
         invtransformsize = 1;
     }
 
