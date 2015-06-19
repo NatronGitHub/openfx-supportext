@@ -94,10 +94,11 @@ protected:
     OFX::BooleanParam* _interactive;
     OFX::ChoiceParam *_outputComponents;
     OFX::ChoiceParam *_outputBitDepth;
+    bool _useOutputComponentsAndDepth;
 
 public:
 
-    GeneratorPlugin(OfxImageEffectHandle handle);
+    GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth);
 
 protected:
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
@@ -167,6 +168,7 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
                                 GeneratorTypeEnum defaultType,
+                                bool useOutputComponentsAndDepth,
                                 ContextEnum context);
 } // OFX
 

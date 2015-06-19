@@ -42,7 +42,7 @@
 
 #include "ofxsFormatResolution.h"
 
-GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
+GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth)
         : OFX::ImageEffect(handle)
         , _dstClip(0)
         , _type(0)
@@ -52,6 +52,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
         , _interactive(0)
         , _outputComponents(0)
         , _outputBitDepth(0)
+        , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
         , _supportsBytes(0)
         , _supportsShorts(0)
         , _supportsFloats(0)
@@ -70,10 +71,13 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
     assert(_type && _format && _btmLeft && _size && _interactive);
-    _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
-
-    if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
-        _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
+    
+    if (_useOutputComponentsAndDepth) {
+        _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
+        
+        if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
+            _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
+        }
     }
     updateParamsVisibility();
 
@@ -155,6 +159,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle)
 void
 GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
 {
+    if (!_useOutputComponentsAndDepth) {
+        return;
+    }
+    
     // get the components of _dstClip
     int outputComponents_i;
     _outputComponents->getValue(outputComponents_i);
@@ -281,23 +289,25 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     case eGeneratorTypeSize:
         break;
     }
-
+    
     if (par != 0.) {
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
     
-    // set the components of _dstClip
-    int outputComponents_i;
-    _outputComponents->getValue(outputComponents_i);
-    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
-    clipPreferences.setClipComponents(*_dstClip, outputComponents);
-
-    if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
-        // set the bitDepth of _dstClip
-        int outputBitDepth_i;
-        _outputBitDepth->getValue(outputBitDepth_i);
-        OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
-        clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
+    if (_useOutputComponentsAndDepth) {
+        // set the components of _dstClip
+        int outputComponents_i;
+        _outputComponents->getValue(outputComponents_i);
+        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+        clipPreferences.setClipComponents(*_dstClip, outputComponents);
+        
+        if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
+            // set the bitDepth of _dstClip
+            int outputBitDepth_i;
+            _outputBitDepth->getValue(outputBitDepth_i);
+            OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
+            clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
+        }
     }
 }
 
@@ -453,6 +463,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
                            GeneratorTypeEnum defaultType,
+                           bool useOutputComponentsAndDepth,
                            ContextEnum /*context*/)
 {
     {
@@ -560,154 +571,156 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-
-    bool supportsBytes  = false;
-    bool supportsShorts = false;
-    bool supportsFloats = false;
-    OFX::BitDepthEnum outputBitDepthMap[4];
-
-    const OFX::PropertySet &effectProps = desc.getPropertySet();
-
-    int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
-    for(int i = 0; i < numPixelDepths; ++i) {
-        OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
-        bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
-        switch (pixelDepth) {
-            case OFX::eBitDepthUByte:
-                supportsBytes  = supported;
-                break;
-            case OFX::eBitDepthUShort:
-                supportsShorts = supported;
-                break;
-            case OFX::eBitDepthFloat:
-                supportsFloats = supported;
-                break;
-            default:
-                // other bitdepths are not supported by this plugin
-                break;
-        }
-    }
-    {
-        int i = 0;
-        if (supportsFloats) {
-            outputBitDepthMap[i] = OFX::eBitDepthFloat;
-            ++i;
-        }
-        if (supportsShorts) {
-            outputBitDepthMap[i] = OFX::eBitDepthUShort;
-            ++i;
-        }
-        if (supportsBytes) {
-            outputBitDepthMap[i] = OFX::eBitDepthUByte;
-            ++i;
-        }
-        outputBitDepthMap[i] = OFX::eBitDepthNone;
-    }
-
-    {
-        bool supportsRGBA   = false;
-        bool supportsRGB    = false;
-        bool supportsAlpha  = false;
+    
+    if (useOutputComponentsAndDepth) {
+        bool supportsBytes  = false;
+        bool supportsShorts = false;
+        bool supportsFloats = false;
+        OFX::BitDepthEnum outputBitDepthMap[4];
         
-        OFX::PixelComponentEnum outputComponentsMap[4];
+        const OFX::PropertySet &effectProps = desc.getPropertySet();
         
-        const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
-        int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
-        for(int i = 0; i < numComponents; ++i) {
-            OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
-            bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
-            switch (pixelComponents) {
-                case OFX::ePixelComponentRGBA:
-                    supportsRGBA  = supported;
+        int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
+        for(int i = 0; i < numPixelDepths; ++i) {
+            OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
+            bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
+            switch (pixelDepth) {
+                case OFX::eBitDepthUByte:
+                    supportsBytes  = supported;
                     break;
-                case OFX::ePixelComponentRGB:
-                    supportsRGB = supported;
+                case OFX::eBitDepthUShort:
+                    supportsShorts = supported;
                     break;
-                case OFX::ePixelComponentAlpha:
-                    supportsAlpha = supported;
+                case OFX::eBitDepthFloat:
+                    supportsFloats = supported;
                     break;
                 default:
-                    // other components are not supported by this plugin
+                    // other bitdepths are not supported by this plugin
                     break;
             }
         }
         {
             int i = 0;
-            if (supportsRGBA) {
-                outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+            if (supportsFloats) {
+                outputBitDepthMap[i] = OFX::eBitDepthFloat;
                 ++i;
             }
-            if (supportsRGB) {
-                outputComponentsMap[i] = OFX::ePixelComponentRGB;
+            if (supportsShorts) {
+                outputBitDepthMap[i] = OFX::eBitDepthUShort;
                 ++i;
             }
-            if (supportsAlpha) {
-                outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+            if (supportsBytes) {
+                outputBitDepthMap[i] = OFX::eBitDepthUByte;
                 ++i;
             }
-            outputComponentsMap[i] = OFX::ePixelComponentNone;
+            outputBitDepthMap[i] = OFX::eBitDepthNone;
         }
         
-        // outputComponents
         {
-            ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
-            param->setLabel(kParamGeneratorOutputComponentsLabel);
-            param->setHint(kParamGeneratorOutputComponentsHint);
+            bool supportsRGBA   = false;
+            bool supportsRGB    = false;
+            bool supportsAlpha  = false;
+            
+            OFX::PixelComponentEnum outputComponentsMap[4];
+            
+            const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
+            int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
+            for(int i = 0; i < numComponents; ++i) {
+                OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+                bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
+                switch (pixelComponents) {
+                    case OFX::ePixelComponentRGBA:
+                        supportsRGBA  = supported;
+                        break;
+                    case OFX::ePixelComponentRGB:
+                        supportsRGB = supported;
+                        break;
+                    case OFX::ePixelComponentAlpha:
+                        supportsAlpha = supported;
+                        break;
+                    default:
+                        // other components are not supported by this plugin
+                        break;
+                }
+            }
+            {
+                int i = 0;
+                if (supportsRGBA) {
+                    outputComponentsMap[i] = OFX::ePixelComponentRGBA;
+                    ++i;
+                }
+                if (supportsRGB) {
+                    outputComponentsMap[i] = OFX::ePixelComponentRGB;
+                    ++i;
+                }
+                if (supportsAlpha) {
+                    outputComponentsMap[i] = OFX::ePixelComponentAlpha;
+                    ++i;
+                }
+                outputComponentsMap[i] = OFX::ePixelComponentNone;
+            }
+            
+            // outputComponents
+            {
+                ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
+                param->setLabel(kParamGeneratorOutputComponentsLabel);
+                param->setHint(kParamGeneratorOutputComponentsHint);
+                // the following must be in the same order as in describe(), so that the map works
+                if (supportsRGBA) {
+                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
+                    param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
+                }
+                if (supportsRGB) {
+                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
+                    param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
+                }
+                if (supportsAlpha) {
+                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
+                    param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
+                }
+                param->setDefault(0);
+                param->setAnimates(false);
+                desc.addClipPreferencesSlaveParam(*param);
+                if (page) {
+                    page->addChild(*param);
+                }
+            }
+        }
+        
+        // ouputBitDepth
+        if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
+            ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
+            param->setLabel(kParamGeneratorOutputBitDepthLabel);
+            param->setHint(kParamGeneratorOutputBitDepthHint);
             // the following must be in the same order as in describe(), so that the map works
-            if (supportsRGBA) {
-                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
-                param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
+            if (supportsFloats) {
+                // coverity[check_return]
+                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
+                param->appendOption(kParamGeneratorOutputBitDepthOptionFloat);
             }
-            if (supportsRGB) {
-                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
-                param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
+            if (supportsShorts) {
+                // coverity[check_return]
+                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
+                param->appendOption(kParamGeneratorOutputBitDepthOptionShort);
             }
-            if (supportsAlpha) {
-                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
-                param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
+            if (supportsBytes) {
+                // coverity[check_return]
+                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
+                param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
             }
             param->setDefault(0);
             param->setAnimates(false);
+#ifndef DEBUG
+            // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
+            // Disable it for now (in the future, there may be colorspace conversion options)
+            param->setIsSecret(true); // always secret
+#endif
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);
             }
         }
-    }
-
-    // ouputBitDepth
-    if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
-        ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
-        param->setLabel(kParamGeneratorOutputBitDepthLabel);
-        param->setHint(kParamGeneratorOutputBitDepthHint);
-        // the following must be in the same order as in describe(), so that the map works
-        if (supportsFloats) {
-            // coverity[check_return]
-            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
-            param->appendOption(kParamGeneratorOutputBitDepthOptionFloat);
-        }
-        if (supportsShorts) {
-            // coverity[check_return]
-            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
-            param->appendOption(kParamGeneratorOutputBitDepthOptionShort);
-        }
-        if (supportsBytes) {
-            // coverity[check_return]
-            assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
-            param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
-        }
-        param->setDefault(0);
-        param->setAnimates(false);
-#ifndef DEBUG
-        // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
-        // Disable it for now (in the future, there may be colorspace conversion options)
-        param->setIsSecret(true); // always secret
-#endif
-        desc.addClipPreferencesSlaveParam(*param);
-        if (page) {
-            page->addChild(*param);
-        }
-    }
+    } // useOutputComponentsAndDepth
 
 } // generatorDescribeInContext
 
