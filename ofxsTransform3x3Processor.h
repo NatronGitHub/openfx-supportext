@@ -162,6 +162,11 @@ private:
     {
         float tmpPix[nComponents];
         const OFX::Matrix3x3 & H = _invtransform[0];
+        const int x1 = _srcImg->getBounds().x1;
+        const int x2 = _srcImg->getBounds().x2;
+        const int y1 = _srcImg->getBounds().y1;
+        const int y2 = _srcImg->getBounds().y2;
+
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
             if ( _effect.abort() ) {
                 break;
@@ -193,10 +198,16 @@ private:
                     if (filter == eFilterImpulse) {
                         ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
                     } else {
-                        double Jxx = (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z);
-                        double Jxy = (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z);
-                        double Jyx = (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z);
-                        double Jyy = (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z);
+                        bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
+                        bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
+                        if (_blackOutside && !(xinside && yinside)) {
+                            xinside = yinside = false;
+                        }
+
+                        double Jxx = xinside ? (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z) : 0.;
+                        double Jxy = xinside ? (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z) : 0.;
+                        double Jyx = yinside ? (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z) : 0;
+                        double Jyy = yinside ? (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z) : 0.;
                         ofxsFilterInterpolate2DSuper<PIX,nComponents,filter,clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                     }
                 }
@@ -211,6 +222,11 @@ private:
         float tmpPix[nComponents];
         const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
         const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations
+        const int x1 = _srcImg->getBounds().x1;
+        const int x2 = _srcImg->getBounds().x2;
+        const int y1 = _srcImg->getBounds().y1;
+        const int y2 = _srcImg->getBounds().y2;
+
         // Monte Carlo integration, starting with at least 13 regularly spaced samples, and then low discrepancy
         // samples from the van der Corput sequence.
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
@@ -269,10 +285,16 @@ private:
                             if (filter == eFilterImpulse) {
                                 ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
                             } else {
-                                double Jxx = (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z);
-                                double Jxy = (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z);
-                                double Jyx = (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z);
-                                double Jyy = (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z);
+                                bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
+                                bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
+                                if (_blackOutside && !(xinside && yinside)) {
+                                    xinside = yinside = false;
+                                }
+
+                                double Jxx = xinside ? (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z) : 0.;
+                                double Jxy = xinside ? (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z) : 0.;
+                                double Jyx = yinside ? (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z) : 0;
+                                double Jyy = yinside ? (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z) : 0.;
                                 ofxsFilterInterpolate2DSuper<PIX,nComponents,filter,clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                             }
                         }
