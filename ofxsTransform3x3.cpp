@@ -962,6 +962,17 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
 
     const double time = args.time;
 
+    if (_amount) {
+        double amount = 1.;
+        _amount->getValueAtTime(time, amount);
+        if (amount == 0.) {
+            identityClip = _srcClip;
+            identityTime = time;
+
+            return true;
+        }
+    }
+
     // if there is motion blur, we suppose the transform is not identity
     double motionblur = _invert ? 1. : 0.; // default is 1 for GodRays, 0 for Mirror
     if (_motionblur) {
