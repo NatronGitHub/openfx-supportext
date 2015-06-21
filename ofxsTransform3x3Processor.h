@@ -59,6 +59,7 @@ protected:
     const OFX::Image *_maskImg;
     // NON-GENERIC PARAMETERS:
     const OFX::Matrix3x3* _invtransform; // the set of transforms to sample from (in PIXEL coords)
+    const double* _invtransformalpha; // blending factor for each tranform, or NULL for uniform blending
     size_t _invtransformsize;
     // GENERIC PARAMETERS:
     bool _blackOutside;
@@ -74,6 +75,7 @@ public:
           , _srcImg(0)
           , _maskImg(0)
           , _invtransform()
+          , _invtransformalpha(0)
           , _invtransformsize(0)
           , _blackOutside(false)
           , _motionblur(0.)
@@ -106,6 +108,7 @@ public:
     }
 
     void setValues(const OFX::Matrix3x3* invtransform, //!< non-generic - must be in PIXEL coords
+                   double* invtransformalpha,
                    size_t invtransformsize,
                    // all generic parameters below
                    bool blackOutside, //!< generic
@@ -115,6 +118,7 @@ public:
         // NON-GENERIC
         assert(invtransform);
         _invtransform = invtransform;
+        _invtransformalpha = invtransformalpha;
         _invtransformsize = invtransformsize;
         // GENERIC
         _blackOutside = blackOutside;
@@ -243,11 +247,13 @@ private:
             canonicalCoords.y = (double)y + 0.5;
 
             for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
+                double acc;
                 double accPix[nComponents];
                 double accPix2[nComponents];
                 double mean[nComponents];
                 double var[nComponents];
                 for (int c = 0; c < nComponents; ++c) {
+                    acc = 0.;
                     accPix[c] = 0;
                     accPix2[c] = 0;
                     mean[c] = 0.;
@@ -298,27 +304,57 @@ private:
                                 ofxsFilterInterpolate2DSuper<PIX,nComponents,filter,clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                             }
                         }
-                        for (int c = 0; c < nComponents; ++c) {
-                            accPix[c] += tmpPix[c];
-                            accPix2[c] += tmpPix[c] * tmpPix[c];
+                        if (!_invtransformalpha) {
+                            for (int c = 0; c < nComponents; ++c) {
+                                accPix[c] += tmpPix[c];
+                                accPix2[c] += tmpPix[c] * tmpPix[c];
+                            }
+                        } else {
+                            acc += _invtransformalpha[t];
+                            for (int c = 0; c < nComponents; ++c) {
+                                accPix[c] += tmpPix[c] * _invtransformalpha[t];
+                                accPix2[c] += tmpPix[c] * tmpPix[c] * _invtransformalpha[t];
+                            }
                         }
                     }
-                    // compute mean and variance (unbiased)
-                    for (int c = 0; c < nComponents; ++c) {
-                        mean[c] = accPix[c] / sample;
-                        if (sample <= 1) {
-                            var[c] = (double)maxValue * maxValue;
-                        } else {
-                            var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
-                            // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
-                            // Note that this could be improved/optimized further by variance reduction and importance sampling
-                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
-                            // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
-                            // The threshold is computed by a simple rule of thumb:
-                            // - the error should be less than motionblur*maxValue/100
-                            // - the total number of iterations should be less than motionblur*100
-                            if (maxsamples < maxIt) {
-                                maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                    if (!_invtransformalpha) {
+                        // compute mean and variance (unbiased)
+                        for (int c = 0; c < nComponents; ++c) {
+                            mean[c] = accPix[c] / sample;
+                            if (sample <= 1) {
+                                var[c] = (double)maxValue * maxValue;
+                            } else {
+                                var[c] = (accPix2[c] - mean[c] * mean[c] * sample) / (sample - 1);
+                                // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
+                                // Note that this could be improved/optimized further by variance reduction and importance sampling
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
+                                // The threshold is computed by a simple rule of thumb:
+                                // - the error should be less than motionblur*maxValue/100
+                                // - the total number of iterations should be less than motionblur*100
+                                if (maxsamples < maxIt) {
+                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                                }
+                            }
+                        }
+                    } else if (acc > 0.) {
+                        // compute mean and variance (biased)
+                        for (int c = 0; c < nComponents; ++c) {
+                            mean[c] = accPix[c] / acc;
+                            if (sample <= 1) {
+                                var[c] = (double)maxValue * maxValue;
+                            } else {
+                                var[c] = accPix2[c] / acc - mean[c] * mean[c];
+                                // the variance of the mean is var[c]/n, so compute n so that it falls below some threashold (maxErr2).
+                                // Note that this could be improved/optimized further by variance reduction and importance sampling
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-17-monte-carlo-methods-in-practice/variance-reduction-methods-a-quick-introduction-to-importance-sampling/
+                                // http://www.scratchapixel.com/lessons/3d-basic-lessons/lesson-xx-introduction-to-importance-sampling/
+                                // The threshold is computed by a simple rule of thumb:
+                                // - the error should be less than motionblur*maxValue/100
+                                // - the total number of iterations should be less than motionblur*100
+                                if (maxsamples < maxIt) {
+                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                                }
                             }
                         }
                     }

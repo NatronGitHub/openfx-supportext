@@ -137,6 +137,9 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _clamp(0)
       , _blackOutside(0)
       , _motionblur(0)
+      , _amount(0)
+      , _centered(0)
+      , _fading(0)
       , _directionalBlur(0)
       , _shutter(0)
       , _shutteroffset(0)
@@ -167,7 +170,11 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
             _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
             assert(_motionblur);
         }
-        if (!isDirBlur) {
+        if (isDirBlur) {
+            _amount = fetchDoubleParam(kParamTransform3x3Amount);
+            _centered = fetchBooleanParam(kParamTransform3x3Centered);
+            _fading = fetchDoubleParam(kParamTransform3x3Fading);
+        } else {
             _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
             _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
             _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
@@ -233,8 +240,21 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
+    std::vector<double> invtransformalpha;
     double motionblur = 0.;
     bool directionalBlur = (_directionalBlur == 0);
+    double amountFrom = 0.;
+    double amountTo = 1.;
+    if (_amount) {
+        _amount->getValueAtTime(time, amountTo);
+    }
+    if (_centered) {
+        bool centered;
+        _centered->getValueAtTime(time, centered);
+        if (centered) {
+            amountFrom = -amountTo;
+        }
+    }
     bool blackOutside = false;
     double mix = 1.;
 
@@ -302,7 +322,20 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
-            invtransformsize = getInverseTransformsBlur(time, args.renderScale, fielded, pixelAspectRatio, invert, &invtransform.front(), invtransformsizealloc);
+            invtransformalpha.resize(invtransformsizealloc);
+            invtransformsize = getInverseTransformsBlur(time, args.renderScale, fielded, pixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
+            // normalize alpha, and apply gamma
+            double fading = 0.;
+            if (_fading) {
+                _fading->getValueAtTime(time, fading);
+            }
+            if (fading <= 0.) {
+                std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
+            } else {
+                for (size_t i = 0; i < invtransformalpha.size(); ++i) {
+                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i])/amountTo, fading);
+                }
+            }
         } else {
             invtransformsizealloc = 1;
             invtransform.resize(invtransformsizealloc);
@@ -380,6 +413,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     processor.setRenderWindow(args.renderWindow);
     assert(invtransform.size() && invtransformsize);
     processor.setValues(&invtransform.front(),
+                        invtransformalpha.empty() ? 0 : &invtransformalpha.front(),
                         invtransformsize,
                         blackOutside,
                         motionblur,
@@ -465,6 +499,8 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
                                     bool invert,
                                     double motionblur,
                                     bool directionalBlur,
+                                    double amountFrom,
+                                    double amountTo,
                                     double shutter,
                                     int shutteroffset_i,
                                     double shuttercustomoffset,
@@ -508,7 +544,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
         // compute transformed positions
         OfxRectD thisRoD;
         OFX::Matrix3x3 transform;
-        bool success = getInverseTransformCanonical(t, amount, invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
+        bool success = getInverseTransformCanonical(t, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
         if (!success) {
             // return infinite region
             rectTo->x1 = kOfxFlagInfiniteMin;
@@ -620,6 +656,18 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         _motionblur->getValueAtTime(time, motionblur);
     }
     bool directionalBlur = (_directionalBlur == 0);
+    double amountFrom = 0.;
+    double amountTo = 1.;
+    if (_amount) {
+        _amount->getValueAtTime(time, amountTo);
+    }
+    if (_centered) {
+        bool centered;
+        _centered->getValueAtTime(time, centered);
+        if (centered) {
+            amountFrom = -amountTo;
+        }
+    }
     double shutter = 0.;
     int shutteroffset_i = 0;
     double shuttercustomoffset = 0.;
@@ -633,7 +681,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     bool identity = isIdentity(args.time);
 
     // set rod from srcRoD
-    transformRegion(srcRoD, time, invert, motionblur, directionalBlur, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
+    transformRegion(srcRoD, time, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity.
@@ -693,6 +741,18 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         _motionblur->getValueAtTime(time, motionblur);
     }
     bool directionalBlur = (_directionalBlur == 0);
+    double amountFrom = 0.;
+    double amountTo = 1.;
+    if (_amount) {
+        _amount->getValueAtTime(time, amountTo);
+    }
+    if (_centered) {
+        bool centered;
+        _centered->getValueAtTime(time, centered);
+        if (centered) {
+            amountFrom = -amountTo;
+        }
+    }
     double shutter = 0.;
     int shutteroffset_i = 0;
     double shuttercustomoffset = 0.;
@@ -703,7 +763,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
     }
     // set srcRoI from roi
-    transformRegion(roi, time, invert, motionblur, directionalBlur, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
+    transformRegion(roi, time, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
     int filter = eFilterCubic;
     if (_filter) {
@@ -1079,7 +1139,10 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                              bool fielded,
                                              double pixelaspectratio,
                                              bool invert,
+                                             double amountFrom,
+                                             double amountTo,
                                              OFX::Matrix3x3* invtransform,
+                                             double *amount,
                                              size_t invtransformsizealloc) const
 {
     bool allequal = true;
@@ -1089,10 +1152,12 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
 
     size_t invtransformsize = 0;
     for (size_t i = 0; i < invtransformsizealloc; ++i) {
-        //double amount = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
-        double amount = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
-        bool success = getInverseTransformCanonical(time, amount, invert, &invtransformCanonical); // virtual function
+        //double a = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
+        double a = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
+        double amt = amountFrom + (amountTo - amountFrom) * a;
+        bool success = getInverseTransformCanonical(time, amt, invert, &invtransformCanonical); // virtual function
         if (success) {
+            amount[invtransformsize] = amt;
             invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
             ++invtransformsize;
             allequal = allequal && (invtransform[i].a == invtransform[0].a &&
@@ -1285,7 +1350,53 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         }
     }
 
-    if (!isDirBlur) {
+    if (isDirBlur) {
+        {
+            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Amount);
+            param->setLabel(kParamTransform3x3AmountLabel);
+            param->setHint(kParamTransform3x3AmountHint);
+            //param->setRange(-1, 2.);
+            param->setDisplayRange(-1, 2.);
+            param->setDefault(1);
+            param->setAnimates(true); // can animate
+            if (page) {
+                page->addChild(*param);
+            }
+        }
+
+        {
+            BooleanParamDescriptor *param = desc.defineBooleanParam(kParamTransform3x3Centered);
+            param->setLabel(kParamTransform3x3CenteredLabel);
+            param->setHint(kParamTransform3x3CenteredHint);
+            param->setAnimates(true); // can animate
+            if (page) {
+                page->addChild(*param);
+            }
+        }
+
+        {
+            BooleanParamDescriptor *param = desc.defineBooleanParam(kParamTransform3x3Centered);
+            param->setLabel(kParamTransform3x3CenteredLabel);
+            param->setHint(kParamTransform3x3CenteredHint);
+            param->setAnimates(true); // can animate
+            if (page) {
+                page->addChild(*param);
+            }
+        }
+
+        {
+            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Fading);
+            param->setLabel(kParamTransform3x3FadingLabel);
+            param->setHint(kParamTransform3x3FadingHint);
+            param->setRange(0., 4.);
+            param->setDisplayRange(0., 4.);
+            param->setDefault(0.);
+            param->setAnimates(true); // can animate
+            if (page) {
+                page->addChild(*param);
+            }
+        }
+    } else {
         // directionalBlur
         {
             BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);

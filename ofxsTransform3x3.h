@@ -45,11 +45,27 @@
 
 #define kParamTransform3x3Invert "invert"
 #define kParamTransform3x3InvertLabel "Invert"
-#define kParamTransform3x3InvertHint "Invert the transform"
+#define kParamTransform3x3InvertHint "Invert the transform."
 
 #define kParamTransform3x3MotionBlur "motionBlur"
 #define kParamTransform3x3MotionBlurLabel "Motion Blur"
-#define kParamTransform3x3MotionBlurHint "Number of motion blur samples. 0 disables motion blur, 1 is a good value. Increasing this slows down rendering."
+#define kParamTransform3x3MotionBlurHint "Quality of motion blur rendering. 0 disables motion blur, 1 is a good value. Increasing this slows down rendering."
+
+// extra parameters for DirBlur:
+
+#define kParamTransform3x3Amount "amount"
+#define kParamTransform3x3AmountLabel "Amount"
+#define kParamTransform3x3AmountHint "Amount of blur transform to apply. A value of 1 means to apply the full transform range. A value of 0 means to apply no blur at all. Default is 1."
+
+#define kParamTransform3x3Centered "centered"
+#define kParamTransform3x3CenteredLabel "Centered"
+#define kParamTransform3x3CenteredHint "When checked, apply directional blur symmetrically arount the neutral position."
+
+#define kParamTransform3x3Fading "fading"
+#define kParamTransform3x3FadingLabel "Fading"
+#define kParamTransform3x3FadingHint "Controls the fading function. A value of 1 corresponds to linear fading. A value of 0 disables fading. Default is 0."
+
+// extra parameters for non-DirBlur
 
 #define kParamTransform3x3DirectionalBlur "directionalBlur"
 #define kParamTransform3x3DirectionalBlurLabel "Directional Blur Mode"
@@ -157,7 +173,10 @@ protected:
                                     bool fielded,
                                     double pixelaspectratio,
                                     bool invert,
+                                    double amountFrom,
+                                    double amountTo,
                                     OFX::Matrix3x3* invtransform,
+                                    double* amount,
                                     size_t invtransformsizealloc) const;
 private:
     /* internal render function */
@@ -177,6 +196,8 @@ private:
                          bool invert,
                          double motionblur,
                          bool directionalBlur,
+                         double amountFrom,
+                         double amountTo,
                          double shutter,
                          int shutteroffset_i,
                          double shuttercustomoffset,
@@ -191,10 +212,13 @@ protected:
     OFX::BooleanParam* _clamp;
     OFX::BooleanParam* _blackOutside;
     OFX::DoubleParam* _motionblur;
-    OFX::BooleanParam* _directionalBlur;
-    OFX::DoubleParam* _shutter;
-    OFX::ChoiceParam* _shutteroffset;
-    OFX::DoubleParam* _shuttercustomoffset;
+    OFX::DoubleParam* _amount; // DirBlur only
+    OFX::BooleanParam* _centered; // DirBlur only
+    OFX::DoubleParam* _fading; // DirBlur only
+    OFX::BooleanParam* _directionalBlur; // non-DirBlur
+    OFX::DoubleParam* _shutter; // non-DirBlur
+    OFX::ChoiceParam* _shutteroffset; // non-DirBlur
+    OFX::DoubleParam* _shuttercustomoffset; // non-DirBlur
     bool _masked;
     OFX::DoubleParam* _mix;
     OFX::BooleanParam* _maskInvert;
