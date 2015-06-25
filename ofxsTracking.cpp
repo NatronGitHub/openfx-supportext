@@ -67,9 +67,14 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 , _instanceName(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha || _dstClip->getPixelComponents() == ePixelComponentRGB || _dstClip->getPixelComponents() == ePixelComponentRGBA);
-    _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(_srcClip->getPixelComponents() == ePixelComponentAlpha || _srcClip->getPixelComponents() == ePixelComponentRGB || _srcClip->getPixelComponents() == ePixelComponentRGBA);
+    assert(_dstClip->getPixelComponents() == ePixelComponentAlpha ||
+           _dstClip->getPixelComponents() == ePixelComponentRGB ||
+           _dstClip->getPixelComponents() == ePixelComponentRGBA);
+    _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
+    assert((!_srcClip && getContext() == OFX::eContextGenerator) ||
+           (_srcClip->getPixelComponents() == ePixelComponentAlpha ||
+            _srcClip->getPixelComponents() == ePixelComponentRGB ||
+            _srcClip->getPixelComponents() == ePixelComponentRGBA));
     
     
     _backwardButton = fetchPushButtonParam(kParamTrackingBackward);

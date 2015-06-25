@@ -150,11 +150,11 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
-    _srcClip = fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4);
+    _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
+    assert(!_srcClip || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4));
     // name of mask clip depends on the context
     if (masked) {
-        _maskClip = getContext() == OFX::eContextFilter ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
+        _maskClip = (getContext() == OFX::eContextFilter  || getContext() == OFX::eContextGenerator) ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
         assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
@@ -621,6 +621,9 @@ bool
 Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &args,
                                           OfxRectD &rod)
 {
+    if (!_srcClip) {
+        return false;
+    }
     const double time = args.time;
     const OfxRectD& srcRoD = _srcClip->getRegionOfDefinition(time);
 
@@ -714,6 +717,9 @@ void
 Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &args,
                                          OFX::RegionOfInterestSetter &rois)
 {
+    if (!_srcClip) {
+        return;
+    }
     const double time = args.time;
     const OfxRectD roi = args.regionOfInterest;
     OfxRectD srcRoI;
@@ -1067,7 +1073,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         return false; // no transform available, render as usual
     }
     OFX::Matrix3x3 transformCanonical = ofxsMatInverse(invtransform, det);
-    double pixelaspectratio = _srcClip->getPixelAspectRatio();
+    double pixelaspectratio = _srcClip ? _srcClip->getPixelAspectRatio() : 1.;
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
     OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
                                       transformCanonical *
