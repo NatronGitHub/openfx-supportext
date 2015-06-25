@@ -67,6 +67,9 @@
 #define kParamGeneratorOutputBitDepthOptionShort "Short (16 bits)"
 #define kParamGeneratorOutputBitDepthOptionFloat "Float (32 bits)"
 
+#define kParamGeneratorRange "frameRange"
+#define kParamGeneratorRangeLabel "Frame Range"
+#define kParamGeneratorRangeHint "Time domain."
 
 enum GeneratorTypeEnum
 {
@@ -94,8 +97,9 @@ protected:
     OFX::BooleanParam* _interactive;
     OFX::ChoiceParam *_outputComponents;
     OFX::ChoiceParam *_outputBitDepth;
+    OFX::Int2DParam  *_range;
     bool _useOutputComponentsAndDepth;
-
+    
 public:
 
     GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth);
@@ -104,6 +108,10 @@ protected:
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
     bool getRegionOfDefinition(OfxRectD &rod);
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
+    // must be called by derived class if it is reimplemented (see Radial.cpp for example)
+    virtual bool isIdentity(const OFX::IsIdentityArguments &args,
+                            OFX::Clip * &identityClip,
+                            double &identityTime) OVERRIDE;
 
 private:
 
@@ -111,7 +119,14 @@ private:
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/*args*/, OfxRectD &rod) OVERRIDE  {
         return getRegionOfDefinition(rod);
     }
+
+    /* override the time domain action, only for the general context */
+    virtual bool getTimeDomain(OfxRangeD &range) OVERRIDE FINAL;
+
+
     void updateParamsVisibility();
+
+    virtual bool paramsNotAnimated() = 0;
 
 private:
     OFX::PixelComponentEnum _outputComponentsMap[4];

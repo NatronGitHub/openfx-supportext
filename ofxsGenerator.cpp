@@ -52,6 +52,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
         , _interactive(0)
         , _outputComponents(0)
         , _outputBitDepth(0)
+        , _range(0)
         , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
         , _supportsBytes(0)
         , _supportsShorts(0)
@@ -61,8 +62,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
         , _supportsAlpha(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGB ||
-                         _dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
+    assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
+                         _dstClip->getPixelComponents() == OFX::ePixelComponentRGB ||
+                         _dstClip->getPixelComponents() == OFX::ePixelComponentXY ||
                          _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
     _type = fetchChoiceParam(kParamGeneratorExtent);
@@ -79,6 +81,11 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
             _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
         }
     }
+    if (getContext() == OFX::eContextGeneral) {
+        _range   = fetchInt2DParam(kParamGeneratorRange);
+        assert(_range);
+    }
+
     updateParamsVisibility();
 
     const OFX::PropertySet &effectProps = getPropertySet();
@@ -185,6 +192,65 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
         }
     }
 }
+
+/* override the time domain action, only for the general context */
+bool
+GeneratorPlugin::getTimeDomain(OfxRangeD &range)
+{
+    // this should only be called in the general context, ever!
+    if (getContext() == OFX::eContextGeneral) {
+        assert(_range);
+        // how many frames on the input clip
+        //OfxRangeD srcRange = _srcClip->getFrameRange();
+
+        int min, max;
+        _range->getValue(min, max);
+        range.min = min;
+        range.max = max;
+        return true;
+    }
+
+    return false;
+}
+
+bool
+GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
+                           OFX::Clip * &identityClip,
+                           double &identityTime)
+{
+    if (OFX::getImageEffectHostDescription()->isNatron && getContext() == OFX::eContextGeneral) {
+
+        // only Natron supports setting the identityClip to the output clip
+
+        int min, max;
+        _range->getValue(min, max);
+
+        int type_i;
+        _type->getValue(type_i);
+        GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+        if (type == eGeneratorTypeSize) {
+            ///If not animated and different than 'min' time, return identity on the min time.
+            ///We need to check more parameters
+            if (paramsNotAnimated() && _size->getNumKeys() == 0 && _btmLeft->getNumKeys() == 0 && args.time != min) {
+                identityClip = _dstClip;
+                identityTime = min;
+                return true;
+            }
+        } else {
+            ///If not animated and different than 'min' time, return identity on the min time.
+            if (paramsNotAnimated() && args.time != min) {
+                identityClip = _dstClip;
+                identityTime = min;
+                return true;
+            }
+        }
+
+
+
+    }
+    return false;
+}
+
 
 void
 GeneratorPlugin::updateParamsVisibility()
@@ -464,7 +530,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ClipDescriptor &dstClip,
                            GeneratorTypeEnum defaultType,
                            bool useOutputComponentsAndDepth,
-                           ContextEnum /*context*/)
+                           ContextEnum context)
 {
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
@@ -536,6 +602,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(0., 0.);
+        param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
         param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
@@ -551,6 +618,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDoubleType(OFX::eDoubleTypeXY);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesNormalised);
         param->setDefault(1., 1.);
+        param->setDisplayRange(0, 0, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
         param->setDimensionLabels(kParamRectangleInteractSizeDim1, kParamRectangleInteractSizeDim1);
         param->setHint("Width and height of the size rectangle.");
@@ -571,7 +639,20 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-    
+
+    // range
+    if (context == OFX::eContextGeneral) {
+        Int2DParamDescriptor *param = desc.defineInt2DParam(kParamGeneratorRange);
+        param->setLabel(kParamGeneratorRangeLabel);
+        param->setHint(kParamGeneratorRangeHint);
+        param->setDefault(1, 1);
+        param->setDimensionLabels("min", "max");
+        param->setAnimates(false); // can not animate, because it defines the time domain
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
     if (useOutputComponentsAndDepth) {
         bool supportsBytes  = false;
         bool supportsShorts = false;
