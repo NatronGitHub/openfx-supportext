@@ -1296,12 +1296,12 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     srcClip->setIsMask(false);
     srcClip->setCanTransform(true); // source images can have a transform attached
 
-    if ( masked && (context != eContextGenerator) ) {
+    if (masked) {
         // GENERIC (MASKED)
         //
         // if general or paint context, define the mask clip
         // if paint context, it is a mandated input called 'brush'
-        ClipDescriptor *maskClip = context == eContextGeneral ? desc.defineClip("Mask") : desc.defineClip("Brush");
+        ClipDescriptor *maskClip = (context == eContextPaint) ? desc.defineClip("Brush") : desc.defineClip("Mask");
         maskClip->addSupportedComponent(ePixelComponentAlpha);
         maskClip->setTemporalClipAccess(false);
         if (context == eContextGeneral) {
