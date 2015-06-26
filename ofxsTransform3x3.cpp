@@ -154,7 +154,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     assert(!_srcClip || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4));
     // name of mask clip depends on the context
     if (masked) {
-        _maskClip = (getContext() == OFX::eContextFilter  || getContext() == OFX::eContextGenerator) ? NULL : fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
+        _maskClip = fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
         assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
@@ -389,11 +389,9 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     }
 
     // auto ptr for the mask.
-    std::auto_ptr<const OFX::Image> mask((_masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected()) ?
-                                         _maskClip->fetchImage(time) : 0);
-
-    // do we do masking
-    if ( _masked && getContext() != OFX::eContextFilter && _maskClip && _maskClip->isConnected() ) {
+    bool doMasking = (_masked && (!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+    std::auto_ptr<const OFX::Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
+    if (doMasking) {
         bool maskInvert = false;
         if (_maskInvert) {
             _maskInvert->getValueAtTime(time, maskInvert);
@@ -638,7 +636,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     }
 
     double mix = 1.;
-    const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
+    bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
     if (doMasking && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
@@ -724,8 +722,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     const OfxRectD roi = args.regionOfInterest;
     OfxRectD srcRoI;
     double mix = 1.;
-    const bool doMasking = _masked && getContext() != OFX::eContextFilter && _maskClip->isConnected();
-
+    bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
     if (doMasking) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
@@ -1022,7 +1019,8 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             return true;
         }
 
-        if (_maskClip && _maskClip->isConnected()) {
+        bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+        if (doMasking) {
             bool maskInvert;
             _maskInvert->getValueAtTime(args.time, maskInvert);
             if (!maskInvert) {
@@ -1298,7 +1296,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     srcClip->setIsMask(false);
     srcClip->setCanTransform(true); // source images can have a transform attached
 
-    if ( masked && ( (context == eContextGeneral) || (context == eContextPaint) ) ) {
+    if ( masked && (context != eContextGenerator) ) {
         // GENERIC (MASKED)
         //
         // if general or paint context, define the mask clip

@@ -221,6 +221,7 @@ protected:
     OFX::DoubleParam* _shuttercustomoffset; // non-DirBlur
     bool _masked;
     OFX::DoubleParam* _mix;
+    OFX::BooleanParam* _maskApply;
     OFX::BooleanParam* _maskInvert;
 };
 

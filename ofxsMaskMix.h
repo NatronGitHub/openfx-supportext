@@ -64,10 +64,13 @@
 
 #define kParamMix "mix"
 #define kParamMixLabel "Mix"
-#define kParamMixHint "Mix factor between the original and the transformed image"
+#define kParamMixHint "Mix factor between the original and the transformed image."
+#define kParamMaskApply "mask"
+#define kParamMaskApplyLabel "Mask"
+#define kParamMaskApplyHint "When checked, mask is applied."
 #define kParamMaskInvert "maskInvert"
 #define kParamMaskInvertLabel "Invert Mask"
-#define kParamMaskInvertHint "When checked, the effect is fully applied where the mask is 0"
+#define kParamMaskInvertHint "When checked, the effect is fully applied where the mask is 0."
 
 namespace OFX {
 inline
@@ -104,10 +107,27 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
 }
 
 inline
+bool
+ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
+{
+    return (desc->hostName.compare(0, 14, "DaVinciResolve") == 0);
+}
+
+inline
 void
 ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::PageParamDescriptor *page)
 {
+    // If the host always sees mask clips are connected, this is a problem because
+    // mask will appear as black and transparent, although it is not connected
+    if (ofxsMaskIsAlwaysConnected(OFX::getImageEffectHostDescription())) {
+        OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskApply);
+        param->setLabel(kParamMaskApplyLabel);
+        param->setHint(kParamMaskApplyHint);
+        if (page) {
+            page->addChild(*param);
+        }
+    }
     {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskInvert);
         param->setLabel(kParamMaskInvertLabel);
