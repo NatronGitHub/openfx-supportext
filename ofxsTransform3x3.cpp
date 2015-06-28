@@ -146,6 +146,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
       , _shuttercustomoffset(0)
       , _masked(masked)
       , _mix(0)
+      , _maskApply(0)
       , _maskInvert(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
