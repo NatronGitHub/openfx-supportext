@@ -127,7 +127,7 @@ shutterRange(double time,
 
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
-                                       bool isDirBlur)
+                                       Transform3x3ParamsTypeEnum paramsType)
     : ImageEffect(handle)
       , _dstClip(0)
       , _srcClip(0)
@@ -171,11 +171,11 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
             _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
             assert(_motionblur);
         }
-        if (isDirBlur) {
+        if (paramsType == eTransform3x3ParamsTypeDirBlur) {
             _amount = fetchDoubleParam(kParamTransform3x3Amount);
             _centered = fetchBooleanParam(kParamTransform3x3Centered);
             _fading = fetchDoubleParam(kParamTransform3x3Fading);
-        } else {
+        } else if (paramsType == eTransform3x3ParamsTypeMotionBlur) {
             _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
             _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
             _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
@@ -188,7 +188,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
             assert(_mix && _maskInvert);
         }
 
-        if (!isDirBlur) {
+        if (paramsType == eTransform3x3ParamsTypeMotionBlur) {
             bool directionalBlur;
             _directionalBlur->getValue(directionalBlur);
             _shutter->setEnabled(!directionalBlur);
@@ -1334,7 +1334,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
                                       OFX::ContextEnum /*context*/,
                                       OFX::PageParamDescriptor* page,
                                       bool masked,
-                                      bool isDirBlur)
+                                      OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType)
 {
     // invert
     {
@@ -1350,14 +1350,14 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
     // GENERIC PARAMETERS
     //
 
-    ofxsFilterDescribeParamsInterpolate2D(desc, page, !isDirBlur);
+    ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur);
 
     // motionBlur
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
         param->setLabel(kParamTransform3x3MotionBlurLabel);
         param->setHint(kParamTransform3x3MotionBlurHint);
-        param->setDefault(isDirBlur ? 1. : 0.);
+        param->setDefault(paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur ? 1. : 0.);
         param->setRange(0., 100.);
         param->setIncrement(0.01);
         param->setDisplayRange(0., 4.);
@@ -1366,7 +1366,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         }
     }
 
-    if (isDirBlur) {
+    if (paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur) {
         {
             DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Amount);
             param->setLabel(kParamTransform3x3AmountLabel);
@@ -1412,7 +1412,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
                 page->addChild(*param);
             }
         }
-    } else {
+    } else if (paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur) {
         // directionalBlur
         {
             BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);

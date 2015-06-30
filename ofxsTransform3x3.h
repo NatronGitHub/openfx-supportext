@@ -113,10 +113,17 @@ protected:
     OFX::Clip *_maskClip;
 
 public:
+    
+    enum Transform3x3ParamsTypeEnum {
+        eTransform3x3ParamsTypeNone = 0,
+        eTransform3x3ParamsTypeDirBlur,
+        eTransform3x3ParamsTypeMotionBlur
+    };
+    
     /** @brief ctor */
     Transform3x3Plugin(OfxImageEffectHandle handle,
                        bool masked,
-                       bool isDirBlur);
+                       Transform3x3ParamsTypeEnum paramsType);
 
     /** @brief destructor */
     virtual ~Transform3x3Plugin();
@@ -227,6 +234,6 @@ protected:
 
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
-void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, bool isDirBlur = false);
+    void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType);
 }
 #endif /* defined(__Misc__Transform3x3__) */
