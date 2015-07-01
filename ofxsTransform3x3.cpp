@@ -1173,7 +1173,9 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
         double amt = amountFrom + (amountTo - amountFrom) * a;
         bool success = getInverseTransformCanonical(time, amt, invert, &invtransformCanonical); // virtual function
         if (success) {
-            amount[invtransformsize] = amt;
+            if (amount) {
+                amount[invtransformsize] = amt;
+            }
             invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
             ++invtransformsize;
             allequal = allequal && (invtransform[i].a == invtransform[0].a &&
