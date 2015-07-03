@@ -595,10 +595,10 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     // do the rendering
     int dstRowElements = dstRowBytes / sizeof(PIX);
     PIX* dstPixels = (PIX*)dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * dstPixelComponentCount;
-    int rowBytes = sizeof(PIX) * dstPixelComponentCount * (renderWindow.x2 - renderWindow.x1);
+    int rowElements = dstPixelComponentCount * (renderWindow.x2 - renderWindow.x1);
 
     for (int y = renderWindow.y1; y < renderWindow.y2; ++y, dstPixels += dstRowElements) {
-        std::fill(dstPixels, dstPixels + rowBytes, PIX()); // no src pixel here, be black and transparent
+        std::fill(dstPixels, dstPixels + rowElements, PIX()); // no src pixel here, be black and transparent
     }
 }
 
