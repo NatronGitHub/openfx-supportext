@@ -39,6 +39,8 @@
 
 #include <cmath>
 #include <cfloat>
+#include <algorithm>
+
 #include "ofxsImageEffect.h"
 
 #ifndef M_PI

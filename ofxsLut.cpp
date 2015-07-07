@@ -36,6 +36,7 @@
 
 #include "ofxsLut.h"
 
+#include <algorithm>
 #ifdef _WIN32
 typedef unsigned __int32 uint32_t;
 typedef unsigned char uint8_t;

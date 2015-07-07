@@ -10,6 +10,8 @@
 #define IO_ofxsCopier_h
 
 #include <cstring>
+#include <algorithm>
+
 #include "ofxsPixelProcessor.h"
 #include "ofxsMaskMix.h"
 

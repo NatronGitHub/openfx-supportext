@@ -41,6 +41,7 @@
 
 #include <cmath>
 #include <cassert>
+#include <algorithm>
 
 #include "ofxsImageEffect.h"
 

@@ -63,6 +63,7 @@
 #define ENABLE_HOST_TRANSFORM
 
 #include <memory>
+#include <algorithm>
 
 #include "ofxsTransform3x3.h"
 #include "ofxsTransform3x3Processor.h"
