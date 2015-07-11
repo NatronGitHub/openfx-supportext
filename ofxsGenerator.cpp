@@ -620,7 +620,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setDefault(1., 1.);
         param->setDisplayRange(0, 0, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
-        param->setDimensionLabels(kParamRectangleInteractSizeDim1, kParamRectangleInteractSizeDim1);
+        param->setDimensionLabels(kParamRectangleInteractSizeDim1, kParamRectangleInteractSizeDim2);
         param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
