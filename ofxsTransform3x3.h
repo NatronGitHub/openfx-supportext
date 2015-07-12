@@ -41,6 +41,7 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxsTransform3x3Processor.h"
+#include "ofxsShutter.h"
 #include "ofxsMacros.h"
 
 #define kParamTransform3x3Invert "invert"
@@ -70,35 +71,6 @@
 #define kParamTransform3x3DirectionalBlur "directionalBlur"
 #define kParamTransform3x3DirectionalBlurLabel "Directional Blur Mode"
 #define kParamTransform3x3DirectionalBlurHint "Motion blur is computed from the original image to the transformed image, each parameter being interpolated linearly. The motionBlur parameter must be set to a nonzero value, and the blackOutside parameter may have an important effect on the result."
-
-#define kParamTransform3x3Shutter "shutter"
-#define kParamTransform3x3ShutterLabel "Shutter"
-#define kParamTransform3x3ShutterHint "Controls how long (in frames) the shutter should remain open."
-
-#define kParamTransform3x3ShutterOffset "shutterOffset"
-#define kParamTransform3x3ShutterOffsetLabel "Shutter Offset"
-#define kParamTransform3x3ShutterOffsetHint "Controls when the shutter should be open/closed. Ignored if there is no motion blur (i.e. shutter=0 or motionBlur=0)."
-#define kParamTransform3x3ShutterOffsetOptionCentered "Centred"
-#define kParamTransform3x3ShutterOffsetOptionCenteredHint "Centers the shutter around the frame (from t-shutter/2 to t+shutter/2)"
-#define kParamTransform3x3ShutterOffsetOptionStart "Start"
-#define kParamTransform3x3ShutterOffsetOptionStartHint "Open the shutter at the frame (from t to t+shutter)"
-#define kParamTransform3x3ShutterOffsetOptionEnd "End"
-#define kParamTransform3x3ShutterOffsetOptionEndHint "Close the shutter at the frame (from t-shutter to t)"
-#define kParamTransform3x3ShutterOffsetOptionCustom "Custom"
-#define kParamTransform3x3ShutterOffsetOptionCustomHint "Open the shutter at t+shuttercustomoffset (from t+shuttercustomoffset to t+shuttercustomoffset+shutter)"
-
-enum Transform3x3ShutterOffsetEnum
-{
-    eTransform3x3ShutterOffsetCentered,
-    eTransform3x3ShutterOffsetStart,
-    eTransform3x3ShutterOffsetEnd,
-    eTransform3x3ShutterOffsetCustom
-};
-
-
-#define kParamTransform3x3ShutterCustomOffset "shutterCustomOffset"
-#define kParamTransform3x3ShutterCustomOffsetLabel "Custom Offset"
-#define kParamTransform3x3ShutterCustomOffsetHint "When custom is selected, the shutter is open at current time plus this offset (in frames). Ignored if there is no motion blur (i.e. shutter=0 or motionBlur=0)."
 
 namespace OFX {
 ////////////////////////////////////////////////////////////////////////////////
@@ -170,7 +142,7 @@ protected:
                                 double pixelaspectratio,
                                 bool invert,
                                 double shutter,
-                                int shutteroffset,
+                                ShutterOffsetEnum shutteroffset,
                                 double shuttercustomoffset,
                                 OFX::Matrix3x3* invtransform,
                                 size_t invtransformsizealloc) const;

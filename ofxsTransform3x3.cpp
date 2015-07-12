@@ -68,6 +68,7 @@
 #include "ofxsTransform3x3.h"
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsMerging.h"
+#include "ofxsShutter.h"
 
 
 #ifndef ENABLE_HOST_TRANSFORM
@@ -92,39 +93,6 @@ using namespace OFX;
 // nor on dst->getUniqueIdentifier (which is "ffffffffffffffff" on Nuke)
 
 #define kTransform3x3MotionBlurCount 1000 // number of transforms used in the motion
-
-static void
-shutterRange(double time,
-             double shutter,
-             int shutteroffset_i,
-             double shuttercustomoffset,
-             OfxRangeD* range)
-{
-    Transform3x3ShutterOffsetEnum shutteroffset = (Transform3x3ShutterOffsetEnum)shutteroffset_i;
-
-    switch (shutteroffset) {
-    case eTransform3x3ShutterOffsetCentered:
-        range->min = time - shutter / 2;
-        range->max = time + shutter / 2;
-        break;
-    case eTransform3x3ShutterOffsetStart:
-        range->min = time;
-        range->max = time + shutter;
-        break;
-    case eTransform3x3ShutterOffsetEnd:
-        range->min = time - shutter;
-        range->max = time;
-        break;
-    case eTransform3x3ShutterOffsetCustom:
-        range->min = time + shuttercustomoffset;
-        range->max = time + shuttercustomoffset + shutter;
-        break;
-    default:
-        range->min = time;
-        range->max = time;
-        break;
-    }
-}
 
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
@@ -178,9 +146,9 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
             _fading = fetchDoubleParam(kParamTransform3x3Fading);
         } else if (paramsType == eTransform3x3ParamsTypeMotionBlur) {
             _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
-            _shutter = fetchDoubleParam(kParamTransform3x3Shutter);
-            _shutteroffset = fetchChoiceParam(kParamTransform3x3ShutterOffset);
-            _shuttercustomoffset = fetchDoubleParam(kParamTransform3x3ShutterCustomOffset);
+            _shutter = fetchDoubleParam(kParamShutter);
+            _shutteroffset = fetchChoiceParam(kParamShutterOffset);
+            _shuttercustomoffset = fetchDoubleParam(kParamShutterCustomOffset);
             assert(_directionalBlur && _shutter && _shutteroffset && _shuttercustomoffset);
         }
         if (masked) {
@@ -320,7 +288,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-            invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
@@ -516,7 +484,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
     bool hasmotionblur = ((shutter != 0. || directionalBlur) && motionblur != 0.);
 
     if (hasmotionblur && !directionalBlur) {
-        shutterRange(time, shutter, shutteroffset_i, shuttercustomoffset, &range);
+        OFX::shutterRange(time, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &range);
     } else {
         ///if is identity return the input rod instead of transforming
         if (isIdentity) {
@@ -1101,14 +1069,14 @@ Transform3x3Plugin::getInverseTransforms(double time,
                                          double pixelaspectratio,
                                          bool invert,
                                          double shutter,
-                                         int shutteroffset,
+                                         ShutterOffsetEnum shutteroffset,
                                          double shuttercustomoffset,
                                          OFX::Matrix3x3* invtransform,
                                          size_t invtransformsizealloc) const
 {
     OfxRangeD range;
 
-    shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
+    OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
     double t_start = range.min;
     double t_end = range.max; // shutter time
     bool allequal = true;
@@ -1203,9 +1171,9 @@ Transform3x3Plugin::changedParam(const OFX::InstanceChangedArgs &args,
                                  const std::string &paramName)
 {
     if ( (paramName == kParamTransform3x3Invert) ||
-         ( paramName == kParamTransform3x3Shutter) ||
-         ( paramName == kParamTransform3x3ShutterOffset) ||
-         ( paramName == kParamTransform3x3ShutterCustomOffset) ) {
+         ( paramName == kParamShutter) ||
+         ( paramName == kParamShutterOffset) ||
+         ( paramName == kParamShutterCustomOffset) ) {
         // Motion Blur is the only parameter that doesn't matter
         assert(paramName != kParamTransform3x3MotionBlur);
 
@@ -1432,9 +1400,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
 
         // shutter
         {
-            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3Shutter);
-            param->setLabel(kParamTransform3x3ShutterLabel);
-            param->setHint(kParamTransform3x3ShutterHint);
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamShutter);
+            param->setLabel(kParamShutterLabel);
+            param->setHint(kParamShutterHint);
             param->setDefault(0.5);
             param->setRange(0., 2.);
             param->setIncrement(0.01);
@@ -1446,19 +1414,19 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
 
         // shutteroffset
         {
-            ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransform3x3ShutterOffset);
-            param->setLabel(kParamTransform3x3ShutterOffsetLabel);
-            param->setHint(kParamTransform3x3ShutterOffsetHint);
-            assert(param->getNOptions() == eTransform3x3ShutterOffsetCentered);
-            param->appendOption(kParamTransform3x3ShutterOffsetOptionCentered, kParamTransform3x3ShutterOffsetOptionCenteredHint);
-            assert(param->getNOptions() == eTransform3x3ShutterOffsetStart);
-            param->appendOption(kParamTransform3x3ShutterOffsetOptionStart, kParamTransform3x3ShutterOffsetOptionStartHint);
-            assert(param->getNOptions() == eTransform3x3ShutterOffsetEnd);
-            param->appendOption(kParamTransform3x3ShutterOffsetOptionEnd, kParamTransform3x3ShutterOffsetOptionEndHint);
-            assert(param->getNOptions() == eTransform3x3ShutterOffsetCustom);
-            param->appendOption(kParamTransform3x3ShutterOffsetOptionCustom, kParamTransform3x3ShutterOffsetOptionCustomHint);
+            ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamShutterOffset);
+            param->setLabel(kParamShutterOffsetLabel);
+            param->setHint(kParamShutterOffsetHint);
+            assert(param->getNOptions() == eShutterOffsetCentered);
+            param->appendOption(kParamShutterOffsetOptionCentered, kParamShutterOffsetOptionCenteredHint);
+            assert(param->getNOptions() == eShutterOffsetStart);
+            param->appendOption(kParamShutterOffsetOptionStart, kParamShutterOffsetOptionStartHint);
+            assert(param->getNOptions() == eShutterOffsetEnd);
+            param->appendOption(kParamShutterOffsetOptionEnd, kParamShutterOffsetOptionEndHint);
+            assert(param->getNOptions() == eShutterOffsetCustom);
+            param->appendOption(kParamShutterOffsetOptionCustom, kParamShutterOffsetOptionCustomHint);
             param->setAnimates(true);
-            param->setDefault(eTransform3x3ShutterOffsetStart);
+            param->setDefault(eShutterOffsetStart);
             if (page) {
                 page->addChild(*param);
             }
@@ -1466,9 +1434,9 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
 
         // shuttercustomoffset
         {
-            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3ShutterCustomOffset);
-            param->setLabel(kParamTransform3x3ShutterCustomOffsetLabel);
-            param->setHint(kParamTransform3x3ShutterCustomOffsetHint);
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamShutterCustomOffset);
+            param->setLabel(kParamShutterCustomOffsetLabel);
+            param->setHint(kParamShutterCustomOffsetHint);
             param->setDefault(0.);
             param->setRange(-1., 1.);
             param->setIncrement(0.1);
