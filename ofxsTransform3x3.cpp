@@ -1304,7 +1304,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
 
 void
 OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
-                                      OFX::ContextEnum /*context*/,
+                                      OFX::ContextEnum context,
                                       OFX::PageParamDescriptor* page,
                                       bool masked,
                                       OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType)
@@ -1398,53 +1398,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             }
         }
 
-        // shutter
-        {
-            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamShutter);
-            param->setLabel(kParamShutterLabel);
-            param->setHint(kParamShutterHint);
-            param->setDefault(0.5);
-            param->setRange(0., 2.);
-            param->setIncrement(0.01);
-            param->setDisplayRange(0., 2.);
-            if (page) {
-                page->addChild(*param);
-            }
-        }
-
-        // shutteroffset
-        {
-            ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamShutterOffset);
-            param->setLabel(kParamShutterOffsetLabel);
-            param->setHint(kParamShutterOffsetHint);
-            assert(param->getNOptions() == eShutterOffsetCentered);
-            param->appendOption(kParamShutterOffsetOptionCentered, kParamShutterOffsetOptionCenteredHint);
-            assert(param->getNOptions() == eShutterOffsetStart);
-            param->appendOption(kParamShutterOffsetOptionStart, kParamShutterOffsetOptionStartHint);
-            assert(param->getNOptions() == eShutterOffsetEnd);
-            param->appendOption(kParamShutterOffsetOptionEnd, kParamShutterOffsetOptionEndHint);
-            assert(param->getNOptions() == eShutterOffsetCustom);
-            param->appendOption(kParamShutterOffsetOptionCustom, kParamShutterOffsetOptionCustomHint);
-            param->setAnimates(true);
-            param->setDefault(eShutterOffsetStart);
-            if (page) {
-                page->addChild(*param);
-            }
-        }
-
-        // shuttercustomoffset
-        {
-            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamShutterCustomOffset);
-            param->setLabel(kParamShutterCustomOffsetLabel);
-            param->setHint(kParamShutterCustomOffsetHint);
-            param->setDefault(0.);
-            param->setRange(-1., 1.);
-            param->setIncrement(0.1);
-            param->setDisplayRange(-1., 1.);
-            if (page) {
-                page->addChild(*param);
-            }
-        }
+        shutterDescribeInContext(desc, context, page);
     }
     
     if (masked) {
