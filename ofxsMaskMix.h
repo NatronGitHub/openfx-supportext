@@ -177,9 +177,9 @@ ofxsClamp(T v,
     return v;
 }
 
-template <int maxValue>
+template <typename PIX, int maxValue>
 inline
-float
+PIX
 ofxsClampIfInt(float v,
                int min,
                int max)
@@ -188,8 +188,9 @@ ofxsClampIfInt(float v,
         return v;
     }
 
-    return ofxsClamp(v, min, max);
+    return ofxsClamp(v, min, max) * maxValue + 0.5;
 }
+
 
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
@@ -307,7 +308,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (mix == 1.) {
             // no mask, no mix
             for (int c = 0; c < nComponents; ++c) {
-                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(tmpPix[c], 0, maxValue) );
+                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(tmpPix[c], 0, maxValue);
             }
         } else {
             // just mix
@@ -315,12 +316,12 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                    dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
+                    dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha;
-                    dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
+                    dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
                 }
             }
         }
@@ -342,12 +343,12 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (srcPix) {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
+                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
             }
         } else {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha;
-                dstPix[c] = PIX( ofxsClampIfInt<maxValue>(v, 0, maxValue) );
+                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
             }
         }
     }

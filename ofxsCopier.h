@@ -369,7 +369,7 @@ public:
                 ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
                 for (int c = 0; c < dstNComponents; ++c) {
                     float v = unpPix[c] * dstMaxValue;
-                    dstPix[c] = DSTPIX( ofxsClampIfInt<dstMaxValue>(v, 0, dstMaxValue) );
+                    dstPix[c] = ofxsClampIfInt<DSTPIX,dstMaxValue>(v, 0, dstMaxValue);
                 }
                 // increment the dst pixel
                 dstPix += dstNComponents;
@@ -460,7 +460,7 @@ public:
                     // if premult is false, just denormalize
                     ofxsPremult<DSTPIX, dstNComponents, dstMaxValue>(unpPix, pPix, _premult, _premultChannel);
                     for (int c = 0; c < dstNComponents; ++c) {
-                        dstPix[c] = DSTPIX( ofxsClampIfInt<dstMaxValue>(pPix[c], 0, dstMaxValue) );
+                        dstPix[c] = ofxsClampIfInt<DSTPIX,dstMaxValue>(pPix[c], 0, dstMaxValue);
                     }
                 }
                 // increment the dst pixel
