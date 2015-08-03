@@ -785,8 +785,8 @@ void
 Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 {
     const double time = args.time;
-    int filter = eFilterCubic;
-    if (_filter) {
+    int filter = args.renderQualityDraft ? eFilterImpulse : eFilterCubic;
+    if (!args.renderQualityDraft && _filter) {
         _filter->getValueAtTime(time, filter);
     }
     bool clamp = false;
