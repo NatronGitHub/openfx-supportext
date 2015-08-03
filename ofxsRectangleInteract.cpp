@@ -109,9 +109,11 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     const OfxPointD& pscale = args.pixelScale;
     GLdouble projection[16];
     glGetDoublev( GL_PROJECTION_MATRIX, projection);
+    GLint viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2./(projection[0] * args.viewportSize.x);
-    shadow.y = 2./(projection[5] * args.viewportSize.y);
+    shadow.x = 2./(projection[0] * viewport[2]);
+    shadow.y = 2./(projection[5] * viewport[3]);
 
     double x1, y1, w, h;
     if (_mouseState != eMouseStateIdle) {
