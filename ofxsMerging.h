@@ -86,6 +86,8 @@ enum MergingFunctionEnum
     eMergeFreeze,
     eMergeFrom,
     eMergeGeometric,
+    eMergeGrainExtract,
+    eMergeGrainMerge,
     eMergeHardLight,
     eMergeHue,
     eMergeHypot,
@@ -125,6 +127,8 @@ isMaskable(MergingFunctionEnum operation)
     case eMergeFrom:
     case eMergeFreeze:
     case eMergeGeometric:
+    case eMergeGrainExtract:
+    case eMergeGrainMerge:
     case eMergeHardLight:
     case eMergeHypot:
     //case eMergeInterpolated:
@@ -224,6 +228,12 @@ getOperationString(MergingFunctionEnum operation)
     case eMergeGeometric:
 
         return "geometric";
+    case eMergeGrainExtract:
+
+        return "grain-extract";
+    case eMergeGrainMerge:
+
+        return "grain-merge";
     case eMergeHardLight:
 
         return "hard-light";
@@ -339,6 +349,8 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeHardLight:
         case eMergeSoftLight:
         case eMergePinLight:
+        case eMergeGrainExtract:
+        case eMergeGrainMerge:
         case eMergeDifference:
         case eMergeExclusion:
         case eMergeDivide:
@@ -393,6 +405,23 @@ plusFunctor(PIX A,
             PIX B)
 {
     return A + B;
+}
+
+template <typename PIX,int maxValue>
+PIX
+grainExtractFunctor(PIX A,
+                  PIX B)
+{
+    return (B - A + (PIX)maxValue/2);
+}
+
+
+template <typename PIX,int maxValue>
+PIX
+grainMergeFunctor(PIX A,
+                  PIX B)
+{
+    return (B + A - (PIX)maxValue/2);
 }
 
 template <typename PIX>
@@ -1157,6 +1186,12 @@ mergePixel(bool doAlphaMasking,
             break;
         case eMergeGeometric:
             dst[i] = geometricFunctor(A[i], B[i]);
+            break;
+        case eMergeGrainExtract:
+            dst[i] = grainExtractFunctor<PIX, maxValue>(A[i], B[i]);
+            break;
+        case eMergeGrainMerge:
+            dst[i] = grainMergeFunctor<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeHardLight:
             dst[i] = hardLightFunctor<PIX, maxValue>(A[i], B[i]);
