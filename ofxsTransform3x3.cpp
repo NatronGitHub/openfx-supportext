@@ -67,7 +67,7 @@
 
 #include "ofxsTransform3x3.h"
 #include "ofxsTransform3x3Processor.h"
-#include "ofxsMerging.h"
+#include "ofxsCoords.h"
 #include "ofxsShutter.h"
 
 
@@ -526,7 +526,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
         ofxsTransformRegionFromRoD(rectFrom, transform, p, thisRoD);
 
         // update min/max
-        MergeImages2D::rectBoundingBox(*rectTo, thisRoD, rectTo);
+        OFX::Coords::rectBoundingBox(*rectTo, thisRoD, rectTo);
 
         // if first iteration, continue
         if (first) {
@@ -595,7 +595,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     const double time = args.time;
     const OfxRectD& srcRoD = _srcClip->getRegionOfDefinition(time);
 
-    if ( MergeImages2D::rectIsInfinite(srcRoD) ) {
+    if ( OFX::Coords::rectIsInfinite(srcRoD) ) {
         // return an infinite RoD
         rod.x1 = kOfxFlagInfiniteMin;
         rod.x2 = kOfxFlagInfiniteMax;
@@ -668,7 +668,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     if ( doMasking && (mix != 1. || _maskClip->isConnected()) ) {
         // for masking or mixing, we also need the source image.
         // compute the union of both RODs
-        MergeImages2D::rectBoundingBox(rod, srcRoD, &rod);
+        OFX::Coords::rectBoundingBox(rod, srcRoD, &rod);
     }
 
     // say we set it
@@ -751,7 +751,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
     ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, (FilterEnum)filter, doMasking, mix, &srcRoI);
 
-    if ( MergeImages2D::rectIsInfinite(srcRoI) ) {
+    if ( OFX::Coords::rectIsInfinite(srcRoI) ) {
         // RoI cannot be infinite.
         // This is not a mathematically correct solution, but better than nothing: set to the project size
         OfxPointD size = getProjectSize();
@@ -773,7 +773,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
     if ( _masked && (mix != 1.) ) {
         // compute the bounding box with the default ROI
-        MergeImages2D::rectBoundingBox(srcRoI, args.regionOfInterest, &srcRoI);
+        OFX::Coords::rectBoundingBox(srcRoI, args.regionOfInterest, &srcRoI);
     }
 
     // no need to set it on mask (the default ROI is OK)
@@ -995,9 +995,9 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             _maskInvert->getValueAtTime(args.time, maskInvert);
             if (!maskInvert) {
                 OfxRectI maskRoD;
-                OFX::MergeImages2D::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
+                OFX::Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
                 // effect is identity if the renderWindow doesn't intersect the mask RoD
-                if (!OFX::MergeImages2D::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0)) {
+                if (!OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0)) {
                     identityClip = _srcClip;
                     return true;
                 }
