@@ -1202,6 +1202,7 @@ OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc,
     desc.setRenderTwiceAlways(true);
     desc.setSupportsMultipleClipPARs(false);
     desc.setRenderThreadSafety(kRenderThreadSafety);
+    desc.setSupportsRenderQuality(true);
 
     // Transform3x3-GENERIC
 
