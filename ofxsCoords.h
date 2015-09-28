@@ -37,23 +37,31 @@ namespace OFX {
 namespace Coords {
 
 
+template <typename Rect>
+bool
+rectIsEmpty(const Rect & r)
+{
+    return (r.x2 <= r.x1) || (r.y2 <= r.y1);
+}
+
 ///Bounding box of two rectangles
 inline void
 rectBoundingBox(const OfxRectD & a,
                 const OfxRectD & b,
                 OfxRectD* bbox)
 {
+    if (rectIsEmpty(a)) {
+        *bbox = b;
+        return;
+    }
+    if (rectIsEmpty(b)) {
+        *bbox = a;
+        return;
+    }
     bbox->x1 = std::min(a.x1, b.x1);
     bbox->x2 = std::max( bbox->x1, std::max(a.x2, b.x2) );
     bbox->y1 = std::min(a.y1, b.y1);
     bbox->y2 = std::max( bbox->y1, std::max(a.y2, b.y2) );
-}
-
-template <typename Rect>
-bool
-rectIsEmpty(const Rect & r)
-{
-    return (r.x2 <= r.x1) || (r.y2 <= r.y1);
 }
 
 template <typename Rect>
@@ -158,6 +166,10 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
                  double par,
                  OfxRectI *rect)
 {
+    if (rectIsEmpty(regionOfInterest)) {
+        rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
+        return;
+    }
     rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par);
     rect->y1 = (int)std::floor(regionOfInterest.y1 * renderScale.y);
     rect->x2 = (int)std::ceil(regionOfInterest.x2 * renderScale.x / par);
@@ -213,22 +225,14 @@ toCanonical(const OfxRectI & rect,
             double par,
             OfxRectD *regionOfInterest)
 {
+    if (rectIsEmpty(rect)) {
+        regionOfInterest->x1 = regionOfInterest->y1 = regionOfInterest->x2 = regionOfInterest->y2 = 0;
+        return;
+    }
     regionOfInterest->x1 = rect.x1 * par / renderScale.x;
     regionOfInterest->y1 = rect.y1 / renderScale.y;
     regionOfInterest->x2 = rect.x2 * par / renderScale.x;
     regionOfInterest->y2 = rect.y2 / renderScale.y;
-}
-
-inline void
-enlargeRectI(const OfxRectI & rect,
-             int delta_pix,
-             const OfxRectI & bounds,
-             OfxRectI* rectOut)
-{
-    rectOut->x1 = std::max(bounds.x1, rect.x1 - delta_pix);
-    rectOut->x2 = std::min(bounds.x2, rect.x2 + delta_pix);
-    rectOut->y1 = std::max(bounds.y1, rect.y1 - delta_pix);
-    rectOut->y2 = std::min(bounds.y2, rect.y2 + delta_pix);
 }
 
 inline

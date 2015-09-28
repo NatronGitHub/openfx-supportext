@@ -607,7 +607,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     if (_invert) {
         _invert->getValueAtTime(time, invert);
     }
-    invert = !invert; // only for getRoD
+    invert = !invert; // only for getRegionOfDefinition
     double motionblur = 1.; // default for GodRays
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
@@ -694,7 +694,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     if (_invert) {
         _invert->getValueAtTime(time, invert);
     }
-    //invert = !invert; // only for getRoD
+    //invert = !invert; // only for getRegionOfDefinition
     double motionblur = 1; // default for GodRays
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
