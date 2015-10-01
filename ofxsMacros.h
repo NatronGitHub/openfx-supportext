@@ -20,8 +20,8 @@
  * Useful macros.
  */
 
-#ifndef __SupportExt__ofxsMacros__
-#define __SupportExt__ofxsMacros__
+#ifndef openfx_supportext_ofxsMacros_h
+#define openfx_supportext_ofxsMacros_h
 
 
 // compiler_warning.h
@@ -343,4 +343,4 @@ CLANG_DIAG_OFF(c++11-extensions)
 GCC_DIAG_OFF(c++11-extensions)
 #endif
 
-#endif // ifndef __SupportExt__ofxsMacros__
+#endif // ifndef openfx_supportext_ofxsMacros_h

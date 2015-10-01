@@ -20,8 +20,8 @@
  * OFX TransformInteract.
  */
 
-#ifndef __Misc__TransformInteract__
-#define __Misc__TransformInteract__
+#ifndef openfx_supportext_ofxsTransformInteract_h
+#define openfx_supportext_ofxsTransformInteract_h
 
 #include <cmath>
 
@@ -160,4 +160,4 @@ private:
 class TransformOverlayDescriptor : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteract> {};
 
 }
-#endif /* defined(__Misc__TransformInteract__) */
+#endif /* defined(openfx_supportext_ofxsTransformInteract_h) */

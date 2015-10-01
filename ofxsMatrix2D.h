@@ -20,8 +20,8 @@
  * OFX Matrix utilities.
  */
 
-#ifndef _OFXS_MATRIX2D_H_
-#define _OFXS_MATRIX2D_H_
+#ifndef openfx_supportext_ofxsMatrix2D_h
+#define openfx_supportext_ofxsMatrix2D_h
 
 #include <cmath>
 
@@ -613,4 +613,4 @@ ofxsMatTransformPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x576
 }
 };
 
-#endif // _OFXS_MATRIX2D_H_
+#endif // openfx_supportext_ofxsMatrix2D_h

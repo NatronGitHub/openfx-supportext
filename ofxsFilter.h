@@ -20,8 +20,8 @@
  * OFX Filter/Interpolation help functions
  */
 
-#ifndef _OFXS_FILTER_H_
-#define _OFXS_FILTER_H_
+#ifndef openfx_supportext_ofxsFilter_h
+#define openfx_supportext_ofxsFilter_h
 
 #include <cmath>
 #include <cassert>
@@ -1006,4 +1006,4 @@ ofxsFilterExpandRoI(const OfxRectD &roi,
 } // ofxsFilterExpandRoI
 } // OFX
 
-#endif // ifndef _OFXS_FILTER_H_
+#endif // ifndef openfx_supportext_ofxsFilter_h

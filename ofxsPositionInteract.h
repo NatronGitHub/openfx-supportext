@@ -20,8 +20,8 @@
  * OFX generic position interact.
  */
 
-#ifndef __Misc__ofxsPositionInteract__
-#define __Misc__ofxsPositionInteract__
+#ifndef openfx_supportext_ofxsPositionInteract_h
+#define openfx_supportext_ofxsPositionInteract_h
 
 #include <cmath>
 
@@ -327,4 +327,4 @@ class PositionOverlayDescriptor
 };
 } // namespace OFX
 
-#endif /* defined(__Misc__ofxsPositionInteract__) */
+#endif /* defined(openfx_supportext_ofxsPositionInteract_h) */

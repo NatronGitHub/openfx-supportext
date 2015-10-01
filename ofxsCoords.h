@@ -20,8 +20,8 @@
  * OFX Coords helpers
  */
 
-#ifndef _ofxsCoords_h_
-#define _ofxsCoords_h_
+#ifndef openfx_supportext_ofxsCoords_h
+#define openfx_supportext_ofxsCoords_h
 
 #include <cmath>
 #include <cfloat>
@@ -249,4 +249,4 @@ mipmapLevelFromScale(double s)
 } // OFX
 
 
-#endif // _ofxsCoords_h_
+#endif // openfx_supportext_ofxsCoords_h

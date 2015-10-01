@@ -20,8 +20,8 @@
  * OFX color-spaces transformations support as-well as bit-depth conversions.
  */
 
-#ifndef __SUPPORT_EXT_LUT__
-#define __SUPPORT_EXT_LUT__
+#ifndef openfx_supportext_ofxsLut_h
+#define openfx_supportext_ofxsLut_h
 
 #include <string>
 #include <map>
@@ -1071,4 +1071,4 @@ getLut(const std::string & name,
 }         //namespace Color
 }     //namespace OFX
 
-#endif // ifndef __SUPPORT_EXT_LUT__
+#endif // ifndef openfx_supportext_ofxsLut_h

@@ -20,8 +20,8 @@
  * OFX mipmapping help functions
  */
 
-#ifndef _OFXS_MIPMAP_H
-#define _OFXS_MIPMAP_H
+#ifndef openfx_supportext_ofxsMipmap_h
+#define openfx_supportext_ofxsMipmap_h
 
 #include <cmath>
 #include <cassert>
@@ -86,4 +86,4 @@ void ofxsBuildMipMaps(OFX::ImageEffect* instance,
                       MipMapsVector & mipmaps);
 } // OFX
 
-#endif // ifndef _OFXS_MIPMAP_H
+#endif // ifndef openfx_supportext_ofxsMipmap_h

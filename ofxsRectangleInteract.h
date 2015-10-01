@@ -21,8 +21,8 @@
  * You can use it to define any rectangle in an image resizable by the user.
  */
 
-#ifndef __Misc__ofxsRectangleInteract__
-#define __Misc__ofxsRectangleInteract__
+#ifndef openfx_supportext_ofxsRectangleInteract_h
+#define openfx_supportext_ofxsRectangleInteract_h
 
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
@@ -205,4 +205,4 @@ class RectangleOverlayDescriptor
 };
 } // namespace OFX
 
-#endif /* defined(__Misc__ofxsRectangleInteract__) */
+#endif /* defined(openfx_supportext_ofxsRectangleInteract_h) */

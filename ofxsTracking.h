@@ -20,8 +20,8 @@
  * OFX utilities for tracking.
  */
 
-#ifndef __Misc__ofxsTracking__
-#define __Misc__ofxsTracking__
+#ifndef openfx_supportext_ofxsTracking_h
+#define openfx_supportext_ofxsTracking_h
 
 #include "ofxsImageEffect.h"
 #include "ofxNatron.h"
@@ -281,4 +281,4 @@ class TrackerRegionOverlayDescriptor
 };
 } // OFX
 
-#endif /* defined(__Misc__ofxsTracking__) */
+#endif /* defined(openfx_supportext_ofxsTracking_h) */

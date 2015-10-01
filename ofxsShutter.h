@@ -20,8 +20,8 @@
  * OFX Shutter parameter support
  */
 
-#ifndef __SupportExt__Shutter__
-#define __SupportExt__Shutter__
+#ifndef openfx_supportext_ofxsShutter_h
+#define openfx_supportext_ofxsShutter_h
 
 #include <memory>
 
@@ -62,4 +62,4 @@ namespace OFX {
     void shutterDescribeInContext(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page);
     void shutterRange(double time, double shutter, ShutterOffsetEnum shutteroffset, double shuttercustomoffset, OfxRangeD* range);
 }
-#endif /* defined(__SupportExt__Shutter__) */
+#endif /* defined(openfx_supportext_ofxsShutter_h) */

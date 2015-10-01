@@ -16,8 +16,8 @@
  * along with openfx-supportext.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>
  * ***** END LICENSE BLOCK ***** */
 
-#ifndef _ofxsImageBlenderMasked_h_
-#define _ofxsImageBlenderMasked_h_
+#ifndef openfx_supportext_ofxsImageBlenderMasked_h
+#define openfx_supportext_ofxsImageBlenderMasked_h
 
 #include "ofxsProcessing.H"
 #include "ofxsMaskMix.h"
@@ -127,6 +127,6 @@ public:
 };
 };
 
-#endif // ifndef _ofxsImageBlenderMasked_h_
+#endif // ifndef openfx_supportext_ofxsImageBlenderMasked_h
 
 

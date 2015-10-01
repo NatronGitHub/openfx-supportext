@@ -42,8 +42,8 @@
  * IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifndef __Misc__ofxsOGLFontUtils__
-#define __Misc__ofxsOGLFontUtils__
+#ifndef openfx_supportext_ofxsOGLFontUtils_h
+#define openfx_supportext_ofxsOGLFontUtils_h
 
 #ifdef _WINDOWS
 #include <windows.h>
@@ -73,4 +73,4 @@ extern const SFG_Font fgFontHelvetica18;
 extern const SFG_Font fgFontTimesRoman10;
 extern const SFG_Font fgFontTimesRoman24;
 } // OFX
-#endif /* defined(__Misc__ofxsOGLFontUtils__) */
+#endif /* defined(openfx_supportext_ofxsOGLFontUtils_h) */

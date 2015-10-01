@@ -17,8 +17,8 @@
  * ***** END LICENSE BLOCK ***** */
 
 
-#ifndef _ofxsPixelProcessor_h_
-#define _ofxsPixelProcessor_h_
+#ifndef openfx_supportext_ofxsPixelProcessor_h
+#define openfx_supportext_ofxsPixelProcessor_h
 
 /*
  * ofxsPixelProcessor: generic multithreaded OFX pixel processor
@@ -445,4 +445,4 @@ protected:
     }
 };
 };
-#endif // ifndef _ofxsPixelProcessor_h_
+#endif // ifndef openfx_supportext_ofxsPixelProcessor_h

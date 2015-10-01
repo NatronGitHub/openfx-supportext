@@ -43,8 +43,8 @@
  */
 
 
-#ifndef __Misc__ofxsOGLTextRenderer__
-#define __Misc__ofxsOGLTextRenderer__
+#ifndef openfx_supportext_ofxsOGLTextRenderer_h
+#define openfx_supportext_ofxsOGLTextRenderer_h
 
 
 namespace OFX {
@@ -75,4 +75,4 @@ void bitmapString(double x, double y, const char*string, TextRenderer::Font font
 } // OFX
 
 
-#endif /* defined(__Misc__ofxsOGLTextRenderer__) */
+#endif /* defined(openfx_supportext_ofxsOGLTextRenderer_h) */

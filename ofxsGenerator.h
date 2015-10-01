@@ -20,8 +20,8 @@
  * OFX Generator plug-in helper
  */
 
-#ifndef _OFXS_GENERATOR_H_
-#define _OFXS_GENERATOR_H_
+#ifndef openfx_supportext_ofxsGenerator_h
+#define openfx_supportext_ofxsGenerator_h
 
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
@@ -173,4 +173,4 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 ContextEnum context);
 } // OFX
 
-#endif // ifndef _OFXS_GENERATOR_H_
+#endif // ifndef openfx_supportext_ofxsGenerator_h
