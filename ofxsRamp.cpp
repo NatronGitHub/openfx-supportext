@@ -29,6 +29,8 @@
 #else
 #include <GL/gl.h>
 #endif
+#define POINT_TOLERANCE 6
+#define POINT_SIZE 5
 
 using OFX::RampInteract;
 
@@ -41,6 +43,19 @@ crossProd(const Ofx3DPointD& u,
     w->x = u.y*v.z - u.z*v.y;
     w->y = u.z*v.x - u.x*v.z;
     w->z = u.x*v.y - u.y*v.x;
+}
+
+// round to the closest int, 1/10 int, etc
+// this make parameter editing easier
+// pscale is args.pixelScale.x / args.renderScale.x;
+// pscale10 is the power of 10 below pscale
+static inline
+double fround(double val,
+              double pscale)
+{
+    double pscale10 = std::pow( 10.,std::floor( std::log10(pscale) ) );
+
+    return pscale10 * std::floor(val / pscale10 + 0.5);
 }
 
 bool
@@ -74,7 +89,7 @@ RampInteract::draw(const DrawArgs &args)
     }
     
     ///Clamp points to the rod
-    OfxRectD rod = _effect->getRegionOfDefinitionForInteract(args.time);
+    OfxRectD rod = _dstClip->getRegionOfDefinition(args.time);
 
     // A line is represented by a 3-vector (a,b,c), and its equation is (a,b,c).(x,y,1)=0
     // The intersection of two lines is given by their cross-product: (wx,wy,w) = (a,b,c)x(a',b',c').
@@ -364,98 +379,4 @@ RampInteract::loseFocus(const FocusArgs &/*args*/)
     _state = eInteractStateIdle;
 }
 
-template<RampTypeEnum type>
-double
-rampFunc(double t)
-{
-    if (t >= 1. || type == eRampTypeNone) {
-        t = 1.;
-    } else if (t <= 0) {
-        t = 0.;
-    } else {
-        // from http://www.comp-fu.com/2012/01/nukes-smooth-ramp-functions/
-        // linear
-        //y = x
-        // plinear: perceptually linear in rec709
-        //y = pow(x, 3)
-        // smooth: traditional smoothstep
-        //y = x*x*(3 - 2*x)
-        // smooth0: Catmull-Rom spline, smooth start, linear end
-        //y = x*x*(2 - x)
-        // smooth1: Catmull-Rom spline, linear start, smooth end
-        //y = x*(1 + x*(1 - x))
-        switch (type) {
-            case eRampTypeLinear:
-                break;
-            case eRampTypePLinear:
-                // plinear: perceptually linear in rec709
-                t = t*t*t;
-                break;
-            case eRampTypeEaseIn:
-                //t *= t; // old version, end of curve is too sharp
-                // smooth0: Catmull-Rom spline, smooth start, linear end
-                t = t*t*(2-t);
-                break;
-            case eRampTypeEaseOut:
-                //t = - t * (t - 2); // old version, start of curve is too sharp
-                // smooth1: Catmull-Rom spline, linear start, smooth end
-                t = t*(1 + t*(1 - t));
-                break;
-            case eRampTypeSmooth:
-                /*
-                  t *= 2.;
-                  if (t < 1) {
-                  t = t * t / (2.);
-                  } else {
-                  --t;
-                  t =  -0.5 * (t * (t - 2) - 1);
-                  }
-                */
-                // smooth: traditional smoothstep
-                t = t*t*(3 - 2*t);
-                break;
-            case eRampTypeNone:
-                t = 1.;
-                break;
-            default:
-                break;
-        }
-    }
-    return t;
-}
 
-template<RampTypeEnum type>
-double
-rampFunc(const OfxPointD& p0, const OfxPointD& p1, const OfxPointD& p)
-{
-    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
-    return rampFunc<type>(t);
-}
-
-double
-rampFunc(const OfxPointD& p0, const OfxPointD& p1, RampTypeEnum type, const OfxPointD& p)
-{
-    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
-    switch (type) {
-        case eRampTypeLinear:
-            return rampFunc<eRampTypeLinear>(t);
-            break;
-        case eRampTypePLinear:
-            return rampFunc<eRampTypePLinear>(t);
-            break;
-        case eRampTypeEaseIn:
-            return rampFunc<eRampTypeEaseIn>(t);
-            break;
-        case eRampTypeEaseOut:
-            return rampFunc<eRampTypeEaseOut>(t);
-            break;
-        case eRampTypeSmooth:
-            return rampFunc<eRampTypeSmooth>(t);
-            break;
-        case eRampTypeNone:
-            t = 1.;
-            break;
-        default:
-            break;
-    }
-}

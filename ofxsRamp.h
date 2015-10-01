@@ -24,6 +24,8 @@
 #ifndef openfx_supportext_ofxsRamp_h
 #define openfx_supportext_ofxsRamp_h
 
+#include <cmath>
+
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
@@ -90,8 +92,9 @@ class RampInteract : public OFX::OverlayInteract
     bool _interactiveDrag;
     OfxPointD _lastMousePos;
     InteractState _state;
-    RampPlugin* _effect;
-    
+    OFX::ImageEffect* _effect;
+    Clip *_dstClip;
+
 public:
     RampInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
     : OFX::OverlayInteract(handle)
@@ -105,16 +108,20 @@ public:
     , _lastMousePos()
     , _state(eInteractStateIdle)
     , _effect(0)
+    , _dstClip(0)
     {
         _point0 = effect->fetchDouble2DParam(kParamRampPoint0);
         _point1 = effect->fetchDouble2DParam(kParamRampPoint1);
         _type = effect->fetchChoiceParam(kParamRampType);
         _interactive = effect->fetchBooleanParam(kParamRampInteractive);
         assert(_point0 && _point1 && _type && _interactive);
-        _effect = dynamic_cast<RampPlugin*>(effect);
+        _effect = effect;
         assert(_effect);
+        _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
+        assert(_dstClip);
+
     }
-    
+
     /** @brief the function called to draw in the interact */
     virtual bool draw(const DrawArgs &args) OVERRIDE FINAL;
     
@@ -140,10 +147,106 @@ public:
     virtual bool penUp(const PenArgs &args) OVERRIDE FINAL;
 
     virtual void loseFocus(const FocusArgs &args) OVERRIDE FINAL;
-
 };
 
 class RampOverlayDescriptor : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteract> {};
+
+template<RampTypeEnum type>
+double
+rampFunc(double t)
+{
+    if (t >= 1. || type == eRampTypeNone) {
+        t = 1.;
+    } else if (t <= 0) {
+        t = 0.;
+    } else {
+        // from http://www.comp-fu.com/2012/01/nukes-smooth-ramp-functions/
+        // linear
+        //y = x
+        // plinear: perceptually linear in rec709
+        //y = pow(x, 3)
+        // smooth: traditional smoothstep
+        //y = x*x*(3 - 2*x)
+        // smooth0: Catmull-Rom spline, smooth start, linear end
+        //y = x*x*(2 - x)
+        // smooth1: Catmull-Rom spline, linear start, smooth end
+        //y = x*(1 + x*(1 - x))
+        switch (type) {
+            case eRampTypeLinear:
+                break;
+            case eRampTypePLinear:
+                // plinear: perceptually linear in rec709
+                t = t*t*t;
+                break;
+            case eRampTypeEaseIn:
+                //t *= t; // old version, end of curve is too sharp
+                // smooth0: Catmull-Rom spline, smooth start, linear end
+                t = t*t*(2-t);
+                break;
+            case eRampTypeEaseOut:
+                //t = - t * (t - 2); // old version, start of curve is too sharp
+                // smooth1: Catmull-Rom spline, linear start, smooth end
+                t = t*(1 + t*(1 - t));
+                break;
+            case eRampTypeSmooth:
+                /*
+                  t *= 2.;
+                  if (t < 1) {
+                  t = t * t / (2.);
+                  } else {
+                  --t;
+                  t =  -0.5 * (t * (t - 2) - 1);
+                  }
+                */
+                // smooth: traditional smoothstep
+                t = t*t*(3 - 2*t);
+                break;
+            case eRampTypeNone:
+                t = 1.;
+                break;
+            default:
+                break;
+        }
+    }
+    return t;
+}
+
+template<RampTypeEnum type>
+double
+rampFunc(const OfxPointD& p0, double nx, double ny, const OfxPointD& p)
+{
+    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
+    return rampFunc<type>(t);
+}
+
+inline double
+rampFunc(const OfxPointD& p0, double nx, double ny, RampTypeEnum type, const OfxPointD& p)
+{
+    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
+    switch (type) {
+        case eRampTypeLinear:
+            return rampFunc<eRampTypeLinear>(t);
+            break;
+        case eRampTypePLinear:
+            return rampFunc<eRampTypePLinear>(t);
+            break;
+        case eRampTypeEaseIn:
+            return rampFunc<eRampTypeEaseIn>(t);
+            break;
+        case eRampTypeEaseOut:
+            return rampFunc<eRampTypeEaseOut>(t);
+            break;
+        case eRampTypeSmooth:
+            return rampFunc<eRampTypeSmooth>(t);
+            break;
+        case eRampTypeNone:
+            t = 1.;
+            break;
+        default:
+            break;
+    }
+    return t;
+}
 
 } // namespace OFX
 
