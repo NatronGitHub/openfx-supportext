@@ -32,7 +32,7 @@
 #define POINT_TOLERANCE 6
 #define POINT_SIZE 5
 
-using OFX::RampInteract;
+namespace OFX {
 
 static inline
 void
@@ -379,4 +379,111 @@ RampInteract::loseFocus(const FocusArgs &/*args*/)
     _state = eInteractStateIdle;
 }
 
+void
+ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
+                       OFX::PageParamDescriptor *page,
+                       OFX::GroupParamDescriptor *group,
+                       OFX::RampTypeEnum defaultType)
+{
+    // point0
+    {
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRampPoint0);
+        param->setLabel(kParamRampPoint0Label);
+        param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
+        param->setDefault(100., 100.);
+        param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
 
+
+    // color0
+    {
+        RGBAParamDescriptor* param = desc.defineRGBAParam(kParamRampColor0);
+        param->setLabel(kParamRampColor0Label);
+        param->setDefault(0, 0, 0, 0);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // point1
+    {
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRampPoint1);
+        param->setLabel(kParamRampPoint1Label);
+        param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
+        param->setDefault(100., 200.);
+        param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // color1
+    {
+        RGBAParamDescriptor* param = desc.defineRGBAParam(kParamRampColor1);
+        param->setLabel(kParamRampColor1Label);
+        param->setDefault(1., 1., 1., 1. );
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // type
+    {
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamRampType);
+        param->setLabel(kParamRampTypeLabel);
+        param->setHint(kParamRampTypeHint);
+        assert(param->getNOptions() == eRampTypeLinear);
+        param->appendOption(kParamRampTypeOptionLinear, kParamRampTypeOptionLinearHint);
+        assert(param->getNOptions() == eRampTypePLinear);
+        param->appendOption(kParamRampTypeOptionPLinear, kParamRampTypeOptionPLinearHint);
+        assert(param->getNOptions() == eRampTypeEaseIn);
+        param->appendOption(kParamRampTypeOptionEaseIn, kParamRampTypeOptionEaseInHint);
+        assert(param->getNOptions() == eRampTypeEaseOut);
+        param->appendOption(kParamRampTypeOptionEaseOut, kParamRampTypeOptionEaseOutHint);
+        assert(param->getNOptions() == eRampTypeSmooth);
+        param->appendOption(kParamRampTypeOptionSmooth, kParamRampTypeOptionSmoothHint);
+        assert(param->getNOptions() == eRampTypeNone);
+        param->appendOption(kParamRampTypeOptionNone, kParamRampTypeOptionNoneHint);
+        param->setDefault(defaultType);
+        param->setAnimates(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // interactive
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRampInteractive);
+        param->setLabel(kParamRampInteractiveLabel);
+        param->setHint(kParamRampInteractiveHint);
+        param->setEvaluateOnChange(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+}
+
+}

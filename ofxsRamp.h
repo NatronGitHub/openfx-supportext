@@ -153,7 +153,7 @@ class RampOverlayDescriptor : public DefaultEffectOverlayDescriptor<RampOverlayD
 
 template<RampTypeEnum type>
 double
-rampFunc(double t)
+ofxsRampFunc(double t)
 {
     if (t >= 1. || type == eRampTypeNone) {
         t = 1.;
@@ -213,31 +213,31 @@ rampFunc(double t)
 
 template<RampTypeEnum type>
 double
-rampFunc(const OfxPointD& p0, double nx, double ny, const OfxPointD& p)
+ofxsRampFunc(const OfxPointD& p0, double nx, double ny, const OfxPointD& p)
 {
     double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
-    return rampFunc<type>(t);
+    return ofxsRampFunc<type>(t);
 }
 
 inline double
-rampFunc(const OfxPointD& p0, double nx, double ny, RampTypeEnum type, const OfxPointD& p)
+ofxsRampFunc(const OfxPointD& p0, double nx, double ny, RampTypeEnum type, const OfxPointD& p)
 {
     double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
     switch (type) {
         case eRampTypeLinear:
-            return rampFunc<eRampTypeLinear>(t);
+            return ofxsRampFunc<eRampTypeLinear>(t);
             break;
         case eRampTypePLinear:
-            return rampFunc<eRampTypePLinear>(t);
+            return ofxsRampFunc<eRampTypePLinear>(t);
             break;
         case eRampTypeEaseIn:
-            return rampFunc<eRampTypeEaseIn>(t);
+            return ofxsRampFunc<eRampTypeEaseIn>(t);
             break;
         case eRampTypeEaseOut:
-            return rampFunc<eRampTypeEaseOut>(t);
+            return ofxsRampFunc<eRampTypeEaseOut>(t);
             break;
         case eRampTypeSmooth:
-            return rampFunc<eRampTypeSmooth>(t);
+            return ofxsRampFunc<eRampTypeSmooth>(t);
             break;
         case eRampTypeNone:
             t = 1.;
@@ -247,6 +247,12 @@ rampFunc(const OfxPointD& p0, double nx, double ny, RampTypeEnum type, const Ofx
     }
     return t;
 }
+
+void
+ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
+                       OFX::PageParamDescriptor *page,
+                       OFX::GroupParamDescriptor *group,
+                       RampTypeEnum defaultType);
 
 } // namespace OFX
 
