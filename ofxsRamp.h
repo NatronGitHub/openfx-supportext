@@ -44,7 +44,7 @@
 #define kParamRampColor1Label "Color 1"
 
 #define kParamRampType "type"
-#define kParamRampTypeLabel "Type"
+#define kParamRampTypeLabel "Ramp Type"
 #define kParamRampTypeHint "The type of interpolation used to generate the ramp"
 #define kParamRampTypeOptionLinear "Linear"
 #define kParamRampTypeOptionLinearHint "Linear ramp."

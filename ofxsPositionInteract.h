@@ -137,7 +137,11 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    
+    if (_position->getIsSecret() ||
+        !_position->getIsEnable()) {
+        return false;
+    }
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     //const OfxPointD& pscale = args.pixelScale;
@@ -199,7 +203,11 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    
+    if (_position->getIsSecret() ||
+        !_position->getIsEnable()) {
+        return false;
+    }
+
     const OfxPointD& pscale = args.pixelScale;
     OfxPointD pos;
     if (_state == eMouseStatePicked) {
@@ -258,7 +266,11 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    
+    if (_position->getIsSecret() ||
+        !_position->getIsEnable()) {
+        return false;
+    }
+
     if (!_position) {
         return false;
     }
@@ -284,11 +296,14 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
 {
-    
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    
+    if (_position->getIsSecret() ||
+        !_position->getIsEnable()) {
+        return false;
+    }
+
     if (!_position) {
         return false;
     }

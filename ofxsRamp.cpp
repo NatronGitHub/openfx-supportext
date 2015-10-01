@@ -61,6 +61,10 @@ double fround(double val,
 bool
 RampInteract::draw(const DrawArgs &args)
 {
+    if (_point0->getIsSecret() || _point1->getIsSecret() ||
+        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+        return false;
+    }
     int type_i;
     _type->getValueAtTime(args.time, type_i);
     RampTypeEnum type = (RampTypeEnum)type_i;
@@ -239,6 +243,10 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
 bool
 RampInteract::penMotion(const PenArgs &args)
 {
+    if (_point0->getIsSecret() || _point1->getIsSecret() ||
+        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+        return false;
+    }
     int type_i;
     _type->getValueAtTime(args.time, type_i);
     RampTypeEnum type = (RampTypeEnum)type_i;
@@ -294,6 +302,10 @@ RampInteract::penMotion(const PenArgs &args)
 bool
 RampInteract::penDown(const PenArgs &args)
 {
+    if (_point0->getIsSecret() || _point1->getIsSecret() ||
+        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+        return false;
+    }
     int type_i;
     _type->getValueAtTime(args.time, type_i);
     RampTypeEnum type = (RampTypeEnum)type_i;
@@ -340,6 +352,10 @@ RampInteract::penDown(const PenArgs &args)
 bool
 RampInteract::penUp(const PenArgs &args)
 {
+    if (_point0->getIsSecret() || _point1->getIsSecret() ||
+        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+        return false;
+    }
     int type_i;
     _type->getValueAtTime(args.time, type_i);
     RampTypeEnum type = (RampTypeEnum)type_i;
@@ -393,6 +409,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
         param->setDefault(100., 100.);
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        //param->setUseHostNativeOverlayHandle(true);
         if (group) {
             param->setParent(*group);
         }
@@ -423,6 +440,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
         param->setDefault(100., 200.);
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        //param->setUseHostNativeOverlayHandle(true);
         if (group) {
             param->setParent(*group);
         }

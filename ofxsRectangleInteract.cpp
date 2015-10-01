@@ -90,6 +90,11 @@ drawPoint(const OfxRGBColourD &color,
 bool
 RectangleInteract::draw(const OFX::DrawArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
@@ -186,6 +191,11 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 bool
 RectangleInteract::penMotion(const OFX::PenArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
@@ -430,6 +440,11 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 bool
 RectangleInteract::penDown(const OFX::PenArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     const OfxPointD& pscale = args.pixelScale;
 
     double x1, y1, w, h;
@@ -502,6 +517,11 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
 bool
 RectangleInteract::penUp(const OFX::PenArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     bool didSmthing = false;
 
     if (!_interactiveDrag && _mouseState != eMouseStateIdle) {
@@ -520,6 +540,11 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 bool
 RectangleInteract::keyDown(const OFX::KeyArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     // Note that on the Mac:
     // cmd/apple/cloverleaf is kOfxKey_Control_L
     // ctrl is kOfxKey_Meta_L
@@ -547,6 +572,11 @@ RectangleInteract::keyDown(const OFX::KeyArgs &args)
 bool
 RectangleInteract::keyUp(const OFX::KeyArgs &args)
 {
+    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
+        !_size->getIsEnable() || !_size->getIsEnable()) {
+        return false;
+    }
+
     bool mustRedraw = false;
 
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {
