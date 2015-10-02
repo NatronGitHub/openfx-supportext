@@ -389,7 +389,7 @@ ofxsGetPixComp(const PIX* p,
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
 bool
 ofxsFilterInterpolate2D(double fx,
-                        double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
+                        double fy,            //!< coordinates of the pixel to be interpolated in srcImg in pixel coordinates
                         const OFX::Image *srcImg, //!< image to be transformed
                         bool blackOutside,
                         float *tmpPix) //!< destination pixel in float format
@@ -574,11 +574,11 @@ ofxsFilterInterpolate2D(double fx,
 #endif
 
 // Internal function for supersampling (should never be called by the user)
-// note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
+// note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, int subx, int suby>
 void
 ofxsFilterInterpolate2DSuperInternal(double fx,
-                                     double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
+                                     double fy,            //!< coordinates of the pixel to be interpolated in srcImg in pixel coordinates
                                      double Jxx, //!< derivative of fx over x
                                      double Jxy, //!< derivative of fx over y
                                      double Jyx, //!< derivative of fy over x
@@ -783,11 +783,11 @@ inline bool ofxsFilterOutside(double x, double y, const OfxRectI &bounds)
 }
 
 // Interpolation using the given filter and supersampling for minification
-// note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
+// note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
 void
 ofxsFilterInterpolate2DSuper(double fx,
-                             double fy,            //!< coordinates of the pixel to be interpolated in srcImg in CANONICAL coordinates
+                             double fy,            //!< coordinates of the pixel to be interpolated in srcImg in pixel coordinates
                              double Jxx, //!< derivative of fx over x
                              double Jxy, //!< derivative of fx over y
                              double Jyx, //!< derivative of fy over x
