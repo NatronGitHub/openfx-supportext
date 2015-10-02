@@ -219,9 +219,16 @@ static inline
 double
 ofxsFilterCubic(double Ic,
                 double In,
-                double d)
+                double d,
+                bool clamp)
 {
-    return Ic + d * d * ( (-3 * Ic + 3 * In ) + d * (2 * Ic - 2 * In ) );
+    double I = Ic + d * d * ( (-3 * Ic + 3 * In ) + d * (2 * Ic - 2 * In ) );
+
+    if (clamp) {
+        I = ofxsFilterClampVal(I, Ic, In);
+    }
+
+    return I;
 }
 
 inline
@@ -378,7 +385,7 @@ ofxsGetPixComp(const PIX* p,
     Ipn, Icn, Inn, Ian, \
     Ipa, Ica, Ina, Iaa
 
-// note that the center of pixel (0,0) has canonical coordinated (0.5,0.5)
+// note that the center of pixel (0,0) has canonical coordinates (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
 bool
 ofxsFilterInterpolate2D(double fx,
@@ -445,9 +452,9 @@ ofxsFilterInterpolate2D(double fx,
                     double In = ofxsFilterLinear(Icn, Inn, dx);
                     tmpPix[c] = (float)ofxsFilterLinear(Ic, In, dy);
                 } else if (filter == eFilterCubic) {
-                    double Ic = ofxsFilterCubic(Icc, Inc, dx);
-                    double In = ofxsFilterCubic(Icn, Inn, dx);
-                    tmpPix[c] = (float)ofxsFilterCubic(Ic, In, dy);
+                    double Ic = ofxsFilterCubic(Icc, Inc, dx, clamp);
+                    double In = ofxsFilterCubic(Icn, Inn, dx, clamp);
+                    tmpPix[c] = (float)ofxsFilterCubic(Ic, In, dy, clamp);
                 } else {
                     assert(0);
                 }
