@@ -266,14 +266,14 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
+    if (!_position) {
+        return false;
+    }
     if (_position->getIsSecret() ||
         !_position->getIsEnable()) {
         return false;
     }
 
-    if (!_position) {
-        return false;
-    }
     bool didSomething = false;
     penMotion(args);
     if (_state == eMouseStatePoised) {
@@ -299,14 +299,14 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
+    if (!_position) {
+        return false;
+    }
     if (_position->getIsSecret() ||
         !_position->getIsEnable()) {
         return false;
     }
 
-    if (!_position) {
-        return false;
-    }
     bool didSomething = false;
     if (_state == eMouseStatePicked) {
         if (!_interactiveDrag) {
