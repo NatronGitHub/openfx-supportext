@@ -176,6 +176,45 @@ ofxsClampIfInt(float v,
 }
 
 
+// normalize in [0,1]
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsToRGBA(const PIX *srcPix,
+           float unpPix[4])
+{
+    if (!srcPix) {
+        // no src pixel here, be black and transparent
+        for (int c = 0; c < 4; ++c) {
+            unpPix[c] = 0.f;
+        }
+
+        return;
+    }
+
+    if (nComponents == 1) {
+        unpPix[0] = 0.f;
+        unpPix[1] = 0.f;
+        unpPix[2] = 0.f;
+        unpPix[3] = srcPix[0] / (float)maxValue;
+
+        return;
+    }
+
+    if (nComponents == 2) {
+        unpPix[0] = srcPix[0] / (float)maxValue;
+        unpPix[1] = srcPix[1] / (float)maxValue;
+        unpPix[2] = 0.f;
+        unpPix[3] = 1.0f;
+
+        return;
+    }
+
+    unpPix[0] = srcPix[0] / (float)maxValue;
+    unpPix[1] = srcPix[1] / (float)maxValue;
+    unpPix[2] = srcPix[2] / (float)maxValue;
+    unpPix[3] = (nComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
+}
+
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
 template <class PIX, int nComponents, int maxValue>
@@ -199,6 +238,15 @@ ofxsUnPremult(const PIX *srcPix,
         unpPix[1] = 0.f;
         unpPix[2] = 0.f;
         unpPix[3] = srcPix[0] / (float)maxValue;
+
+        return;
+    }
+
+    if (nComponents == 2) {
+        unpPix[0] = srcPix[0] / (float)maxValue;
+        unpPix[1] = srcPix[1] / (float)maxValue;
+        unpPix[2] = 0.f;
+        unpPix[3] = 1.0f;
 
         return;
     }
