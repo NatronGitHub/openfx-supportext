@@ -1351,16 +1351,6 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         }
 
         {
-            BooleanParamDescriptor *param = desc.defineBooleanParam(kParamTransform3x3Centered);
-            param->setLabel(kParamTransform3x3CenteredLabel);
-            param->setHint(kParamTransform3x3CenteredHint);
-            param->setAnimates(true); // can animate
-            if (page) {
-                page->addChild(*param);
-            }
-        }
-
-        {
             DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Fading);
             param->setLabel(kParamTransform3x3FadingLabel);
             param->setHint(kParamTransform3x3FadingHint);
