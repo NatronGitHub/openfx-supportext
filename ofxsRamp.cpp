@@ -401,6 +401,33 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::GroupParamDescriptor *group,
                        OFX::RampTypeEnum defaultType)
 {
+    // type
+    {
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamRampType);
+        param->setLabel(kParamRampTypeLabel);
+        param->setHint(kParamRampTypeHint);
+        assert(param->getNOptions() == eRampTypeLinear);
+        param->appendOption(kParamRampTypeOptionLinear, kParamRampTypeOptionLinearHint);
+        assert(param->getNOptions() == eRampTypePLinear);
+        param->appendOption(kParamRampTypeOptionPLinear, kParamRampTypeOptionPLinearHint);
+        assert(param->getNOptions() == eRampTypeEaseIn);
+        param->appendOption(kParamRampTypeOptionEaseIn, kParamRampTypeOptionEaseInHint);
+        assert(param->getNOptions() == eRampTypeEaseOut);
+        param->appendOption(kParamRampTypeOptionEaseOut, kParamRampTypeOptionEaseOutHint);
+        assert(param->getNOptions() == eRampTypeSmooth);
+        param->appendOption(kParamRampTypeOptionSmooth, kParamRampTypeOptionSmoothHint);
+        assert(param->getNOptions() == eRampTypeNone);
+        param->appendOption(kParamRampTypeOptionNone, kParamRampTypeOptionNoneHint);
+        param->setDefault(defaultType);
+        param->setAnimates(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
     // point0
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRampPoint0);
@@ -454,33 +481,6 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         RGBAParamDescriptor* param = desc.defineRGBAParam(kParamRampColor1);
         param->setLabel(kParamRampColor1Label);
         param->setDefault(1., 1., 1., 1. );
-        if (group) {
-            param->setParent(*group);
-        }
-        if (page) {
-            page->addChild(*param);
-        }
-    }
-
-    // type
-    {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamRampType);
-        param->setLabel(kParamRampTypeLabel);
-        param->setHint(kParamRampTypeHint);
-        assert(param->getNOptions() == eRampTypeLinear);
-        param->appendOption(kParamRampTypeOptionLinear, kParamRampTypeOptionLinearHint);
-        assert(param->getNOptions() == eRampTypePLinear);
-        param->appendOption(kParamRampTypeOptionPLinear, kParamRampTypeOptionPLinearHint);
-        assert(param->getNOptions() == eRampTypeEaseIn);
-        param->appendOption(kParamRampTypeOptionEaseIn, kParamRampTypeOptionEaseInHint);
-        assert(param->getNOptions() == eRampTypeEaseOut);
-        param->appendOption(kParamRampTypeOptionEaseOut, kParamRampTypeOptionEaseOutHint);
-        assert(param->getNOptions() == eRampTypeSmooth);
-        param->appendOption(kParamRampTypeOptionSmooth, kParamRampTypeOptionSmoothHint);
-        assert(param->getNOptions() == eRampTypeNone);
-        param->appendOption(kParamRampTypeOptionNone, kParamRampTypeOptionNoneHint);
-        param->setDefault(defaultType);
-        param->setAnimates(false);
         if (group) {
             param->setParent(*group);
         }
