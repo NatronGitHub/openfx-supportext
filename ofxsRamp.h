@@ -31,19 +31,19 @@
 #include "ofxsMacros.h"
 #include "ofxsOGLTextRenderer.h"
 
-#define kParamRampPoint0 "point0"
+#define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
 
-#define kParamRampColor0 "color0"
+#define kParamRampColor0 "rampColor0"
 #define kParamRampColor0Label "Color 0"
 
-#define kParamRampPoint1 "point1"
+#define kParamRampPoint1 "rampPoint1"
 #define kParamRampPoint1Label "Point 1"
 
-#define kParamRampColor1 "color1"
+#define kParamRampColor1 "rampColor1"
 #define kParamRampColor1Label "Color 1"
 
-#define kParamRampType "type"
+#define kParamRampType "rampType"
 #define kParamRampTypeLabel "Ramp Type"
 #define kParamRampTypeHint "The type of interpolation used to generate the ramp"
 #define kParamRampTypeOptionLinear "Linear"
@@ -59,7 +59,7 @@
 #define kParamRampTypeOptionNone "None"
 #define kParamRampTypeOptionNoneHint "No color gradient."
 
-#define kParamRampInteractive "interactive"
+#define kParamRampInteractive "rampInteractive"
 #define kParamRampInteractiveLabel "Interactive Update"
 #define kParamRampInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
 
