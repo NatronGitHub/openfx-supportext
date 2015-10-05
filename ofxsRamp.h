@@ -123,30 +123,30 @@ public:
     }
 
     /** @brief the function called to draw in the interact */
-    virtual bool draw(const DrawArgs &args) OVERRIDE FINAL;
+    virtual bool draw(const DrawArgs &args) OVERRIDE;
     
     /** @brief the function called to handle pen motion in the interact
      
      returns true if the interact trapped the action in some sense. This will block the action being passed to
      any other interact that may share the viewer.
      */
-    virtual bool penMotion(const PenArgs &args) OVERRIDE FINAL;
+    virtual bool penMotion(const PenArgs &args) OVERRIDE;
     
     /** @brief the function called to handle pen down events in the interact
      
      returns true if the interact trapped the action in some sense. This will block the action being passed to
      any other interact that may share the viewer.
      */
-    virtual bool penDown(const PenArgs &args) OVERRIDE FINAL;
+    virtual bool penDown(const PenArgs &args) OVERRIDE;
     
     /** @brief the function called to handle pen up events in the interact
      
      returns true if the interact trapped the action in some sense. This will block the action being passed to
      any other interact that may share the viewer.
      */
-    virtual bool penUp(const PenArgs &args) OVERRIDE FINAL;
+    virtual bool penUp(const PenArgs &args) OVERRIDE;
 
-    virtual void loseFocus(const FocusArgs &args) OVERRIDE FINAL;
+    virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 };
 
 class RampOverlayDescriptor : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteract> {};

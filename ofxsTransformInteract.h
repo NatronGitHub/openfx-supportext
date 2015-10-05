@@ -72,6 +72,9 @@ inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform
     }
 }
 
+/// add Transform params. page and group are optional
+void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group);
+
 class TransformInteract : public OFX::OverlayInteract
 {
 protected:
@@ -133,15 +136,15 @@ public:
     TransformInteract(OfxInteractHandle handle, OFX::ImageEffect* effect);
 
     // overridden functions from OFX::Interact to do things
-    virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
-    virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
-    virtual bool penDown(const OFX::PenArgs &args) OVERRIDE FINAL;
-    virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
-    virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE FINAL;
-    virtual bool keyUp(const OFX::KeyArgs &args) OVERRIDE FINAL;
+    virtual bool draw(const OFX::DrawArgs &args) OVERRIDE;
+    virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool penDown(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool penUp(const OFX::PenArgs &args) OVERRIDE;
+    virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE;
+    virtual bool keyUp(const OFX::KeyArgs &args) OVERRIDE;
 
     /** @brief Called when the interact is loses input focus */
-    virtual void loseFocus(const FocusArgs &args) OVERRIDE FINAL;
+    virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 
 private:
     // NON-GENERIC

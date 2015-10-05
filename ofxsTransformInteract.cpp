@@ -35,13 +35,186 @@
 #include "ofxsMatrix2D.h"
 #include "ofxsTransform3x3.h"
 
+#define SCALE_MAX 10000.
+
 #define CIRCLE_RADIUS_BASE 30.
 #define CIRCLE_RADIUS_MIN 15.
 #define CIRCLE_RADIUS_MAX 300.
 #define POINT_SIZE 7.
 #define ELLIPSE_N_POINTS 50.
 
-using namespace OFX;
+namespace OFX {
+
+/// add Transform params. page and group are optional
+void
+ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
+                            OFX::PageParamDescriptor *page,
+                            OFX::GroupParamDescriptor *group)
+{
+    // translate
+    {
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformTranslate);
+        param->setLabel(kParamTransformTranslateLabel);
+        //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
+        param->setDoubleType(eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(eCoordinatesNormalised);
+        //param->setDimensionLabels("x","y");
+        param->setDefault(0, 0);
+        param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        param->setIncrement(10.);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // rotate
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformRotate);
+        param->setLabel(kParamTransformRotateLabel);
+        param->setDoubleType(eDoubleTypeAngle);
+        param->setDefault(0);
+        //param->setRange(-180, 180); // the angle may be -infinity..+infinity
+        param->setDisplayRange(-180, 180);
+        param->setIncrement(0.1);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // scale
+    {
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformScale);
+        param->setLabel(kParamTransformScaleLabel);
+        param->setDoubleType(eDoubleTypeScale);
+        //param->setDimensionLabels("w","h");
+        param->setDefault(1,1);
+        param->setRange(-SCALE_MAX, -SCALE_MAX, SCALE_MAX, SCALE_MAX);
+        param->setDisplayRange(0.1, 0.1, 10, 10);
+        param->setIncrement(0.01);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // scaleUniform
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformScaleUniform);
+        param->setLabel(kParamTransformScaleUniformLabel);
+        param->setHint(kParamTransformScaleUniformHint);
+        // don't check it by default: it is easy to obtain Uniform scaling using the slider or the interact
+        param->setDefault(false);
+        param->setAnimates(true);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // skewX
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformSkewX);
+        param->setLabel(kParamTransformSkewXLabel);
+        param->setDefault(0);
+        param->setDisplayRange(-1,1);
+        param->setIncrement(0.01);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // skewY
+    {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformSkewY);
+        param->setLabel(kParamTransformSkewYLabel);
+        param->setDefault(0);
+        param->setDisplayRange(-1,1);
+        param->setIncrement(0.01);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // skewOrder
+    {
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransformSkewOrder);
+        param->setLabel(kParamTransformSkewOrderLabel);
+        param->setDefault(0);
+        param->appendOption("XY");
+        param->appendOption("YX");
+        param->setAnimates(true);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // center
+    {
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformCenter);
+        param->setLabel(kParamTransformCenterLabel);
+        //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
+        param->setDoubleType(eDoubleTypeXYAbsolute);
+        //param->setDimensionLabels("x","y");
+        param->setDefaultCoordinateSystem(eCoordinatesNormalised);
+        param->setDefault(0.5, 0.5);
+        param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
+        param->setIncrement(1.);
+        param->setLayoutHint(eLayoutHintNoNewLine);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // resetcenter
+    {
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTransformResetCenter);
+        param->setLabel(kParamTransformResetCenterLabel);
+        param->setHint(kParamTransformResetCenterHint);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // interactive
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformInteractive);
+        param->setLabel(kParamTransformInteractiveLabel);
+        param->setHint(kParamTransformInteractiveHint);
+        param->setEvaluateOnChange(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1235,3 +1408,5 @@ void TransformInteract::loseFocus(const FocusArgs &/*args*/)
     _mouseState = eReleased;
     _drawState = eInActive;
 }
+
+} // namespace OFX
