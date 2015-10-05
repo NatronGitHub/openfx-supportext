@@ -63,6 +63,13 @@
 #define kParamRampInteractiveLabel "Interactive Update"
 #define kParamRampInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
 
+// old names, for the Ramp plugin only
+#define kParamRampPoint0Old "point0"
+#define kParamRampColor0Old "color0"
+#define kParamRampPoint1Old "point1"
+#define kParamRampColor1Old "color1"
+#define kParamRampTypeOld "type"
+#define kParamRampInteractiveOld "interactive"
 
 namespace OFX {
 enum RampTypeEnum
@@ -75,7 +82,7 @@ enum RampTypeEnum
     eRampTypeNone
 };
 
-class RampInteract : public OFX::OverlayInteract
+class RampInteractHelper : private OFX::InteractAbstract
 {
     enum InteractState
     {
@@ -93,12 +100,12 @@ class RampInteract : public OFX::OverlayInteract
     OfxPointD _lastMousePos;
     InteractState _state;
     OFX::ImageEffect* _effect;
+    OFX::Interact* _interact;
     Clip *_dstClip;
 
 public:
-    RampInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
-    : OFX::OverlayInteract(handle)
-    , _point0(0)
+    RampInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false)
+    : _point0(0)
     , _point1(0)
     , _type(0)
     , _interactive(0)
@@ -107,16 +114,23 @@ public:
     , _interactiveDrag(false)
     , _lastMousePos()
     , _state(eInteractStateIdle)
-    , _effect(0)
+    , _effect(effect)
+    , _interact(interact)
     , _dstClip(0)
     {
-        _point0 = effect->fetchDouble2DParam(kParamRampPoint0);
-        _point1 = effect->fetchDouble2DParam(kParamRampPoint1);
-        _type = effect->fetchChoiceParam(kParamRampType);
-        _interactive = effect->fetchBooleanParam(kParamRampInteractive);
+        if (oldParams) {
+            _point0 = effect->fetchDouble2DParam(kParamRampPoint0Old);
+            _point1 = effect->fetchDouble2DParam(kParamRampPoint1Old);
+            _type = effect->fetchChoiceParam(kParamRampTypeOld);
+            _interactive = effect->fetchBooleanParam(kParamRampInteractiveOld);
+       } else {
+            _point0 = effect->fetchDouble2DParam(kParamRampPoint0);
+            _point1 = effect->fetchDouble2DParam(kParamRampPoint1);
+            _type = effect->fetchChoiceParam(kParamRampType);
+            _interactive = effect->fetchBooleanParam(kParamRampInteractive);
+        }
         assert(_point0 && _point1 && _type && _interactive);
-        _effect = effect;
-        assert(_effect);
+        assert(_effect && _interact);
         _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
         assert(_dstClip);
 
@@ -146,10 +160,49 @@ public:
      */
     virtual bool penUp(const PenArgs &args) OVERRIDE;
 
+    /** @brief the function called to handle key down events in the interact
+
+     returns true if the interact trapped the action in some sense. This will block the action being passed to
+     any other interact that may share the viewer.
+     */
+    virtual bool keyDown(const KeyArgs &/*args*/) OVERRIDE { return false; };
+
+    /** @brief the function called to handle key up events in the interact
+
+     returns true if the interact trapped the action in some sense. This will block the action being passed to
+     any other interact that may share the viewer.
+     */
+    virtual bool keyUp(const KeyArgs &/*args*/) OVERRIDE { return false; };
+
+    /** @brief the function called to handle key down repeat events in the interact
+
+     returns true if the interact trapped the action in some sense. This will block the action being passed to
+     any other interact that may share the viewer.
+     */
+    virtual bool keyRepeat(const KeyArgs &/*args*/) OVERRIDE { return false; };
+
+    /** @brief Called when the interact is given input focus */
+    virtual void gainFocus(const FocusArgs &/*args*/) OVERRIDE {};
+
+    /** @brief Called when the interact is loses input focus */
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 };
 
+typedef OverlayInteractFromHelper<RampInteractHelper> RampInteract;
+
 class RampOverlayDescriptor : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteract> {};
+
+class RampInteractHelperOldParams: public RampInteractHelper
+{
+public:
+    RampInteractHelperOldParams(OFX::ImageEffect* effect, OFX::Interact* interact)
+    : RampInteractHelper(effect, interact, true) {}
+};
+
+typedef OverlayInteractFromHelper<RampInteractHelper> RampInteractOldParams;
+
+class RampOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteractOldParams> {};
+
 
 template<RampTypeEnum type>
 double
@@ -252,7 +305,8 @@ void
 ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::PageParamDescriptor *page,
                        OFX::GroupParamDescriptor *group,
-                       RampTypeEnum defaultType);
+                       RampTypeEnum defaultType,
+                       bool oldParams = false);
 
 } // namespace OFX
 

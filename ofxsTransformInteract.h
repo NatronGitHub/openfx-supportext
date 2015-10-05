@@ -28,30 +28,41 @@
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
 
-// NON-GENERIC (Transform DirBlur and GodRays only)
-#define kParamTransformTranslate "translate"
+#define kParamTransformTranslate "transformTranslate"
 #define kParamTransformTranslateLabel "Translate"
-#define kParamTransformRotate "rotate"
+#define kParamTransformRotate "transformRotate"
 #define kParamTransformRotateLabel "Rotate"
-#define kParamTransformScale "scale"
+#define kParamTransformScale "transformScale"
 #define kParamTransformScaleLabel "Scale"
-#define kParamTransformScaleUniform "uniform"
+#define kParamTransformScaleUniform "transformScaleUniform"
 #define kParamTransformScaleUniformLabel "Uniform"
 #define kParamTransformScaleUniformHint "Use the X scale for both directions"
-#define kParamTransformSkewX "skewX"
+#define kParamTransformSkewX "transformSkewX"
 #define kParamTransformSkewXLabel "Skew X"
-#define kParamTransformSkewY "skewY"
+#define kParamTransformSkewY "transformSkewY"
 #define kParamTransformSkewYLabel "Skew Y"
-#define kParamTransformSkewOrder "skewOrder"
+#define kParamTransformSkewOrder "transformSkewOrder"
 #define kParamTransformSkewOrderLabel "Skew Order"
-#define kParamTransformCenter "center"
+#define kParamTransformCenter "transformCenter"
 #define kParamTransformCenterLabel "Center"
-#define kParamTransformResetCenter "resetCenter"
+#define kParamTransformResetCenter "transformResetCenter"
 #define kParamTransformResetCenterLabel "Reset Center"
 #define kParamTransformResetCenterHint "Reset the position of the center to the center of the input region of definition"
-#define kParamTransformInteractive "interactive"
+#define kParamTransformInteractive "transformInteractive"
 #define kParamTransformInteractiveLabel "Interactive Update"
 #define kParamTransformInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
+
+// old parameter names (Transform DirBlur and GodRays only)
+#define kParamTransformTranslateOld "translate"
+#define kParamTransformRotateOld "rotate"
+#define kParamTransformScaleOld "scale"
+#define kParamTransformScaleUniformOld "uniform"
+#define kParamTransformSkewXOld "skewX"
+#define kParamTransformSkewYOld "skewY"
+#define kParamTransformSkewOrderOld "skewOrder"
+#define kParamTransformCenterOld "center"
+#define kParamTransformResetCenterOld "resetCenter"
+#define kParamTransformInteractiveOld "interactive"
 
 namespace OFX {
 
@@ -73,9 +84,9 @@ inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform
 }
 
 /// add Transform params. page and group are optional
-void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group);
+void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool oldParams = false);
 
-class TransformInteract : public OFX::OverlayInteract
+class TransformInteractHelper : private OFX::InteractAbstract
 {
 protected:
     enum DrawStateEnum {
@@ -118,7 +129,8 @@ protected:
     int _modifierStateCtrl;
     int _modifierStateShift;
     OrientationEnum _orientation;
-    ImageEffect* _plugin;
+    ImageEffect* _effect;
+    Interact* _interact;
     OfxPointD _lastMousePos;
 
     OfxPointD _centerDrag;
@@ -133,7 +145,7 @@ protected:
     bool _interactiveDrag;
 
 public:
-    TransformInteract(OfxInteractHandle handle, OFX::ImageEffect* effect);
+    TransformInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false);
 
     // overridden functions from OFX::Interact to do things
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE;
@@ -142,8 +154,8 @@ public:
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE;
     virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE;
     virtual bool keyUp(const OFX::KeyArgs &args) OVERRIDE;
-
-    /** @brief Called when the interact is loses input focus */
+    virtual bool keyRepeat(const KeyArgs &/*args*/) OVERRIDE { return false; }
+    virtual void gainFocus(const FocusArgs &/*args*/) OVERRIDE {}
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 
 private:
@@ -160,7 +172,21 @@ private:
     OFX::BooleanParam* _interactive;
 };
 
+typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteract;
+
 class TransformOverlayDescriptor : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteract> {};
+
+class TransformInteractHelperOldParams: public TransformInteractHelper
+{
+public:
+    TransformInteractHelperOldParams(OFX::ImageEffect* effect, OFX::Interact* interact)
+    : TransformInteractHelper(effect, interact, true) {}
+};
+
+typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteractOldParams;
+
+class TransformOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteractOldParams> {};
+
 
 }
 #endif /* defined(openfx_supportext_ofxsTransformInteract_h) */

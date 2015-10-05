@@ -49,11 +49,12 @@ namespace OFX {
 void
 ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
                             OFX::PageParamDescriptor *page,
-                            OFX::GroupParamDescriptor *group)
+                            OFX::GroupParamDescriptor *group,
+                            bool oldParams)
 {
     // translate
     {
-        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformTranslate);
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformTranslateOld : kParamTransformTranslate);
         param->setLabel(kParamTransformTranslateLabel);
         //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
         param->setDoubleType(eDoubleTypeXYAbsolute);
@@ -72,7 +73,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // rotate
     {
-        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformRotate);
+        DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformRotateOld : kParamTransformRotate);
         param->setLabel(kParamTransformRotateLabel);
         param->setDoubleType(eDoubleTypeAngle);
         param->setDefault(0);
@@ -89,7 +90,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // scale
     {
-        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformScale);
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformScaleOld : kParamTransformScale);
         param->setLabel(kParamTransformScaleLabel);
         param->setDoubleType(eDoubleTypeScale);
         //param->setDimensionLabels("w","h");
@@ -108,7 +109,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // scaleUniform
     {
-        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformScaleUniform);
+        BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamTransformScaleUniformOld : kParamTransformScaleUniform);
         param->setLabel(kParamTransformScaleUniformLabel);
         param->setHint(kParamTransformScaleUniformHint);
         // don't check it by default: it is easy to obtain Uniform scaling using the slider or the interact
@@ -124,7 +125,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // skewX
     {
-        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformSkewX);
+        DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewXOld : kParamTransformSkewX);
         param->setLabel(kParamTransformSkewXLabel);
         param->setDefault(0);
         param->setDisplayRange(-1,1);
@@ -139,7 +140,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // skewY
     {
-        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformSkewY);
+        DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewYOld : kParamTransformSkewY);
         param->setLabel(kParamTransformSkewYLabel);
         param->setDefault(0);
         param->setDisplayRange(-1,1);
@@ -154,7 +155,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // skewOrder
     {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamTransformSkewOrder);
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(oldParams ? kParamTransformSkewOrderOld : kParamTransformSkewOrder);
         param->setLabel(kParamTransformSkewOrderLabel);
         param->setDefault(0);
         param->appendOption("XY");
@@ -170,7 +171,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // center
     {
-        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamTransformCenter);
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformCenterOld : kParamTransformCenter);
         param->setLabel(kParamTransformCenterLabel);
         //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
         param->setDoubleType(eDoubleTypeXYAbsolute);
@@ -190,7 +191,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // resetcenter
     {
-        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTransformResetCenter);
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(oldParams ? kParamTransformResetCenterOld : kParamTransformResetCenter);
         param->setLabel(kParamTransformResetCenterLabel);
         param->setHint(kParamTransformResetCenterHint);
         if (group) {
@@ -203,7 +204,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // interactive
     {
-        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformInteractive);
+        BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamTransformInteractiveOld : kParamTransformInteractive);
         param->setLabel(kParamTransformInteractiveLabel);
         param->setHint(kParamTransformInteractiveHint);
         param->setEvaluateOnChange(false);
@@ -220,14 +221,14 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 ////////////////////////////////////////////////////////////////////////////////
 // stuff for the interact
 
-TransformInteract::TransformInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
-    : OFX::OverlayInteract(handle)
-    , _drawState(eInActive)
+    TransformInteractHelper::TransformInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams)
+    : _drawState(eInActive)
     , _mouseState(eReleased)
     , _modifierStateCtrl(0)
     , _modifierStateShift(0)
     , _orientation(eOrientationAllDirections)
-    , _plugin(effect)
+    , _effect(effect)
+    , _interact(interact)
     , _lastMousePos()
     , _scaleUniformDrag(0)
     , _rotateDrag(0)
@@ -248,28 +249,44 @@ TransformInteract::TransformInteract(OfxInteractHandle handle, OFX::ImageEffect*
     , _interactive(0)
     {
 
-        assert(_plugin);
+        assert(_effect && _interact);
         _lastMousePos.x = _lastMousePos.y = 0.;
         // NON-GENERIC
-        _translate = _plugin->fetchDouble2DParam(kParamTransformTranslate);
-        _rotate = _plugin->fetchDoubleParam(kParamTransformRotate);
-        _scale = _plugin->fetchDouble2DParam(kParamTransformScale);
-        _scaleUniform = _plugin->fetchBooleanParam(kParamTransformScaleUniform);
-        _skewX = _plugin->fetchDoubleParam(kParamTransformSkewX);
-        _skewY = _plugin->fetchDoubleParam(kParamTransformSkewY);
-        _skewOrder = _plugin->fetchChoiceParam(kParamTransformSkewOrder);
-        _center = _plugin->fetchDouble2DParam(kParamTransformCenter);
-        _invert = _plugin->fetchBooleanParam(kParamTransform3x3Invert);
-        _interactive = _plugin->fetchBooleanParam(kParamTransformInteractive);
+        if (oldParams) {
+            _translate = _effect->fetchDouble2DParam(kParamTransformTranslateOld);
+            _rotate = _effect->fetchDoubleParam(kParamTransformRotateOld);
+            _scale = _effect->fetchDouble2DParam(kParamTransformScaleOld);
+            _scaleUniform = _effect->fetchBooleanParam(kParamTransformScaleUniformOld);
+            _skewX = _effect->fetchDoubleParam(kParamTransformSkewXOld);
+            _skewY = _effect->fetchDoubleParam(kParamTransformSkewYOld);
+            _skewOrder = _effect->fetchChoiceParam(kParamTransformSkewOrderOld);
+            _center = _effect->fetchDouble2DParam(kParamTransformCenterOld);
+            _interactive = _effect->fetchBooleanParam(kParamTransformInteractiveOld);
+        } else {
+            _translate = _effect->fetchDouble2DParam(kParamTransformTranslate);
+            _rotate = _effect->fetchDoubleParam(kParamTransformRotate);
+            _scale = _effect->fetchDouble2DParam(kParamTransformScale);
+            _scaleUniform = _effect->fetchBooleanParam(kParamTransformScaleUniform);
+            _skewX = _effect->fetchDoubleParam(kParamTransformSkewX);
+            _skewY = _effect->fetchDoubleParam(kParamTransformSkewY);
+            _skewOrder = _effect->fetchChoiceParam(kParamTransformSkewOrder);
+            _center = _effect->fetchDouble2DParam(kParamTransformCenter);
+            _interactive = _effect->fetchBooleanParam(kParamTransformInteractive);
+        }
+        if (_effect->paramExists(kParamTransform3x3Invert)) {
+            _invert = _effect->fetchBooleanParam(kParamTransform3x3Invert);
+        }
         assert(_translate && _rotate && _scale && _scaleUniform && _skewX && _skewY && _skewOrder && _center && _interactive);
-        addParamToSlaveTo(_translate);
-        addParamToSlaveTo(_rotate);
-        addParamToSlaveTo(_scale);
-        addParamToSlaveTo(_skewX);
-        addParamToSlaveTo(_skewY);
-        addParamToSlaveTo(_skewOrder);
-        addParamToSlaveTo(_center);
-        addParamToSlaveTo(_invert);
+        _interact->addParamToSlaveTo(_translate);
+        _interact->addParamToSlaveTo(_rotate);
+        _interact->addParamToSlaveTo(_scale);
+        _interact->addParamToSlaveTo(_skewX);
+        _interact->addParamToSlaveTo(_skewY);
+        _interact->addParamToSlaveTo(_skewOrder);
+        _interact->addParamToSlaveTo(_center);
+        if (_invert) {
+            _interact->addParamToSlaveTo(_invert);
+        }
         _centerDrag.x = _centerDrag.y = 0.;
         _translateDrag.x = _translateDrag.y = 0.;
         _scaleParamDrag.x = _scaleParamDrag.y = 0.;
@@ -578,12 +595,12 @@ drawRotationBar(const OfxRGBColourD& color,
 
 // draw the interact
 bool
-TransformInteract::draw(const OFX::DrawArgs &args)
+TransformInteractHelper::draw(const OFX::DrawArgs &args)
 {
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
-    getSuggestedColour(color);
+    _interact->getSuggestedColour(color);
     GLdouble projection[16];
     glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
@@ -599,7 +616,7 @@ TransformInteract::draw(const OFX::DrawArgs &args)
     double rotate;
     double skewX, skewY;
     int skewOrder;
-    bool inverted;
+    bool inverted = false;
 
     if (_mouseState == eReleased) {
         _center->getValueAtTime(time, center.x, center.y);
@@ -610,7 +627,9 @@ TransformInteract::draw(const OFX::DrawArgs &args)
         _skewX->getValueAtTime(time, skewX);
         _skewY->getValueAtTime(time, skewY);
         _skewOrder->getValueAtTime(time, skewOrder);
-        _invert->getValueAtTime(time, inverted);
+        if (_invert) {
+            _invert->getValueAtTime(time, inverted);
+        }
     } else {
         center = _centerDrag;
         translate = _translateDrag;
@@ -813,7 +832,7 @@ static double fround(double val, double pscale)
 }
 
 // overridden functions from OFX::Interact to do things
-bool TransformInteract::penMotion(const OFX::PenArgs &args)
+bool TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 {
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
@@ -825,7 +844,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
     double rotate;
     double skewX, skewY;
     int skewOrder;
-    bool inverted;
+    bool inverted = false;
 
     if (_mouseState == eReleased) {
         _center->getValueAtTime(time, center.x, center.y);
@@ -836,7 +855,9 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
         _skewX->getValueAtTime(time, skewX);
         _skewY->getValueAtTime(time, skewY);
         _skewOrder->getValueAtTime(time, skewOrder);
-        _invert->getValueAtTime(time, inverted);
+        if (_invert) {
+            _invert->getValueAtTime(time, inverted);
+        }
     } else {
         center = _centerDrag;
         translate = _translateDrag;
@@ -1058,7 +1079,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
         newy = fround(newy, pscale.y);
         center.x = newx;
         center.y = newy;
-        //_plugin->beginEditBlock("setCenter");
+        //_effect->beginEditBlock("setCenter");
         //_center->setValue(center.x, center.y);
         centerChanged = true;
         // recompute dxrot,dyrot after rounding
@@ -1085,7 +1106,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
             //_translate->setValue(translate.x, translate.y);
             translateChanged = true;
         }
-        //_plugin->endEditBlock();
+        //_effect->endEditBlock();
     } else if (_mouseState == eDraggingRotationBar) {
         OfxPointD diffToCenter;
         ///the current mouse position (untransformed) is doing has a certain angle relative to the X axis
@@ -1137,7 +1158,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
 
     if (_mouseState != eReleased && _interactiveDrag && valuesChanged) {
         // no need to redraw overlay since it is slave to the paramaters
-        _plugin->beginEditBlock("setTransform");
+        _effect->beginEditBlock("setTransform");
         if (centerChanged) {
             _center->setValue(center.x, center.y);
         }
@@ -1156,7 +1177,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
         if (skewYChanged) {
             _skewY->setValue(skewY);
         }
-        _plugin->endEditBlock();
+        _effect->endEditBlock();
     } else if (didSomething || valuesChanged) {
         _effect->redrawOverlays();
     }
@@ -1166,7 +1187,7 @@ bool TransformInteract::penMotion(const OFX::PenArgs &args)
     return didSomething || valuesChanged;
 }
 
-bool TransformInteract::penDown(const OFX::PenArgs &args)
+bool TransformInteractHelper::penDown(const OFX::PenArgs &args)
 {
     using OFX::Matrix3x3;
 
@@ -1180,7 +1201,7 @@ bool TransformInteract::penDown(const OFX::PenArgs &args)
     double rotate;
     double skewX, skewY;
     int skewOrder;
-    bool inverted;
+    bool inverted = false;
 
     if (_mouseState == eReleased) {
         _center->getValueAtTime(time, center.x, center.y);
@@ -1191,7 +1212,9 @@ bool TransformInteract::penDown(const OFX::PenArgs &args)
         _skewX->getValueAtTime(time, skewX);
         _skewY->getValueAtTime(time, skewY);
         _skewOrder->getValueAtTime(time, skewOrder);
-        _invert->getValueAtTime(time, inverted);
+        if (_invert) {
+            _invert->getValueAtTime(time, inverted);
+        }
         if (_interactive) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         }
@@ -1317,20 +1340,20 @@ bool TransformInteract::penDown(const OFX::PenArgs &args)
     return didSomething;
 }
 
-bool TransformInteract::penUp(const OFX::PenArgs &args)
+bool TransformInteractHelper::penUp(const OFX::PenArgs &args)
 {
     bool ret = _mouseState != eReleased;
 
     if (!_interactiveDrag && _mouseState != eReleased) {
         // no need to redraw overlay since it is slave to the paramaters
-        _plugin->beginEditBlock("setTransform");
+        _effect->beginEditBlock("setTransform");
         _center->setValue(_centerDrag.x, _centerDrag.y);
         _translate->setValue(_translateDrag.x, _translateDrag.y);
         _scale->setValue(_scaleParamDrag.x, _scaleParamDrag.y);
         _rotate->setValue(_rotateDrag);
         _skewX->setValue(_skewXDrag);
         _skewY->setValue(_skewYDrag);
-        _plugin->endEditBlock();
+        _effect->endEditBlock();
     } else if (_mouseState != eReleased) {
         _effect->redrawOverlays();
     }
@@ -1342,7 +1365,7 @@ bool TransformInteract::penUp(const OFX::PenArgs &args)
 }
 
 // keyDown just updates the modifier state
-bool TransformInteract::keyDown(const OFX::KeyArgs &args)
+bool TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
 {
     // Note that on the Mac:
     // cmd/apple/cloverleaf is kOfxKey_Control_L
@@ -1371,7 +1394,7 @@ bool TransformInteract::keyDown(const OFX::KeyArgs &args)
 }
 
 // keyUp just updates the modifier state
-bool TransformInteract::keyUp(const OFX::KeyArgs &args)
+bool TransformInteractHelper::keyUp(const OFX::KeyArgs &args)
 {
     bool mustRedraw = false;
 
@@ -1399,7 +1422,7 @@ bool TransformInteract::keyUp(const OFX::KeyArgs &args)
 }
 
 /** @brief Called when the interact is loses input focus */
-void TransformInteract::loseFocus(const FocusArgs &/*args*/)
+void TransformInteractHelper::loseFocus(const FocusArgs &/*args*/)
 {
     // reset the modifiers state
     _modifierStateCtrl = 0;

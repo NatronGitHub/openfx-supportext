@@ -59,7 +59,7 @@ double fround(double val,
 }
 
 bool
-RampInteract::draw(const DrawArgs &args)
+RampInteractHelper::draw(const DrawArgs &args)
 {
     if (_point0->getIsSecret() || _point1->getIsSecret() ||
         !_point0->getIsEnable() || !_point1->getIsEnable()) {
@@ -73,7 +73,7 @@ RampInteract::draw(const DrawArgs &args)
         return false;
     }
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
-    getSuggestedColour(color);
+    _interact->getSuggestedColour(color);
     const OfxPointD &pscale = args.pixelScale;
     GLdouble projection[16];
     glGetDoublev( GL_PROJECTION_MATRIX, projection);
@@ -241,7 +241,7 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
 
 
 bool
-RampInteract::penMotion(const PenArgs &args)
+RampInteractHelper::penMotion(const PenArgs &args)
 {
     if (_point0->getIsSecret() || _point1->getIsSecret() ||
         !_point0->getIsEnable() || !_point1->getIsEnable()) {
@@ -300,7 +300,7 @@ RampInteract::penMotion(const PenArgs &args)
 }
 
 bool
-RampInteract::penDown(const PenArgs &args)
+RampInteractHelper::penDown(const PenArgs &args)
 {
     if (_point0->getIsSecret() || _point1->getIsSecret() ||
         !_point0->getIsEnable() || !_point1->getIsEnable()) {
@@ -350,7 +350,7 @@ RampInteract::penDown(const PenArgs &args)
 }
 
 bool
-RampInteract::penUp(const PenArgs &args)
+RampInteractHelper::penUp(const PenArgs &args)
 {
     if (_point0->getIsSecret() || _point1->getIsSecret() ||
         !_point0->getIsEnable() || !_point1->getIsEnable()) {
@@ -389,7 +389,7 @@ RampInteract::penUp(const PenArgs &args)
 
 /** @brief Called when the interact is loses input focus */
 void
-RampInteract::loseFocus(const FocusArgs &/*args*/)
+RampInteractHelper::loseFocus(const FocusArgs &/*args*/)
 {
     _interactiveDrag = false;
     _state = eInteractStateIdle;
@@ -399,11 +399,12 @@ void
 ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::PageParamDescriptor *page,
                        OFX::GroupParamDescriptor *group,
-                       OFX::RampTypeEnum defaultType)
+                       OFX::RampTypeEnum defaultType,
+                       bool oldParams)
 {
     // type
     {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamRampType);
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(oldParams ? kParamRampTypeOld : kParamRampType);
         param->setLabel(kParamRampTypeLabel);
         param->setHint(kParamRampTypeHint);
         assert(param->getNOptions() == eRampTypeLinear);
@@ -430,7 +431,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // point0
     {
-        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRampPoint0);
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint0Old : kParamRampPoint0);
         param->setLabel(kParamRampPoint0Label);
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
@@ -448,7 +449,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // color0
     {
-        RGBAParamDescriptor* param = desc.defineRGBAParam(kParamRampColor0);
+        RGBAParamDescriptor* param = desc.defineRGBAParam(oldParams ? kParamRampColor0Old : kParamRampColor0);
         param->setLabel(kParamRampColor0Label);
         param->setDefault(0, 0, 0, 0);
         if (group) {
@@ -461,7 +462,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // point1
     {
-        Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRampPoint1);
+        Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint1Old : kParamRampPoint1);
         param->setLabel(kParamRampPoint1Label);
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
@@ -478,7 +479,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // color1
     {
-        RGBAParamDescriptor* param = desc.defineRGBAParam(kParamRampColor1);
+        RGBAParamDescriptor* param = desc.defineRGBAParam(oldParams ? kParamRampColor1Old : kParamRampColor1);
         param->setLabel(kParamRampColor1Label);
         param->setDefault(1., 1., 1., 1. );
         if (group) {
@@ -491,7 +492,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
 
     // interactive
     {
-        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRampInteractive);
+        BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamRampInteractiveOld : kParamRampInteractive);
         param->setLabel(kParamRampInteractiveLabel);
         param->setHint(kParamRampInteractiveHint);
         param->setEvaluateOnChange(false);
