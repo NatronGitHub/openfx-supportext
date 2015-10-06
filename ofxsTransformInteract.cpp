@@ -685,9 +685,9 @@ TransformInteractHelper::draw(const OFX::DrawArgs &args)
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
-    //glDisable(GL_LINE_STIPPLE);
+    glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
-    //glEnable(GL_POINT_SMOOTH);
+    glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
     glLineWidth(1.5f);

@@ -184,11 +184,14 @@ RampInteractHelper::draw(const DrawArgs &args)
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
+    glEnable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
+    glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
     glLineWidth(1.5f);
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glLineStipple(2, 0xAAAA);
 
     glPointSize(POINT_SIZE);
     
@@ -214,8 +217,6 @@ RampInteractHelper::draw(const DrawArgs &args)
             glVertex2d(p[i].x, p[i].y);
             glEnd();
 
-            glLineStipple(2, 0xAAAA);
-            glEnable(GL_LINE_STIPPLE);
             glBegin(GL_LINES);
             glColor3f((float)color.r*l, (float)color.g*l, (float)color.b*l);
             glVertex2d(pline1[i].x, pline1[i].y);
