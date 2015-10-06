@@ -50,6 +50,7 @@ void
 ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
                             OFX::PageParamDescriptor *page,
                             OFX::GroupParamDescriptor *group,
+                            bool isOpen,
                             bool oldParams)
 {
     // translate
@@ -202,6 +203,22 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         }
     }
 
+    // interactOpen
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformInteractOpen);
+        param->setLabel(kParamTransformInteractOpenLabel);
+        param->setHint(kParamTransformInteractOpenHint);
+        param->setDefault(isOpen); // open by default
+        param->setIsSecret(true); // secret by default, but this can be changed for specific hosts
+        param->setAnimates(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
     // interactive
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamTransformInteractiveOld : kParamTransformInteractive);
@@ -246,6 +263,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
     , _skewOrder(0)
     , _center(0)
     , _invert(0)
+    , _interactOpen(0)
     , _interactive(0)
     {
 
@@ -273,6 +291,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
             _center = _effect->fetchDouble2DParam(kParamTransformCenter);
             _interactive = _effect->fetchBooleanParam(kParamTransformInteractive);
         }
+        _interactOpen = _effect->fetchBooleanParam(kParamTransformInteractOpen);
         if (_effect->paramExists(kParamTransform3x3Invert)) {
             _invert = _effect->fetchBooleanParam(kParamTransform3x3Invert);
         }
@@ -597,6 +616,9 @@ drawRotationBar(const OfxRGBColourD& color,
 bool
 TransformInteractHelper::draw(const OFX::DrawArgs &args)
 {
+    if (!_interactOpen->getValueAtTime(args.time)) {
+        return false;
+    }
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
@@ -834,6 +856,9 @@ static double fround(double val, double pscale)
 // overridden functions from OFX::Interact to do things
 bool TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 {
+    if (!_interactOpen->getValueAtTime(args.time)) {
+        return false;
+    }
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
 
@@ -1189,6 +1214,9 @@ bool TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 
 bool TransformInteractHelper::penDown(const OFX::PenArgs &args)
 {
+    if (!_interactOpen->getValueAtTime(args.time)) {
+        return false;
+    }
     using OFX::Matrix3x3;
 
     const OfxPointD &pscale = args.pixelScale;
@@ -1342,6 +1370,9 @@ bool TransformInteractHelper::penDown(const OFX::PenArgs &args)
 
 bool TransformInteractHelper::penUp(const OFX::PenArgs &args)
 {
+    if (!_interactOpen->getValueAtTime(args.time)) {
+        return false;
+    }
     bool ret = _mouseState != eReleased;
 
     if (!_interactiveDrag && _mouseState != eReleased) {
@@ -1367,6 +1398,11 @@ bool TransformInteractHelper::penUp(const OFX::PenArgs &args)
 // keyDown just updates the modifier state
 bool TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
 {
+    // Always process, even if interact is not open, since this concerns modifiers
+    //if (!_interactOpen->getValueAtTime(args.time)) {
+    //    return false;
+    //}
+  
     // Note that on the Mac:
     // cmd/apple/cloverleaf is kOfxKey_Control_L
     // ctrl is kOfxKey_Meta_L
@@ -1396,6 +1432,11 @@ bool TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
 // keyUp just updates the modifier state
 bool TransformInteractHelper::keyUp(const OFX::KeyArgs &args)
 {
+    // Always process, even if interact is not open, since this concerns modifiers
+    //if (!_interactOpen->getValueAtTime(args.time)) {
+    //    return false;
+    //}
+  
     bool mustRedraw = false;
 
     if (args.keySymbol == kOfxKey_Control_L || args.keySymbol == kOfxKey_Control_R) {

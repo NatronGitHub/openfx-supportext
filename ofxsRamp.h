@@ -59,6 +59,10 @@
 #define kParamRampTypeOptionNone "None"
 #define kParamRampTypeOptionNoneHint "No color gradient."
 
+#define kParamRampInteractOpen "rampInteractOpen"
+#define kParamRampInteractOpenLabel "Show Interact"
+#define kParamRampInteractOpenHint "If checked, the ramp interact is displayed over the image."
+
 #define kParamRampInteractive "rampInteractive"
 #define kParamRampInteractiveLabel "Interactive Update"
 #define kParamRampInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
@@ -94,6 +98,7 @@ class RampInteractHelper : private OFX::InteractAbstract
     Double2DParam* _point0;
     Double2DParam* _point1;
     ChoiceParam* _type;
+    BooleanParam* _interactOpen;
     BooleanParam* _interactive;
     OfxPointD _point0DragPos,_point1DragPos;
     bool _interactiveDrag;
@@ -108,6 +113,7 @@ public:
     : _point0(0)
     , _point1(0)
     , _type(0)
+    , _interactOpen(0)
     , _interactive(0)
     , _point0DragPos()
     , _point1DragPos()
@@ -129,7 +135,8 @@ public:
             _type = effect->fetchChoiceParam(kParamRampType);
             _interactive = effect->fetchBooleanParam(kParamRampInteractive);
         }
-        assert(_point0 && _point1 && _type && _interactive);
+        _interactOpen = _effect->fetchBooleanParam(kParamRampInteractOpen);
+        assert(_point0 && _point1 && _type && _interactOpen && _interactive);
         assert(_effect && _interact);
         _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
         assert(_dstClip);
@@ -306,7 +313,8 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::PageParamDescriptor *page,
                        OFX::GroupParamDescriptor *group,
                        RampTypeEnum defaultType,
-                       bool oldParams = false);
+                       bool isOpen,
+                       bool oldParams);
 
 } // namespace OFX
 

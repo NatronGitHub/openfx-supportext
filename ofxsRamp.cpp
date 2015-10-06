@@ -61,8 +61,7 @@ double fround(double val,
 bool
 RampInteractHelper::draw(const DrawArgs &args)
 {
-    if (_point0->getIsSecret() || _point1->getIsSecret() ||
-        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+    if (!_interactOpen->getValueAtTime(args.time)) {
         return false;
     }
     int type_i;
@@ -243,8 +242,7 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
 bool
 RampInteractHelper::penMotion(const PenArgs &args)
 {
-    if (_point0->getIsSecret() || _point1->getIsSecret() ||
-        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+    if (!_interactOpen->getValueAtTime(args.time)) {
         return false;
     }
     int type_i;
@@ -302,8 +300,7 @@ RampInteractHelper::penMotion(const PenArgs &args)
 bool
 RampInteractHelper::penDown(const PenArgs &args)
 {
-    if (_point0->getIsSecret() || _point1->getIsSecret() ||
-        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+    if (!_interactOpen->getValueAtTime(args.time)) {
         return false;
     }
     int type_i;
@@ -352,8 +349,7 @@ RampInteractHelper::penDown(const PenArgs &args)
 bool
 RampInteractHelper::penUp(const PenArgs &args)
 {
-    if (_point0->getIsSecret() || _point1->getIsSecret() ||
-        !_point0->getIsEnable() || !_point1->getIsEnable()) {
+    if (!_interactOpen->getValueAtTime(args.time)) {
         return false;
     }
     int type_i;
@@ -400,6 +396,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                        OFX::PageParamDescriptor *page,
                        OFX::GroupParamDescriptor *group,
                        OFX::RampTypeEnum defaultType,
+                       bool isOpen,
                        bool oldParams)
 {
     // type
@@ -489,6 +486,23 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+
+    // interactOpen
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRampInteractOpen);
+        param->setLabel(kParamRampInteractOpenLabel);
+        param->setHint(kParamRampInteractOpenHint);
+        param->setDefault(isOpen); // open by default
+        param->setIsSecret(true); // secret by default, but this can be changed for specific hosts
+        param->setAnimates(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
 
     // interactive
     {

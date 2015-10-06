@@ -48,6 +48,9 @@
 #define kParamTransformResetCenter "transformResetCenter"
 #define kParamTransformResetCenterLabel "Reset Center"
 #define kParamTransformResetCenterHint "Reset the position of the center to the center of the input region of definition"
+#define kParamTransformInteractOpen "transformInteractOpen"
+#define kParamTransformInteractOpenLabel "Show Interact"
+#define kParamTransformInteractOpenHint "If checked, the transform interact is displayed over the image."
 #define kParamTransformInteractive "transformInteractive"
 #define kParamTransformInteractiveLabel "Interactive Update"
 #define kParamTransformInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
@@ -84,7 +87,7 @@ inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform
 }
 
 /// add Transform params. page and group are optional
-void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool oldParams = false);
+void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams);
 
 class TransformInteractHelper : private OFX::InteractAbstract
 {
@@ -169,6 +172,7 @@ private:
     OFX::ChoiceParam* _skewOrder;
     OFX::Double2DParam* _center;
     OFX::BooleanParam* _invert;
+    OFX::BooleanParam* _interactOpen;
     OFX::BooleanParam* _interactive;
 };
 
