@@ -129,6 +129,7 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
 {
     // GENERIC (MASKED)
     //
+    ofxsMaskDescribeParams(desc, page);
     {
         OFX::DoubleParamDescriptor* param = desc.defineDoubleParam(kParamMix);
         param->setLabel(kParamMixLabel);
@@ -141,7 +142,6 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-    ofxsMaskDescribeParams(desc, page);
 }
 
 template <class T>
