@@ -187,7 +187,7 @@ public:
     : TransformInteractHelper(effect, interact, true) {}
 };
 
-typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteractOldParams;
+typedef OverlayInteractFromHelper<TransformInteractHelperOldParams> TransformInteractOldParams;
 
 class TransformOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteractOldParams> {};
 
