@@ -189,7 +189,7 @@ public:
 
 typedef OverlayInteractFromHelper<TransformInteractHelperOldParams> TransformInteractOldParams;
 
-class TransformOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteractOldParams> {};
+class TransformOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptorOldParams, TransformInteractOldParams> {};
 
 
 }
