@@ -403,9 +403,9 @@ rgb_to_ycbcr(float r,
     //*cr = ((255*(112*r - 94*g - 18*b) + 128)/256 + 128)/255;
 
     /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
-    *y  = 0.2215 * r + 0.7154 * g + 0.0721 * b;
-    *cb = -0.1145 * r - 0.3855 * g + 0.5000 * b + 128./255;
-    *cr = 0.5016 * r - 0.4556 * g  - 0.0459 * b + 128./255;
+    *y  =  0.2215 * r +0.7154 * g +0.0721 * b;
+    *cb = -0.1145 * r -0.3855 * g +0.5000 * b + 128./255;
+    *cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
 }
 
 void
@@ -426,9 +426,9 @@ ycbcr_to_rgb(float y,
 
     /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
     /// that document has the wrong sign for 1.8556
-    *r = y + 0.0000 * (cb - 128./255) + 1.5701 * (cr - 128./255);
-    *g = y - 0.1870 * (cb - 128./255) - 0.4664 * (cr - 128./255);
-    *b = y + 1.8556 * (cb - 128./255) + 0.0000 * (cr - 128./255);
+    *r = y +0.0000 * (cb - 128./255) +1.5701 * (cr - 128./255);
+    *g = y -0.1870 * (cb - 128./255) -0.4664 * (cr - 128./255);
+    *b = y +1.8556 * (cb - 128./255) +0.0000 * (cr - 128./255);
 } // ycbcr_to_rgb
 
 void
@@ -439,15 +439,15 @@ rgb_to_yuv(float r,
            float *u,
            float *v)
 {
-    /// ref: CImg (BT.601)
-    //*y = 0.299f * r + 0.587f * g + 0.114f * b;
-    //*u = 0.492f * (b - *y);
-    //*v = 0.877f * (r - *y);
+    /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
+    //*y =  0.299f   * r +0.587f   * g +0.114f  * b;
+    //*u = -0.14713f * r -0.28886f * g +0.114f  * b;
+    //*v =  0.615f   * r -0.51499f * g -0.10001 * b;
 
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
-    *y = 0.2126f * r + 0.7152f * g + 0.0722f * b;
-    *u = -0.09991f * r - 0.33609f * g + 0.436f * b;
-    *v = 0.615f * r - 0.55861f * g - 0.05639f * b;
+    *y =  0.2126f  * r +0.7152f  * g +0.0722f  * b;
+    *u = -0.09991f * r -0.33609f * g +0.436f   * b;
+    *v =  0.615f   * r -0.55861f * g -0.05639f * b;
 }
 
 void
@@ -458,15 +458,15 @@ yuv_to_rgb(float y,
            float *g,
            float *b)
 {
-    /// ref: CImg (BT.601)
-    //*r = y + 1.140f * v,
-    //*g = y - 0.395f * u - 0.581f * v;
-    //*b = y + 2.032f * u;
+    /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
+    //*r = y                + 1.13983f * v,
+    //*g = y - 0.39465f * u - 0.58060f * v;
+    //*b = y + 2.03211f * u;
 
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
-    *r = y + 1.28033f * v,
-    *g = y - 0.21482f * u - 0.38059f * v;
-    *b = y + 2.12798f * u;
+    *r = y               +1.28033f * v,
+    *g = y -0.21482f * u -0.38059f * v;
+    *b = y +2.12798f * u;
 } // yuv_to_rgb
 
 // r,g,b values are from 0 to 1
@@ -480,9 +480,9 @@ rgb_to_xyz_rec709(float r,
                   float *y,
                   float *z)
 {
-    *x = 0.412453f*r + 0.357580f*g + 0.180423f*b;
-    *y = 0.212671f*r + 0.715160f*g + 0.072169f*b;
-    *z = 0.019334f*r + 0.119193f*g + 0.950227f*b;
+    *x = 0.412453f*r +0.357580f*g +0.180423f*b;
+    *y = 0.212671f*r +0.715160f*g +0.072169f*b;
+    *z = 0.019334f*r +0.119193f*g +0.950227f*b;
 }
 
 // Convert pixel values from XYZ_709 to RGB color spaces.
@@ -495,9 +495,9 @@ xyz_rec709_to_rgb(float x,
                   float *g,
                   float *b)
 {
-    *r = 3.240479f*x  - 1.537150f*y - 0.498535f*z;
-    *g = -0.969256f*x + 1.875992f*y + 0.041556f*z;
-    *b = 0.055648f*x  - 0.204043f*y + 1.057311f*z;
+    *r =  3.240479f*x -1.537150f*y -0.498535f*z;
+    *g = -0.969256f*x +1.875992f*y +0.041556f*z;
+    *b =  0.055648f*x -0.204043f*y +1.057311f*z;
 }
 
 static inline
