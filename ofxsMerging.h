@@ -176,146 +176,279 @@ getOperationString(MergingFunctionEnum operation)
 {
     switch (operation) {
     case eMergeATop:
-
         return "atop";
+
     case eMergeAverage:
-
         return "average";
-    case eMergeColorBurn:
 
-        return "color-burn";
-    case eMergeColorDodge:
-
-        return "color-dodge";
-    case eMergeConjointOver:
-
-        return "conjoint-over";
-    case eMergeCopy:
-
-        return "copy";
-    case eMergeDifference:
-
-        return "difference";
-    case eMergeDisjointOver:
-
-        return "disjoint-over";
-    case eMergeDivide:
-
-        return "divide";
-    case eMergeExclusion:
-
-        return "exclusion";
-    case eMergeFreeze:
-
-        return "freeze";
-    case eMergeFrom:
-
-        return "from";
-    case eMergeGeometric:
-
-        return "geometric";
-    case eMergeGrainExtract:
-
-        return "grain-extract";
-    case eMergeGrainMerge:
-
-        return "grain-merge";
-    case eMergeHardLight:
-
-        return "hard-light";
-    case eMergeHypot:
-
-        return "hypot";
-    case eMergeIn:
-
-        return "in";
-    //case eMergeInterpolated:
-
-    //    return "interpolated";
-    case eMergeMask:
-
-        return "mask";
-    case eMergeMatte:
-
-        return "matte";
-    case eMergeMax:
-
-        return "max";
-    case eMergeMin:
-
-        return "min";
-    case eMergeMinus:
-
-        return "minus";
-    case eMergeMultiply:
-
-        return "multiply";
-    case eMergeOut:
-
-        return "out";
-    case eMergeOver:
-
-        return "over";
-    case eMergeOverlay:
-
-        return "overlay";
-    case eMergePinLight:
-
-        return "pinlight";
-    case eMergePlus:
-
-        return "plus";
-    case eMergeReflect:
-
-        return "reflect";
-    case eMergeScreen:
-
-        return "screen";
-    case eMergeSoftLight:
-
-        return "soft-light";
-    case eMergeStencil:
-
-        return "stencil";
-    case eMergeUnder:
-
-        return "under";
-    case eMergeXOR:
-
-        return "xor";
-    case eMergeHue:
-
-        return "hue";
-    case eMergeSaturation:
-
-        return "saturation";
     case eMergeColor:
-
         return "color";
-    case eMergeLuminosity:
 
+    case eMergeColorBurn:
+        return "color-burn";
+
+    case eMergeColorDodge:
+        return "color-dodge";
+
+    case eMergeConjointOver:
+        return "conjoint-over";
+
+    case eMergeCopy:
+        return "copy";
+
+    case eMergeDifference:
+        return "difference";
+
+    case eMergeDisjointOver:
+        return "disjoint-over";
+
+    case eMergeDivide:
+        return "divide";
+
+    case eMergeExclusion:
+        return "exclusion";
+
+    case eMergeFreeze:
+        return "freeze";
+
+    case eMergeFrom:
+        return "from";
+
+    case eMergeGeometric:
+        return "geometric";
+
+    case eMergeGrainExtract:
+        return "grain-extract";
+
+    case eMergeGrainMerge:
+        return "grain-merge";
+
+    case eMergeHardLight:
+        return "hard-light";
+
+    case eMergeHue:
+        return "hue";
+
+    case eMergeHypot:
+        return "hypot";
+
+    case eMergeIn:
+        return "in";
+
+    //case eMergeInterpolated:
+    //    return "interpolated";
+
+    case eMergeLuminosity:
         return "luminosity";
+
+    case eMergeMask:
+        return "mask";
+
+    case eMergeMatte:
+        return "matte";
+
+    case eMergeMax:
+        return "max";
+
+    case eMergeMin:
+        return "min";
+
+    case eMergeMinus:
+        return "minus";
+
+    case eMergeMultiply:
+        return "multiply";
+
+    case eMergeOut:
+        return "out";
+
+    case eMergeOver:
+        return "over";
+
+    case eMergeOverlay:
+        return "overlay";
+
+    case eMergePinLight:
+        return "pinlight";
+
+    case eMergePlus:
+        return "plus";
+
+    case eMergeReflect:
+        return "reflect";
+
+    case eMergeSaturation:
+        return "saturation";
+
+    case eMergeScreen:
+        return "screen";
+
+    case eMergeSoftLight:
+        return "soft-light";
+
+    case eMergeStencil:
+        return "stencil";
+
+    case eMergeUnder:
+        return "under";
+
+    case eMergeXOR:
+        return "xor";
     } // switch
 
     return "unknown";
 } // getOperationString
 
 inline std::string
+getOperationDescription(MergingFunctionEnum operation)
+{
+    switch (operation) {
+    case eMergeATop:
+        return "Ab + B(1 - a) (a.k.a. src-atop)";
+
+    case eMergeAverage:
+        return "(A + B) / 2";
+
+    case eMergeColor:
+        return "SetLum(A, Lum(B))";
+
+    case eMergeColorBurn:
+        return "darken B towards A";
+
+    case eMergeColorDodge:
+        return "brighten B towards A";
+
+    case eMergeConjointOver:
+        return "A + B(1-a)/b, A if a > b";
+
+    case eMergeCopy:
+        return "A (a.k.a. src)";
+
+    case eMergeDifference:
+        return "abs(A-B) (a.k.a. absminus)";
+
+    case eMergeDisjointOver:
+        return "A+B(1-a)/b, A+B if a+b < 1";
+
+    case eMergeDivide:
+        return "A/B, 0 if A < 0 and B < 0";
+            
+    case eMergeExclusion:
+        return "A+B-2AB";
+
+    case eMergeFreeze:
+        return "1-sqrt(1-A)/B";
+
+    case eMergeFrom:
+        return "B-A (a.k.a. subtract)";
+
+    case eMergeGeometric:
+        return "2AB/(A+B)";
+
+    case eMergeGrainExtract:
+        return "B - A + 0.5";
+
+    case eMergeGrainMerge:
+        return "B + A - 0.5";
+
+    case eMergeHardLight:
+        return "multiply if A < 0.5, screen if A > 0.5";
+
+    case eMergeHue:
+        return "SetLum(SetSat(A, Sat(B)), Lum(B))";
+
+    case eMergeHypot:
+        return "sqrt(A*A+B*B)";
+
+    case eMergeIn:
+        return "Ab (a.k.a. src-in)";
+
+    //case eMergeInterpolated:
+    //    return "(like average but better and slower)";
+
+    case eMergeLuminosity:
+        return "SetLum(B, Lum(A))";
+
+    case eMergeMask:
+        return "Ba (a.k.a dst-in)";
+
+    case eMergeMatte:
+        return "Aa + B(1-a) (unpremultiplied over)";
+
+    case eMergeMax:
+        return "max(A, B) (a.k.a. lighten only)";
+
+    case eMergeMin:
+        return "min(A, B) (a.k.a. darken only)";
+
+    case eMergeMinus:
+        return "A-B";
+
+    case eMergeMultiply:
+        return "AB, 0 if A < 0 and B < 0";
+
+    case eMergeOut:
+        return "A(1-b) (a.k.a. src-out)";
+
+    case eMergeOver:
+        return "A+B(1-a) (a.k.a. src-over)";
+
+    case eMergeOverlay:
+        return "multiply if B<0.5, screen if B>0.5";
+
+    case eMergePinLight:
+        return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2.0 ) else";
+
+    case eMergePlus:
+        return "A+B (a.k.a. add)";
+
+    case eMergeReflect:
+        return "A*A / (1 - B)";
+
+    case eMergeSaturation:
+        return "SetLum(SetSat(B, Sat(A)), Lum(B))";
+
+    case eMergeScreen:
+        return "A+B-AB";
+
+    case eMergeSoftLight:
+        return "burn-in if A < 0.5, lighten if A > 0.5";
+
+    case eMergeStencil:
+        return "B(1-a) (a.k.a. dst-out)";
+
+    case eMergeUnder:
+        return "A(1-b)+B (a.k.a. dst-over)";
+
+    case eMergeXOR:
+        return "A(1-b)+B(1-a)";
+    } // switch
+
+    return "unknown";
+} // getOperationString
+
+inline std::string
+getOperationHelp(MergingFunctionEnum operation)
+{
+    return getOperationString(operation) + ": " + getOperationDescription(operation);
+}
+
+inline std::string
 getOperationGroupString(MergingFunctionEnum operation)
 {
     switch (operation) {
             // Porter Duff Compositing Operators
-        case eMergeCopy: // aka source
-        case eMergeOver:
-        case eMergeIn:
-        case eMergeOut:
-        case eMergeATop:
-        case eMergeUnder: // aka dest-over
-        case eMergeMask: // aka dest-in
-        case eMergeStencil: // aka dest-out
-        case eMergeXOR:
-        case eMergePlus:
-
+            // missing: clear
+        case eMergeCopy: // src
+            // missing: dst
+        case eMergeOver: // src-over
+        case eMergeUnder: // dst-over
+        case eMergeIn: // src-in
+        case eMergeMask: // dst-in
+        case eMergeOut: // src-out
+        case eMergeStencil: // dst-out
+        case eMergeATop: // src-atop
+        case eMergeXOR: // xor
             return "Operator";
 
             // Blend modes, see https://en.wikipedia.org/wiki/Blend_modes
@@ -324,45 +457,47 @@ getOperationGroupString(MergingFunctionEnum operation)
         case eMergeMultiply:
         case eMergeScreen:
         case eMergeOverlay:
-        case eMergeMin:
-        case eMergeMax:
-
+        case eMergeHardLight:
+        case eMergeSoftLight:
             return "Multiply and Screen";
 
             // Dodge and burn
         case eMergeColorDodge:
         case eMergeColorBurn:
-        case eMergeHardLight:
-        case eMergeSoftLight:
         case eMergePinLight:
-        case eMergeGrainExtract:
-        case eMergeGrainMerge:
-        case eMergeDifference:
+        //case eMergeDifference:
         case eMergeExclusion:
-        case eMergeDivide:
-
+        //case eMergeDivide:
             return "Dodge and Burn";
 
-            // Nonseparable blend modes
+            // Simple arithmetic blend modes
+        case eMergeDivide:
+        case eMergePlus:
+        case eMergeFrom:
+        case eMergeMinus:
+        case eMergeDifference:
+        case eMergeMin:
+        case eMergeMax:
+            return "HSL";
+
+            // Hue, saturation, luminosity
         case eMergeHue:
         case eMergeSaturation:
         case eMergeColor:
         case eMergeLuminosity:
-
             return "HSL";
 
         case eMergeAverage:
         case eMergeConjointOver:
         case eMergeDisjointOver:
         case eMergeFreeze:
-        case eMergeFrom:
         case eMergeGeometric:
+        case eMergeGrainExtract:
+        case eMergeGrainMerge:
         case eMergeHypot:
         //case eMergeInterpolated:
         case eMergeMatte:
-        case eMergeMinus:
         case eMergeReflect:
-            
             return "Other";
     } // switch
 
