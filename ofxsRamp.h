@@ -206,9 +206,9 @@ public:
     : RampInteractHelper(effect, interact, true) {}
 };
 
-typedef OverlayInteractFromHelper<RampInteractHelper> RampInteractOldParams;
+typedef OverlayInteractFromHelper<RampInteractHelperOldParams> RampInteractOldParams;
 
-class RampOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteractOldParams> {};
+class RampOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<RampOverlayDescriptorOldParams, RampInteractOldParams> {};
 
 
 template<RampTypeEnum type>
