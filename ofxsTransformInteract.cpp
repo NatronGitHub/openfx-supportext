@@ -1204,7 +1204,7 @@ bool TransformInteractHelper::penMotion(const OFX::PenArgs &args)
         }
         _effect->endEditBlock();
     } else if (didSomething || valuesChanged) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
 
     _lastMousePos = args.penPosition;
@@ -1362,7 +1362,7 @@ bool TransformInteractHelper::penDown(const OFX::PenArgs &args)
     _invertedDrag = inverted;
 
     if (didSomething) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
 
     return didSomething;
@@ -1386,7 +1386,7 @@ bool TransformInteractHelper::penUp(const OFX::PenArgs &args)
         _skewY->setValue(_skewYDrag);
         _effect->endEditBlock();
     } else if (_mouseState != eReleased) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
 
     _mouseState = eReleased;
@@ -1422,7 +1422,7 @@ bool TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
         }
     }
     if (mustRedraw) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
     //std::cout << std::hex << args.keySymbol << std::endl;
     // modifiers are not "caught"
@@ -1456,7 +1456,7 @@ bool TransformInteractHelper::keyUp(const OFX::KeyArgs &args)
         }
     }
     if (mustRedraw) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
     // modifiers are not "caught"
     return false;

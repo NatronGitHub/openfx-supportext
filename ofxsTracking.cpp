@@ -981,7 +981,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     }
 
     if (didSomething || valuesChanged) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
 
     _lastMousePos = args.penPosition;
@@ -1094,7 +1094,7 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     _lastMousePos = args.penPosition;
 
     if (didSomething) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
 
     return didSomething;
@@ -1170,7 +1170,7 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
 
     _ms = eMouseStateIdle;
 
-    _effect->redrawOverlays();
+    requestRedraw();
 
     return true;
 }

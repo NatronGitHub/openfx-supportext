@@ -236,24 +236,25 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 
         if (_state != newState) {
             _state = newState;
-            didSomething = true;
+            requestRedraw();
         }
+        didSomething = (_state == eMouseStatePoised);
+        break;
     }
-    break;
 
     case eMouseStatePicked: {
         _penPosition = args.penPosition;
         valuesChanged = true;
+        break;
     }
-    break;
     }
     
     if (_state != eMouseStateInactive && _interactiveDrag && valuesChanged) {
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
     }
 
-    if (didSomething || valuesChanged) {
-        _effect->redrawOverlays();
+    if (valuesChanged) {
+        requestRedraw();
     }
 
     return didSomething || valuesChanged;
@@ -285,10 +286,6 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
         didSomething = true;
     }
 
-    if (didSomething) {
-        _effect->redrawOverlays();
-    }
-
     return didSomething;
 }
 
@@ -315,11 +312,10 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
         }
         _state = eMouseStateInactive;
         penMotion(args);
-        didSomething = true;
     }
 
     if (didSomething) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
 
     return didSomething;
@@ -330,9 +326,11 @@ template <typename ParamName>
 void
 PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs &/*args*/)
 {
-    // reset the modifiers state
-    _state = eMouseStateInactive;
     _interactiveDrag = false;
+    if (_state != eMouseStateInactive) {
+        _state = eMouseStateInactive;
+        requestRedraw();
+    }
 }
 
 template <typename ParamName>

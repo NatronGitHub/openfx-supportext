@@ -427,7 +427,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
         setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
         // no need to redraw overlay since it is slave to the paramaters
     } else if (didSomething || valuesChanged) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
 
 
@@ -508,7 +508,7 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
     _sizeDrag.y = h;
     _lastMousePos = args.penPosition;
     if (didSomething) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
 
     return didSomething;
@@ -529,7 +529,7 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
         setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
         didSmthing = true;
     } else if (_mouseState != eMouseStateIdle) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
     _mouseState = eMouseStateIdle;
 
@@ -561,7 +561,7 @@ RectangleInteract::keyDown(const OFX::KeyArgs &args)
         ++_modifierStateShift;
     }
     if (mustRedraw) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
     //std::cout << std::hex << args.keySymbol << std::endl;
     // modifiers are not "caught"
@@ -593,7 +593,7 @@ RectangleInteract::keyUp(const OFX::KeyArgs &args)
         }
     }
     if (mustRedraw) {
-        _effect->redrawOverlays();
+        requestRedraw();
     }
     // modifiers are not "caught"
     return false;

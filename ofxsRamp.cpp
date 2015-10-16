@@ -290,7 +290,7 @@ RampInteractHelper::penMotion(const PenArgs &args)
     }
 
     if (valuesChanged) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
 
     _lastMousePos = args.penPosition;
@@ -341,7 +341,7 @@ RampInteractHelper::penDown(const PenArgs &args)
     _lastMousePos = args.penPosition;
 
     if (didSomething) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
 
     return didSomething;
@@ -376,7 +376,7 @@ RampInteractHelper::penUp(const PenArgs &args)
             didSomething = true;
         }
     } else  if (_state != eInteractStateIdle) {
-        _effect->redrawOverlays();
+        _interact->requestRedraw();
     }
     
     _state = eInteractStateIdle;
