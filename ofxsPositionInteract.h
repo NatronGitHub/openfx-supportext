@@ -310,8 +310,9 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
             const OfxPointD& pscale = args.pixelScale;
             _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         }
-        _state = eMouseStateInactive;
         penMotion(args);
+        _state = eMouseStateInactive;
+        didSomething = true;
     }
 
     if (didSomething) {
