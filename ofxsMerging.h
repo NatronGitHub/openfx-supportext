@@ -586,7 +586,12 @@ PIX
 geometricFunctor(PIX A,
                  PIX B)
 {
-    return 2 * A * B / (A + B);
+    double sum = (double)A + (double)B;
+    if (sum == 0) {
+        return 0;
+    } else {
+        return 2 * A * B / sum;
+    }
 }
 
 template <typename PIX,int maxValue>
