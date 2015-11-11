@@ -779,7 +779,7 @@ conjointOverFunctor(PIX A,
                     PIX alphaA,
                     PIX alphaB)
 {
-    if (alphaA > alphaB) {
+    if (alphaA > alphaB || !alphaB) {
         return A;
     } else {
         return A + B * (maxValue - alphaA) / alphaB;
