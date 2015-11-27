@@ -31,7 +31,7 @@
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth)
         : OFX::ImageEffect(handle)
         , _dstClip(0)
-        , _type(0)
+        , _extent(0)
         , _format(0)
         , _btmLeft(0)
         , _size(0)
@@ -53,12 +53,12 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
                          _dstClip->getPixelComponents() == OFX::ePixelComponentXY ||
                          _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
-    _type = fetchChoiceParam(kParamGeneratorExtent);
+    _extent = fetchChoiceParam(kParamGeneratorExtent);
     _format = fetchChoiceParam(kParamGeneratorFormat);
     _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
-    assert(_type && _format && _btmLeft && _size && _interactive);
+    assert(_extent && _format && _btmLeft && _size && _interactive);
     
     if (_useOutputComponentsAndDepth) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
@@ -211,10 +211,10 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
         int min, max;
         _range->getValue(min, max);
 
-        int type_i;
-        _type->getValue(type_i);
-        GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
-        if (type == eGeneratorTypeSize) {
+        int extent_i;
+        _extent->getValue(extent_i);
+        GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+        if (extent == eGeneratorExtentSize) {
             ///If not animated and different than 'min' time, return identity on the min time.
             ///We need to check more parameters
             if (paramsNotAnimated() && _size->getNumKeys() == 0 && _btmLeft->getNumKeys() == 0 && args.time != min) {
@@ -241,12 +241,12 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
 void
 GeneratorPlugin::updateParamsVisibility()
 {
-        int type_i;
-        _type->getValue(type_i);
-        GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+        int extent_i;
+        _extent->getValue(extent_i);
+        GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    bool hasFormat = (type == eGeneratorTypeFormat);
-    bool hasSize = (type == eGeneratorTypeSize);
+    bool hasFormat = (extent == eGeneratorExtentFormat);
+    bool hasSize = (extent == eGeneratorExtentSize);
 
     _format->setEnabled(hasFormat);
     _format->setIsSecret(!hasFormat);
@@ -270,11 +270,11 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 bool
 GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
-    switch (type) {
-    case eGeneratorTypeFormat: {
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    switch (extent) {
+    case eGeneratorExtentFormat: {
         int format_i;
         _format->getValue(format_i);
         double par;
@@ -286,7 +286,7 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 
         return true;
     }
-    case eGeneratorTypeSize: {
+    case eGeneratorExtentSize: {
         _size->getValue(rod.x2, rod.y2);
         _btmLeft->getValue(rod.x1, rod.y1);
         rod.x2 += rod.x1;
@@ -294,7 +294,7 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 
         return true;
     }
-    case eGeneratorTypeProject: {
+    case eGeneratorExtentProject: {
         OfxPointD siz = getProjectSize();
         OfxPointD off = getProjectOffset();
         rod.x1 = off.x;
@@ -304,7 +304,7 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 
         return true;
     }
-    case eGeneratorTypeDefault:
+    case eGeneratorExtentDefault:
       
         return false;
     }
@@ -315,12 +315,12 @@ void
 GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 {
     double par = 0.;
-    int type_i;
+    int extent_i;
 
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
-    switch (type) {
-    case eGeneratorTypeFormat: {
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    switch (extent) {
+    case eGeneratorExtentFormat: {
         //specific output format
         int index;
         _format->getValue(index);
@@ -328,8 +328,8 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         getFormatResolution( (OFX::EParamFormat)index, &w, &h, &par );
         break;
     }
-    case eGeneratorTypeProject:
-    case eGeneratorTypeDefault: {
+    case eGeneratorExtentProject:
+    case eGeneratorExtentDefault: {
         /// this should be the defalut value given by the host, no need to set it.
         /// @see Instance::setupClipPreferencesArgs() in HostSupport, it should have
         /// the line:
@@ -338,7 +338,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
         //par = getProjectPixelAspectRatio();
         break;
     }
-    case eGeneratorTypeSize:
+    case eGeneratorExtentSize:
         break;
     }
     
@@ -366,58 +366,58 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
                                      OFX::ImageEffect* effect)
         : RectangleInteract(handle,effect)
-        , _type(0)
-        , _generatorType(eGeneratorTypeDefault)
+        , _extent(0)
+        , _extentValue(eGeneratorExtentDefault)
 {
-    _type = effect->fetchChoiceParam(kParamGeneratorExtent);
-    assert(_type);
+    _extent = effect->fetchChoiceParam(kParamGeneratorExtent);
+    assert(_extent);
 }
 
 void GeneratorInteract::aboutToCheckInteractivity(OfxTime /*time*/)
 {
-    int type_i;
-    _type->getValue(type_i);
-    _generatorType = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    _extentValue = (GeneratorExtentEnum)extent_i;
 }
 
 bool GeneratorInteract::allowTopLeftInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool GeneratorInteract::allowBtmRightInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool GeneratorInteract::allowBtmLeftInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool GeneratorInteract::allowBtmMidInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool GeneratorInteract::allowMidLeftInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool GeneratorInteract::allowCenterInteraction() const
 {
-    return _generatorType == eGeneratorTypeSize;
+    return _extentValue == eGeneratorExtentSize;
 }
 
 bool
 GeneratorInteract::draw(const OFX::DrawArgs &args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
 
@@ -427,11 +427,11 @@ GeneratorInteract::draw(const OFX::DrawArgs &args)
 bool
 GeneratorInteract::penMotion(const OFX::PenArgs &args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
 
@@ -441,11 +441,11 @@ GeneratorInteract::penMotion(const OFX::PenArgs &args)
 bool
 GeneratorInteract::penDown(const OFX::PenArgs &args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
 
@@ -455,11 +455,11 @@ GeneratorInteract::penDown(const OFX::PenArgs &args)
 bool
 GeneratorInteract::penUp(const OFX::PenArgs &args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
 
@@ -477,11 +477,11 @@ GeneratorInteract::loseFocus(const OFX::FocusArgs &args)
 bool
 GeneratorInteract::keyDown(const OFX::KeyArgs &args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
     
@@ -491,11 +491,11 @@ GeneratorInteract::keyDown(const OFX::KeyArgs &args)
 bool
 GeneratorInteract::keyUp(const OFX::KeyArgs & args)
 {
-    int type_i;
-    _type->getValue(type_i);
-    GeneratorTypeEnum type = (GeneratorTypeEnum)type_i;
+    int extent_i;
+    _extent->getValue(extent_i);
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
 
-    if (type != eGeneratorTypeSize) {
+    if (extent != eGeneratorExtentSize) {
         return false;
     }
 
@@ -514,7 +514,7 @@ void
 generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
-                           GeneratorTypeEnum defaultType,
+                           GeneratorExtentEnum defaultType,
                            bool useOutputComponentsAndDepth,
                            ContextEnum context)
 {
@@ -522,13 +522,13 @@ generatorDescribeInContext(PageParamDescriptor *page,
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
         param->setLabel(kParamGeneratorExtentLabel);
         param->setHint(kParamGeneratorExtentHint);
-        assert(param->getNOptions() == eGeneratorTypeFormat);
+        assert(param->getNOptions() == eGeneratorExtentFormat);
         param->appendOption(kParamGeneratorExtentOptionFormat, kParamGeneratorExtentOptionFormatHint);
-        assert(param->getNOptions() == eGeneratorTypeSize);
+        assert(param->getNOptions() == eGeneratorExtentSize);
         param->appendOption(kParamGeneratorExtentOptionSize, kParamGeneratorExtentOptionSizeHint);
-        assert(param->getNOptions() == eGeneratorTypeProject);
+        assert(param->getNOptions() == eGeneratorExtentProject);
         param->appendOption(kParamGeneratorExtentOptionProject, kParamGeneratorExtentOptionProjectHint);
-        assert(param->getNOptions() == eGeneratorTypeDefault);
+        assert(param->getNOptions() == eGeneratorExtentDefault);
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
         param->setAnimates(false);
         param->setDefault((int)defaultType);

@@ -57,12 +57,12 @@
 #define kParamGeneratorRangeLabel "Frame Range"
 #define kParamGeneratorRangeHint "Time domain."
 
-enum GeneratorTypeEnum
+enum GeneratorExtentEnum
 {
-    eGeneratorTypeFormat = 0,
-    eGeneratorTypeSize,
-    eGeneratorTypeProject,
-    eGeneratorTypeDefault,
+    eGeneratorExtentFormat = 0,
+    eGeneratorExtentSize,
+    eGeneratorExtentProject,
+    eGeneratorExtentDefault,
 };
 
 #define kParamGeneratorFormat "format"
@@ -76,7 +76,7 @@ class GeneratorPlugin
 protected:
     // do not need to delete these, the ImageEffect is managing them for us
     OFX::Clip *_dstClip;
-    OFX::ChoiceParam* _type;
+    OFX::ChoiceParam* _extent;
     OFX::ChoiceParam* _format;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
@@ -152,8 +152,8 @@ private:
     virtual bool allowMidLeftInteraction() const OVERRIDE FINAL;
     virtual bool allowCenterInteraction() const OVERRIDE FINAL;
 
-    OFX::ChoiceParam* _type;
-    GeneratorTypeEnum _generatorType;
+    OFX::ChoiceParam* _extent;
+    GeneratorExtentEnum _extentValue;
 };
 
 
@@ -168,7 +168,7 @@ void generatorDescribe(OFX::ImageEffectDescriptor &desc);
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
-                                GeneratorTypeEnum defaultType,
+                                GeneratorExtentEnum defaultType,
                                 bool useOutputComponentsAndDepth,
                                 ContextEnum context);
 } // OFX
