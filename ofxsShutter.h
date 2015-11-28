@@ -36,7 +36,7 @@
 #define kParamShutterOffset "shutterOffset"
 #define kParamShutterOffsetLabel "Shutter Offset"
 #define kParamShutterOffsetHint "Controls when the shutter should be open/closed. Ignored if there is no motion blur (i.e. shutter=0 or motionBlur=0)."
-#define kParamShutterOffsetOptionCentered "Centred"
+#define kParamShutterOffsetOptionCentered "Centered"
 #define kParamShutterOffsetOptionCenteredHint "Centers the shutter around the frame (from t-shutter/2 to t+shutter/2)"
 #define kParamShutterOffsetOptionStart "Start"
 #define kParamShutterOffsetOptionStartHint "Open the shutter at the frame (from t to t+shutter)"
