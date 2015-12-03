@@ -94,7 +94,7 @@ public:
     };
 
     /** @brief recover a transform matrix from an effect */
-    virtual bool getInverseTransformCanonical(double time, double amount, bool invert, OFX::Matrix3x3* invtransform) const = 0;
+    virtual bool getInverseTransformCanonical(double time, int view, double amount, bool invert, OFX::Matrix3x3* invtransform) const = 0;
 
 
     // The following functions override those is OFX::ImageEffect
@@ -124,6 +124,7 @@ public:
 
 protected:
     size_t getInverseTransforms(double time,
+                                int view,
                                 OfxPointD renderscale,
                                 bool fielded,
                                 double pixelaspectratio,
@@ -135,6 +136,7 @@ protected:
                                 size_t invtransformsizealloc) const;
 
     size_t getInverseTransformsBlur(double time,
+                                    int view,
                                     OfxPointD renderscale,
                                     bool fielded,
                                     double pixelaspectratio,
@@ -159,6 +161,7 @@ private:
 
     void transformRegion(const OfxRectD &rectFrom,
                          double time,
+                         int view,
                          bool invert,
                          double motionblur,
                          bool directionalBlur,

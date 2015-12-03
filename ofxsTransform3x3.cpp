@@ -274,12 +274,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-            invtransformsize = getInverseTransforms(time, args.renderScale, fielded, pixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, pixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
             invtransformalpha.resize(invtransformsizealloc);
-            invtransformsize = getInverseTransformsBlur(time, args.renderScale, fielded, pixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransformsBlur(time, args.renderView, args.renderScale, fielded, pixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
             // normalize alpha, and apply gamma
             double fading = 0.;
             if (_fading) {
@@ -296,7 +296,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsizealloc = 1;
             invtransform.resize(invtransformsizealloc);
             invtransformsize = 1;
-            bool success = getInverseTransformCanonical(time, 1., invert, &invtransform[0]); // virtual function
+            bool success = getInverseTransformCanonical(time, args.renderView, 1., invert, &invtransform[0]); // virtual function
             if (!success) {
                 invtransform[0].a = 0.;
                 invtransform[0].b = 0.;
@@ -450,6 +450,7 @@ ofxsTransformRegionFromRoD(const OfxRectD &srcRoD,
 void
 Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
                                     double time,
+                                    int view,
                                     bool invert,
                                     double motionblur,
                                     bool directionalBlur,
@@ -498,7 +499,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
         // compute transformed positions
         OfxRectD thisRoD;
         OFX::Matrix3x3 transform;
-        bool success = getInverseTransformCanonical(t, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
+        bool success = getInverseTransformCanonical(t, view, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
         if (!success) {
             // return infinite region
             rectTo->x1 = kOfxFlagInfiniteMin;
@@ -638,7 +639,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     bool identity = isIdentity(args.time);
 
     // set rod from srcRoD
-    transformRegion(srcRoD, time, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
+    transformRegion(srcRoD, time, args.view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity.
@@ -722,7 +723,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
     }
     // set srcRoI from roi
-    transformRegion(roi, time, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
+    transformRegion(roi, time, args.view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
     int filter = eFilterCubic;
     if (_filter) {
@@ -1015,7 +1016,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
     }
 
     OFX::Matrix3x3 invtransform;
-    bool success = getInverseTransformCanonical(time, 1., invert, &invtransform);
+    bool success = getInverseTransformCanonical(time, args.renderView, 1., invert, &invtransform);
     if (!success) {
         return false;
     }
@@ -1050,6 +1051,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
 
 size_t
 Transform3x3Plugin::getInverseTransforms(double time,
+                                         int view,
                                          OfxPointD renderscale,
                                          bool fielded,
                                          double pixelaspectratio,
@@ -1073,7 +1075,7 @@ Transform3x3Plugin::getInverseTransforms(double time,
 
     for (size_t i = 0; i < invtransformsize; ++i) {
         double t = (i == 0) ? t_start : ( t_start + i * (t_end - t_start) / (double)(invtransformsizealloc - 1) );
-        bool success = getInverseTransformCanonical(t, 1., invert, &invtransformCanonical); // virtual function
+        bool success = getInverseTransformCanonical(t, view, 1., invert, &invtransformCanonical); // virtual function
         if (success) {
             invtransform[i] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
         } else {
@@ -1106,6 +1108,7 @@ Transform3x3Plugin::getInverseTransforms(double time,
 
 size_t
 Transform3x3Plugin::getInverseTransformsBlur(double time,
+                                             int view,
                                              OfxPointD renderscale,
                                              bool fielded,
                                              double pixelaspectratio,
@@ -1126,7 +1129,7 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
         //double a = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
         double a = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
         double amt = amountFrom + (amountTo - amountFrom) * a;
-        bool success = getInverseTransformCanonical(time, amt, invert, &invtransformCanonical); // virtual function
+        bool success = getInverseTransformCanonical(time, view, amt, invert, &invtransformCanonical); // virtual function
         if (success) {
             if (amount) {
                 amount[invtransformsize] = amt;
