@@ -87,7 +87,7 @@ inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform
 }
 
 /// add Transform params. page and group are optional
-void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams);
+void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams, bool noTranslate = false);
 
 class TransformInteractHelper : private OFX::InteractAbstract
 {
