@@ -164,6 +164,13 @@ namespace OFX {
         void setChannelsFromStringParams(const std::list<ChoiceStringParam>& params, bool allowReset);
         
         /**
+         * @brief To be called in the changedParam action for each dynamic choice holding channels/layers info. This will synchronize the hidden string
+         * parameter to reflect the value of the choice parameter (only if the reason is a user change).
+         * @return Returns true if the param change was caught, false otherwise
+         **/
+        bool checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam);
+        
+        /**
          * @brief Add a dynamic choice parameter to select the output layer (in which the plug-in will render)
          **/
         OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page);

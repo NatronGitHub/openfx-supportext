@@ -567,6 +567,18 @@ namespace OFX {
             setChannelsFromStringParamsInternal(data, allowReset);
         }
         
+        void checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
+        {
+            
+            if (paramName == param->getName() && reason == OFX::eChangeUserEdit && stringparam) {
+                int choice_i;
+                param->getValue(choice_i);
+                std::string optionName;
+                param->getOption(choice_i, optionName);
+                stringparam->setValue(optionName);
+            }
+        }
+        
         OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
         {
             
@@ -585,7 +597,7 @@ namespace OFX {
                 param->appendOption(kPlaneLabelDisparityRightPlaneName);
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
-                
+                param->setAnimates(false);
                 desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
                 if (page) {
                     page->addChild(*param);
@@ -617,6 +629,7 @@ namespace OFX {
                 ChoiceParamDescriptor *param = desc.defineChoiceParam(name);
                 param->setLabel(label);
                 param->setHint(hint);
+                param->setAnimates(false);
                 addInputChannelOptionsRGBA<ChoiceParamDescriptor>(param, clips, true, 0);
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
