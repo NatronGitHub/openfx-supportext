@@ -567,7 +567,7 @@ namespace OFX {
             setChannelsFromStringParamsInternal(data, allowReset);
         }
         
-        void checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
+        bool checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
         {
             
             if (paramName == param->getName() && reason == OFX::eChangeUserEdit && stringparam) {
@@ -576,7 +576,9 @@ namespace OFX {
                 std::string optionName;
                 param->getOption(choice_i, optionName);
                 stringparam->setValue(optionName);
+                return true;
             }
+            return false;
         }
         
         OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
