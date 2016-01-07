@@ -35,6 +35,7 @@
 #include <map>
 #include <string>
 #include <list>
+#include <vector>
 
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
