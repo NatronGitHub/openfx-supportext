@@ -45,10 +45,10 @@
 #define kPlaneLabelColorAlpha "Color.Alpha"
 #define kPlaneLabelColorRGB "Color.RGB"
 #define kPlaneLabelColorRGBA "Color.RGBA"
-#define kPlaneLabelMotionBackwardPlaneName "Backward.UV"
-#define kPlaneLabelMotionForwardPlaneName "Forward.UV"
-#define kPlaneLabelDisparityLeftPlaneName "DisparityLeft.XY"
-#define kPlaneLabelDisparityRightPlaneName "DisparityRight.XY"
+#define kPlaneLabelMotionBackwardPlaneName "Backward.Motion"
+#define kPlaneLabelMotionForwardPlaneName "Forward.Motion"
+#define kPlaneLabelDisparityLeftPlaneName "DisparityLeft.Disparity"
+#define kPlaneLabelDisparityRightPlaneName "DisparityRight.Disparity"
 
 #define kMultiPlaneParamOutputChannels kNatronOfxParamOutputChannels
 #define kMultiPlaneParamOutputChannelsChoice kMultiPlaneParamOutputChannels "Choice"
@@ -62,14 +62,22 @@
 
 namespace OFX {
     namespace MultiPlane {
-    
-        struct ClipComponentsInfo
+        
+        struct ClipsComponentsInfoBase
         {
             //A pointer to the clip
             OFX::Clip* clip;
             
             //The value returned by clip->getComponentsPresent()
             std::list<std::string> componentsPresent;
+            
+            ClipsComponentsInfoBase() : clip(0), componentsPresent() {}
+            
+            virtual ~ClipsComponentsInfoBase() {}
+        };
+    
+        struct ClipComponentsInfo : public ClipsComponentsInfoBase
+        {
             
             //A pointer to a components present cache held as a member of the plug-in (no need to lock it as accessed always on the same thread)
             //This is to speed-up buildChannelMenus to avoid re-building menus and make complex API calls if they did not change.
@@ -79,11 +87,13 @@ namespace OFX {
             mutable bool comparisonToCacheDone;
             mutable bool isCacheValid;
             
-            ClipComponentsInfo() : clip(0), componentsPresent(), componentsPresentCache(0), comparisonToCacheDone(false), isCacheValid(false) {}
+            ClipComponentsInfo() : ClipsComponentsInfoBase(), componentsPresentCache(0), comparisonToCacheDone(false), isCacheValid(false) {}
+            
+            virtual ~ClipComponentsInfo() {}
         };
         
         // map <ClipName, ClipComponentsInfo>
-        typedef std::map<std::string, ClipComponentsInfo> PerClipComponentsMap;
+        typedef std::map<std::string, ClipsComponentsInfoBase> PerClipComponentsMap;
         
         
         /**
@@ -135,16 +145,18 @@ namespace OFX {
          * @brief For each choice param, the list of clips it "depends on" (that is the clip layers that will be visible in the choice)
          * If the clips vector contains a single clip and this is the output clip then it is expected that param points to the kMultiPlaneParamOutputChannels
          * parameter.
+         * We pass a pointer to a vector of clips because when calling buildChannelMenus(), there might be multiple choice params using the same clips.
+         * This lets a chance to optimize the data copying since ClipComponentsInfo is quite a large struct.
          **/
         struct ChoiceParamClips
         {
             OFX::ChoiceParam* param;
             OFX::StringParam* stringparam;
-            std::vector<ClipComponentsInfo> clips;
+            std::vector<ClipComponentsInfo>* clips;
         };
         
         /**
-         * @brief Rebuild the given choice parameter depending on the clips componentns present. 
+         * @brief Rebuild the given choice parameter depending on the clips components present. 
          * The only way to properly refresh the dynamic choice is when getClipPreferences is called.
          * If the componentsPresentCache member of each ClipComponentsInfo is set to a list stored in the plug-in, then
          * this function will first check if any change happened before rebuilding the menu, thus avoiding many complex API calls.
@@ -168,7 +180,13 @@ namespace OFX {
          * parameter to reflect the value of the choice parameter (only if the reason is a user change).
          * @return Returns true if the param change was caught, false otherwise
          **/
-        bool checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam);
+        enum ChangedParamRetCode
+        {
+            eChangedParamRetCodeNoChange,
+            eChangedParamRetCodeChoiceParamChanged,
+            eChangedParamRetCodeStringParamChanged
+        };
+        ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam);
         
         /**
          * @brief Add a dynamic choice parameter to select the output layer (in which the plug-in will render)
@@ -184,6 +202,24 @@ namespace OFX {
                                                                       const std::string& name,
                                                                       const std::string& label,
                                                                       const std::string& hint);
+        
+        /**
+         * @brief Add the standard R,G,B,A choices for the given clips. 
+         * @param addConstants If true, it will also add the "0" and "1" choice to the list
+         * @param options[out] If non-null fills the vector with the options that were appended to the param
+         **/
+        void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
+                                        const std::vector<std::string>& clips,
+                                        bool addConstants,
+                                        std::vector<std::string>* options);
+        
+        /**
+         * @brief Same as above, but for a choice param instance
+         **/
+        void addInputChannelOptionsRGBA(OFX::ChoiceParam* param,
+                                        const std::vector<std::string>& clips,
+                                        bool addConstants,
+                                        std::vector<std::string>* options);
         
     } // namespace MultiPlane
 } // namespace OFX

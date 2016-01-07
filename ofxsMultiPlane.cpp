@@ -31,7 +31,7 @@
 
 namespace  {
 template <typename T>
-void addInputChannelOptionsRGBA(T* param,
+void addInputChannelOptionsRGBAInternal(T* param,
                                 const std::vector<std::string>& clips,
                                 bool addConstants,
                                 std::vector<std::string>* options) {
@@ -142,58 +142,121 @@ static void extractChannelsFromComponentString(const std::string& comp,
 static void appendComponents(const std::string& clipName,
                              const std::list<std::string>& components,
                              OFX::ChoiceParam* param,
+                             const bool isOutputChannelsParam,
                              std::vector<std::string>* channelChoices)
 {
     
-    std::list<std::string> usedComps;
-    for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
-        std::string layer, secondLayer;
-        std::vector<std::string> channels;
-        extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
-        if (channels.empty()) {
-            continue;
-        }
-        if (layer.empty()) {
-            continue;
-        }
-        for (std::size_t i = 0; i < channels.size(); ++i) {
-            std::string opt = clipName + ".";
-            if (!layer.empty()) {
-                opt.append(layer);
-                opt.push_back('.');
+    
+    if (isOutputChannelsParam) {
+        //Pre-process to add color comps first
+        std::list<std::string> compsToAdd;
+        bool foundColor = false;
+        for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
+            std::string layer, secondLayer;
+            std::vector<std::string> channels;
+            extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            if (channels.empty()) {
+                continue;
             }
-            opt.append(channels[i]);
-            
-            if (std::find(usedComps.begin(), usedComps.end(), opt) == usedComps.end()) {
-                usedComps.push_back(opt);
-                param->appendOption(opt, channels[i] + " channel from " + ((layer.empty())? std::string() : std::string("layer/view ") + layer + " of ") + "input " + clipName);
-                if (channelChoices) {
-                    channelChoices->push_back(opt);
+            if (layer.empty()) {
+                if (*it == kOfxImageComponentRGBA) {
+                    channelChoices->push_back(kPlaneLabelColorRGBA);
+                    foundColor = true;
+                } else if (*it == kOfxImageComponentRGB) {
+                    channelChoices->push_back(kPlaneLabelColorRGB);
+                    foundColor = true;
+                } else if (*it == kOfxImageComponentAlpha) {
+                    channelChoices->push_back(kPlaneLabelColorAlpha);
+                    foundColor = true;
                 }
                 
+                continue;
+            } else {
+                if (layer == kPlaneLabelMotionForwardPlaneName ||
+                    layer == kPlaneLabelMotionBackwardPlaneName ||
+                    layer == kPlaneLabelDisparityLeftPlaneName ||
+                    layer == kPlaneLabelDisparityRightPlaneName) {
+                    continue;
+                }
             }
             
-        }
-        
-        if (!secondLayer.empty()) {
-            for (std::size_t i = 0; i < channels.size(); ++i) {
-                std::string opt = clipName + ".";
-                if (!secondLayer.empty()) {
-                    opt.append(secondLayer);
+            //Append the channel names to the layer
+            //Edit: Uncommented to match what is done in other softwares
+            //Note that uncommenting will break compatibility with projects using multi-plane features
+            /*for (std::size_t i = 0; i < channels.size(); ++i) {
+                std::string opt;
+                if (!layer.empty()) {
+                    opt.append(layer);
                     opt.push_back('.');
                 }
                 opt.append(channels[i]);
+            }*/
+            
+            compsToAdd.push_back(layer);
+        }
+        if (!foundColor) {
+            channelChoices->push_back(kPlaneLabelColorRGBA);
+        }
+        channelChoices->push_back(kPlaneLabelMotionForwardPlaneName);
+        channelChoices->push_back(kPlaneLabelMotionBackwardPlaneName);
+        channelChoices->push_back(kPlaneLabelDisparityLeftPlaneName);
+        channelChoices->push_back(kPlaneLabelDisparityRightPlaneName);
+        channelChoices->insert(channelChoices->end(), compsToAdd.begin(), compsToAdd.end());
+        
+        for (std::vector<std::string>::const_iterator it = channelChoices->begin(); it!=channelChoices->end(); ++it) {
+            param->appendOption(*it);
+        }
+    } else { // !isOutputChannelsParam
+        std::list<std::string> usedComps;
+        for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
+            std::string layer, secondLayer;
+            std::vector<std::string> channels;
+            extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            if (channels.empty()) {
+                continue;
+            }
+            if (layer.empty()) {
+                continue;
+            }
+            for (std::size_t i = 0; i < channels.size(); ++i) {
+                std::string opt = clipName + ".";
+                if (!layer.empty()) {
+                    opt.append(layer);
+                    opt.push_back('.');
+                }
+                opt.append(channels[i]);
+                
                 if (std::find(usedComps.begin(), usedComps.end(), opt) == usedComps.end()) {
                     usedComps.push_back(opt);
-                    param->appendOption(opt, channels[i] + " channel from layer " + secondLayer + " of input " + clipName);
+                    param->appendOption(opt, channels[i] + " channel from " + ((layer.empty())? std::string() : std::string("layer/view ") + layer + " of ") + "input " + clipName);
                     if (channelChoices) {
                         channelChoices->push_back(opt);
                     }
                     
                 }
+                
+            }
+            
+            if (!secondLayer.empty()) {
+                for (std::size_t i = 0; i < channels.size(); ++i) {
+                    std::string opt = clipName + ".";
+                    if (!secondLayer.empty()) {
+                        opt.append(secondLayer);
+                        opt.push_back('.');
+                    }
+                    opt.append(channels[i]);
+                    if (std::find(usedComps.begin(), usedComps.end(), opt) == usedComps.end()) {
+                        usedComps.push_back(opt);
+                        param->appendOption(opt, channels[i] + " channel from layer " + secondLayer + " of input " + clipName);
+                        if (channelChoices) {
+                            channelChoices->push_back(opt);
+                        }
+                        
+                    }
+                }
             }
         }
-    }
+    } // isOutputChannelsParam
 }
     
 
@@ -250,6 +313,22 @@ static void setChannelsFromStringParamsInternal(const std::vector<SetChannelsFro
 namespace OFX {
     namespace MultiPlane {
         
+        
+        void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
+                                        const std::vector<std::string>& clips,
+                                        bool addConstants,
+                                        std::vector<std::string>* options)
+        {
+            addInputChannelOptionsRGBAInternal<OFX::ChoiceParamDescriptor>(param,clips,addConstants,options);
+        }
+        
+        void addInputChannelOptionsRGBA(OFX::ChoiceParam* param,
+                                        const std::vector<std::string>& clips,
+                                        bool addConstants,
+                                        std::vector<std::string>* options)
+        {
+            addInputChannelOptionsRGBAInternal<OFX::ChoiceParam>(param,clips,addConstants,options);
+        }
         
         bool getPlaneNeededForParam(double time,
                                     const PerClipComponentsMap& perClipComponents,
@@ -488,29 +567,29 @@ namespace OFX {
             for (std::size_t k = 0; k < params.size(); ++k) {
                 
                 bool hasChanged = false;
-                for (std::size_t c = 0; c < params[k].clips.size(); ++c) {
-                    if (!params[k].clips[c].componentsPresentCache) {
+                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
+                    if (!params[k].clips->at(c).componentsPresentCache) {
                         hasChanged = true;
                         break;
                     }
                     
                     ///Try to call hasListChanged as few as possible
                     bool thisListChanged;
-                    if (params[k].clips[c].comparisonToCacheDone) {
-                        thisListChanged = !params[k].clips[c].isCacheValid;
+                    if (params[k].clips->at(c).comparisonToCacheDone) {
+                        thisListChanged = !params[k].clips->at(c).isCacheValid;
                     } else {
-                        thisListChanged = hasListChanged(params[k].clips[c].componentsPresent, *params[k].clips[c].componentsPresentCache);
-                        params[k].clips[c].isCacheValid = !thisListChanged;
-                        params[k].clips[c].comparisonToCacheDone = true;
+                        thisListChanged = hasListChanged(params[k].clips->at(c).componentsPresent, *params[k].clips->at(c).componentsPresentCache);
+                        params[k].clips->at(c).isCacheValid = !thisListChanged;
+                        params[k].clips->at(c).comparisonToCacheDone = true;
                     }
                     if (thisListChanged) {
                         hasChanged = true;
                         break;
                     }
                     
-                    std::map<OFX::Clip*, const ClipComponentsInfo*>::iterator foundCacheInfoForClip = cacheInfos.find(params[k].clips[c].clip);
+                    std::map<OFX::Clip*, const ClipComponentsInfo*>::iterator foundCacheInfoForClip = cacheInfos.find(params[k].clips->at(c).clip);
                     if (foundCacheInfoForClip == cacheInfos.end()) {
-                        cacheInfos.insert(std::make_pair(params[k].clips[c].clip, &params[k].clips[c]));
+                        cacheInfos.insert(std::make_pair(params[k].clips->at(c).clip, &params[k].clips->at(c)));
                     }
                 }
                 if (!hasChanged) {
@@ -521,20 +600,22 @@ namespace OFX {
                 params[k].param->resetOptions();
                 std::vector<std::string> clipNames;
                 bool isOutput = false;
-                for (std::size_t c = 0; c < params[k].clips.size(); ++c) {
-                    const std::string& name = params[k].clips[c].clip->name();
+                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
+                    const std::string& name = params[k].clips->at(c).clip->name();
                     clipNames.push_back(name);
                     if (name == kOfxImageEffectOutputClipName) {
-                        assert(params[k].clips.size() == 1);
+                        assert(params[k].clips->size() == 1);
                         isOutput = true;
                     }
                 }
                 
                 data[k].param = params[k].param;
                 data[k].stringParam = params[k].stringparam;
-                addInputChannelOptionsRGBA<ChoiceParam>(params[k].param, clipNames, !isOutput, &data[k].options);
-                for (std::size_t c = 0; c < params[k].clips.size(); ++c) {
-                    appendComponents(params[k].clips[c].clip->name(), params[k].clips[c].componentsPresent, params[k].param, &data[k].options);
+                if (!isOutput) {
+                    addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &data[k].options);
+                }
+                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
+                    appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &data[k].options);
                 }
                 
                
@@ -567,7 +648,7 @@ namespace OFX {
             setChannelsFromStringParamsInternal(data, allowReset);
         }
         
-        bool checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
+        ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
         {
             
             if (reason == OFX::eChangeUserEdit && stringparam) {
@@ -577,7 +658,7 @@ namespace OFX {
                     std::string optionName;
                     param->getOption(choice_i, optionName);
                     stringparam->setValue(optionName);
-                    return true;
+                    return eChangedParamRetCodeChoiceParamChanged;
                 } else if (paramName == stringparam->getName()) {
                     ChoiceStringParam p;
                     p.param = param;
@@ -585,9 +666,10 @@ namespace OFX {
                     std::list<ChoiceStringParam> params;
                     params.push_back(p);
                     setChannelsFromStringParams(params, true);
+                    return eChangedParamRetCodeStringParamChanged;
                 }
             }
-            return false;
+            return eChangedParamRetCodeNoChange;
         }
         
         OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
@@ -641,7 +723,7 @@ namespace OFX {
                 param->setLabel(label);
                 param->setHint(hint);
                 param->setAnimates(false);
-                addInputChannelOptionsRGBA<ChoiceParamDescriptor>(param, clips, true, 0);
+                addInputChannelOptionsRGBA(param, clips, true, 0);
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
                 
