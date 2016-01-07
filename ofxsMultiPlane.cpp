@@ -29,6 +29,8 @@
  */
 #include "ofxsMultiPlane.h"
 
+#include <algorithm>
+
 namespace  {
 template <typename T>
 void addInputChannelOptionsRGBAInternal(T* param,
