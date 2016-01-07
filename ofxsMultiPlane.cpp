@@ -616,7 +616,7 @@ namespace OFX {
                 d.stringParam = params[k].stringparam;
                 
                 if (!isOutput) {
-                    addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &data[k].options);
+                    addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &d.options);
                 }
                 for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
                     appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &d.options);
