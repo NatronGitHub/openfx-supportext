@@ -562,7 +562,7 @@ namespace OFX {
             
             std::map<OFX::Clip*, const ClipComponentsInfo*> cacheInfos;
             
-            std::vector<SetChannelsFromStringData> data(params.size());
+            std::vector<SetChannelsFromStringData> data;
 
             for (std::size_t k = 0; k < params.size(); ++k) {
                 
@@ -591,9 +591,10 @@ namespace OFX {
                     if (foundCacheInfoForClip == cacheInfos.end()) {
                         cacheInfos.insert(std::make_pair(params[k].clips->at(c).clip, &params[k].clips->at(c)));
                     }
-                }
+                } //for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
+                
                 if (!hasChanged) {
-                    break;
+                    continue;
                 }
                 
                 //We must rebuild the choice
@@ -609,17 +610,22 @@ namespace OFX {
                     }
                 }
                 
-                data[k].param = params[k].param;
-                data[k].stringParam = params[k].stringparam;
+                
+                SetChannelsFromStringData d;
+                d.param = params[k].param;
+                d.stringParam = params[k].stringparam;
+                
                 if (!isOutput) {
                     addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &data[k].options);
                 }
                 for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
-                    appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &data[k].options);
+                    appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &d.options);
                 }
                 
-               
-            }
+                data.push_back(d);
+
+                
+            } // for (std::size_t k = 0; k < params.size(); ++k) {
             
             //Update the cache for each clip
             for (std::map<OFX::Clip*, const ClipComponentsInfo*>::iterator it = cacheInfos.begin(); it!=cacheInfos.end(); ++it) {
