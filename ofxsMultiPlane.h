@@ -42,13 +42,13 @@
 #include "ofxNatron.h"
 #endif
 
-#define kPlaneLabelColorAlpha "Alpha"
-#define kPlaneLabelColorRGB "RGB"
-#define kPlaneLabelColorRGBA "RGBA"
-#define kPlaneLabelMotionBackwardPlaneName "Backward"
-#define kPlaneLabelMotionForwardPlaneName "Forward"
-#define kPlaneLabelDisparityLeftPlaneName "DisparityLeft"
-#define kPlaneLabelDisparityRightPlaneName "DisparityRight"
+#define kPlaneLabelColorAlpha "Color.Alpha"
+#define kPlaneLabelColorRGB "Color.RGB"
+#define kPlaneLabelColorRGBA "Color.RGBA"
+#define kPlaneLabelMotionBackwardPlaneName "Backward.UV"
+#define kPlaneLabelMotionForwardPlaneName "Forward.UV"
+#define kPlaneLabelDisparityLeftPlaneName "DisparityLeft.XY"
+#define kPlaneLabelDisparityRightPlaneName "DisparityRight.XY"
 
 #define kMultiPlaneParamOutputChannels kNatronOfxParamOutputChannels
 #define kMultiPlaneParamOutputChannelsChoice kMultiPlaneParamOutputChannels "Choice"

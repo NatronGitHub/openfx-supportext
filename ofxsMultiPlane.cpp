@@ -570,13 +570,22 @@ namespace OFX {
         bool checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
         {
             
-            if (paramName == param->getName() && reason == OFX::eChangeUserEdit && stringparam) {
-                int choice_i;
-                param->getValue(choice_i);
-                std::string optionName;
-                param->getOption(choice_i, optionName);
-                stringparam->setValue(optionName);
-                return true;
+            if (reason == OFX::eChangeUserEdit && stringparam) {
+                if (paramName == param->getName()) {
+                    int choice_i;
+                    param->getValue(choice_i);
+                    std::string optionName;
+                    param->getOption(choice_i, optionName);
+                    stringparam->setValue(optionName);
+                    return true;
+                } else if (paramName == stringparam->getName()) {
+                    ChoiceStringParam p;
+                    p.param = param;
+                    p.stringParam = stringparam;
+                    std::list<ChoiceStringParam> params;
+                    params.push_back(p);
+                    setChannelsFromStringParams(params, true);
+                }
             }
             return false;
         }
