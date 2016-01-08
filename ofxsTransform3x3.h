@@ -177,6 +177,7 @@ private:
 
 protected:
     // Transform3x3-GENERIC
+    Transform3x3ParamsTypeEnum _paramsType;
     OFX::BooleanParam* _invert;
     // GENERIC
     OFX::ChoiceParam* _filter;

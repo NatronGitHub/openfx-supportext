@@ -84,6 +84,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
                                        Transform3x3ParamsTypeEnum paramsType)
     : ImageEffect(handle)
+      , _paramsType(paramsType)
       , _dstClip(0)
       , _srcClip(0)
       , _maskClip(0)
@@ -198,7 +199,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     std::vector<OFX::Matrix3x3> invtransform;
     std::vector<double> invtransformalpha;
     double motionblur = 0.;
-    bool directionalBlur = (_directionalBlur != 0);
+    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
     if (_amount) {
@@ -614,7 +615,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
     }
-    bool directionalBlur = (_directionalBlur == 0);
+    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
     if (_amount) {
@@ -701,7 +702,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
     }
-    bool directionalBlur = (_directionalBlur == 0);
+    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
     if (_amount) {
