@@ -198,7 +198,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     std::vector<OFX::Matrix3x3> invtransform;
     std::vector<double> invtransformalpha;
     double motionblur = 0.;
-    bool directionalBlur = (_directionalBlur == 0);
+    bool directionalBlur = (_directionalBlur != 0);
     double amountFrom = 0.;
     double amountTo = 1.;
     if (_amount) {
@@ -263,7 +263,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         }
         const bool fielded = args.fieldToRender == OFX::eFieldLower || args.fieldToRender == OFX::eFieldUpper;
         const double srcpixelAspectRatio = src->getPixelAspectRatio();
-        const double dstpixelAspectRatio = src->getPixelAspectRatio();
+        const double dstpixelAspectRatio = _dstClip->getPixelAspectRatio();
 
         if ( (shutter != 0.) && (motionblur != 0.) ) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
