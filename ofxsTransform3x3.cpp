@@ -262,7 +262,8 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             }
         }
         const bool fielded = args.fieldToRender == OFX::eFieldLower || args.fieldToRender == OFX::eFieldUpper;
-        const double pixelAspectRatio = src->getPixelAspectRatio();
+        const double srcpixelAspectRatio = src->getPixelAspectRatio();
+        const double dstpixelAspectRatio = src->getPixelAspectRatio();
 
         if ( (shutter != 0.) && (motionblur != 0.) ) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
@@ -274,12 +275,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, pixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
             invtransformalpha.resize(invtransformsizealloc);
-            invtransformsize = getInverseTransformsBlur(time, args.renderView, args.renderScale, fielded, pixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransformsBlur(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
             // normalize alpha, and apply gamma
             double fading = 0.;
             if (_fading) {
@@ -308,9 +309,9 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                 invtransform[0].h = 0.;
                 invtransform[0].i = 1.;
             } else {
-                OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(pixelAspectRatio, args.renderScale.x,
+                OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
                                                                                args.renderScale.y, fielded);
-                OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelAspectRatio,  args.renderScale.x,
+                OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio,  args.renderScale.x,
                                                                                args.renderScale.y, fielded);
                 invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
             }
@@ -1028,11 +1029,12 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         return false; // no transform available, render as usual
     }
     OFX::Matrix3x3 transformCanonical = ofxsMatInverse(invtransform, det);
-    double pixelaspectratio = _srcClip ? _srcClip->getPixelAspectRatio() : 1.;
+    double srcpixelaspectratio = _srcClip ? _srcClip->getPixelAspectRatio() : 1.;
+    double dstpixelaspectratio = _dstClip ? _dstClip->getPixelAspectRatio() : 1.;
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
-    OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
+    OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(dstpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
                                       transformCanonical *
-                                      OFX::ofxsMatPixelToCanonical(pixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
+                                      OFX::ofxsMatPixelToCanonical(srcpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
     transformClip = _srcClip;
     transformMatrix[0] = transformPixel.a;
     transformMatrix[1] = transformPixel.b;
@@ -1054,7 +1056,8 @@ Transform3x3Plugin::getInverseTransforms(double time,
                                          int view,
                                          OfxPointD renderscale,
                                          bool fielded,
-                                         double pixelaspectratio,
+                                         double srcpixelAspectRatio,
+                                         double dstpixelAspectRatio,
                                          bool invert,
                                          double shutter,
                                          ShutterOffsetEnum shutteroffset,
@@ -1069,8 +1072,8 @@ Transform3x3Plugin::getInverseTransforms(double time,
     double t_end = range.max; // shutter time
     bool allequal = true;
     size_t invtransformsize = invtransformsizealloc;
-    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(pixelaspectratio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelaspectratio, renderscale.x, renderscale.y, fielded);
+    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 invtransformCanonical;
 
     for (size_t i = 0; i < invtransformsize; ++i) {
@@ -1111,7 +1114,8 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                              int view,
                                              OfxPointD renderscale,
                                              bool fielded,
-                                             double pixelaspectratio,
+                                             double srcpixelAspectRatio,
+                                             double dstpixelAspectRatio,
                                              bool invert,
                                              double amountFrom,
                                              double amountTo,
@@ -1120,8 +1124,8 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                              size_t invtransformsizealloc) const
 {
     bool allequal = true;
-    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(pixelaspectratio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(pixelaspectratio, renderscale.x, renderscale.y, fielded);
+    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 invtransformCanonical;
 
     size_t invtransformsize = 0;
