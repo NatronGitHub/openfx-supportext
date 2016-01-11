@@ -127,11 +127,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
             _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
             assert(_motionblur);
         }
-        if (paramsType == eTransform3x3ParamsTypeDirBlur) {
-            _amount = fetchDoubleParam(kParamTransform3x3Amount);
-            _centered = fetchBooleanParam(kParamTransform3x3Centered);
-            _fading = fetchDoubleParam(kParamTransform3x3Fading);
-        } else if (paramsType == eTransform3x3ParamsTypeMotionBlur) {
+        if (paramsType == eTransform3x3ParamsTypeMotionBlur) {
             _directionalBlur = fetchBooleanParam(kParamTransform3x3DirectionalBlur);
             _shutter = fetchDoubleParam(kParamShutter);
             _shutteroffset = fetchChoiceParam(kParamShutterOffset);
