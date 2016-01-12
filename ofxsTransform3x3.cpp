@@ -84,10 +84,10 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
                                        Transform3x3ParamsTypeEnum paramsType)
     : ImageEffect(handle)
-      , _paramsType(paramsType)
       , _dstClip(0)
       , _srcClip(0)
       , _maskClip(0)
+      , _paramsType(paramsType)
       , _invert(0)
       , _filter(0)
       , _clamp(0)
