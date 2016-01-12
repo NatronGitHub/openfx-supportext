@@ -59,7 +59,7 @@ ofxsToRadians(double deg)
 
 struct Point3D
 {
-    double x,y,z;
+    double x, y, z;
 
     Point3D()
         : x(0), y(0), z(0)
@@ -69,12 +69,12 @@ struct Point3D
     Point3D(double x,
             double y,
             double z)
-        : x(x),y(y),z(z)
+        : x(x), y(y), z(z)
     {
     }
 
     Point3D(const Point3D & p)
-        : x(p.x),y(p.y),z(p.z)
+        : x(p.x), y(p.y), z(p.z)
     {
     }
 
@@ -84,9 +84,27 @@ struct Point3D
     }
 };
 
+
+/**
+ * \brief Compute the cross-product of two vectors
+ *
+ */
+inline OFX::Point3D
+crossprod(const OFX::Point3D & a,
+          const OFX::Point3D & b)
+{
+    OFX::Point3D c;
+
+    c.x = a.y * b.z - a.z * b.y;
+    c.y = a.z * b.x - a.x * b.z;
+    c.z = a.x * b.y - a.y * b.x;
+
+    return c;
+}
+
 struct Point4D
 {
-    double x,y,z,w;
+    double x, y, z, w;
 
     Point4D()
         : x(0), y(0), z(0), w(0)
@@ -123,6 +141,7 @@ struct Point4D
             return w;
         default:
             assert(false);
+
             return x;
         }
     }
@@ -144,6 +163,7 @@ struct Point4D
             return w;
         default:
             assert(false);
+
             return x;
         }
     }
@@ -156,7 +176,7 @@ struct Point4D
 
 struct Matrix3x3
 {
-    double a,b,c,d,e,f,g,h,i;
+    double a, b, c, d, e, f, g, h, i;
 
     Matrix3x3()
         : a(1), b(0), c(0), d(1), e(0), f(0), g(0), h(0), i(0)
@@ -172,13 +192,23 @@ struct Matrix3x3
               double g_,
               double h_,
               double i_)
-        : a(a_),b(b_),c(c_),d(d_),e(e_),f(f_),g(g_),h(h_),i(i_)
+        : a(a_), b(b_), c(c_), d(d_), e(e_), f(f_), g(g_), h(h_), i(i_)
     {
     }
 
     Matrix3x3(const Matrix3x3 & mat)
         : a(mat.a), b(mat.b), c(mat.c), d(mat.d), e(mat.e), f(mat.f), g(mat.g), h(mat.h), i(mat.i)
     {
+    }
+
+    /// Contruct from columns
+    Matrix3x3(const OFX::Point3D &m0,
+              const OFX::Point3D &m1,
+              const OFX::Point3D &m2)
+    {
+        a = m0.x; b = m1.x; c = m2.x;
+        d = m0.y; e = m1.y; f = m2.y;
+        g = m0.z; h = m1.z; i = m2.z;
     }
 
     Matrix3x3 & operator=(const Matrix3x3 & m)
@@ -192,12 +222,210 @@ struct Matrix3x3
                d == 0 && e == 1 && f == 0 &&
                g == 0 && h == 0 && i == 1;
     }
+
+    Matrix3x3 operator*(const Matrix3x3 & m2) const
+    {
+        return Matrix3x3(a * m2.a + b * m2.d + c * m2.g,
+                         a * m2.b + b * m2.e + c * m2.h,
+                         a * m2.c + b * m2.f + c * m2.i,
+                         d * m2.a + e * m2.d + f * m2.g,
+                         d * m2.b + e * m2.e + f * m2.h,
+                         d * m2.c + e * m2.f + f * m2.i,
+                         g * m2.a + h * m2.d + i * m2.g,
+                         g * m2.b + h * m2.e + i * m2.h,
+                         g * m2.c + h * m2.f + i * m2.i);
+    }
+
+    Point3D operator*(const Point3D & p) const
+    {
+        Point3D ret;
+
+        ret.x = a * p.x + b * p.y + c * p.z;
+        ret.y = d * p.x + e * p.y + f * p.z;
+        ret.z = g * p.x + h * p.y + i * p.z;
+
+        return ret;
+    }
+
+    double determinant() const
+    {
+        return a * (e * i - h * f)
+               - b * (d * i - g * f)
+               + c * (d * h - g * e);
+    }
+
+    Matrix3x3 scaledAdjoint(double s) const
+    {
+        Matrix3x3 ret;
+
+        ret.a = (s) * (e * i - h * f);
+        ret.d = (s) * (f * g - d * i);
+        ret.g = (s) * (d * h - e * g);
+
+        ret.b = (s) * (c * h - b * i);
+        ret.e = (s) * (a * i - c * g);
+        ret.h = (s) * (b * g - a * h);
+
+        ret.c = (s) * (b * f - c * e);
+        ret.f = (s) * (c * d - a * f);
+        ret.i = (s) * (a * e - b * d);
+
+        return ret;
+    }
+
+    Matrix3x3 inverse() const
+    {
+        return scaledAdjoint( 1. / determinant() );
+    }
+
+    Matrix3x3 inverse(double det) const
+    {
+        return scaledAdjoint(1. / det);
+    }
+
+    /**
+     * \brief Compute a homography from 4 points correspondences
+     * \param p1 source point
+     * \param p2 source point
+     * \param p3 source point
+     * \param p4 source point
+     * \param q1 target point
+     * \param q2 target point
+     * \param q3 target point
+     * \param q4 target point
+     * \return the homography matrix that maps pi's to qi's
+     *
+       Using four point-correspondences pi ↔ pi^, we can set up an equation system to solve for the homography matrix H.
+       An algorithm to obtain these parameters requiring only the inversion of a 3 × 3 equation system is as follows.
+       From the four point-correspondences pi ↔ pi^ with (i ∈ {1, 2, 3, 4}),
+       compute h1 = (p1 × p2 ) × (p3 × p4 ), h2 = (p1 × p3 ) × (p2 × p4 ), h3 = (p1 × p4 ) × (p2 × p3 ).
+       Also compute h1^ , h2^ , h3^ using the same principle from the points pi^.
+       Now, the homography matrix H can be obtained easily from
+       H · [h1 h2 h3] = [h1^ h2^ h3^],
+       which only requires the inversion of the matrix [h1 h2 h3].
+
+       Algo from:
+       http://www.dirk-farin.net/publications/phd/text/AB_EfficientComputationOfHomographiesFromFourCorrespondences.pdf
+     */
+    bool setHomographyFromFourPoints(const OFX::Point3D &p1,
+                                     const OFX::Point3D &p2,
+                                     const OFX::Point3D &p3,
+                                     const OFX::Point3D &p4,
+                                     const OFX::Point3D &q1,
+                                     const OFX::Point3D &q2,
+                                     const OFX::Point3D &q3,
+                                     const OFX::Point3D &q4)
+    {
+        OFX::Matrix3x3 invHp;
+        OFX::Matrix3x3 Hp( crossprod( crossprod(p1, p2), crossprod(p3, p4) ),
+                           crossprod( crossprod(p1, p3), crossprod(p2, p4) ),
+                           crossprod( crossprod(p1, p4), crossprod(p2, p3) ) );
+        double detHp = Hp.determinant();
+
+        if (detHp == 0.) {
+            return false;
+        }
+        OFX::Matrix3x3 Hq( crossprod( crossprod(q1, q2), crossprod(q3, q4) ),
+                           crossprod( crossprod(q1, q3), crossprod(q2, q4) ),
+                           crossprod( crossprod(q1, q4), crossprod(q2, q3) ) );
+        double detHq = Hq.determinant();
+        if (detHq == 0.) {
+            return false;
+        }
+        invHp = Hp.inverse(detHp);
+        *this = Hq * invHp;
+
+        return true;
+    }
+
+    bool setAffineFromThreePoints(const OFX::Point3D &p1,
+                                  const OFX::Point3D &p2,
+                                  const OFX::Point3D &p3,
+                                  const OFX::Point3D &q1,
+                                  const OFX::Point3D &q2,
+                                  const OFX::Point3D &q3)
+    {
+        OFX::Matrix3x3 invHp;
+        OFX::Matrix3x3 Hp(p1, p2, p3);
+        double detHp = Hp.determinant();
+
+        if (detHp == 0.) {
+            return false;
+        }
+        OFX::Matrix3x3 Hq(q1, q2, q3);
+        double detHq = Hq.determinant();
+        if (detHq == 0.) {
+            return false;
+        }
+        invHp = Hp.inverse(detHp);
+        *this = Hq * invHp;
+
+        return true;
+    }
+
+    bool setSimilarityFromTwoPoints(const OFX::Point3D &p1,
+                                    const OFX::Point3D &p2,
+                                    const OFX::Point3D &q1,
+                                    const OFX::Point3D &q2)
+    {
+        // Generate a third point so that p1p3 is orthogonal to p1p2, and compute the affine transform
+        OFX::Point3D p3, q3;
+
+        p3.x = p1.x - (p2.y - p1.y);
+        p3.y = p1.y + (p2.x - p1.x);
+        p3.z = 1.;
+        q3.x = q1.x - (q2.y - q1.y);
+        q3.y = q1.y + (q2.x - q1.x);
+        q3.z = 1.;
+
+        return setAffineFromThreePoints(p1, p2, p3, q1, q2, q3);
+        /*
+           there is probably a better solution.
+           we have to solve for H in
+           [x1 x2]
+           [ h1 -h2 h3] [y1 y2]   [x1' x2']
+           [ h2  h1 h4] [ 1  1] = [y1' y2']
+
+           which is equivalent to
+           [x1 -y1 1 0] [h1]   [x1']
+           [x2 -y2 1 0] [h2]   [x2']
+           [y1  x1 0 1] [h3] = [y1']
+           [y2  x2 0 1] [h4]   [y2']
+           The 4x4 matrix should be easily invertible
+
+           with(linalg);
+           M := Matrix([[x1, -y1, 1, 0], [x2, -y2, 1, 0], [y1, x1, 0, 1], [y2, x2, 0, 1]]);
+           inverse(M);
+         */
+        /*
+           double det = p1.x*p1.x - 2*p2.x*p1.x + p2.x*p2.x +p1.y*p1.y -2*p1.y*p2.y +p2.y*p2.y;
+           if (det == 0.) {
+           return false;
+           }
+           double h1 = (p1.x-p2.x)*(q1.x-q2.x) + (p1.y-p2.y)*(q1.y-q2.y);
+           double h2 = (p1.x-p2.x)*(q1.y-q2.y) - (p1.y-p2.y)*(q1.x-q2.x);
+           double h3 =
+           todo...
+         */
+    }
+
+    bool setTranslationFromOnePoint(const OFX::Point3D &p1,
+                                    const OFX::Point3D &q1)
+    {
+        a = 1.;
+        b = 0.;
+        c = q1.x - p1.x;
+        d = 0.;
+        e = 1.;
+        f = q1.y - p1.y;
+        g = 0.;
+        h = 0.;
+        i = 1.;
+
+        return true;
+    }
 };
 
-inline double ofxsMatDeterminant(const Matrix3x3 & M);
-inline Matrix3x3 ofxsMatScaleAdjoint(const Matrix3x3 & M, double s);
-inline Matrix3x3 ofxsMatInverse(const Matrix3x3 & M);
-inline Matrix3x3 ofxsMatInverse(const Matrix3x3 & M,double det);
 inline Matrix3x3 ofxsMatRotation(double rads);
 inline Matrix3x3 ofxsMatRotationAroundPoint(double rads, double pointX, double pointY);
 inline Matrix3x3 ofxsMatTranslation(double translateX, double translateY);
@@ -248,34 +476,6 @@ inline Matrix3x3 ofxsMatTransformPixel(double pixelaspectratio, //!< 1.067 for P
                                        bool skewOrderYX,
                                        double rads,
                                        double centerX, double centerY);
-inline Matrix3x3
-operator*(const Matrix3x3 & m1,
-          const Matrix3x3 & m2)
-{
-    return Matrix3x3(m1.a * m2.a + m1.b * m2.d + m1.c * m2.g,
-                     m1.a * m2.b + m1.b * m2.e + m1.c * m2.h,
-                     m1.a * m2.c + m1.b * m2.f + m1.c * m2.i,
-                     m1.d * m2.a + m1.e * m2.d + m1.f * m2.g,
-                     m1.d * m2.b + m1.e * m2.e + m1.f * m2.h,
-                     m1.d * m2.c + m1.e * m2.f + m1.f * m2.i,
-                     m1.g * m2.a + m1.h * m2.d + m1.i * m2.g,
-                     m1.g * m2.b + m1.h * m2.e + m1.i * m2.h,
-                     m1.g * m2.c + m1.h * m2.f + m1.i * m2.i);
-}
-
-inline Point3D
-operator*(const Matrix3x3 & m,
-          const Point3D & p)
-{
-    Point3D ret;
-
-    ret.x = m.a * p.x + m.b * p.y + m.c * p.z;
-    ret.y = m.d * p.x + m.e * p.y + m.f * p.z;
-    ret.z = m.g * p.x + m.h * p.y + m.i * p.z;
-
-    return ret;
-}
-
 struct Matrix4x4
 {
     double data[16];
@@ -287,12 +487,12 @@ struct Matrix4x4
 
     Matrix4x4(const double d[16])
     {
-        std::copy(d,d + 16,data);
+        std::copy(d, d + 16, data);
     }
 
     Matrix4x4(const Matrix4x4 & o)
     {
-        std::copy(o.data,o.data + 16,data);
+        std::copy(o.data, o.data + 16, data);
     }
 
     double & operator()(int row,
@@ -321,7 +521,7 @@ operator*(const Matrix4x4 & m1,
     for (int i = 0; i < 4; ++i) {
         for (int j = 0; j < 4; ++j) {
             for (int x = 0; x < 4; ++x) {
-                ret(i,j) += m1(i,x) * m2(x,j);
+                ret(i, j) += m1(i, x) * m2(x, j);
             }
         }
     }
@@ -338,7 +538,7 @@ operator*(const Matrix4x4 & m,
     for (int i = 0; i < 4; ++i) {
         ret(i) = 0.;
         for (int j = 0; j < 4; ++j) {
-            ret(i) += m(i,j) * p(j);
+            ret(i) += m(i, j) * p(j);
         }
     }
 
@@ -350,10 +550,10 @@ matrix4x4FromMatrix3x3(const Matrix3x3 & m)
 {
     Matrix4x4 ret;
 
-    ret(0,0) = m.a; ret(0,1) = m.b; ret(0,2) = m.c; ret(0,3) = 0.;
-    ret(1,0) = m.d; ret(1,1) = m.e; ret(1,2) = m.f; ret(1,3) = 0.;
-    ret(2,0) = m.g; ret(2,1) = m.h; ret(2,2) = m.i; ret(2,3) = 0.;
-    ret(3,0) = 0.;  ret(3,1) = 0.;  ret(3,2) = 0.;  ret(3,3) = 1.;
+    ret(0, 0) = m.a; ret(0, 1) = m.b; ret(0, 2) = m.c; ret(0, 3) = 0.;
+    ret(1, 0) = m.d; ret(1, 1) = m.e; ret(1, 2) = m.f; ret(1, 3) = 0.;
+    ret(2, 0) = m.g; ret(2, 1) = m.h; ret(2, 2) = m.i; ret(2, 3) = 0.;
+    ret(3, 0) = 0.;  ret(3, 1) = 0.;  ret(3, 2) = 0.;  ret(3, 3) = 1.;
 
     return ret;
 }
@@ -362,58 +562,17 @@ matrix4x4FromMatrix3x3(const Matrix3x3 & m)
 // IMPLEMENTATION //
 ////////////////////
 
-double
-ofxsMatDeterminant(const Matrix3x3 & M)
-{
-    return M.a * (M.e * M.i - M.h * M.f)
-           - M.b * (M.d * M.i - M.g * M.f)
-           + M.c * (M.d * M.h - M.g * M.e);
-}
 
-Matrix3x3
-ofxsMatScaleAdjoint(const Matrix3x3 & M,
-                    double s)
-{
-    Matrix3x3 ret;
-
-    ret.a = (s) * (M.e * M.i - M.h * M.f);
-    ret.d = (s) * (M.f * M.g - M.d * M.i);
-    ret.g = (s) * (M.d * M.h - M.e * M.g);
-
-    ret.b = (s) * (M.c * M.h - M.b * M.i);
-    ret.e = (s) * (M.a * M.i - M.c * M.g);
-    ret.h = (s) * (M.b * M.g - M.a * M.h);
-
-    ret.c = (s) * (M.b * M.f - M.c * M.e);
-    ret.f = (s) * (M.c * M.d - M.a * M.f);
-    ret.i = (s) * (M.a * M.e - M.b * M.d);
-
-    return ret;
-}
-
-Matrix3x3
-ofxsMatInverse(const Matrix3x3 & M)
-{
-    return ofxsMatScaleAdjoint( M, 1. / ofxsMatDeterminant(M) );
-}
-
-Matrix3x3
-ofxsMatInverse(const Matrix3x3 & M,
-               double det)
-{
-    return ofxsMatScaleAdjoint(M, 1. / det);
-}
-
-Matrix3x3
+inline Matrix3x3
 ofxsMatRotation(double rads)
 {
     double c = std::cos(rads);
     double s = std::sin(rads);
 
-    return Matrix3x3(c,s,0,-s,c,0,0,0,1);
+    return Matrix3x3(c, s, 0, -s, c, 0, 0, 0, 1);
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatRotationAroundPoint(double rads,
                            double px,
                            double py)
@@ -421,7 +580,7 @@ ofxsMatRotationAroundPoint(double rads,
     return ofxsMatTranslation(px, py) * ( ofxsMatRotation(rads) * ofxsMatTranslation(-px, -py) );
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatTranslation(double x,
                    double y)
 {
@@ -430,7 +589,7 @@ ofxsMatTranslation(double x,
                      0., 0., 1.);
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatScale(double x,
              double y)
 {
@@ -439,22 +598,22 @@ ofxsMatScale(double x,
                      0., 0., 1.);
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatScale(double s)
 {
     return ofxsMatScale(s, s);
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatScaleAroundPoint(double scaleX,
                         double scaleY,
                         double px,
                         double py)
 {
-    return ofxsMatTranslation(px,py) * ( ofxsMatScale(scaleX,scaleY) * ofxsMatTranslation(-px, -py) );
+    return ofxsMatTranslation(px, py) * ( ofxsMatScale(scaleX, scaleY) * ofxsMatTranslation(-px, -py) );
 }
 
-Matrix3x3
+inline Matrix3x3
 ofxsMatSkewXY(double skewX,
               double skewY,
               bool skewOrderYX)
@@ -465,7 +624,7 @@ ofxsMatSkewXY(double skewX,
 }
 
 // matrix transform from destination to source
-Matrix3x3
+inline Matrix3x3
 ofxsMatInverseTransformCanonical(double translateX,
                                  double translateY,
                                  double scaleX,
@@ -489,12 +648,12 @@ ofxsMatInverseTransformCanonical(double translateX,
            ofxsMatScale(1. / scaleX, 1. / scaleY) *
            ofxsMatSkewXY(-skewX, -skewY, !skewOrderYX) *
            ofxsMatRotation(rads) *
-           ofxsMatTranslation(-translateX,-translateY) *
-           ofxsMatTranslation(-centerX,-centerY);
+           ofxsMatTranslation(-translateX, -translateY) *
+           ofxsMatTranslation(-centerX, -centerY);
 }
 
 // matrix transform from source to destination
-Matrix3x3
+inline Matrix3x3
 ofxsMatTransformCanonical(double translateX,
                           double translateY,
                           double scaleX,
@@ -518,14 +677,14 @@ ofxsMatTransformCanonical(double translateX,
            ofxsMatRotation(-rads) *
            ofxsMatSkewXY(skewX, skewY, skewOrderYX) *
            ofxsMatScale(scaleX, scaleY) *
-           ofxsMatTranslation(-centerX,-centerY);
+           ofxsMatTranslation(-centerX, -centerY);
 }
 
 // The transforms between pixel and canonical coordinated
 // http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#MappingCoordinates
 
 /// transform from pixel coordinates to canonical coordinates
-Matrix3x3
+inline Matrix3x3
 ofxsMatPixelToCanonical(double pixelaspectratio, //!< 1.067 for PAL, where 720x576 pixels occupy 768x576 in canonical coords
                         double renderscaleX, //!< 0.5 for a half-resolution image
                         double renderscaleY,
@@ -543,7 +702,7 @@ ofxsMatPixelToCanonical(double pixelaspectratio, //!< 1.067 for PAL, where 720x5
 }
 
 /// transform from canonical coordinates to pixel coordinates
-Matrix3x3
+inline Matrix3x3
 ofxsMatCanonicalToPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x576 pixels occupy 768x576 in canonical coords
                         double renderscaleX, //!< 0.5 for a half-resolution image
                         double renderscaleY,
@@ -561,7 +720,7 @@ ofxsMatCanonicalToPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x5
 }
 
 // matrix transform from destination to source
-Matrix3x3
+inline Matrix3x3
 ofxsMatInverseTransformPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x576 pixels occupy 768x576 in canonical coords
                              double renderscaleX, //!< 0.5 for a half-resolution image
                              double renderscaleY,
@@ -587,7 +746,7 @@ ofxsMatInverseTransformPixel(double pixelaspectratio, //!< 1.067 for PAL, where 
 }
 
 // matrix transform from source to destination
-Matrix3x3
+inline Matrix3x3
 ofxsMatTransformPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x576 pixels occupy 768x576 in canonical coords
                       double renderscaleX, //!< 0.5 for a half-resolution image
                       double renderscaleY,

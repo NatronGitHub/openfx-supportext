@@ -331,9 +331,9 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             srcTransformMat.h = srcTransform[7];
             srcTransformMat.i = srcTransform[8];
             // invert it
-            double det = ofxsMatDeterminant(srcTransformMat);
+            double det = srcTransformMat.determinant();
             if (det != 0.) {
-                OFX::Matrix3x3 srcTransformInverse = ofxsMatInverse(srcTransformMat, det);
+                OFX::Matrix3x3 srcTransformInverse = srcTransformMat.inverse(det);
 
                 for (size_t i = 0; i < invtransformsize; ++i) {
                     invtransform[i] = srcTransformInverse * invtransform[i];
@@ -1021,11 +1021,11 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
 
 
     // invert it
-    double det = ofxsMatDeterminant(invtransform);
+    double det = invtransform.determinant();
     if (det == 0.) {
         return false; // no transform available, render as usual
     }
-    OFX::Matrix3x3 transformCanonical = ofxsMatInverse(invtransform, det);
+    OFX::Matrix3x3 transformCanonical = invtransform.inverse(det);
     double srcpixelaspectratio = _srcClip ? _srcClip->getPixelAspectRatio() : 1.;
     double dstpixelaspectratio = _dstClip ? _dstClip->getPixelAspectRatio() : 1.;
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;

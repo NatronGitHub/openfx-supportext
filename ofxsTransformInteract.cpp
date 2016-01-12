@@ -1174,9 +1174,9 @@ bool TransformInteractHelper::penMotion(const OFX::PenArgs &args)
         centerChanged = true;
         if (_translate) {
             // recompute dxrot,dyrot after rounding
-            double det = ofxsMatDeterminant(R);
+            double det = R.determinant();
             if (det != 0.) {
-                OFX::Matrix3x3 Rinv = ofxsMatInverse(R, det);
+                OFX::Matrix3x3 Rinv = R.inverse(det);
 
                 dxrot = newx - currentCenter.x;
                 dyrot = newy - currentCenter.y;
