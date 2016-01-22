@@ -710,8 +710,9 @@ namespace OFX {
                 OFX::StringParamDescriptor* param = desc.defineStringParam(kMultiPlaneParamOutputChannelsChoice);
                 param->setLabel(kMultiPlaneParamOutputChannelsLabel "Choice");
                 param->setIsSecret(true);
-                page->addChild(*param);
-                
+                if (page) {
+                    page->addChild(*param);
+                }
             }
             return ret;
         }
@@ -734,7 +735,6 @@ namespace OFX {
                 addInputChannelOptionsRGBA(param, clips, true, 0);
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
-                
                 if (page) {
                     page->addChild(*param);
                 }
@@ -746,7 +746,9 @@ namespace OFX {
                 OFX::StringParamDescriptor* param = desc.defineStringParam(strName);
                 param->setLabel(label + "Choice");
                 param->setIsSecret(true);
-                page->addChild(*param);
+                if (page) {
+                    page->addChild(*param);
+                }
             }
             return ret;
         }
