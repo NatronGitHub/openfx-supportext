@@ -316,6 +316,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         if (invtransformsize == 1) {
             motionblur  = 0.;
         }
+#ifdef OFX_EXTENSIONS_NUKE
         // compose with the input transform
         if ( !src->getTransformIsIdentity() ) {
             double srcTransform[9]; // transform to apply to the source image, in pixel coordinates, from source to destination
@@ -340,6 +341,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                 }
             }
         }
+#endif
     }
 
     // auto ptr for the mask.
@@ -637,7 +639,13 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     bool identity = isIdentity(args.time);
 
     // set rod from srcRoD
-    transformRegion(srcRoD, time, args.view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
+#ifdef OFX_EXTENSIONS_NUKE
+    const int view = args.view;
+#else
+    const int view = 0;
+#endif
+
+    transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity.
@@ -720,8 +728,14 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         _shutteroffset->getValueAtTime(time, shutteroffset_i);
         _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
     }
+#ifdef OFX_EXTENSIONS_NUKE
+    const int view = args.view;
+#else
+    const int view = 0;
+#endif
+
     // set srcRoI from roi
-    transformRegion(roi, time, args.view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
+    transformRegion(roi, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
 
     int filter = eFilterCubic;
     if (_filter) {
@@ -1258,8 +1272,10 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     srcClip->setTemporalClipAccess(false);
     srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
+#ifdef OFX_EXTENSIONS_NUKE
     srcClip->setCanTransform(true); // source images can have a transform attached
-
+#endif
+    
     if (masked) {
         // GENERIC (MASKED)
         //
