@@ -143,6 +143,11 @@ public:
 
     }
 
+    /** @brief virtual destructor */
+    virtual ~RampInteractHelper() {
+        // fetched clips and params are owned and deleted by the ImageEffect and its ParamSet
+    }
+
     /** @brief the function called to draw in the interact */
     virtual bool draw(const DrawArgs &args) OVERRIDE;
     

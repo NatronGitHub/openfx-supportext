@@ -150,6 +150,11 @@ protected:
 public:
     TransformInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false);
 
+    /** @brief virtual destructor */
+    virtual ~TransformInteractHelper() {
+        // fetched clips and params are owned and deleted by the ImageEffect and its ParamSet
+    }
+
     // overridden functions from OFX::Interact to do things
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE;
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE;
