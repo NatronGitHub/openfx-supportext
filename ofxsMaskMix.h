@@ -67,7 +67,7 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamPremultLabel);
         param->setHint(kParamPremultHint);
 #ifdef OFX_EXTENSIONS_NUKE
-        param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
 #endif
         if (page) {
             page->addChild(*param);

@@ -247,7 +247,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
         param->setLabel(kParamTrackingBackwardLabel);
         param->setHint(kParamTrackingBackwardHint);
-        param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
         if (page) {
             page->addChild(*param);
         }
@@ -258,7 +258,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
         param->setLabel(kParamTrackingPreviousLabel);
         param->setHint(kParamTrackingPreviousHint);
-        param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
         if (page) {
             page->addChild(*param);
         }
@@ -269,7 +269,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
         param->setLabel(kParamTrackingNextLabel);
         param->setHint(kParamTrackingNextHint);
-        param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
         if (page) {
             page->addChild(*param);
         }

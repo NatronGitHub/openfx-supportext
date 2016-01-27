@@ -273,7 +273,7 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         //the host does not handle the format itself, do it ourselves
         int format_i;
         _format->getValue(format_i);
-        size_t w,h;
+        int w = 0, h = 0;
         double par = -1;
         getFormatResolution((OFX::EParamFormat)format_i, &w, &h, &par);
         assert(par != -1);
@@ -599,9 +599,10 @@ generatorDescribeInContext(PageParamDescriptor *page,
     
     {
         
-        std::size_t w,h;
-        double par;
+        int w = 0, h = 0;
+        double par = -1.;
         getFormatResolution(eParamFormatPCVideo, &w, &h, &par);
+        assert(par != -1);
         {
             Int2DParamDescriptor* param = desc.defineInt2DParam(kNatronParamFormatSize);
             param->setLabel(kNatronParamFormatSize);

@@ -107,7 +107,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setDefault(eFilterCubic);
         param->setAnimates(true);
 #ifdef OFX_EXTENSIONS_NUKE
-        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine, 1);
 #endif
         if (page) {
             page->addChild(*param);
@@ -122,7 +122,7 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setDefault(false);
         param->setAnimates(true);
 #ifdef OFX_EXTENSIONS_NUKE
-        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine, 1);
 #endif
         if (page) {
             page->addChild(*param);

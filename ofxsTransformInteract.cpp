@@ -100,7 +100,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setRange(-SCALE_MAX, -SCALE_MAX, SCALE_MAX, SCALE_MAX);
         param->setDisplayRange(0.1, 0.1, 10, 10);
         param->setIncrement(0.01);
-        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine, 1);
         if (group) {
             param->setParent(*group);
         }
@@ -182,7 +182,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDefault(0.5, 0.5);
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
-        param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
         if (group) {
             param->setParent(*group);
         }
