@@ -74,13 +74,14 @@ enum EParamFormat
     eParamFormatSquare256,
     eParamFormatSquare512,
     eParamFormatSquare1k,
-    eParamFormatSquare2k
+    eParamFormatSquare2k,
+    eParamFormatCount
 };
 
 inline void
 getFormatResolution(const EParamFormat format,
-                    std::size_t *width,
-                    std::size_t *height,
+                    int *width,
+                    int *height,
                     double *par)
 {
     switch (format) {
@@ -116,6 +117,8 @@ getFormatResolution(const EParamFormat format,
         *width = 1024; *height = 1024; *par = 1.; break;
     case eParamFormatSquare2k:
         *width = 2048; *height = 2048; *par = 1.; break;
+    default:
+        break;
     }
 }
 }
