@@ -26,6 +26,7 @@
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
 #include "ofxsRectangleInteract.h"
+#include "ofxNatron.h"
 
 #define kParamGeneratorExtent "extent"
 #define kParamGeneratorExtentLabel "Extent"
@@ -65,7 +66,7 @@ enum GeneratorExtentEnum
     eGeneratorExtentDefault,
 };
 
-#define kParamGeneratorFormat "format"
+#define kParamGeneratorFormat kNatronParamFormatChoice
 #define kParamGeneratorFormatLabel "Format"
 #define kParamGeneratorFormatHint "The output format"
 
@@ -78,6 +79,8 @@ protected:
     OFX::Clip *_dstClip;
     OFX::ChoiceParam* _extent;
     OFX::ChoiceParam* _format;
+    OFX::Int2DParam* _formatSize;
+    OFX::DoubleParam* _formatPar;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;

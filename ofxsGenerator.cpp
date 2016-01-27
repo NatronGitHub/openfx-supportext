@@ -27,25 +27,28 @@
 #include <limits>
 
 #include "ofxsFormatResolution.h"
+#include "ofxsCoords.h"
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth)
-        : OFX::ImageEffect(handle)
-        , _dstClip(0)
-        , _extent(0)
-        , _format(0)
-        , _btmLeft(0)
-        , _size(0)
-        , _interactive(0)
-        , _outputComponents(0)
-        , _outputBitDepth(0)
-        , _range(0)
-        , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
-        , _supportsBytes(0)
-        , _supportsShorts(0)
-        , _supportsFloats(0)
-        , _supportsRGBA(0)
-        , _supportsRGB(0)
-        , _supportsAlpha(0)
+: OFX::ImageEffect(handle)
+, _dstClip(0)
+, _extent(0)
+, _format(0)
+, _formatSize(0)
+, _formatPar(0)
+, _btmLeft(0)
+, _size(0)
+, _interactive(0)
+, _outputComponents(0)
+, _outputBitDepth(0)
+, _range(0)
+, _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
+, _supportsBytes(0)
+, _supportsShorts(0)
+, _supportsFloats(0)
+, _supportsRGBA(0)
+, _supportsRGB(0)
+, _supportsAlpha(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
@@ -54,11 +57,13 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
                          _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
     _extent = fetchChoiceParam(kParamGeneratorExtent);
-    _format = fetchChoiceParam(kParamGeneratorFormat);
+    _format = fetchChoiceParam(kNatronParamFormatChoice);
+    _formatSize = fetchInt2DParam(kNatronParamFormatSize);
+    _formatPar = fetchDoubleParam(kNatronParamFormatPar);
     _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
-    assert(_extent && _format && _btmLeft && _size && _interactive);
+    assert(_extent && _format && _formatSize && _formatPar && _btmLeft && _size && _interactive);
     
     if (_useOutputComponentsAndDepth) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
@@ -264,6 +269,17 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 {
     if (paramName == kParamGeneratorExtent && args.reason == OFX::eChangeUserEdit) {
         updateParamsVisibility();
+    } else if (paramName == kNatronParamFormatChoice) {
+        //the host does not handle the format itself, do it ourselves
+        int format_i;
+        _format->getValue(format_i);
+        size_t w,h;
+        double par = -1;
+        getFormatResolution((OFX::EParamFormat)format_i, &w, &h, &par);
+        assert(par != -1);
+        _formatPar->setValue(par);
+        _formatSize->setValue(w, h);
+
     }
 }
 
@@ -275,15 +291,18 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
     GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
     switch (extent) {
     case eGeneratorExtentFormat: {
-        int format_i;
-        _format->getValue(format_i);
-        double par;
-        size_t w,h;
-        getFormatResolution( (OFX::EParamFormat)format_i, &w, &h, &par );
-        rod.x1 = rod.y1 = 0;
-        rod.x2 = w;
-        rod.y2 = h;
 
+        
+        int w,h;
+        _formatSize->getValue(w, h);
+        double par;
+        _formatPar->getValue(par);
+        OfxRectI pixelFormat;
+        pixelFormat.x1 = pixelFormat.y1 = 0;
+        pixelFormat.x2 = w;
+        pixelFormat.y2 = h;
+        OfxPointD renderScale = {1.,1.};
+        OFX::Coords::toCanonical(pixelFormat, renderScale, par, &rod);
         return true;
     }
     case eGeneratorExtentSize: {
@@ -322,10 +341,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     switch (extent) {
     case eGeneratorExtentFormat: {
         //specific output format
-        int index;
-        _format->getValue(index);
-        size_t w,h;
-        getFormatResolution( (OFX::EParamFormat)index, &w, &h, &par );
+        _formatPar->getValue(par);
         break;
     }
     case eGeneratorExtentProject:
@@ -538,7 +554,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         }
     }
     {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorFormat);
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kNatronParamFormatChoice);
         param->setLabel(kParamGeneratorFormatLabel);
         param->setAnimates(false);
         assert(param->getNOptions() == eParamFormatPCVideo);
@@ -573,12 +589,35 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamFormatSquare1kLabel);
         assert(param->getNOptions() == eParamFormatSquare2k);
         param->appendOption(kParamFormatSquare2kLabel);
-        param->setDefault(0);
+        param->setDefault(eParamFormatPCVideo);
         param->setHint(kParamGeneratorFormatHint);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
         }
+    }
+    
+    {
+        
+        std::size_t w,h;
+        double par;
+        getFormatResolution(eParamFormatPCVideo, &w, &h, &par);
+        {
+            Int2DParamDescriptor* param = desc.defineInt2DParam(kNatronParamFormatSize);
+            param->setLabel(kNatronParamFormatSize);
+            param->setIsSecret(true);
+            param->setDefault(w, h);
+            page->addChild(*param);
+        }
+        
+        {
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kNatronParamFormatPar);
+            param->setLabel(kNatronParamFormatPar);
+            param->setIsSecret(true);
+            param->setDefault(par);
+            page->addChild(*param);
+        }
+        
     }
 
     // btmLeft
