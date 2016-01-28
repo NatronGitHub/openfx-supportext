@@ -177,6 +177,22 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
 }
 
 inline void
+toPixelNearest(const OfxRectD & regionOfInterest,
+               const OfxPointD & renderScale,
+               double par,
+               OfxRectI *rect)
+{
+    if (rectIsEmpty(regionOfInterest)) {
+        rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
+        return;
+    }
+    rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par + 0.5);
+    rect->y1 = (int)std::floor(regionOfInterest.y1 * renderScale.y + 0.5);
+    rect->x2 = (int)std::ceil(regionOfInterest.x2 * renderScale.x / par - 0.5);
+    rect->y2 = (int)std::ceil(regionOfInterest.y2 * renderScale.y - 0.5);
+}
+
+inline void
 toPixel(const OfxPointD & p_canonical,
         const OfxPointD & renderScale,
         double par,
