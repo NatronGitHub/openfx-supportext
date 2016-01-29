@@ -61,12 +61,11 @@ double fround(double val,
 bool
 RampInteractHelper::draw(const DrawArgs &args)
 {
-    if (!_interactOpen->getValueAtTime(args.time)) {
+    const double time = args.time;
+    if (!_interactOpen->getValueAtTime(time)) {
         return false;
     }
-    int type_i;
-    _type->getValueAtTime(args.time, type_i);
-    RampTypeEnum type = (RampTypeEnum)type_i;
+    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
     bool noramp = (type == eRampTypeNone);
     if (noramp) {
         return false;
@@ -84,15 +83,15 @@ RampInteractHelper::draw(const DrawArgs &args)
 
     OfxPointD p[2];
     if (_state == eInteractStateIdle) {
-        _point0->getValueAtTime(args.time, p[0].x, p[0].y);
-        _point1->getValueAtTime(args.time, p[1].x, p[1].y);
+        _point0->getValueAtTime(time, p[0].x, p[0].y);
+        _point1->getValueAtTime(time, p[1].x, p[1].y);
     } else {
         p[0] = _point0DragPos;
         p[1] = _point1DragPos;
     }
     
     ///Clamp points to the rod
-    OfxRectD rod = _dstClip->getRegionOfDefinition(args.time);
+    OfxRectD rod = _dstClip->getRegionOfDefinition(time);
 
     // A line is represented by a 3-vector (a,b,c), and its equation is (a,b,c).(x,y,1)=0
     // The intersection of two lines is given by their cross-product: (wx,wy,w) = (a,b,c)x(a',b',c').
@@ -243,12 +242,11 @@ static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, c
 bool
 RampInteractHelper::penMotion(const PenArgs &args)
 {
-    if (!_interactOpen->getValueAtTime(args.time)) {
+    const double time = args.time;
+    if (!_interactOpen->getValueAtTime(time)) {
         return false;
     }
-    int type_i;
-    _type->getValueAtTime(args.time, type_i);
-    RampTypeEnum type = (RampTypeEnum)type_i;
+    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
     bool noramp = (type == eRampTypeNone);
     if (noramp) {
         return false;
@@ -261,8 +259,8 @@ RampInteractHelper::penMotion(const PenArgs &args)
         p0 = _point0DragPos;
         p1 = _point1DragPos;
     } else {
-        _point0->getValueAtTime(args.time, p0.x, p0.y);
-        _point1->getValueAtTime(args.time, p1.x, p1.y);
+        _point0->getValueAtTime(time, p0.x, p0.y);
+        _point1->getValueAtTime(time, p1.x, p1.y);
     }
     bool valuesChanged = false;
     
@@ -301,12 +299,11 @@ RampInteractHelper::penMotion(const PenArgs &args)
 bool
 RampInteractHelper::penDown(const PenArgs &args)
 {
-    if (!_interactOpen->getValueAtTime(args.time)) {
+    const double time = args.time;
+    if (!_interactOpen->getValueAtTime(time)) {
         return false;
     }
-    int type_i;
-    _type->getValueAtTime(args.time, type_i);
-    RampTypeEnum type = (RampTypeEnum)type_i;
+    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
     bool noramp = (type == eRampTypeNone);
     if (noramp) {
         return false;
@@ -319,9 +316,9 @@ RampInteractHelper::penDown(const PenArgs &args)
         p0 = _point0DragPos;
         p1 = _point1DragPos;
     } else {
-        _point0->getValueAtTime(args.time, p0.x, p0.y);
-        _point1->getValueAtTime(args.time, p1.x, p1.y);
-        _interactive->getValueAtTime(args.time, _interactiveDrag);
+        _point0->getValueAtTime(time, p0.x, p0.y);
+        _point1->getValueAtTime(time, p1.x, p1.y);
+        _interactive->getValueAtTime(time, _interactiveDrag);
     }
 
     bool didSomething = false;
@@ -350,12 +347,11 @@ RampInteractHelper::penDown(const PenArgs &args)
 bool
 RampInteractHelper::penUp(const PenArgs &args)
 {
-    if (!_interactOpen->getValueAtTime(args.time)) {
+    const double time = args.time;
+    if (!_interactOpen->getValueAtTime(time)) {
         return false;
     }
-    int type_i;
-    _type->getValueAtTime(args.time, type_i);
-    RampTypeEnum type = (RampTypeEnum)type_i;
+    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
     bool noramp = (type == eRampTypeNone);
     if (noramp) {
         return false;

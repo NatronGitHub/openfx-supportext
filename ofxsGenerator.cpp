@@ -162,9 +162,7 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
     }
     
     // get the components of _dstClip
-    int outputComponents_i;
-    _outputComponents->getValue(outputComponents_i);
-    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+    OFX::PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
     if (dstComponents != outputComponents) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
         OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
@@ -173,9 +171,7 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
 
     if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
         // get the bitDepth of _dstClip
-        int outputBitDepth_i;
-        _outputBitDepth->getValue(outputBitDepth_i);
-        OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
+        OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[_outputBitDepth->getValue()];
         if (dstBitDepth != outputBitDepth) {
             setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output bit depth");
             OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
@@ -216,9 +212,7 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
         int min, max;
         _range->getValue(min, max);
 
-        int extent_i;
-        _extent->getValue(extent_i);
-        GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+        GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
         if (extent == eGeneratorExtentSize) {
             ///If not animated and different than 'min' time, return identity on the min time.
             ///We need to check more parameters
@@ -246,9 +240,7 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
 void
 GeneratorPlugin::updateParamsVisibility()
 {
-        int extent_i;
-        _extent->getValue(extent_i);
-        GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     bool hasFormat = (extent == eGeneratorExtentFormat);
     bool hasSize = (extent == eGeneratorExtentSize);
@@ -271,11 +263,10 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         updateParamsVisibility();
     } else if (paramName == kNatronParamFormatChoice) {
         //the host does not handle the format itself, do it ourselves
-        int format_i;
-        _format->getValue(format_i);
+        OFX::EParamFormat format = (OFX::EParamFormat)_format->getValue();
         int w = 0, h = 0;
         double par = -1;
-        getFormatResolution((OFX::EParamFormat)format_i, &w, &h, &par);
+        getFormatResolution(format, &w, &h, &par);
         assert(par != -1);
         _formatPar->setValue(par);
         _formatSize->setValue(w, h);
@@ -286,13 +277,9 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 bool
 GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
     switch (extent) {
     case eGeneratorExtentFormat: {
-
-        
         int w,h;
         _formatSize->getValue(w, h);
         double par;
@@ -334,10 +321,7 @@ void
 GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 {
     double par = 0.;
-    int extent_i;
-
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
     switch (extent) {
     case eGeneratorExtentFormat: {
         //specific output format
@@ -364,16 +348,12 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     
     if (_useOutputComponentsAndDepth) {
         // set the components of _dstClip
-        int outputComponents_i;
-        _outputComponents->getValue(outputComponents_i);
-        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[outputComponents_i];
+        OFX::PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
         clipPreferences.setClipComponents(*_dstClip, outputComponents);
         
         if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
             // set the bitDepth of _dstClip
-            int outputBitDepth_i;
-            _outputBitDepth->getValue(outputBitDepth_i);
-            OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[outputBitDepth_i];
+            OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[_outputBitDepth->getValue()];
             clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
         }
     }
@@ -391,9 +371,7 @@ GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
 
 void GeneratorInteract::aboutToCheckInteractivity(OfxTime /*time*/)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    _extentValue = (GeneratorExtentEnum)extent_i;
+    _extentValue = (GeneratorExtentEnum)_extent->getValue();
 }
 
 bool GeneratorInteract::allowTopLeftInteraction() const
@@ -429,9 +407,7 @@ bool GeneratorInteract::allowCenterInteraction() const
 bool
 GeneratorInteract::draw(const OFX::DrawArgs &args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -443,9 +419,7 @@ GeneratorInteract::draw(const OFX::DrawArgs &args)
 bool
 GeneratorInteract::penMotion(const OFX::PenArgs &args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -457,9 +431,7 @@ GeneratorInteract::penMotion(const OFX::PenArgs &args)
 bool
 GeneratorInteract::penDown(const OFX::PenArgs &args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -471,9 +443,7 @@ GeneratorInteract::penDown(const OFX::PenArgs &args)
 bool
 GeneratorInteract::penUp(const OFX::PenArgs &args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -493,9 +463,7 @@ GeneratorInteract::loseFocus(const OFX::FocusArgs &args)
 bool
 GeneratorInteract::keyDown(const OFX::KeyArgs &args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -507,9 +475,7 @@ GeneratorInteract::keyDown(const OFX::KeyArgs &args)
 bool
 GeneratorInteract::keyUp(const OFX::KeyArgs & args)
 {
-    int extent_i;
-    _extent->getValue(extent_i);
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)extent_i;
+    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
         return false;
@@ -546,8 +512,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamGeneratorExtentOptionProject, kParamGeneratorExtentOptionProjectHint);
         assert(param->getNOptions() == eGeneratorExtentDefault);
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
-        param->setAnimates(false);
         param->setDefault((int)defaultType);
+        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -591,6 +557,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamFormatSquare2kLabel);
         param->setDefault(eParamFormatPCVideo);
         param->setHint(kParamGeneratorFormatHint);
+        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -816,12 +783,12 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
             }
             param->setDefault(0);
-            param->setAnimates(false);
 #ifndef DEBUG
             // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
             // Disable it for now (in the future, there may be colorspace conversion options)
             param->setIsSecret(true); // always secret
 #endif
+            param->setAnimates(false);
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);

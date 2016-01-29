@@ -265,14 +265,13 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         if ( (shutter != 0.) && (motionblur != 0.) ) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
-            int shutteroffset_i;
             assert(_shutteroffset);
-            _shutteroffset->getValueAtTime(time, shutteroffset_i);
+            ShutterOffsetEnum shutteroffset = (ShutterOffsetEnum)_shutteroffset->getValueAtTime(time);
             double shuttercustomoffset;
             assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
@@ -457,7 +456,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
                                     double amountFrom,
                                     double amountTo,
                                     double shutter,
-                                    int shutteroffset_i,
+                                    ShutterOffsetEnum shutteroffset,
                                     double shuttercustomoffset,
                                     bool isIdentity,
                                     OfxRectD *rectTo)
@@ -471,7 +470,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
     bool hasmotionblur = ((shutter != 0. || directionalBlur) && motionblur != 0.);
 
     if (hasmotionblur && !directionalBlur) {
-        OFX::shutterRange(time, shutter, (ShutterOffsetEnum)shutteroffset_i, shuttercustomoffset, &range);
+        OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
     } else {
         ///if is identity return the input rod instead of transforming
         if (isIdentity) {
@@ -627,13 +626,13 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         }
     }
     double shutter = 0.;
-    int shutteroffset_i = 0;
+    ShutterOffsetEnum shutteroffset = eShutterOffsetCentered;
     double shuttercustomoffset = 0.;
     if (_directionalBlur) {
-        _directionalBlur->getValueAtTime(time, directionalBlur);
-        _shutter->getValueAtTime(time, shutter);
-        _shutteroffset->getValueAtTime(time, shutteroffset_i);
-        _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+        directionalBlur = _directionalBlur->getValueAtTime(time);
+        shutter = _shutter->getValueAtTime(time);
+        shutteroffset = (ShutterOffsetEnum)_shutteroffset->getValueAtTime(time);
+        shuttercustomoffset = _shuttercustomoffset->getValueAtTime(time);
     }
 
     bool identity = isIdentity(args.time);
@@ -645,7 +644,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     const int view = 0;
 #endif
 
-    transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, identity, &rod);
+    transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity.
@@ -720,13 +719,13 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
         }
     }
     double shutter = 0.;
-    int shutteroffset_i = 0;
+    ShutterOffsetEnum shutteroffset = eShutterOffsetCentered;
     double shuttercustomoffset = 0.;
     if (_directionalBlur) {
-        _directionalBlur->getValueAtTime(time, directionalBlur);
-        _shutter->getValueAtTime(time, shutter);
-        _shutteroffset->getValueAtTime(time, shutteroffset_i);
-        _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+        directionalBlur = _directionalBlur->getValueAtTime(time);
+        shutter = _shutter->getValueAtTime(time);
+        shutteroffset = (ShutterOffsetEnum)_shutteroffset->getValueAtTime(time);
+        shuttercustomoffset = _shuttercustomoffset->getValueAtTime(time);
     }
 #ifdef OFX_EXTENSIONS_NUKE
     const int view = args.view;
@@ -735,20 +734,20 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 #endif
 
     // set srcRoI from roi
-    transformRegion(roi, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset_i, shuttercustomoffset, isIdentity(time), &srcRoI);
+    transformRegion(roi, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, isIdentity(time), &srcRoI);
 
-    int filter = eFilterCubic;
+    FilterEnum filter = eFilterCubic;
     if (_filter) {
-        _filter->getValueAtTime(time, filter);
+        filter = (FilterEnum)_filter->getValueAtTime(time);
     }
     bool blackOutside = false;
     if (_blackOutside) {
-        _blackOutside->getValueAtTime(time, blackOutside);
+        blackOutside = _blackOutside->getValueAtTime(time);
     }
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
-    ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, (FilterEnum)filter, doMasking, mix, &srcRoI);
+    ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, filter, doMasking, mix, &srcRoI);
 
     if ( OFX::Coords::rectIsInfinite(srcRoI) ) {
         // RoI cannot be infinite.
@@ -784,18 +783,18 @@ void
 Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 {
     const double time = args.time;
-    int filter = args.renderQualityDraft ? eFilterImpulse : eFilterCubic;
+    FilterEnum filter = args.renderQualityDraft ? eFilterImpulse : eFilterCubic;
     if (!args.renderQualityDraft && _filter) {
-        _filter->getValueAtTime(time, filter);
+        filter = (FilterEnum)_filter->getValueAtTime(time);
     }
     bool clamp = false;
     if (_clamp) {
-        _clamp->getValueAtTime(time, clamp);
+        clamp = _clamp->getValueAtTime(time);
     }
 
     // as you may see below, some filters don't need explicit clamping, since they are
     // "clamped" by construction.
-    switch ( (FilterEnum)filter ) {
+    switch (filter) {
     case eFilterImpulse: {
         Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterImpulse, false> fred(*this);
         setupAndProcess(fred, args);

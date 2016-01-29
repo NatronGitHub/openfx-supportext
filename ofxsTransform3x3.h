@@ -170,7 +170,7 @@ private:
                          double amountFrom,
                          double amountTo,
                          double shutter,
-                         int shutteroffset_i,
+                         ShutterOffsetEnum shutteroffset,
                          double shuttercustomoffset,
                          bool isIdentity,
                          OfxRectD *rectTo);
