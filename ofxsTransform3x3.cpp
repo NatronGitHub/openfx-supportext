@@ -1014,14 +1014,37 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
                                  Clip * &transformClip,
                                  double transformMatrix[9])
 {
+    //std::cout << "getTransform called!" << std::endl;
+
     assert(!_masked); // this should never get called for masked plugins, since they don't advertise that they can transform
     if (_masked) {
         return false;
     }
+
     const double time = args.time;
+
+    // first, check if effect has blur, see Transform3x3Plugin::setupAndProcess()
+    double motionblur = 0.;
+    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
+    if (_motionblur) {
+        _motionblur->getValueAtTime(time, motionblur);
+    }
+    if (_directionalBlur) {
+        _directionalBlur->getValueAtTime(time, directionalBlur);
+    }
+    double shutter = 0.;
+    if (!directionalBlur) {
+        if (_shutter) {
+            _shutter->getValueAtTime(time, shutter);
+        }
+    }
+    if ( ((shutter != 0.) && (motionblur != 0.)) || directionalBlur) {
+        // effect has blur
+        return false;
+    }
+
     bool invert = false;
 
-    //std::cout << "getTransform called!" << std::endl;
     // Transform3x3-GENERIC
     if (_invert) {
         _invert->getValueAtTime(time, invert);
