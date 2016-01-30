@@ -70,6 +70,13 @@ enum GeneratorExtentEnum
 #define kParamGeneratorFormatLabel "Format"
 #define kParamGeneratorFormatHint "The output format"
 
+#define kParamGeneratorSize kNatronParamFormatSize
+#define kParamGeneratorSizeLabel "Size"
+#define kParamGeneratorSizeHint "The output dimensions of the image in pixels."
+
+#define kParamGeneratorPAR kNatronParamFormatPar
+#define kParamGeneratorPARLabel "Pixel Aspect Ratio"
+#define kParamGeneratorPARHint "Output pixel aspect ratio."
 
 class GeneratorPlugin
     : public OFX::ImageEffect

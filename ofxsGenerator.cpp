@@ -57,9 +57,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
                          _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );
 
     _extent = fetchChoiceParam(kParamGeneratorExtent);
-    _format = fetchChoiceParam(kNatronParamFormatChoice);
-    _formatSize = fetchInt2DParam(kNatronParamFormatSize);
-    _formatPar = fetchDoubleParam(kNatronParamFormatPar);
+    _format = fetchChoiceParam(kParamGeneratorFormat);
+    _formatSize = fetchInt2DParam(kParamGeneratorSize);
+    _formatPar = fetchDoubleParam(kParamGeneratorPAR);
     _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
@@ -261,7 +261,7 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 {
     if (paramName == kParamGeneratorExtent && args.reason == OFX::eChangeUserEdit) {
         updateParamsVisibility();
-    } else if (paramName == kNatronParamFormatChoice) {
+    } else if (paramName == kParamGeneratorFormat) {
         //the host does not handle the format itself, do it ourselves
         OFX::EParamFormat format = (OFX::EParamFormat)_format->getValue();
         int w = 0, h = 0;
@@ -520,9 +520,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         }
     }
     {
-        ChoiceParamDescriptor* param = desc.defineChoiceParam(kNatronParamFormatChoice);
+        ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorFormat);
         param->setLabel(kParamGeneratorFormatLabel);
-        param->setAnimates(false);
         assert(param->getNOptions() == eParamFormatPCVideo);
         param->appendOption(kParamFormatPCVideoLabel);
         assert(param->getNOptions() == eParamFormatNTSC);
@@ -571,21 +570,26 @@ generatorDescribeInContext(PageParamDescriptor *page,
         getFormatResolution(eParamFormatPCVideo, &w, &h, &par);
         assert(par != -1);
         {
-            Int2DParamDescriptor* param = desc.defineInt2DParam(kNatronParamFormatSize);
-            param->setLabel(kNatronParamFormatSize);
+            Int2DParamDescriptor* param = desc.defineInt2DParam(kParamGeneratorSize);
+            param->setLabel(kParamGeneratorSizeLabel);
+            param->setHint(kParamGeneratorSizeHint);
             param->setIsSecret(true);
             param->setDefault(w, h);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
         
         {
-            DoubleParamDescriptor* param = desc.defineDoubleParam(kNatronParamFormatPar);
-            param->setLabel(kNatronParamFormatPar);
+            DoubleParamDescriptor* param = desc.defineDoubleParam(kParamGeneratorPAR);
+            param->setLabel(kParamGeneratorPARLabel);
+            param->setHint(kParamGeneratorPARHint);
             param->setIsSecret(true);
             param->setDefault(par);
-            page->addChild(*param);
+            if (page) {
+                page->addChild(*param);
+            }
         }
-        
     }
 
     // btmLeft
