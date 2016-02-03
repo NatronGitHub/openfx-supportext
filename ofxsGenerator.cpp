@@ -585,6 +585,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setLabel(kParamGeneratorPARLabel);
             param->setHint(kParamGeneratorPARHint);
             param->setIsSecret(true);
+            param->setRange(0., DBL_MAX);
+            param->setDisplayRange(0.5, 2.);
             param->setDefault(par);
             if (page) {
                 page->addChild(*param);
