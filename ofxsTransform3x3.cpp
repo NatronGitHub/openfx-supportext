@@ -1360,8 +1360,8 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTransform3x3MotionBlurLabel);
         param->setHint(kParamTransform3x3MotionBlurHint);
         param->setDefault(paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur ? 1. : 0.);
-        param->setRange(0., 100.);
         param->setIncrement(0.01);
+        param->setRange(0., 100.);
         param->setDisplayRange(0., 4.);
         if (page) {
             page->addChild(*param);
@@ -1373,7 +1373,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
             DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Amount);
             param->setLabel(kParamTransform3x3AmountLabel);
             param->setHint(kParamTransform3x3AmountHint);
-            //param->setRange(-1, 2.);
+            param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
             param->setDisplayRange(-1, 2.);
             param->setDefault(1);
             param->setAnimates(true); // can animate

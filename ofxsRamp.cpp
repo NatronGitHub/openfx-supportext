@@ -23,6 +23,7 @@
 
 #include "ofxsRamp.h"
 #include <cmath>
+#include <cfloat>
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -430,6 +431,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
         param->setDefault(100., 100.);
+        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         //param->setUseHostNativeOverlayHandle(true);
         if (group) {
@@ -461,6 +463,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
         param->setDefault(100., 200.);
+        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         //param->setUseHostNativeOverlayHandle(true);
         if (group) {

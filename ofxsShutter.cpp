@@ -37,8 +37,8 @@ OFX::shutterDescribeInContext(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamShutterLabel);
         param->setHint(kParamShutterHint);
         param->setDefault(0.5);
-        param->setRange(0., 2.);
         param->setIncrement(0.01);
+        param->setRange(0., 2.);
         param->setDisplayRange(0., 2.);
         if (page) {
             page->addChild(*param);
@@ -71,8 +71,8 @@ OFX::shutterDescribeInContext(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamShutterCustomOffsetLabel);
         param->setHint(kParamShutterCustomOffsetHint);
         param->setDefault(0.);
-        param->setRange(-1., 1.);
         param->setIncrement(0.1);
+        param->setRange(-1., 1.);
         param->setDisplayRange(-1., 1.);
         if (page) {
             page->addChild(*param);

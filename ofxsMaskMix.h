@@ -135,8 +135,8 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamMixLabel);
         param->setHint(kParamMixHint);
         param->setDefault(1.);
-        param->setRange(0.,1.);
         param->setIncrement(0.01);
+        param->setRange(0.,1.);
         param->setDisplayRange(0.,1.);
         if (page) {
             page->addChild(*param);

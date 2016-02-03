@@ -24,6 +24,7 @@
 
 #include <memory>
 #include <cmath>
+#include <cfloat>
 #include <algorithm>
 
 #ifdef __APPLE__
@@ -63,6 +64,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
         //param->setDimensionLabels("x","y");
         param->setDefault(0, 0);
+        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(10.);
         if (group) {
@@ -79,7 +81,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTransformRotateLabel);
         param->setDoubleType(eDoubleTypeAngle);
         param->setDefault(0);
-        //param->setRange(-180, 180); // the angle may be -infinity..+infinity
+        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-180, 180);
         param->setIncrement(0.1);
         if (group) {
@@ -130,7 +132,8 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewXOld : kParamTransformSkewX);
         param->setLabel(kParamTransformSkewXLabel);
         param->setDefault(0);
-        param->setDisplayRange(-1,1);
+        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
+        param->setDisplayRange(-1., 1.);
         param->setIncrement(0.01);
         if (group) {
             param->setParent(*group);
@@ -145,7 +148,8 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewYOld : kParamTransformSkewY);
         param->setLabel(kParamTransformSkewYLabel);
         param->setDefault(0);
-        param->setDisplayRange(-1,1);
+        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
+        param->setDisplayRange(-1., 1.);
         param->setIncrement(0.01);
         if (group) {
             param->setParent(*group);
@@ -180,6 +184,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         //param->setDimensionLabels("x","y");
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
         param->setDefault(0.5, 0.5);
+        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
         param->setLayoutHint(eLayoutHintNoNewLine, 1);
