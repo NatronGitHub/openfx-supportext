@@ -31,6 +31,53 @@
 
 #include <algorithm>
 
+namespace OFX {
+    namespace MultiPlane {
+        void extractChannelsFromComponentString(const std::string& comp,
+                                                std::string* layer,
+                                                std::string* pairedLayer, //< if disparity or motion vectors
+                                                std::vector<std::string>* channels)
+        {
+            if (comp == kOfxImageComponentAlpha) {
+                //*layer = kShuffleColorPlaneName;
+                channels->push_back("A");
+            } else if (comp == kOfxImageComponentRGB) {
+                //*layer = kShuffleColorPlaneName;
+                channels->push_back("R");
+                channels->push_back("G");
+                channels->push_back("B");
+            } else if (comp == kOfxImageComponentRGBA) {
+                //*layer = kShuffleColorPlaneName;
+                channels->push_back("R");
+                channels->push_back("G");
+                channels->push_back("B");
+                channels->push_back("A");
+            } else if (comp == kFnOfxImageComponentMotionVectors) {
+                *layer = kPlaneLabelMotionBackwardPlaneName;
+                *pairedLayer = kPlaneLabelMotionForwardPlaneName;
+                channels->push_back("U");
+                channels->push_back("V");
+            } else if (comp == kFnOfxImageComponentStereoDisparity) {
+                *layer = kPlaneLabelDisparityLeftPlaneName;
+                *pairedLayer = kPlaneLabelDisparityRightPlaneName;
+                channels->push_back("X");
+                channels->push_back("Y");
+#ifdef OFX_EXTENSIONS_NATRON
+            } else if (comp == kNatronOfxImageComponentXY) {
+                channels->push_back("X");
+                channels->push_back("Y");
+            } else {
+                std::vector<std::string> layerChannels = OFX::mapPixelComponentCustomToLayerChannels(comp);
+                if (layerChannels.size() >= 1) {
+                    *layer = layerChannels[0];
+                    channels->assign(layerChannels.begin() + 1, layerChannels.end());
+                }
+#endif
+            }
+        }
+    }
+}
+
 namespace  {
 template <typename T>
 void addInputChannelOptionsRGBAInternal(T* param,
@@ -98,48 +145,6 @@ static bool hasListChanged(const std::list<std::string>& oldList, const std::lis
     return false;
 }
 
-static void extractChannelsFromComponentString(const std::string& comp,
-                                               std::string* layer,
-                                               std::string* pairedLayer, //< if disparity or motion vectors
-                                               std::vector<std::string>* channels)
-{
-    if (comp == kOfxImageComponentAlpha) {
-        //*layer = kShuffleColorPlaneName;
-        channels->push_back("A");
-    } else if (comp == kOfxImageComponentRGB) {
-        //*layer = kShuffleColorPlaneName;
-        channels->push_back("R");
-        channels->push_back("G");
-        channels->push_back("B");
-    } else if (comp == kOfxImageComponentRGBA) {
-        //*layer = kShuffleColorPlaneName;
-        channels->push_back("R");
-        channels->push_back("G");
-        channels->push_back("B");
-        channels->push_back("A");
-    } else if (comp == kFnOfxImageComponentMotionVectors) {
-        *layer = kPlaneLabelMotionBackwardPlaneName;
-        *pairedLayer = kPlaneLabelMotionForwardPlaneName;
-        channels->push_back("U");
-        channels->push_back("V");
-    } else if (comp == kFnOfxImageComponentStereoDisparity) {
-        *layer = kPlaneLabelDisparityLeftPlaneName;
-        *pairedLayer = kPlaneLabelDisparityRightPlaneName;
-        channels->push_back("X");
-        channels->push_back("Y");
-#ifdef OFX_EXTENSIONS_NATRON
-    } else if (comp == kNatronOfxImageComponentXY) {
-        channels->push_back("X");
-        channels->push_back("Y");
-    } else {
-        std::vector<std::string> layerChannels = OFX::mapPixelComponentCustomToLayerChannels(comp);
-        if (layerChannels.size() >= 1) {
-            *layer = layerChannels[0];
-            channels->assign(layerChannels.begin() + 1, layerChannels.end());
-        }
-#endif
-    }
-}
 
 static void appendComponents(const std::string& clipName,
                              const std::list<std::string>& components,
@@ -153,10 +158,16 @@ static void appendComponents(const std::string& clipName,
         //Pre-process to add color comps first
         std::list<std::string> compsToAdd;
         bool foundColor = false;
+        bool hasAll = false;
         for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
+            
+            if (!hasAll && *it == kPlaneLabelAll) {
+                hasAll = true;
+                continue;
+            }
             std::string layer, secondLayer;
             std::vector<std::string> channels;
-            extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            OFX::MultiPlane::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
             if (channels.empty()) {
                 continue;
             }
@@ -196,6 +207,9 @@ static void appendComponents(const std::string& clipName,
             
             compsToAdd.push_back(layer);
         }
+        if (hasAll) {
+            channelChoices->push_back(kPlaneLabelAll);
+        }
         if (!foundColor) {
             channelChoices->push_back(kPlaneLabelColorRGBA);
         }
@@ -213,7 +227,7 @@ static void appendComponents(const std::string& clipName,
         for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
             std::string layer, secondLayer;
             std::vector<std::string> channels;
-            extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            OFX::MultiPlane::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
             if (channels.empty()) {
                 continue;
             }
@@ -331,6 +345,7 @@ namespace OFX {
         {
             addInputChannelOptionsRGBAInternal<OFX::ChoiceParam>(param,clips,addConstants,options);
         }
+        
         
         bool getPlaneNeededForParam(double time,
                                     const PerClipComponentsMap& perClipComponents,
@@ -515,11 +530,14 @@ namespace OFX {
             if (layerName.empty() ||
                 layerName == kPlaneLabelColorRGBA ||
                 layerName == kPlaneLabelColorRGB ||
-                layerName == kPlaneLabelColorAlpha) {
+                layerName == kPlaneLabelColorAlpha || param->getIsSecret()) {
                 std::string comp = dstClip->getPixelComponentsProperty();
                 *ofxComponents = comp;
                 *ofxPlane = kFnOfxImagePlaneColour;
                 return true;
+            } else if (layerName == kPlaneLabelAll) {
+                *ofxPlane = kPlaneLabelAll;
+                *ofxComponents = kPlaneLabelAll;
             } else if (layerName == kPlaneLabelDisparityLeftPlaneName) {
                 *ofxComponents = kFnOfxImageComponentStereoDisparity;
                 *ofxPlane = kFnOfxImagePlaneStereoDisparityLeft;
@@ -680,7 +698,7 @@ namespace OFX {
             return eChangedParamRetCodeNoChange;
         }
         
-        OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
+        OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(bool addAllChoice, OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
         {
             
             OFX::ChoiceParamDescriptor *ret;
@@ -691,6 +709,9 @@ namespace OFX {
 #ifdef OFX_EXTENSIONS_NATRON
                 param->setHostCanAddOptions(true); //< the host can allow the user to add custom entries
 #endif
+                if (addAllChoice) {
+                    param->appendOption(kPlaneLabelAll);
+                }
                 param->appendOption(kPlaneLabelColorRGBA);
                 param->appendOption(kPlaneLabelMotionForwardPlaneName);
                 param->appendOption(kPlaneLabelMotionBackwardPlaneName);
@@ -699,6 +720,7 @@ namespace OFX {
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
                 param->setAnimates(false);
+                param->setDefault(addAllChoice ? 1 : 0);
                 desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
                 if (page) {
                     page->addChild(*param);

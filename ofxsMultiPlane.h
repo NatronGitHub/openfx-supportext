@@ -43,6 +43,7 @@
 #include "ofxNatron.h"
 #endif
 
+#define kPlaneLabelAll "All"
 #define kPlaneLabelColorAlpha "Color.Alpha"
 #define kPlaneLabelColorRGB "Color.RGB"
 #define kPlaneLabelColorRGBA "Color.RGBA"
@@ -96,6 +97,11 @@ namespace OFX {
         // map <ClipName, ClipComponentsInfo>
         typedef std::map<std::string, ClipsComponentsInfoBase> PerClipComponentsMap;
         
+        
+        void extractChannelsFromComponentString(const std::string& comp,
+                                                std::string* layer,
+                                                std::string* pairedLayer, //< if disparity or motion vectors
+                                                std::vector<std::string>* channels);
         
         /**
          * @brief Returns the layer and channel index selected by the user in the dynamic choice param.
@@ -192,7 +198,7 @@ namespace OFX {
         /**
          * @brief Add a dynamic choice parameter to select the output layer (in which the plug-in will render)
          **/
-        OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page);
+        OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(bool addAllChoice, OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page);
         
         /**
          * @brief Add a dynamic choice parameter to select a channel among possibly different source clips
