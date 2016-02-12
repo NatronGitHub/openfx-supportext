@@ -97,7 +97,15 @@ namespace OFX {
         // map <ClipName, ClipComponentsInfo>
         typedef std::map<std::string, ClipsComponentsInfoBase> PerClipComponentsMap;
         
+        /**
+         * @brief Encode the given layer and channel names into a string following the specification in ofxNatron.h
+         **/
+        std::string makeNatronCustomChannel(const std::string& layer,const std::vector<std::string>& channels);
         
+        /**
+         * @brief Given the string "comp" in the format described in ofxNatron.h, extract the layer name, the paired layer (if any)
+         * and the channels
+         **/
         void extractChannelsFromComponentString(const std::string& comp,
                                                 std::string* layer,
                                                 std::string* pairedLayer, //< if disparity or motion vectors

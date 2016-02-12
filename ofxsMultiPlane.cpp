@@ -330,6 +330,18 @@ namespace OFX {
     namespace MultiPlane {
         
         
+        std::string makeNatronCustomChannel(const std::string& layer,const std::vector<std::string>& channels)
+        {
+            std::string ret(kNatronOfxImageComponentsPlane);
+            ret.append(layer);
+            for (std::size_t i = 0; i < channels.size(); ++i) {
+                ret.append(kNatronOfxImageComponentsPlaneChannel);
+                ret.append(channels[i]);
+            }
+            return ret;
+            
+        }
+        
         void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
                                         const std::vector<std::string>& clips,
                                         bool addConstants,
@@ -447,8 +459,8 @@ namespace OFX {
                 } else {
                     assert(false);
                 }
-                *ofxComponents = kFnOfxImageComponentStereoDisparity;
-                *ofxPlane = kFnOfxImagePlaneStereoDisparityLeft;
+                *ofxComponents = kPlaneLabelDisparityLeftPlaneName;
+                *ofxPlane = kPlaneLabelDisparityLeftPlaneName;
                 return true;
             } else if (layerName == kPlaneLabelDisparityRightPlaneName) {
                 if (chanName == "x" || chanName == "X") {
@@ -458,8 +470,8 @@ namespace OFX {
                 } else {
                     assert(false);
                 }
-                *ofxComponents = kFnOfxImageComponentStereoDisparity;
-                *ofxPlane =  kFnOfxImagePlaneStereoDisparityRight;
+                *ofxComponents = kPlaneLabelDisparityRightPlaneName;
+                *ofxPlane =  kPlaneLabelDisparityRightPlaneName;
                 return true;
             } else if (layerName == kPlaneLabelMotionBackwardPlaneName) {
                 if (chanName == "u" || chanName == "U") {
@@ -469,8 +481,8 @@ namespace OFX {
                 } else {
                     assert(false);
                 }
-                *ofxComponents = kFnOfxImageComponentMotionVectors;
-                *ofxPlane = kFnOfxImagePlaneBackwardMotionVector;
+                *ofxComponents = kPlaneLabelMotionBackwardPlaneName;
+                *ofxPlane = kPlaneLabelMotionBackwardPlaneName;
                 return true;
             } else if (layerName == kPlaneLabelMotionForwardPlaneName) {
                 if (chanName == "u" || chanName == "U") {
@@ -480,8 +492,8 @@ namespace OFX {
                 } else {
                     assert(false);
                 }
-                *ofxComponents = kFnOfxImageComponentMotionVectors;
-                *ofxPlane = kFnOfxImagePlaneForwardMotionVector;
+                *ofxComponents = kPlaneLabelMotionForwardPlaneName;
+                *ofxPlane = kPlaneLabelMotionForwardPlaneName;
                 return true;
 #ifdef OFX_EXTENSIONS_NATRON
             } else {
@@ -539,20 +551,32 @@ namespace OFX {
                 *ofxPlane = kPlaneLabelAll;
                 *ofxComponents = kPlaneLabelAll;
             } else if (layerName == kPlaneLabelDisparityLeftPlaneName) {
-                *ofxComponents = kFnOfxImageComponentStereoDisparity;
-                *ofxPlane = kFnOfxImagePlaneStereoDisparityLeft;
+                std::vector<std::string> channels(2);
+                channels[0] = "X";
+                channels[1] = "Y";
+                *ofxComponents = makeNatronCustomChannel(kPlaneLabelDisparityLeftPlaneName, channels);
+                *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelDisparityRightPlaneName) {
-                *ofxComponents = kFnOfxImageComponentStereoDisparity;
-                *ofxPlane =  kFnOfxImagePlaneStereoDisparityRight;
+                std::vector<std::string> channels(2);
+                channels[0] = "X";
+                channels[1] = "Y";
+                *ofxComponents = makeNatronCustomChannel(kPlaneLabelDisparityRightPlaneName, channels);
+                *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelMotionBackwardPlaneName) {
-                *ofxComponents = kFnOfxImageComponentMotionVectors;
-                *ofxPlane = kFnOfxImagePlaneBackwardMotionVector;
+                std::vector<std::string> channels(2);
+                channels[0] = "U";
+                channels[1] = "V";
+                *ofxComponents = makeNatronCustomChannel(kPlaneLabelMotionBackwardPlaneName, channels);
+                *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelMotionForwardPlaneName) {
-                *ofxComponents = kFnOfxImageComponentMotionVectors;
-                *ofxPlane = kFnOfxImagePlaneForwardMotionVector;
+                std::vector<std::string> channels(2);
+                channels[0] = "U";
+                channels[1] = "V";
+                *ofxComponents = makeNatronCustomChannel(kPlaneLabelMotionForwardPlaneName, channels);
+                *ofxPlane = *ofxComponents;
                 return true;
 #ifdef OFX_EXTENSIONS_NATRON
             } else {
