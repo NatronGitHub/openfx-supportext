@@ -659,11 +659,28 @@ namespace OFX {
                 d.param = params[k].param;
                 d.stringParam = params[k].stringparam;
                 
+                std::string oldComponent;
+                d.stringParam->getValue(oldComponent);
+                
                 if (!isOutput) {
                     addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &d.options);
                 }
                 for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
                     appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &d.options);
+                }
+                
+                bool foundOldChoice = false;
+                for (std::size_t i = 0; i < d.options.size(); ++i) {
+                    if (d.options[i] == oldComponent) {
+                        d.param->setValue(i);
+                        foundOldChoice = true;
+                        break;
+                    }
+                }
+                if (!foundOldChoice) {
+                    int def;
+                    d.param->getDefault(def);
+                    d.param->setValue(def);
                 }
                 
                 data.push_back(d);
@@ -733,18 +750,19 @@ namespace OFX {
 #ifdef OFX_EXTENSIONS_NATRON
                 param->setHostCanAddOptions(true); //< the host can allow the user to add custom entries
 #endif
-                if (addAllChoice) {
-                    param->appendOption(kPlaneLabelAll);
-                }
+             
                 param->appendOption(kPlaneLabelColorRGBA);
                 param->appendOption(kPlaneLabelMotionForwardPlaneName);
                 param->appendOption(kPlaneLabelMotionBackwardPlaneName);
                 param->appendOption(kPlaneLabelDisparityLeftPlaneName);
                 param->appendOption(kPlaneLabelDisparityRightPlaneName);
+                if (addAllChoice) {
+                    param->appendOption(kPlaneLabelAll);
+                }
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
                 param->setAnimates(false);
-                param->setDefault(addAllChoice ? 1 : 0);
+                param->setDefault(0);
                 desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
                 if (page) {
                     page->addChild(*param);
