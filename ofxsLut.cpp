@@ -36,9 +36,6 @@ typedef unsigned char uint8_t;
 #define M_PI        3.14159265358979323846264338327950288   /* pi             */
 #endif
 
-#define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
-//#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
-
 namespace OFX {
 namespace Color {
 // compile-time endianness checking found on:

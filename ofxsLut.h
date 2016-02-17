@@ -36,6 +36,9 @@
 #include "ofxsMacros.h"
 #include "ofxsPixelProcessor.h"
 
+#define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
+//#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
+
 namespace OFX {
 namespace Color {
 /// numvals should be 256 for byte, 65536 for 16-bits, etc.
