@@ -814,6 +814,18 @@ to_func_Rec709(float v)
     }
 }
 
+inline float
+from_func_gamma22(float v)
+{
+    return (v <= 0) ? 0. : std::pow(v, 2.2f);
+}
+
+inline float
+to_func_gamma22(float v)
+{
+    return (v <= 0) ? 0. : std::pow(v, 1.f/2.2f);
+}
+
 /*
    Following the formula:
    offset = pow(10,(blackpoint - whitepoint) * 0.002 / gammaSensito)
@@ -927,11 +939,23 @@ void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b );
 void rgb_to_hsi( float r, float g, float b, float *h, float *s, float *i );
 void hsi_to_rgb( float h, float s, float i, float *r, float *g, float *b );
 
-void rgb_to_ycbcr( float r, float g, float b, float *y, float *cb, float *cr );
-void ycbcr_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
+void rgb_to_ycbcr601( float r, float g, float b, float *y, float *cb, float *cr );
+void ycbcr601_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
 
-void rgb_to_yuv( float r, float g, float b, float *y, float *u, float *v );
-void yuv_to_rgb( float y, float u, float v, float *r, float *g, float *b );
+void rgb_to_ycbcr709( float r, float g, float b, float *y, float *cb, float *cr );
+void ycbcr709_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
+
+void rgb_to_ypbpr601( float r, float g, float b, float *y, float *pb, float *pr );
+void ypbpr601_to_rgb( float y, float pb, float pr, float *r, float *g, float *b );
+
+void rgb_to_ypbpr709( float r, float g, float b, float *y, float *pb, float *pr );
+void ypbpr709_to_rgb( float y, float pb, float pr, float *r, float *g, float *b );
+
+void rgb_to_yuv601( float r, float g, float b, float *y, float *u, float *v );
+void yuv601_to_rgb( float y, float u, float v, float *r, float *g, float *b );
+
+void rgb_to_yuv709( float r, float g, float b, float *y, float *u, float *v );
+void yuv709_to_rgb( float y, float u, float v, float *r, float *g, float *b );
 
 void rgb_to_xyz_rec709( float r, float g, float b, float *x, float *y, float *z );
 void xyz_rec709_to_rgb( float x, float y, float z, float *r, float *g, float *b );

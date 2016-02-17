@@ -36,6 +36,9 @@ typedef unsigned char uint8_t;
 #define M_PI        3.14159265358979323846264338327950288   /* pi             */
 #endif
 
+#define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
+//#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
+
 namespace OFX {
 namespace Color {
 // compile-time endianness checking found on:
@@ -137,7 +140,7 @@ LutManager::~LutManager()
 }
 
 // r,g,b values are from 0 to 1
-// h = [0,360], s = [0,1], v = [0,1]
+// h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 //		if s == 0, then h = 0 (undefined)
 void
 rgb_to_hsv( float r,
@@ -172,9 +175,9 @@ rgb_to_hsv( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= 60;                               // degrees
+    *h *= OFXS_HUE_CIRCLE / 6.;
     if (*h < 0) {
-        *h += 360;
+        *h += OFXS_HUE_CIRCLE;
     }
 }
 
@@ -193,7 +196,7 @@ hsv_to_rgb(float h,
         return;
     }
 
-    h /= 60;            // sector 0 to 5
+    h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
     int i = std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
@@ -268,9 +271,9 @@ rgb_to_hsl( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= 60;                               // degrees
+    *h *= OFXS_HUE_CIRCLE / 6.;
     if (*h < 0) {
-        *h += 360;
+        *h += OFXS_HUE_CIRCLE;
     }
 }
 
@@ -289,7 +292,7 @@ hsl_to_rgb(float h,
         return;
     }
 
-    h /= 60;            // sector 0 to 5
+    h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
     int i = std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
@@ -347,10 +350,10 @@ rgb_to_hsi( float r,
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
     float m =std::min(std::min(nR,nG),nB);
-    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.f,(nR-nG)*(nR-nG)+(nR-nB)*(nG-nB))))*180/M_PI);
+    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.f,(nR-nG)*(nR-nG)+(nR-nB)*(nG-nB))))*(OFXS_HUE_CIRCLE/2)/M_PI);
     float sum = nR + nG + nB;
     if (theta > 0) {
-        *h = (nB<=nG) ? theta : (360 - theta);
+        *h = (nB<=nG) ? theta : (OFXS_HUE_CIRCLE - theta);
     } else {
         *h = 0.;
     }
@@ -372,25 +375,25 @@ hsi_to_rgb(float h,
            float *b)
 {
     float a = i * (1 - s);
-    if (h < 120) {
+    if (h < (OFXS_HUE_CIRCLE/3)) {
         *b = a;
-        *r = (float)(i*(1 + s * std::cos(h * M_PI/180)/std::cos((60-h) * M_PI/180)));
+        *r = (float)(i*(1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
         *g = 3 * i-(*r +*b);
-    } else if (h < 240) {
-        h -= 120;
+    } else if (h < (OFXS_HUE_CIRCLE*2/3)) {
+        h -= OFXS_HUE_CIRCLE/3;
         *r = a;
-        *g = (float)(i * (1 + s * std::cos(h * M_PI/180)/std::cos((60 - h) * M_PI/180)));
+        *g = (float)(i * (1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
         *b = 3 * i - (*r + *g);
     } else {
-        h -= 240;
+        h -= OFXS_HUE_CIRCLE*2/3;
         *g = a;
-        *b = (float)(i * (1 + s * std::cos(h * M_PI/180)/std::cos((60 - h) * M_PI/180)));
+        *b = (float)(i * (1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
         *r = 3 * i - (*g + *b);
     }
 } // hsi_to_rgb
 
 void
-rgb_to_ycbcr(float r,
+rgb_to_ycbcr601(float r,
              float g,
              float b,
              float *y,
@@ -402,19 +405,20 @@ rgb_to_ycbcr(float r,
     //*cb = ((255*(-38*r - 74*g + 112*b) + 128)/256 + 128)/255,
     //*cr = ((255*(112*r - 94*g - 18*b) + 128)/256 + 128)/255;
 
-    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
-    *y  =  0.2215 * r +0.7154 * g +0.0721 * b;
-    *cb = -0.1145 * r -0.3855 * g +0.5000 * b + 128./255;
-    *cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
+    /// ref: http://www.equasys.de/colorconversion.html (BT.601)
+    /// also http://www.intersil.com/data/an/AN9717.pdf
+    *y  =  0.257*r + 0.504*g + 0.098*b + 16/255.;
+    *cb = -0.148*r  -0.291*g + 0.439*b + 128/255.;
+    *cr =  0.439*r  -0.368*g  -0.071*b + 128/255.;
 }
 
 void
-ycbcr_to_rgb(float y,
-             float cb,
-             float cr,
-             float *r,
-             float *g,
-             float *b)
+ycbcr601_to_rgb(float y,
+                float cb,
+                float cr,
+                float *r,
+                float *g,
+                float *b)
 {
     /// ref: CImg (BT.601)
     //y  = y * 255 - 16;
@@ -424,26 +428,143 @@ ycbcr_to_rgb(float y,
     //*g = (298 * y - 100 * cb - 208 * cr + 128)/256/255;
     //*b = (298 * y + 516 * cb + 128)/256/255;
 
-    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
-    /// that document has the wrong sign for 1.8556
-    *r = y +0.0000 * (cb - 128./255) +1.5701 * (cr - 128./255);
-    *g = y -0.1870 * (cb - 128./255) -0.4664 * (cr - 128./255);
-    *b = y +1.8556 * (cb - 128./255) +0.0000 * (cr - 128./255);
+    /// ref: http://www.equasys.de/colorconversion.html (BT.601)
+    /// also http://www.intersil.com/data/an/AN9717.pdf
+    *r = 1.164*(y - 16/255.) + 1.596*(cr - 128/255.);
+    *g = 1.164*(y - 16/255.) - 0.813*(cr - 128/255.) -0.392*(cb - 128/255.);
+    *b = 1.164*(y - 16/255.) + 2.017*(cb - 128/255.);
 } // ycbcr_to_rgb
 
 void
-rgb_to_yuv(float r,
-           float g,
-           float b,
-           float *y,
-           float *u,
-           float *v)
+rgb_to_ycbcr709(float r,
+                 float g,
+                 float b,
+                 float *y,
+                 float *cb,
+                 float *cr)
+{
+    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
+    //*y  =  0.2215 * r +0.7154 * g +0.0721 * b;
+    //*cb = -0.1145 * r -0.3855 * g +0.5000 * b + 128./255;
+    //*cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
+
+    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    *y  =  0.183*r + 0.614*g + 0.062*b + 16/255.;
+    *cb = -0.101*r  -0.339*g + 0.439*b + 128/255.;
+    *cr =  0.439*r  -0.399*g  -0.040*b + 128/255.;
+}
+
+void
+ycbcr709_to_rgb(float y,
+                float cb,
+                float cr,
+                float *r,
+                float *g,
+                float *b)
+{
+    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    *r = 1.164*(y - 16/255.) + 1.793*(cr - 128/255.);
+    *g = 1.164*(y - 16/255.) - 0.533*(cr - 128/255.) -0.213*(cb - 128/255.);
+    *b = 1.164*(y - 16/255.) + 2.112*(cb - 128/255.);
+} // ycbcr_to_rgb
+
+
+void
+rgb_to_ypbpr601(float r,
+                float g,
+                float b,
+                float *y,
+                float *pb,
+                float *pr)
+{
+    /// ref: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
+    // also http://www.equasys.de/colorconversion.html (BT.601)
+    // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
+    *y  =  0.299f    * r +0.587f    * g +0.114f * b;
+    *pb = -0.168736f * r -0.331264f * g +0.500f * b;
+    *pr =  0.500f    * r -0.418688f * g -0.081312f * b;
+}
+
+void
+ypbpr601_to_rgb(float y,
+                float pb,
+                float pr,
+                float *r,
+                float *g,
+                float *b)
+{
+    /// https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
+    // also ref: http://www.equasys.de/colorconversion.html (BT.601)
+    // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
+    *r = y                +1.402f    * pr,
+    *g = y -0.344136 * pb -0.714136f * pr;
+    *b = y +1.772f   * pb;
+} // yuv_to_rgb
+
+void
+rgb_to_ypbpr709(float r,
+                float g,
+                float b,
+                float *y,
+                float *pb,
+                float *pr)
+{
+    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    *y  =  0.2126f * r +0.7152f * g +0.0722f * b;
+    *pb = -0.115f  * r -0.385f  * g +0.500f  * b;
+    *pr =  0.500f  * r -0.454f  * g -0.046f  * b;
+}
+
+void
+ypbpr709_to_rgb(float y,
+                float pb,
+                float pr,
+                float *r,
+                float *g,
+                float *b)
+{
+    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    *r = y              +1.575f * pr,
+    *g = y -0.187f * pb -0.468f * pr;
+    *b = y +1.856f * pb;
+} // yuv_to_rgb
+
+void
+rgb_to_yuv601(float r,
+                float g,
+                float b,
+                float *y,
+                float *u,
+                float *v)
 {
     /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
-    //*y =  0.299f   * r +0.587f   * g +0.114f  * b;
-    //*u = -0.14713f * r -0.28886f * g +0.114f  * b;
-    //*v =  0.615f   * r -0.51499f * g -0.10001 * b;
+    *y =  0.299f   * r +0.587f   * g +0.114f  * b;
+    *u = -0.14713f * r -0.28886f * g +0.436f  * b;
+    *v =  0.615f   * r -0.51499f * g -0.10001 * b;
+}
 
+void
+yuv601_to_rgb(float y,
+                float u,
+                float v,
+                float *r,
+                float *g,
+                float *b)
+{
+    /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
+    *r = y                + 1.13983f * v,
+    *g = y - 0.39465f * u - 0.58060f * v;
+    *b = y + 2.03211f * u;
+} // yuv_to_rgb
+
+void
+rgb_to_yuv709(float r,
+                float g,
+                float b,
+                float *y,
+                float *u,
+                float *v)
+{
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
     *y =  0.2126f  * r +0.7152f  * g +0.0722f  * b;
     *u = -0.09991f * r -0.33609f * g +0.436f   * b;
@@ -451,18 +572,13 @@ rgb_to_yuv(float r,
 }
 
 void
-yuv_to_rgb(float y,
-           float u,
-           float v,
-           float *r,
-           float *g,
-           float *b)
+yuv709_to_rgb(float y,
+                float u,
+                float v,
+                float *r,
+                float *g,
+                float *b)
 {
-    /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
-    //*r = y                + 1.13983f * v,
-    //*g = y - 0.39465f * u - 0.58060f * v;
-    //*b = y + 2.03211f * u;
-
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
     *r = y               +1.28033f * v,
     *g = y -0.21482f * u -0.38059f * v;
