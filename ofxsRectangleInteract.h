@@ -99,7 +99,7 @@ public:
         addParamToSlaveTo(_btmLeft);
         addParamToSlaveTo(_size);
         assert(_btmLeft && _size);
-        _interactive = effect->fetchBooleanParam(kParamRectangleInteractInteractive);
+        _interactive = effect->paramExists(kParamRectangleInteractInteractive) ? effect->fetchBooleanParam(kParamRectangleInteractInteractive) : 0;
         _btmLeftDragPos.x = _btmLeftDragPos.y = 0;
         _sizeDrag.x = _sizeDrag.y = 0;
         _interactiveDrag = false;
