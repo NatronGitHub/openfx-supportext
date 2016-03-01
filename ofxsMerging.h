@@ -394,7 +394,7 @@ getOperationDescription(MergingFunctionEnum operation)
         return "A+B(1-a) (a.k.a. src-over)";
 
     case eMergeOverlay:
-        return "multiply if B<0.5, screen if B>0.5";
+        return "multiply if B < 0.5, screen if B > 0.5";
 
     case eMergePinLight:
         return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2.0 ) else";
@@ -409,7 +409,7 @@ getOperationDescription(MergingFunctionEnum operation)
         return "SetLum(SetSat(B, Sat(A)), Lum(B))";
 
     case eMergeScreen:
-        return "A+B-AB";
+        return "A+B-AB if A or B <= 1, otherwise max(A, B)";
 
     case eMergeSoftLight:
         return "burn-in if A < 0.5, lighten if A > 0.5";
