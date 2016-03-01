@@ -607,7 +607,11 @@ PIX
 screenFunctor(PIX A,
               PIX B)
 {
-    return PIX(A + B - A * B / (double)maxValue);
+    if (A <= maxValue || B <= maxValue) {
+        return PIX((double)A + B - (double)A * B);
+    } else {
+        return std::max(A,B);
+    }
 }
 
 template <typename PIX,int maxValue>
