@@ -761,8 +761,8 @@ namespace OFX {
                 }
                 param->setEvaluateOnChange(false);
                 param->setIsPersistant(false);
-                param->setAnimates(false);
                 param->setDefault(0);
+                param->setAnimates(false);
                 desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
                 if (page) {
                     page->addChild(*param);
