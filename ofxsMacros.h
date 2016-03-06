@@ -23,6 +23,9 @@
 #ifndef openfx_supportext_ofxsMacros_h
 #define openfx_supportext_ofxsMacros_h
 
+// anonymous namespace macros, mainly to avoid crazy intentation by some IDEs (e.g. Xcode)
+#define OFXS_NAMESPACE_ANONYMOUS_ENTER namespace {
+#define OFXS_NAMESPACE_ANONYMOUS_EXIT }
 
 // compiler_warning.h
 #define STRINGISE_IMPL(x) # x
