@@ -35,8 +35,8 @@
 #define kParamRectangleInteractSize "size"
 #define kParamRectangleInteractSizeLabel "Size"
 #define kParamRectangleInteractSizeHint "Width and height of the rectangle"
-#define kParamRectangleInteractSizeDim1 "width"
-#define kParamRectangleInteractSizeDim2 "height"
+#define kParamRectangleInteractSizeDim1 "w"
+#define kParamRectangleInteractSizeDim2 "h"
 
 #define kParamRectangleInteractInteractive "interactive"
 #define kParamRectangleInteractInteractiveLabel "Interactive Update"

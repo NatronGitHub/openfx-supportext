@@ -42,6 +42,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
 , _outputComponents(0)
 , _outputBitDepth(0)
 , _range(0)
+, _recenter(0)
 , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
 , _supportsBytes(0)
 , _supportsShorts(0)
@@ -62,8 +63,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
     _formatPar = fetchDoubleParam(kParamGeneratorPAR);
     _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
+    _recenter = fetchPushButtonParam(kParamGeneratorCenter);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
-    assert(_extent && _format && _formatSize && _formatPar && _btmLeft && _size && _interactive);
+    assert(_extent && _format && _formatSize && _formatPar && _btmLeft && _size && _interactive && _recenter);
     
     if (_useOutputComponentsAndDepth) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
@@ -249,6 +251,8 @@ GeneratorPlugin::updateParamsVisibility()
     _format->setIsSecret(!hasFormat);
     _size->setEnabled(hasSize);
     _size->setIsSecret(!hasSize);
+    _recenter->setEnabled(hasSize);
+    _recenter->setIsSecret(!hasSize);
     _btmLeft->setEnabled(hasSize);
     _btmLeft->setIsSecret(!hasSize);
     _interactive->setEnabled(hasSize);
@@ -271,6 +275,39 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         _formatPar->setValue(par);
         _formatSize->setValue(w, h);
 
+    } else if (paramName == kParamGeneratorCenter) {
+        
+        OFX::Clip* srcClip = getSrcClip();
+        
+        OfxRectD srcRoD;
+        if (srcClip && srcClip->isConnected()) {
+            srcRoD = srcClip->getRegionOfDefinition(args.time);
+        } else {
+            OfxPointD siz = getProjectSize();
+            OfxPointD off = getProjectOffset();
+            srcRoD.x1 = off.x;
+            srcRoD.x2 = off.x + siz.x;
+            srcRoD.y1 = off.y;
+            srcRoD.y2 = off.y + siz.y;
+        }
+        OfxPointD center;
+        center.x = (srcRoD.x2 + srcRoD.x1) / 2.;
+        center.y = (srcRoD.y2 + srcRoD.y1) / 2.;
+        
+        OfxRectD rectangle;
+        _size->getValue(rectangle.x2, rectangle.y2);
+        _btmLeft->getValue(rectangle.x1, rectangle.y1);
+        rectangle.x2 += rectangle.x1;
+        rectangle.y2 += rectangle.y1;
+        
+        OfxRectD newRectangle;
+        newRectangle.x1 = center.x - (rectangle.x2 - rectangle.x1) / 2.;
+        newRectangle.y1 = center.y - (rectangle.y2 - rectangle.y1) / 2.;
+        newRectangle.x2 = newRectangle.x1 + (rectangle.x2 - rectangle.x1);
+        newRectangle.y2 = newRectangle.y1 + (rectangle.y2 - rectangle.y1);
+        
+        _size->setValue(newRectangle.x2 - newRectangle.x1, newRectangle.y2 - newRectangle.y1);
+        _btmLeft->setValue(newRectangle.x1, newRectangle.y1);
     }
 }
 
@@ -500,6 +537,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            bool useOutputComponentsAndDepth,
                            ContextEnum context)
 {
+    // extent
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorExtent);
         param->setLabel(kParamGeneratorExtentLabel);
@@ -513,12 +551,26 @@ generatorDescribeInContext(PageParamDescriptor *page,
         assert(param->getNOptions() == eGeneratorExtentDefault);
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
         param->setDefault((int)defaultType);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
         param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
         }
     }
+    
+    // recenter
+    {
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamGeneratorCenter);
+        param->setLabel(kParamGeneratorCenterLabel);
+        param->setHint(kParamGeneratorCenterHint);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
+    // format
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamGeneratorFormat);
         param->setLabel(kParamGeneratorFormatLabel);
@@ -604,6 +656,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
+        param->setLayoutHint(OFX::eLayoutHintNoNewLine);
         param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
         if (page) {
@@ -629,7 +682,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-
+    
+ 
     // interactive
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRectangleInteractInteractive);

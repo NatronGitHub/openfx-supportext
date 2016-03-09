@@ -78,6 +78,12 @@ enum GeneratorExtentEnum
 #define kParamGeneratorPARLabel "Pixel Aspect Ratio"
 #define kParamGeneratorPARHint "Output pixel aspect ratio."
 
+#define kParamGeneratorCenter "recenter"
+#define kParamGeneratorCenterLabel "Center"
+#define kParamGeneratorCenterHint "Centers the region of definition to the input region of definition. " \
+"If there is no input, then the region of definition is centered to the project window."
+
+
 class GeneratorPlugin
     : public OFX::ImageEffect
 {
@@ -94,6 +100,7 @@ protected:
     OFX::ChoiceParam *_outputComponents;
     OFX::ChoiceParam *_outputBitDepth;
     OFX::Int2DParam  *_range;
+    OFX::PushButtonParam *_recenter;
     bool _useOutputComponentsAndDepth;
     
 public:
@@ -101,6 +108,10 @@ public:
     GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth);
 
 protected:
+    
+    // Override to return the source clip if there's any.
+    virtual OFX::Clip* getSrcClip() const { return 0; }
+    
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
     bool getRegionOfDefinition(OfxRectD &rod);
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
