@@ -211,6 +211,12 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
 
         // only Natron supports setting the identityClip to the output clip
 
+        OFX::Clip* srcClip = getSrcClip();
+        if (srcClip && srcClip->isConnected()) {
+            // If the source clip is connected, then the output is likely not to be identity
+            return false;
+        }
+        
         int min, max;
         _range->getValue(min, max);
 
