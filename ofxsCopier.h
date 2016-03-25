@@ -184,7 +184,6 @@ public:
     PixelCopierOpaque(OFX::ImageEffect &instance)
         : OFX::PixelProcessorFilterBase(instance)
     {
-        assert(nComponents == 4);
     }
 
     // and do some processing
@@ -1161,10 +1160,18 @@ copyPixelsOpaqueForDepth(OFX::ImageEffect &instance,
     assert(srcPixelComponentCount == dstPixelComponentCount);
     // do the rendering
     if (dstPixelComponentCount == 4 || dstPixelComponentCount == 1) {
-        copyPixelsOpaqueForDepthAndComponents<PIX,4, maxValue>(instance, renderWindow,
-                                               (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
-                                               (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
-    } else {
+        if (dstPixelComponentCount == 4) {
+            copyPixelsOpaqueForDepthAndComponents<PIX,4, maxValue>(instance, renderWindow,
+                                                                   (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                                                   (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+
+        } else {
+            copyPixelsOpaqueForDepthAndComponents<PIX,1, maxValue>(instance, renderWindow,
+                                                                   (const PIX*)srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
+                                                                   (PIX *)dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
+
+        }
+            } else {
         copyPixelsForDepth<PIX>(instance, renderWindow,
                                 srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                                 dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
