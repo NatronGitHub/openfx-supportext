@@ -807,7 +807,7 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
                                   OFX::BitDepthEnum dstBitDepth,
                                   int dstRowBytes)
 {
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcBitDepth == dstBitDepth);
     assert(srcPixelComponentCount == dstPixelComponentCount);
     assert(srcPixelComponentCount == nComponents);
     (void)srcPixelComponents;
@@ -847,7 +847,7 @@ copyPixelsNTForDepth(OFX::ImageEffect &instance,
                      int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcBitDepth == dstBitDepth);
     assert(srcPixelComponentCount == dstPixelComponentCount);
     // do the rendering
     if (dstPixelComponents != OFX::ePixelComponentRGBA && dstPixelComponents != OFX::ePixelComponentRGB && dstPixelComponents != OFX::ePixelComponentAlpha) {
@@ -886,7 +886,7 @@ copyPixelsNT(OFX::ImageEffect &instance,
              int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcBitDepth == dstBitDepth);
     assert(srcPixelComponentCount == dstPixelComponentCount);
 
     // do the rendering
@@ -930,7 +930,7 @@ copyPixelsForDepthAndComponents(OFX::ImageEffect &instance,
     assert(srcPixelData && dstPixelData);
     //assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2); // not necessary, PixelCopier should handle this
     //assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2); // not necessary, PixelCopier should handle this
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcBitDepth == dstBitDepth);
     assert(srcPixelComponentCount == dstPixelComponentCount);
     (void)srcPixelComponents;
     (void)srcBitDepth;
@@ -967,7 +967,7 @@ copyPixelsForDepth(OFX::ImageEffect &instance,
                    int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcBitDepth == dstBitDepth);
     assert(srcPixelComponentCount == dstPixelComponentCount);
     // do the rendering
     if (dstPixelComponentCount < 0 || 4 < dstPixelComponentCount) {
@@ -1015,7 +1015,7 @@ copyPixels(OFX::ImageEffect &instance,
         return fillBlack(instance, renderWindow,
                          dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
     }
-    assert(srcPixelComponents == dstPixelComponents && srcBitDepth == dstBitDepth);
+    assert(srcPixelComponentCount == dstPixelComponentCount && srcBitDepth == dstBitDepth);
     // do the rendering
     if (dstBitDepth != OFX::eBitDepthUByte && dstBitDepth != OFX::eBitDepthUShort && dstBitDepth != OFX::eBitDepthHalf && dstBitDepth != OFX::eBitDepthFloat) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
