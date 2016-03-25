@@ -926,7 +926,7 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
 bool
 Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                OFX::Clip * &identityClip,
-                               double &identityTime)
+                               double &/*identityTime*/)
 {
     // must clear persistent message in isIdentity, or render() is not called by Nuke after an error
     clearPersistentMessage();
@@ -938,7 +938,6 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
         _amount->getValueAtTime(time, amount);
         if (amount == 0.) {
             identityClip = _srcClip;
-            identityTime = time;
 
             return true;
         }
@@ -969,7 +968,6 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
 
     if ( isIdentity(time) ) { // let's call the Transform-specific one first
         identityClip = _srcClip;
-        identityTime = time;
 
         return true;
     }
@@ -982,7 +980,6 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
         }
         if (mix == 0.) {
             identityClip = _srcClip;
-            identityTime = time;
 
             return true;
         }
@@ -997,6 +994,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                 // effect is identity if the renderWindow doesn't intersect the mask RoD
                 if (!OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0)) {
                     identityClip = _srcClip;
+                    
                     return true;
                 }
             }
