@@ -54,6 +54,7 @@
 
 #define kMultiPlaneParamOutputChannels kNatronOfxParamOutputChannels
 #define kMultiPlaneParamOutputChannelsChoice kMultiPlaneParamOutputChannels "Choice"
+#define kMultiPlaneParamOutputChannelsRefreshButton kMultiPlaneParamOutputChannels "RefreshButton"
 #define kMultiPlaneParamOutputChannelsLabel "Output Layer"
 #define kMultiPlaneParamOutputChannelsHint "The layer that will be written to in output"
 
@@ -64,38 +65,118 @@
 
 namespace OFX {
     namespace MultiPlane {
+       
         
-        struct ClipsComponentsInfoBase
-        {
-            //A pointer to the clip
-            OFX::Clip* clip;
-            
-            //The value returned by clip->getComponentsPresent()
-            std::list<std::string> componentsPresent;
-            
-            ClipsComponentsInfoBase() : clip(0), componentsPresent() {}
-            
-            virtual ~ClipsComponentsInfoBase() {}
-        };
-    
-        struct ClipComponentsInfo : public ClipsComponentsInfoBase
+        struct MultiPlaneEffectPrivate;
+        class MultiPlaneEffect : public OFX::ImageEffect
         {
             
-            //A pointer to a components present cache held as a member of the plug-in (no need to lock it as accessed always on the same thread)
-            //This is to speed-up buildChannelMenus to avoid re-building menus and make complex API calls if they did not change.
-            std::list<std::string>* componentsPresentCache;
+            std::auto_ptr<MultiPlaneEffectPrivate> _imp;
             
-            //When hasListChanged has been called; this is set to true, indicating that the value of isCacheValid is correct
-            mutable bool comparisonToCacheDone;
-            mutable bool isCacheValid;
+        public:
             
-            ClipComponentsInfo() : ClipsComponentsInfoBase(), componentsPresentCache(0), comparisonToCacheDone(false), isCacheValid(false) {}
             
-            virtual ~ClipComponentsInfo() {}
+            MultiPlaneEffect(OfxImageEffectHandle handle);
+            
+            virtual ~MultiPlaneEffect();
+        
+            /**
+             * @brief Fetch a dynamic choice parameter that was declared to the factory with describeInContextAddOutputLayerChoice() or describeInContextAddChannelChoice() and associates the given clips as dependencies of the layers in the menu.
+             **/
+            void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName, const std::vector<OFX::Clip*>& dependsClips);
+            
+            /**
+             * @brief Convenience func for param depending only on a single clip
+             **/
+            void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName, OFX::Clip* dependsClip)
+            {
+                std::vector<OFX::Clip*> vec(1);
+                vec[0] = dependsClip;
+                fetchDynamicMultiplaneChoiceParameter(paramName, vec);
+            }
+            
+            /**
+             * @brief Returns the layer and channel index selected by the user in the dynamic choice param.
+             * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
+             * @param ofxComponents Generally the same as ofxPlane except in the following cases:
+             - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector)
+             where the compoonents are in that case kFnOfxImageComponentMotionVectors.
+             - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or
+             kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
+             *
+             * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
+             * ofxComponents will have been set correctly to one of these values.
+             *
+             * @param channelIndexInPlane Contains the selected channel index in the layer set to ofxPlane
+             * @param isCreatingAlpha If Selected layer is the colour plane (i.e: kPlaneLabelColorAlpha or kPlaneLabelColorRGB or kPlaneLabelColorRGBA)
+             * and if the user selected the alpha channel (e.g: RGBA.a), but the clip pixel components are RGB, then this value will be set to true.
+             **/
+            
+            bool getPlaneNeededForParam(double time,
+                                        const std::string& paramName,
+                                        OFX::Clip** clip,
+                                        std::string* ofxPlane,
+                                        std::string* ofxComponents,
+                                        int* channelIndexInPlane,
+                                        bool* isCreatingAlpha);
+            
+            /**
+             * @brief Returns the layer selected by the user in the dynamic output choice.
+             * @param canUseCachedComponents If true, the output clip components will be retrieved with getCachedComponentsPresent()
+             * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
+             * @param ofxComponents Generally the same as ofxPlane except in the following cases:
+             - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector)
+             where the compoonents are in that case kFnOfxImageComponentMotionVectors.
+             - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or
+             kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
+             *
+             * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
+             * ofxComponents will have been set correctly to one of these values.
+             **/
+            bool getPlaneNeededInOutput(std::string* ofxPlane,
+                                        std::string* ofxComponents);
+            
+          
+            /**
+             * @brief Rebuild the given choice parameter depending on the clips components present.
+             * The only way to properly refresh the dynamic choice is when getClipPreferences is called.
+             * If paramName is empty, all channel menus will be refreshed.
+             **/
+            void buildChannelMenus(const std::string& paramName = std::string(), bool mergeEntries = true);
+            
+            /**
+             * @brief Returns the clip component presents that were used for this clip in the previous call to buildChannelMenus.
+             * This is only valid after a call to buildChannelMenus on a choice parameter that had this clip as dependency and
+             * during the same action.
+             * This is a faster way than to call clip->getComponentsPresent() since the data have already been computed.
+             **/
+            const std::vector<std::string>& getCachedComponentsPresent(OFX::Clip* clip) const;
+            
+            enum ChangedParamRetCode
+            {
+                eChangedParamRetCodeNoChange,
+                eChangedParamRetCodeChoiceParamChanged,
+                eChangedParamRetCodeStringParamChanged,
+                eChangedParamRetCodeButtonParamChanged
+            };
+            
+            /**
+             * @brief To be called in the changedParam action for each dynamic choice holding channels/layers info. This will synchronize the hidden string
+             * parameter to reflect the value of the choice parameter (only if the reason is a user change).
+             * @return Returns true if the param change was caught, false otherwise
+             **/
+            ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, const std::string& paramToCheck, OFX::InstanceChangeReason reason);
+            
+            /**
+             * @brief Calls checkIfChangedParamCalledOnDynamicChoice for all choice parameters declared. This function is just here for convenience, this is the same as calling
+             * checkIfChangedParamCalledOnDynamicChoice for all parameters successively.
+             * @returns True if a param change was caught, false otherwise.
+             **/
+            bool handleChangedParamForAllDynamicChoices(const std::string& paramName, OFX::InstanceChangeReason reason);
+        
         };
         
-        // map <ClipName, ClipComponentsInfo>
-        typedef std::map<std::string, ClipsComponentsInfoBase> PerClipComponentsMap;
+        namespace Utils {
         
         /**
          * @brief Encode the given layer and channel names into a string following the specification in ofxNatron.h
@@ -111,98 +192,10 @@ namespace OFX {
                                                 std::string* pairedLayer, //< if disparity or motion vectors
                                                 std::vector<std::string>* channels);
         
-        /**
-         * @brief Returns the layer and channel index selected by the user in the dynamic choice param.
-         * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
-         * @param ofxComponents Generally the same as ofxPlane except in the following cases:
-         - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector)
-         where the compoonents are in that case kFnOfxImageComponentMotionVectors.
-         - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or
-         kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
-         *
-         * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
-         * ofxComponents will have been set correctly to one of these values.
-         *
-         * @param channelIndexInPlane Contains the selected channel index in the layer set to ofxPlane
-         * @param isCreatingAlpha If Selected layer is the colour plane (i.e: kPlaneLabelColorAlpha or kPlaneLabelColorRGB or kPlaneLabelColorRGBA)
-         * and if the user selected the alpha channel (e.g: RGBA.a), but the clip pixel components are RGB, then this value will be set to true.
-         **/
-
-        bool getPlaneNeededForParam(double time,
-                                    const PerClipComponentsMap& perClipComponents,
-                                    OFX::ChoiceParam* param,
-                                    OFX::Clip** clip,
-                                    std::string* ofxPlane,
-                                    std::string* ofxComponents,
-                                    int* channelIndexInPlane,
-                                    bool* isCreatingAlpha);
+        } // Utils
+   
         
-        /**
-         * @brief Returns the layer selected by the user in the dynamic output choice.
-         * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
-         * @param ofxComponents Generally the same as ofxPlane except in the following cases:
-            - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector) 
-         where the compoonents are in that case kFnOfxImageComponentMotionVectors. 
-            - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or 
-             kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
-         * 
-         * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
-         * ofxComponents will have been set correctly to one of these values.
-         **/
-        bool getPlaneNeededInOutput(const std::list<std::string>& outputComponents,
-                                    const OFX::Clip* dstClip,
-                                    OFX::ChoiceParam* param,
-                                    std::string* ofxPlane,
-                                    std::string* ofxComponents);
-        
-        
-        /**
-         * @brief For each choice param, the list of clips it "depends on" (that is the clip layers that will be visible in the choice)
-         * If the clips vector contains a single clip and this is the output clip then it is expected that param points to the kMultiPlaneParamOutputChannels
-         * parameter.
-         * We pass a pointer to a vector of clips because when calling buildChannelMenus(), there might be multiple choice params using the same clips.
-         * This lets a chance to optimize the data copying since ClipComponentsInfo is quite a large struct.
-         **/
-        struct ChoiceParamClips
-        {
-            OFX::ChoiceParam* param;
-            OFX::StringParam* stringparam;
-            std::vector<ClipComponentsInfo>* clips;
-        };
-        
-        /**
-         * @brief Rebuild the given choice parameter depending on the clips components present. 
-         * The only way to properly refresh the dynamic choice is when getClipPreferences is called.
-         * If the componentsPresentCache member of each ClipComponentsInfo is set to a list stored in the plug-in, then
-         * this function will first check if any change happened before rebuilding the menu, thus avoiding many complex API calls.
-         **/
-        void buildChannelMenus(const std::vector<ChoiceParamClips>& params);
-        
-        struct ChoiceStringParam
-        {
-            OFX::ChoiceParam* param;
-            OFX::StringParam* stringParam;
-        };
-        
-        /**
-         * @brief This is called inside buildChannelMenus, but needs to be called in the constructor of the plug-in (in createInstanceAction)
-         * because getClipPreferences may not be called at that time if not all mandatory inputs are connected.
-         **/
-        void setChannelsFromStringParams(const std::list<ChoiceStringParam>& params, bool allowReset);
-        
-        /**
-         * @brief To be called in the changedParam action for each dynamic choice holding channels/layers info. This will synchronize the hidden string
-         * parameter to reflect the value of the choice parameter (only if the reason is a user change).
-         * @return Returns true if the param change was caught, false otherwise
-         **/
-        enum ChangedParamRetCode
-        {
-            eChangedParamRetCodeNoChange,
-            eChangedParamRetCodeChoiceParamChanged,
-            eChangedParamRetCodeStringParamChanged
-        };
-        ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam);
-        
+        namespace Factory {
         /**
          * @brief Add a dynamic choice parameter to select the output layer (in which the plug-in will render)
          **/
@@ -221,20 +214,20 @@ namespace OFX {
         /**
          * @brief Add the standard R,G,B,A choices for the given clips. 
          * @param addConstants If true, it will also add the "0" and "1" choice to the list
-         * @param options[out] If non-null fills the vector with the options that were appended to the param
          **/
         void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
                                         const std::vector<std::string>& clips,
-                                        bool addConstants,
-                                        std::vector<std::string>* options);
+                                        bool addConstants);
+        
         
         /**
          * @brief Same as above, but for a choice param instance
          **/
-        void addInputChannelOptionsRGBA(OFX::ChoiceParam* param,
-                                        const std::vector<std::string>& clips,
+        void addInputChannelOptionsRGBA(const std::vector<std::string>& clips,
                                         bool addConstants,
-                                        std::vector<std::string>* options);
+                                        std::vector<std::string>* options,
+                                        std::vector<std::string>* optionsLabel);
+        } // Factory
         
     } // namespace MultiPlane
 } // namespace OFX

@@ -33,57 +33,61 @@
 
 namespace OFX {
     namespace MultiPlane {
-        void extractChannelsFromComponentString(const std::string& comp,
-                                                std::string* layer,
-                                                std::string* pairedLayer, //< if disparity or motion vectors
-                                                std::vector<std::string>* channels)
-        {
-            if (comp == kOfxImageComponentAlpha) {
-                //*layer = kShuffleColorPlaneName;
-                channels->push_back("A");
-            } else if (comp == kOfxImageComponentRGB) {
-                //*layer = kShuffleColorPlaneName;
-                channels->push_back("R");
-                channels->push_back("G");
-                channels->push_back("B");
-            } else if (comp == kOfxImageComponentRGBA) {
-                //*layer = kShuffleColorPlaneName;
-                channels->push_back("R");
-                channels->push_back("G");
-                channels->push_back("B");
-                channels->push_back("A");
-            } else if (comp == kFnOfxImageComponentMotionVectors) {
-                *layer = kPlaneLabelMotionBackwardPlaneName;
-                *pairedLayer = kPlaneLabelMotionForwardPlaneName;
-                channels->push_back("U");
-                channels->push_back("V");
-            } else if (comp == kFnOfxImageComponentStereoDisparity) {
-                *layer = kPlaneLabelDisparityLeftPlaneName;
-                *pairedLayer = kPlaneLabelDisparityRightPlaneName;
-                channels->push_back("X");
-                channels->push_back("Y");
+        
+        namespace Utils {
+            void extractChannelsFromComponentString(const std::string& comp,
+                                                    std::string* layer,
+                                                    std::string* pairedLayer, //< if disparity or motion vectors
+                                                    std::vector<std::string>* channels)
+            {
+                if (comp == kOfxImageComponentAlpha) {
+                    //*layer = kShuffleColorPlaneName;
+                    channels->push_back("A");
+                } else if (comp == kOfxImageComponentRGB) {
+                    //*layer = kShuffleColorPlaneName;
+                    channels->push_back("R");
+                    channels->push_back("G");
+                    channels->push_back("B");
+                } else if (comp == kOfxImageComponentRGBA) {
+                    //*layer = kShuffleColorPlaneName;
+                    channels->push_back("R");
+                    channels->push_back("G");
+                    channels->push_back("B");
+                    channels->push_back("A");
+                } else if (comp == kFnOfxImageComponentMotionVectors) {
+                    *layer = kPlaneLabelMotionBackwardPlaneName;
+                    *pairedLayer = kPlaneLabelMotionForwardPlaneName;
+                    channels->push_back("U");
+                    channels->push_back("V");
+                } else if (comp == kFnOfxImageComponentStereoDisparity) {
+                    *layer = kPlaneLabelDisparityLeftPlaneName;
+                    *pairedLayer = kPlaneLabelDisparityRightPlaneName;
+                    channels->push_back("X");
+                    channels->push_back("Y");
 #ifdef OFX_EXTENSIONS_NATRON
-            } else if (comp == kNatronOfxImageComponentXY) {
-                channels->push_back("X");
-                channels->push_back("Y");
-            } else {
-                std::vector<std::string> layerChannels = OFX::mapPixelComponentCustomToLayerChannels(comp);
-                if (layerChannels.size() >= 1) {
-                    *layer = layerChannels[0];
-                    channels->assign(layerChannels.begin() + 1, layerChannels.end());
-                }
+                } else if (comp == kNatronOfxImageComponentXY) {
+                    channels->push_back("X");
+                    channels->push_back("Y");
+                } else {
+                    std::vector<std::string> layerChannels = OFX::mapPixelComponentCustomToLayerChannels(comp);
+                    if (layerChannels.size() >= 1) {
+                        *layer = layerChannels[0];
+                        channels->assign(layerChannels.begin() + 1, layerChannels.end());
+                    }
 #endif
+                }
             }
-        }
+        } // Utils
     }
 }
 
 namespace  {
 template <typename T>
 void addInputChannelOptionsRGBAInternal(T* param,
-                                const std::vector<std::string>& clips,
-                                bool addConstants,
-                                std::vector<std::string>* options) {
+                                        const std::vector<std::string>& clips,
+                                        bool addConstants,
+                                        std::vector<std::string>* options,
+                                        std::vector<std::string>* optionLabels) {
     
     static const char* optionsBits[4][2] = { {"r", "Red"}, {"g", "Green"}, {"b", "Blue"}, {"a", "Alpha"} };
     
@@ -98,9 +102,14 @@ void addInputChannelOptionsRGBAInternal(T* param,
             hint.append(optionsBits[i][1]);
             hint.append(" channel from input ");
             hint.append(clipName);
-            param->appendOption(opt,hint);
+            if (param) {
+                param->appendOption(opt,hint);
+            }
             if (options) {
                 options->push_back(opt);
+            }
+            if (optionLabels) {
+                optionLabels->push_back(hint);
             }
         }
         
@@ -109,9 +118,14 @@ void addInputChannelOptionsRGBAInternal(T* param,
                 std::string opt,hint;
                 opt.append(kMultiPlaneParamOutputOption0);
                 hint.append(kMultiPlaneParamOutputOption0Hint);
-                param->appendOption(opt,hint);
+                if (param) {
+                    param->appendOption(opt,hint);
+                }
                 if (options) {
                     options->push_back(opt);
+                }
+                if (optionLabels) {
+                    optionLabels->push_back(hint);
                 }
                 
             }
@@ -119,25 +133,35 @@ void addInputChannelOptionsRGBAInternal(T* param,
                 std::string opt,hint;
                 opt.append(kMultiPlaneParamOutputOption1);
                 hint.append(kMultiPlaneParamOutputOption1Hint);
-                param->appendOption(opt,hint);
+                if (param) {
+                    param->appendOption(opt,hint);
+                }
                 if (options) {
                     options->push_back(opt);
                 }
-                
+                if (optionLabels) {
+                    optionLabels->push_back(hint);
+                }
             }
         }
     }
     
 }
 
-static bool hasListChanged(const std::list<std::string>& oldList, const std::list<std::string>& newList)
+static bool hasListChanged(const std::vector<std::string>& oldList, const std::vector<std::string>& newList)
 {
     if (oldList.size() != newList.size()) {
         return true;
     }
     
-    std::list<std::string>::const_iterator itNew = newList.begin();
-    for (std::list<std::string>::const_iterator it = oldList.begin(); it!=oldList.end(); ++it,++itNew) {
+    std::vector<std::string> oldListSorted = oldList;
+    std::sort(oldListSorted.begin(), oldListSorted.end());
+    
+    std::vector<std::string> newListSorted = newList;
+    std::sort(newListSorted.begin(), newListSorted.end());
+    
+    std::vector<std::string>::const_iterator itNew = newListSorted.begin();
+    for (std::vector<std::string>::const_iterator it = oldListSorted.begin(); it!=oldListSorted.end(); ++it,++itNew) {
         if (*it != *itNew) {
             return true;
         }
@@ -147,10 +171,10 @@ static bool hasListChanged(const std::list<std::string>& oldList, const std::lis
 
 
 static void appendComponents(const std::string& clipName,
-                             const std::list<std::string>& components,
-                             OFX::ChoiceParam* param,
+                             const std::vector<std::string>& components,
                              const bool isOutputChannelsParam,
-                             std::vector<std::string>* channelChoices)
+                             std::vector<std::string>* channelChoices,
+                             std::vector<std::string>* channelChoicesLabel)
 {
     
     
@@ -159,7 +183,7 @@ static void appendComponents(const std::string& clipName,
         std::list<std::string> compsToAdd;
         bool foundColor = false;
         bool hasAll = false;
-        for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
+        for (std::vector<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
             
             if (!hasAll && *it == kPlaneLabelAll) {
                 hasAll = true;
@@ -167,7 +191,7 @@ static void appendComponents(const std::string& clipName,
             }
             std::string layer, secondLayer;
             std::vector<std::string> channels;
-            OFX::MultiPlane::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            OFX::MultiPlane::Utils::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
             if (channels.empty()) {
                 continue;
             }
@@ -185,12 +209,12 @@ static void appendComponents(const std::string& clipName,
                 
                 continue;
             } else {
-                if (layer == kPlaneLabelMotionForwardPlaneName ||
+               /* if (layer == kPlaneLabelMotionForwardPlaneName ||
                     layer == kPlaneLabelMotionBackwardPlaneName ||
                     layer == kPlaneLabelDisparityLeftPlaneName ||
                     layer == kPlaneLabelDisparityRightPlaneName) {
                     continue;
-                }
+                }*/
             }
             
             //Append the channel names to the layer
@@ -213,21 +237,18 @@ static void appendComponents(const std::string& clipName,
         if (!foundColor) {
             channelChoices->push_back(kPlaneLabelColorRGBA);
         }
-        channelChoices->push_back(kPlaneLabelMotionForwardPlaneName);
+        /*channelChoices->push_back(kPlaneLabelMotionForwardPlaneName);
         channelChoices->push_back(kPlaneLabelMotionBackwardPlaneName);
         channelChoices->push_back(kPlaneLabelDisparityLeftPlaneName);
-        channelChoices->push_back(kPlaneLabelDisparityRightPlaneName);
+        channelChoices->push_back(kPlaneLabelDisparityRightPlaneName);*/
         channelChoices->insert(channelChoices->end(), compsToAdd.begin(), compsToAdd.end());
         
-        for (std::vector<std::string>::const_iterator it = channelChoices->begin(); it!=channelChoices->end(); ++it) {
-            param->appendOption(*it);
-        }
     } else { // !isOutputChannelsParam
-        std::list<std::string> usedComps;
-        for (std::list<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
+        std::vector<std::string> usedComps;
+        for (std::vector<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
             std::string layer, secondLayer;
             std::vector<std::string> channels;
-            OFX::MultiPlane::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
+            OFX::MultiPlane::Utils::extractChannelsFromComponentString(*it, &layer, &secondLayer, &channels);
             if (channels.empty()) {
                 continue;
             }
@@ -244,10 +265,8 @@ static void appendComponents(const std::string& clipName,
                 
                 if (std::find(usedComps.begin(), usedComps.end(), opt) == usedComps.end()) {
                     usedComps.push_back(opt);
-                    param->appendOption(opt, channels[i] + " channel from " + ((layer.empty())? std::string() : std::string("layer/view ") + layer + " of ") + "input " + clipName);
-                    if (channelChoices) {
-                        channelChoices->push_back(opt);
-                    }
+                    channelChoices->push_back(opt);
+                    channelChoicesLabel->push_back(channels[i] + " channel from " + ((layer.empty())? std::string() : std::string("layer/view ") + layer + " of ") + "input " + clipName);
                     
                 }
                 
@@ -263,11 +282,8 @@ static void appendComponents(const std::string& clipName,
                     opt.append(channels[i]);
                     if (std::find(usedComps.begin(), usedComps.end(), opt) == usedComps.end()) {
                         usedComps.push_back(opt);
-                        param->appendOption(opt, channels[i] + " channel from layer " + secondLayer + " of input " + clipName);
-                        if (channelChoices) {
-                            channelChoices->push_back(opt);
-                        }
-                        
+                        channelChoices->push_back(opt);
+                        channelChoicesLabel->push_back(channels[i] + " channel from layer " + secondLayer + " of input " + clipName);
                     }
                 }
             }
@@ -275,52 +291,193 @@ static void appendComponents(const std::string& clipName,
     } // isOutputChannelsParam
 }
     
-
-struct SetChannelsFromStringData
+static void parseLayerString(const std::string& encoded, bool* isColor)
 {
-    OFX::ChoiceParam* param;
-    OFX::StringParam* stringParam;
+    if (encoded == kPlaneLabelColorRGBA ||
+        encoded == kPlaneLabelColorRGB ||
+        encoded == kPlaneLabelColorAlpha) {
+        *isColor = true;
+    } else {
+        *isColor = false;
+    }
+}
     
-    std::vector<std::string> options;
-};
-
-static void setChannelsFromStringParamsInternal(const std::vector<SetChannelsFromStringData>& data, bool allowReset)
+static void parseMaskChannelString(const std::string& encodedChannel,
+                                       std::string* nodeName,
+                                       std::string* layerName,
+                                       std::string* channelName,
+                                       bool *isColor)
 {
-    for (std::vector<SetChannelsFromStringData>::const_iterator it = data.begin(); it!=data.end(); ++it) {
-        
-        std::string valueStr;
-        it->stringParam->getValue(valueStr);
-        
-        if (valueStr.empty()) {
-            int cur_i;
-            it->param->getValue(cur_i);
-            if (cur_i >= 0 && cur_i < (int)it->options.size()) {
-                valueStr = it->options[cur_i];
-            }
-            it->param->getOption(cur_i, valueStr);
-            it->stringParam->setValue(valueStr);
+    std::size_t foundLastDot = encodedChannel.find_last_of(".");
+    if (foundLastDot != std::string::npos) {
+        *layerName = encodedChannel.substr(0, foundLastDot);
+        std::size_t foundPrevDot = layerName->find_first_of(".");
+        if (foundPrevDot != std::string::npos) {
+            //Remove the node name
+            *layerName = layerName->substr(foundPrevDot + 1);
+            *nodeName = layerName->substr(0, foundPrevDot);
         } else {
-            int foundOption = -1;
-            for (int i = 0; i < (int)it->options.size(); ++i) {
-                if (it->options[i] == valueStr) {
-                    foundOption = i;
-                    break;
-                }
-            }
-            if (foundOption != -1) {
-                it->param->setValue(foundOption);
-            } else {
-                if (allowReset) {
-                    int defValue;
-                    it->param->getDefault(defValue);
-                    if (defValue >= 0 && defValue < (int)it->options.size()) {
-                        it->param->setValue(defValue);
-                        it->stringParam->setValue(it->options[defValue]);
-                    }
-                }
+            *nodeName = *layerName;
+            layerName->clear();
+        }
+        *isColor = *layerName == kPlaneLabelColorRGBA || *layerName == kPlaneLabelColorRGB || *layerName == kPlaneLabelColorAlpha;
+        *channelName = encodedChannel.substr(foundLastDot + 1);
+    }
+}
+
+class ChoiceMergeEntriesData
+{
+public:
+    
+    ChoiceMergeEntriesData()
+    {
+        
+    }
+    
+    virtual void clear() = 0;
+    
+    virtual ~ChoiceMergeEntriesData() {
+        
+    }
+};
+    
+    
+class MergeChannelData : public ChoiceMergeEntriesData
+{
+public:
+        
+    std::string bNode, bLayer, bChannel;
+    bool isColor;
+    bool dataSet;
+    
+    MergeChannelData()
+    : ChoiceMergeEntriesData()
+    , isColor(false)
+    , dataSet(false)
+    {
+        
+    }
+    
+    virtual void clear()
+    {
+        dataSet = false;
+    }
+    
+    virtual ~MergeChannelData()
+    {
+        
+    }
+};
+    
+static bool channelEqualityFunctorInternal(const std::string& aLayer,
+                                                   const std::string& aChannel,
+                                                   const std::string& bLayer,
+                                                   const std::string& bChannel,
+                                                   bool aIsColor,
+                                                   bool bIsColor)
+{
+    if (aChannel.empty() && bChannel.empty()) {
+        // None choice
+        return aLayer == bLayer;
+    } else if (aChannel != bChannel) {
+        return false;
+    } else {
+        // Same channel, check layer
+        if (aLayer == bLayer) {
+            return true;
+        } else if (aIsColor && bIsColor) {
+            return true;
+        }
+    }
+    return false;
+}
+    
+static bool channelEqualityFunctor(const std::string& a, const std::string& b, ChoiceMergeEntriesData* data)
+{
+    MergeChannelData* mergeData = dynamic_cast<MergeChannelData*>(data);
+    assert(mergeData);
+    std::string aNode,aLayer,aChannel;
+    bool aIsColor;
+    parseMaskChannelString(a,&aNode,&aLayer,&aChannel,&aIsColor);
+    if (!mergeData->dataSet) {
+        parseMaskChannelString(b,&mergeData->bNode,&mergeData->bLayer,&mergeData->bChannel,&mergeData->isColor);
+        mergeData->dataSet = true;
+    }
+    return channelEqualityFunctorInternal(aLayer, aChannel, mergeData->bLayer, mergeData->bChannel, aIsColor, mergeData->isColor);
+}
+    
+    
+class MergeOutputLayerEntriesData : public ChoiceMergeEntriesData
+{
+public:
+    
+    bool isColor;
+    bool dataSet;
+    
+    MergeOutputLayerEntriesData()
+    : ChoiceMergeEntriesData()
+    , isColor(false)
+    , dataSet(false)
+    {
+        
+    }
+    
+    virtual void clear()
+    {
+        dataSet = false;
+    }
+    
+    virtual ~MergeOutputLayerEntriesData()
+    {
+        
+    }
+};
+    
+    
+static bool layerEqualityFunctor(const std::string& a, const std::string& b, ChoiceMergeEntriesData* data)
+{
+    MergeOutputLayerEntriesData* mergeData = dynamic_cast<MergeOutputLayerEntriesData*>(data);
+    assert(mergeData);
+    bool aIsColor;
+    parseLayerString(a, &aIsColor);
+    if (!mergeData->dataSet) {
+        parseLayerString(b, &mergeData->isColor);
+        mergeData->dataSet = true;
+    }
+    if (aIsColor && mergeData->isColor) {
+        return true;
+    } else if (a == b) {
+        return true;
+    }
+    return false;
+}
+    
+typedef bool (*MergeMenuEqualityFunctor)(const std::string& a, const std::string& b, ChoiceMergeEntriesData* userData);
+    
+
+void mergeChannelEntries(const std::vector<std::string>& newEntries,
+                                const std::vector<std::string>& newEntriesLabel,
+                                std::vector<std::string>* mergedEntries,
+                                std::vector<std::string>* mergedEntriesLabel,
+                                MergeMenuEqualityFunctor mergingFunctor,
+                                ChoiceMergeEntriesData* mergingData)
+{
+    for (std::size_t i = 0; i < newEntries.size(); ++i) {
+        
+        mergingData->clear();
+        bool found = false;
+        for (std::size_t j = 0; j < mergedEntries->size(); ++j) {
+            if (mergingFunctor((*mergedEntries)[j],newEntries[i], mergingData)) {
+                found = true;
+                break;
             }
         }
-
+        if (!found) {
+            if (i < newEntriesLabel.size()) {
+                mergedEntriesLabel->push_back(newEntriesLabel[i]);
+            }
+            mergedEntries->push_back(newEntries[i]);
+        }
     }
 }
 
@@ -329,55 +486,497 @@ static void setChannelsFromStringParamsInternal(const std::vector<SetChannelsFro
 namespace OFX {
     namespace MultiPlane {
         
-        
-        std::string makeNatronCustomChannel(const std::string& layer,const std::vector<std::string>& channels)
-        {
-            std::string ret(kNatronOfxImageComponentsPlane);
-            ret.append(layer);
-            for (std::size_t i = 0; i < channels.size(); ++i) {
-                ret.append(kNatronOfxImageComponentsPlaneChannel);
-                ret.append(channels[i]);
+        namespace Utils {
+            std::string makeNatronCustomChannel(const std::string& layer,const std::vector<std::string>& channels)
+            {
+                std::string ret(kNatronOfxImageComponentsPlane);
+                ret.append(layer);
+                for (std::size_t i = 0; i < channels.size(); ++i) {
+                    ret.append(kNatronOfxImageComponentsPlaneChannel);
+                    ret.append(channels[i]);
+                }
+                return ret;
+                
             }
-            return ret;
+        } // Utils
+        
+        namespace Factory {
+            void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
+                                            const std::vector<std::string>& clips,
+                                            bool addConstants)
+            {
+                addInputChannelOptionsRGBAInternal<OFX::ChoiceParamDescriptor>(param,clips,addConstants,0,0);
+            }
+            
+            void addInputChannelOptionsRGBA(const std::vector<std::string>& clips,
+                                            bool addConstants,
+                                            std::vector<std::string>* options,
+                                            std::vector<std::string>* optionsLabel)
+            {
+                addInputChannelOptionsRGBAInternal<OFX::ChoiceParam>(0,clips,addConstants,options, optionsLabel);
+            }
+            
+        } // factory
+        
+        /**
+         * @brief For each choice param, the list of clips it "depends on" (that is the clip layers that will be visible in the choice)
+         * If the clips vector contains a single clip and this is the output clip then it is expected that param points to the kMultiPlaneParamOutputChannels
+         * parameter.
+         **/
+        struct ChoiceParamClips
+        {
+            OFX::ChoiceParam* param;
+            OFX::StringParam* stringparam;
+            OFX::PushButtonParam* buttonparam;
+            
+            bool isOutput;
+            
+            std::vector<OFX::Clip*> clips;
+            std::vector<std::string> clipsName;
+            
+            ChoiceParamClips()
+            : param(0)
+            , stringparam(0)
+            , buttonparam(0)
+            , isOutput(false)
+            , clips()
+            , clipsName()
+            {
+                
+            }
+            
+            
+        };
+        
+        
+        struct ClipsComponentsInfoBase
+        {
+            //A pointer to the clip
+            OFX::Clip* clip;
+            
+            //The value returned by clip->getComponentsPresent()
+            std::vector<std::string> componentsPresent;
+            
+            ClipsComponentsInfoBase() : clip(0), componentsPresent() {}
+            
+            virtual ~ClipsComponentsInfoBase() {}
+        };
+        
+        struct ClipComponentsInfo : public ClipsComponentsInfoBase
+        {
+            
+            
+            //A pointer to a components present cache held as a member of the plug-in (no need to lock it as accessed always on the same thread)
+            //This is to speed-up buildChannelMenus to avoid re-building menus and make complex API calls if they did not change.
+            std::vector<std::string>* componentsPresentCache;
+            
+            //When hasListChanged has been called; this is set to true, indicating that the value of isCacheValid is correct
+            mutable bool comparisonToCacheDone;
+            mutable bool isCacheUpToDate;
+            
+            ClipComponentsInfo() : ClipsComponentsInfoBase(), componentsPresentCache(0), comparisonToCacheDone(false), isCacheUpToDate(false) {}
+            
+            virtual ~ClipComponentsInfo() {}
+        };
+        
+        class BuildChannelMenusData
+        {
+            
+            bool mergeMenus;
+            
+            std::map<OFX::Clip*, ClipComponentsInfo> cacheInfos;
+            
+            
+            struct ChoiceParamData {
+                bool hasChanged;
+                std::vector<const ClipComponentsInfo*> clipsInfos;
+                std::vector<std::string> options;
+                
+                ChoiceParamData()
+                : hasChanged(false)
+                , clipsInfos()
+                {
+                    
+                }
+            };
+            std::map<const ChoiceParamClips*, ChoiceParamData> params;
+            
+        public:
+            
+            /** @param mergeMenus If true, the existing entries in the choice menu will be merged with the new components present on the clips.*/
+            BuildChannelMenusData(bool mergeMenus = true)
+            : mergeMenus(mergeMenus)
+            , cacheInfos()
+            , params()
+            {
+                
+            }
+            
+            
+            void addParamToRebuild(const ChoiceParamClips* paramData,
+                                std::map<OFX::Clip*, std::vector<std::string> >& componentsCache);
+            
+            void buildChannelsMenus();
+            
+            const std::vector<std::string>& getParamOptions(const ChoiceParamClips*) const;
+            
+        };
+        
+     
+        struct MultiPlaneEffectPrivate
+        {
+            
+            MultiPlaneEffect* _publicInterface;
+            
+            std::map<OFX::Clip*, std::vector<std::string> > clipComponentsCache;
+            std::map<std::string, ChoiceParamClips> params;
+            
+            MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
+            : _publicInterface(publicInterface)
+            {
+                
+            }
+            
+            
+            /**
+             * @brief This is called inside buildChannelMenus, but needs to be called in the constructor of the plug-in (in createInstanceAction)
+             * because getClipPreferences may not be called at that time if not all mandatory inputs are connected.
+             **/
+            void setChannelsFromStringParams(bool allowReset);
+            
+            void setChannelsFromStringParamInternal(OFX::ChoiceParam* param, OFX::StringParam* stringParam, const std::vector<std::string>& options, bool allowReset);
+            
+            MultiPlaneEffect::ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoiceInternal(const std::string& paramName, const ChoiceParamClips& param, OFX::InstanceChangeReason reason);
+        };
+        
+        MultiPlaneEffect::MultiPlaneEffect(OfxImageEffectHandle handle)
+        : OFX::ImageEffect(handle)
+        , _imp(new MultiPlaneEffectPrivate(this))
+        {
             
         }
         
-        void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
-                                        const std::vector<std::string>& clips,
-                                        bool addConstants,
-                                        std::vector<std::string>* options)
+        MultiPlaneEffect::~MultiPlaneEffect()
         {
-            addInputChannelOptionsRGBAInternal<OFX::ChoiceParamDescriptor>(param,clips,addConstants,options);
+
         }
         
-        void addInputChannelOptionsRGBA(OFX::ChoiceParam* param,
-                                        const std::vector<std::string>& clips,
-                                        bool addConstants,
-                                        std::vector<std::string>* options)
+        void
+        MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const std::string& paramName, const std::vector<OFX::Clip*>& dependsClips)
         {
-            addInputChannelOptionsRGBAInternal<OFX::ChoiceParam>(param,clips,addConstants,options);
+            ChoiceParamClips& paramData = _imp->params[paramName];
+            paramData.param = fetchChoiceParam(paramName);
+            paramData.stringparam = fetchStringParam(paramName+ "Choice");
+            paramData.buttonparam = fetchPushButtonParam(paramName + "RefreshButton");
+            assert(paramData.param && paramData.stringparam && paramData.buttonparam);
+            paramData.isOutput = paramName == kMultiPlaneParamOutputChannels;
+            assert(!paramData.isOutput || (dependsClips.size() == 1 && dependsClips[0] && dependsClips[0]->name() == kOfxImageEffectOutputClipName));
+            paramData.clips = dependsClips;
+            for (std::size_t i = 0; i < dependsClips.size(); ++i) {
+                paramData.clipsName.push_back(dependsClips[i]->name());
+                _imp->clipComponentsCache[dependsClips[i]].clear();
+            }
+            
+            _imp->setChannelsFromStringParams(false);
+        }
+        
+        void MultiPlaneEffectPrivate::setChannelsFromStringParams(bool allowReset)
+        {
+            for (std::map<std::string, ChoiceParamClips>::iterator it = params.begin(); it!=params.end();++it) {
+                std::vector<std::string> options;
+                it->second.param->getOptions(&options);
+                setChannelsFromStringParamInternal(it->second.param, it->second.stringparam, options, allowReset);
+            }
+            
+        }
+        
+        void MultiPlaneEffectPrivate::setChannelsFromStringParamInternal(OFX::ChoiceParam* param, OFX::StringParam* stringParam, const std::vector<std::string>& options, bool /*allowReset*/)
+        {
+            
+            std::string valueStr;
+            stringParam->getValue(valueStr);
+            
+            if (valueStr.empty()) {
+                int cur_i;
+                param->getValue(cur_i);
+                if (cur_i >= 0 && cur_i < (int)options.size()) {
+                    valueStr = options[cur_i];
+                }
+                param->getOption(cur_i, valueStr);
+                stringParam->setValue(valueStr);
+            } else {
+                int foundOption = -1;
+                for (int i = 0; i < (int)options.size(); ++i) {
+                    if (options[i] == valueStr) {
+                        foundOption = i;
+                        break;
+                    }
+                }
+                if (foundOption != -1) {
+                    param->setValue(foundOption);
+                } else {
+                    
+                    /*if (allowReset) {
+                     int defValue;
+                     it->param->getDefault(defValue);
+                     if (defValue >= 0 && defValue < (int)it->options.size()) {
+                     it->param->setValue(defValue);
+                     it->stringParam->setValue(it->options[defValue]);
+                     }
+                     }*/
+                }
+            }
+            
+            
+        }
+        
+        void
+        MultiPlaneEffect::buildChannelMenus(const std::string& paramName, bool mergeEntries)
+        {
+            BuildChannelMenusData data(mergeEntries);
+            if (paramName.empty()) {
+                // build all
+                for (std::map<std::string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+                    data.addParamToRebuild(&it->second, _imp->clipComponentsCache);
+                }
+                data.buildChannelsMenus();
+                
+                // Reset the choice current value from the string parameters
+                for (std::map<std::string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+                    try {
+                        _imp->setChannelsFromStringParamInternal(it->second.param, it->second.stringparam, data.getParamOptions(&it->second), true);
+                    } catch (...) {
+                        throwSuiteStatusException(kOfxStatFailed);
+                    }
+                }
+                
+
+            } else {
+                std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
+                if (found != _imp->params.end()) {
+                    data.addParamToRebuild(&found->second, _imp->clipComponentsCache);
+                }
+                data.buildChannelsMenus();
+                try {
+                    _imp->setChannelsFromStringParamInternal(found->second.param, found->second.stringparam, data.getParamOptions(&found->second), true);
+                } catch (...) {
+                    throwSuiteStatusException(kOfxStatFailed);
+                }
+            }
+            
+            
+            
+        }
+        
+        const std::vector<std::string>&
+        MultiPlaneEffect::getCachedComponentsPresent(OFX::Clip* clip) const
+        {
+            std::map<OFX::Clip*, std::vector<std::string> >::const_iterator foundCompsCache = _imp->clipComponentsCache.find(clip);
+            if (foundCompsCache != _imp->clipComponentsCache.end()) {
+                return foundCompsCache->second;
+            } else {
+                assert(false);
+                throwSuiteStatusException(kOfxStatFailed);
+            }
+        }
+        
+        const std::vector<std::string>&
+        BuildChannelMenusData::getParamOptions(const ChoiceParamClips* param) const
+        {
+            std::map<const ChoiceParamClips*, ChoiceParamData>::const_iterator found = params.find(param);
+            assert(found != params.end());
+            if (found == params.end()) {
+                throw std::runtime_error("buildChannelsMenus() must be called before getParamOptions() and only works for params that have been registered with addParamToRebuild()");
+            }
+            return found->second.options;
+        }
+        
+        void
+        BuildChannelMenusData::buildChannelsMenus()
+        {
+            
+            for (std::map<const ChoiceParamClips*, ChoiceParamData>::iterator it = params.begin(); it!= params.end(); ++it) {
+                if (!it->second.hasChanged) {
+                    continue;
+                }
+                
+                
+                std::string oldComponent;
+                it->first->stringparam->getValue(oldComponent);
+                
+                // Get the current choice menu state
+                std::vector<std::string> oldOptions,oldOptionLabels, newOptionLabels;
+                it->first->param->getOptions(&oldOptions, &oldOptionLabels);
+                assert(oldOptionLabels.empty() || oldOptionLabels.size() == oldOptions.size());
+                
+                // Extract the new list from the components present
+                if (!it->first->isOutput) {
+                    Factory::addInputChannelOptionsRGBA(it->first->clipsName, !it->first->isOutput, &it->second.options, &newOptionLabels);
+                }
+                for (std::size_t c = 0; c < it->second.clipsInfos.size(); ++c) {
+                    appendComponents(it->second.clipsInfos[c]->clip->name(), it->second.clipsInfos[c]->componentsPresent, it->first->isOutput, &it->second.options, &newOptionLabels);
+                }
+                
+                if (mergeMenus) {
+                    // Merge the 2 list together
+                    if (it->first->isOutput) {
+                        MergeOutputLayerEntriesData tmpData;
+                        mergeChannelEntries(oldOptions, oldOptionLabels, &it->second.options, &newOptionLabels, layerEqualityFunctor, &tmpData);
+                    } else {
+                        MergeChannelData tmpData;
+                        mergeChannelEntries(oldOptions, oldOptionLabels, &it->second.options, &newOptionLabels, channelEqualityFunctor, &tmpData);
+                    }
+                }
+                
+                // Set the new choice menu
+                it->first->param->resetOptions(it->second.options, newOptionLabels);
+                
+                
+            } // for (std::size_t k = 0; k < params.size(); ++k) {
+
+
+        }
+        
+        void BuildChannelMenusData::addParamToRebuild(const OFX::MultiPlane::ChoiceParamClips *paramData,
+                                                       std::map<OFX::Clip*, std::vector<std::string> >& componentsCache)
+        {
+            
+            ChoiceParamData& data = params[paramData];
+
+     
+            //data.clipsData.resize(paramData->clips.size());
+            for (std::size_t i = 0; i < paramData->clips.size(); ++i) {
+                
+                
+                std::map<OFX::Clip*, ClipComponentsInfo>::iterator foundCacheInfoForClip = cacheInfos.find(paramData->clips[i]);
+                if (foundCacheInfoForClip != cacheInfos.end()) {
+                    
+                    // We already processed components for that clip
+                    data.clipsInfos.push_back(&foundCacheInfoForClip->second);
+                    if (!mergeMenus || !foundCacheInfoForClip->second.isCacheUpToDate) {
+                        data.hasChanged = true;
+                    }
+                } else {
+                    
+                    ClipComponentsInfo& clipInfo = cacheInfos[paramData->clips[i]];
+                    data.clipsInfos.push_back(&clipInfo);
+                    clipInfo.clip = paramData->clips[i];
+                    
+                    // Create the clip info
+                    paramData->clips[i]->getComponentsPresent(&clipInfo.componentsPresent);
+                    
+                    std::map<OFX::Clip*, std::vector<std::string> >::iterator foundCompsCache = componentsCache.find(paramData->clips[i]);
+                    if (foundCompsCache != componentsCache.end()) {
+                        
+                        if (!mergeMenus) {
+                            foundCompsCache->second.clear();
+                            data.hasChanged = true;
+
+                        } else {
+                            clipInfo.componentsPresentCache = &foundCompsCache->second;
+                            
+                            bool thisListChanged = hasListChanged(clipInfo.componentsPresent, *clipInfo.componentsPresentCache);
+                            clipInfo.isCacheUpToDate = !thisListChanged;
+                            clipInfo.comparisonToCacheDone = true;
+                            if (thisListChanged) {
+                                data.hasChanged = true;
+                                *clipInfo.componentsPresentCache = clipInfo.componentsPresent;
+                            }
+                        }
+                    } else {
+                        data.hasChanged = true;
+                    }
+                    
+                }
+                
+            }
+
+        }
+        
+        MultiPlaneEffect::ChangedParamRetCode
+        MultiPlaneEffectPrivate::checkIfChangedParamCalledOnDynamicChoiceInternal(const std::string& paramName, const ChoiceParamClips& param, OFX::InstanceChangeReason /*reason*/)
+        {
+            if (param.stringparam) {
+                if (paramName == param.param->getName()) {
+                    int choice_i;
+                    param.param->getValue(choice_i);
+                    std::string optionName;
+                    param.param->getOption(choice_i, optionName);
+                    param.stringparam->setValue(optionName);
+                    return MultiPlaneEffect::eChangedParamRetCodeChoiceParamChanged;
+                } else if (paramName == param.stringparam->getName()) {
+                    std::vector<std::string> options;
+                    param.param->getOptions(&options);
+                    setChannelsFromStringParamInternal(param.param, param.stringparam, options, true);
+                    return MultiPlaneEffect::eChangedParamRetCodeStringParamChanged;
+                } else if (paramName == param.buttonparam->getName()) {
+                    _publicInterface->buildChannelMenus(param.param->getName(), false);
+                    return MultiPlaneEffect::eChangedParamRetCodeButtonParamChanged;
+                }
+            }
+            return MultiPlaneEffect::eChangedParamRetCodeNoChange;
+        }
+
+        MultiPlaneEffect::ChangedParamRetCode
+        MultiPlaneEffect::checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, const std::string& paramToCheck, OFX::InstanceChangeReason reason)
+        {
+            std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(paramToCheck);
+            if (found == _imp->params.end()) {
+                return eChangedParamRetCodeNoChange;
+            }
+            return _imp->checkIfChangedParamCalledOnDynamicChoiceInternal(paramName, found->second, reason);
+            
+        }
+        
+        bool
+        MultiPlaneEffect::handleChangedParamForAllDynamicChoices(const std::string& paramName, OFX::InstanceChangeReason reason)
+        {
+            for (std::map<std::string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+                if (_imp->checkIfChangedParamCalledOnDynamicChoiceInternal(paramName, it->second, reason)) {
+                    return true;
+                }
+            }
+            return false;
         }
         
         
-        bool getPlaneNeededForParam(double time,
-                                    const PerClipComponentsMap& perClipComponents,
-                                    OFX::ChoiceParam* param,
-                                    OFX::Clip** clip,
-                                    std::string* ofxPlane,
-                                    std::string* ofxComponents,
-                                    int* channelIndexInPlane,
-                                    bool* isCreatingAlpha)
+        
+        bool MultiPlaneEffect::getPlaneNeededForParam(double time,
+                                                      const std::string& paramName,
+                                                      OFX::Clip** clip,
+                                                      std::string* ofxPlane,
+                                                      std::string* ofxComponents,
+                                                      int* channelIndexInPlane,
+                                                      bool* isCreatingAlpha)
         {
+            std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
+            assert(found != _imp->params.end());
+            if (found == _imp->params.end()) {
+                return false;
+            }
+
+            // clipname, components
+            typedef std::map<std::string, ClipsComponentsInfoBase> PerClipComponents;
+            PerClipComponents clipsComponents;
+            for (std::size_t i = 0; i < found->second.clips.size(); ++i) {
+                ClipsComponentsInfoBase& components = clipsComponents[found->second.clips[i]->name()];
+                components.clip = found->second.clips[i];
+            }
+            
             assert(clip);
-            assert(!perClipComponents.empty());
+            assert(!clipsComponents.empty());
             *clip = 0;
             
             *isCreatingAlpha = false;
             
             int channelIndex;
-            param->getValueAtTime(time, channelIndex);
+            found->second.param->getValueAtTime(time, channelIndex);
             std::string channelEncoded;
-            param->getOption(channelIndex, channelEncoded);
+            try {
+                found->second.param->getOption(channelIndex, channelEncoded);
+            } catch (...) {
+                
+            }
             if (channelEncoded.empty()) {
                 return false;
             }
@@ -392,8 +991,8 @@ namespace OFX {
                 return true;
             }
             
-            PerClipComponentsMap::const_iterator foundClip = perClipComponents.end();
-            for (PerClipComponentsMap::const_iterator it = perClipComponents.begin(); it!=perClipComponents.end(); ++it) {
+            PerClipComponents::iterator foundClip = clipsComponents.end();
+            for (PerClipComponents::iterator it = clipsComponents.begin(); it!=clipsComponents.end(); ++it) {
                 
                 // Must be at least something like "A."
                 if (channelEncoded.size() < it->first.size() + 1) {
@@ -498,7 +1097,8 @@ namespace OFX {
 #ifdef OFX_EXTENSIONS_NATRON
             } else {
                 //Find in clip components the layerName
-                for (std::list<std::string>::const_iterator it = foundClip->second.componentsPresent.begin(); it!=foundClip->second.componentsPresent.end(); ++it) {
+                foundClip->second.componentsPresent = getCachedComponentsPresent(foundClip->second.clip);
+                for (std::vector<std::string>::const_iterator it = foundClip->second.componentsPresent.begin(); it!=foundClip->second.componentsPresent.end(); ++it) {
                     //We found a matching layer
                     std::string realLayerName;
                     std::vector<std::string> channels;
@@ -528,22 +1128,33 @@ namespace OFX {
             return false;
         }
         
-        bool getPlaneNeededInOutput(const std::list<std::string>& outputComponents,
-                                    const OFX::Clip* dstClip,
-                                    OFX::ChoiceParam* param,
-                                    std::string* ofxPlane,
-                                    std::string* ofxComponents)
+        bool
+        MultiPlaneEffect::getPlaneNeededInOutput(std::string* ofxPlane,
+                                                 std::string* ofxComponents)
         {
+            
+            std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(kMultiPlaneParamOutputChannels);
+            assert(found != _imp->params.end());
+            if (found == _imp->params.end()) {
+                return false;
+            }
+            
+            
             int layer_i;
-            param->getValue(layer_i);
+            found->second.param->getValue(layer_i);
             std::string layerName;
-            param->getOption(layer_i, layerName);
+            try {
+                found->second.param->getOption(layer_i, layerName);
+            } catch (...) {
+                
+            }
             
             if (layerName.empty() ||
                 layerName == kPlaneLabelColorRGBA ||
                 layerName == kPlaneLabelColorRGB ||
-                layerName == kPlaneLabelColorAlpha || param->getIsSecret()) {
-                std::string comp = dstClip->getPixelComponentsProperty();
+                layerName == kPlaneLabelColorAlpha || found->second.param->getIsSecret()) {
+                assert(found->second.clips[0] && found->second.clips[0]->name() == kOfxImageEffectOutputClipName);
+                std::string comp = found->second.clips[0]->getPixelComponentsProperty();
                 *ofxComponents = comp;
                 *ofxPlane = kFnOfxImagePlaneColour;
                 return true;
@@ -554,34 +1165,38 @@ namespace OFX {
                 std::vector<std::string> channels(2);
                 channels[0] = "X";
                 channels[1] = "Y";
-                *ofxComponents = makeNatronCustomChannel(kPlaneLabelDisparityLeftPlaneName, channels);
+                *ofxComponents = OFX::MultiPlane::Utils::makeNatronCustomChannel(kPlaneLabelDisparityLeftPlaneName, channels);
                 *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelDisparityRightPlaneName) {
                 std::vector<std::string> channels(2);
                 channels[0] = "X";
                 channels[1] = "Y";
-                *ofxComponents = makeNatronCustomChannel(kPlaneLabelDisparityRightPlaneName, channels);
+                *ofxComponents = OFX::MultiPlane::Utils::makeNatronCustomChannel(kPlaneLabelDisparityRightPlaneName, channels);
                 *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelMotionBackwardPlaneName) {
                 std::vector<std::string> channels(2);
                 channels[0] = "U";
                 channels[1] = "V";
-                *ofxComponents = makeNatronCustomChannel(kPlaneLabelMotionBackwardPlaneName, channels);
+                *ofxComponents = OFX::MultiPlane::Utils::makeNatronCustomChannel(kPlaneLabelMotionBackwardPlaneName, channels);
                 *ofxPlane = *ofxComponents;
                 return true;
             } else if (layerName == kPlaneLabelMotionForwardPlaneName) {
                 std::vector<std::string> channels(2);
                 channels[0] = "U";
                 channels[1] = "V";
-                *ofxComponents = makeNatronCustomChannel(kPlaneLabelMotionForwardPlaneName, channels);
+                *ofxComponents = OFX::MultiPlane::Utils::makeNatronCustomChannel(kPlaneLabelMotionForwardPlaneName, channels);
                 *ofxPlane = *ofxComponents;
                 return true;
 #ifdef OFX_EXTENSIONS_NATRON
             } else {
+                
+                std::vector<std::string> components;
+                components = getCachedComponentsPresent(found->second.clips[0]);
+             
                 //Find in aComponents or bComponents a layer matching the name of the layer
-                for (std::list<std::string>::const_iterator it = outputComponents.begin(); it!=outputComponents.end(); ++it) {
+                for (std::vector<std::string>::const_iterator it = components.begin(); it!=components.end(); ++it) {
                     if (it->find(layerName) != std::string::npos) {
                         //We found a matching layer
                         std::string realLayerName;
@@ -598,224 +1213,106 @@ namespace OFX {
 #endif // OFX_EXTENSIONS_NATRON
             }
             return false;
-
+            
         }
         
-        void buildChannelMenus(const std::vector<ChoiceParamClips>& params)
-        {
+        namespace Factory {
             
-            std::map<OFX::Clip*, const ClipComponentsInfo*> cacheInfos;
-            
-            std::vector<SetChannelsFromStringData> data;
-
-            for (std::size_t k = 0; k < params.size(); ++k) {
-                
-                bool hasChanged = false;
-                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
-                    if (!params[k].clips->at(c).componentsPresentCache) {
-                        hasChanged = true;
-                        break;
-                    }
-                    
-                    ///Try to call hasListChanged as few as possible
-                    bool thisListChanged;
-                    if (params[k].clips->at(c).comparisonToCacheDone) {
-                        thisListChanged = !params[k].clips->at(c).isCacheValid;
-                    } else {
-                        thisListChanged = hasListChanged(params[k].clips->at(c).componentsPresent, *params[k].clips->at(c).componentsPresentCache);
-                        params[k].clips->at(c).isCacheValid = !thisListChanged;
-                        params[k].clips->at(c).comparisonToCacheDone = true;
-                    }
-                    if (thisListChanged) {
-                        hasChanged = true;
-                        break;
-                    }
-                    
-                    std::map<OFX::Clip*, const ClipComponentsInfo*>::iterator foundCacheInfoForClip = cacheInfos.find(params[k].clips->at(c).clip);
-                    if (foundCacheInfoForClip == cacheInfos.end()) {
-                        cacheInfos.insert(std::make_pair(params[k].clips->at(c).clip, &params[k].clips->at(c)));
-                    }
-                } //for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
-                
-                if (!hasChanged) {
-                    continue;
-                }
-                
-                //We must rebuild the choice
-                params[k].param->resetOptions();
-                std::vector<std::string> clipNames;
-                bool isOutput = false;
-                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
-                    const std::string& name = params[k].clips->at(c).clip->name();
-                    clipNames.push_back(name);
-                    if (name == kOfxImageEffectOutputClipName) {
-                        assert(params[k].clips->size() == 1);
-                        isOutput = true;
-                    }
-                }
-                
-                
-                SetChannelsFromStringData d;
-                d.param = params[k].param;
-                d.stringParam = params[k].stringparam;
-                
-                std::string oldComponent;
-                d.stringParam->getValue(oldComponent);
-                
-                if (!isOutput) {
-                    addInputChannelOptionsRGBA(params[k].param, clipNames, !isOutput, &d.options);
-                }
-                for (std::size_t c = 0; c < params[k].clips->size(); ++c) {
-                    appendComponents(params[k].clips->at(c).clip->name(), params[k].clips->at(c).componentsPresent, params[k].param, isOutput, &d.options);
-                }
-                
-                bool foundOldChoice = false;
-                for (std::size_t i = 0; i < d.options.size(); ++i) {
-                    if (d.options[i] == oldComponent) {
-                        d.param->setValue(i);
-                        foundOldChoice = true;
-                        break;
-                    }
-                }
-                if (!foundOldChoice) {
-                    int def;
-                    d.param->getDefault(def);
-                    d.param->setValue(def);
-                }
-                
-                data.push_back(d);
-
-                
-            } // for (std::size_t k = 0; k < params.size(); ++k) {
-            
-            //Update the cache for each clip
-            for (std::map<OFX::Clip*, const ClipComponentsInfo*>::iterator it = cacheInfos.begin(); it!=cacheInfos.end(); ++it) {
-                assert(it->second->componentsPresentCache);
-                *it->second->componentsPresentCache = it->second->componentsPresent;
-            }
-            
-            
-            setChannelsFromStringParamsInternal(data, true);
-        }
-        
-        void setChannelsFromStringParams(const std::list<ChoiceStringParam>& params, bool allowReset)
-        {
-            std::vector<SetChannelsFromStringData> data(params.size());
-            int c = 0;
-            for (std::list<ChoiceStringParam>::const_iterator it = params.begin(); it!=params.end(); ++it, ++c) {
-                SetChannelsFromStringData& d = data[c];
-                d.param = it->param;
-                d.stringParam = it->stringParam;
-                int nOptions = it->param->getNOptions();
-                d.options.resize(nOptions);
-                for (int i = 0; i < nOptions; ++i) {
-                    d.param->getOption(i, d.options[i]);
-                }
-            }
-            setChannelsFromStringParamsInternal(data, allowReset);
-        }
-        
-        ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, OFX::InstanceChangeReason reason, OFX::ChoiceParam* param, OFX::StringParam* stringparam)
-        {
-            
-            if (reason == OFX::eChangeUserEdit && stringparam) {
-                if (paramName == param->getName()) {
-                    int choice_i;
-                    param->getValue(choice_i);
-                    std::string optionName;
-                    param->getOption(choice_i, optionName);
-                    stringparam->setValue(optionName);
-                    return eChangedParamRetCodeChoiceParamChanged;
-                } else if (paramName == stringparam->getName()) {
-                    ChoiceStringParam p;
-                    p.param = param;
-                    p.stringParam = stringparam;
-                    std::list<ChoiceStringParam> params;
-                    params.push_back(p);
-                    setChannelsFromStringParams(params, true);
-                    return eChangedParamRetCodeStringParamChanged;
-                }
-            }
-            return eChangedParamRetCodeNoChange;
-        }
-        
-        OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(bool addAllChoice, OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
-        {
-            
-            OFX::ChoiceParamDescriptor *ret;
+            OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(bool addAllChoice, OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page)
             {
-                OFX::ChoiceParamDescriptor *param = desc.defineChoiceParam(kMultiPlaneParamOutputChannels);
-                param->setLabel(kMultiPlaneParamOutputChannelsLabel);
-                param->setHint(kMultiPlaneParamOutputChannelsHint);
+                
+                OFX::ChoiceParamDescriptor *ret;
+                {
+                    OFX::ChoiceParamDescriptor *param = desc.defineChoiceParam(kMultiPlaneParamOutputChannels);
+                    param->setLabel(kMultiPlaneParamOutputChannelsLabel);
+                    param->setHint(kMultiPlaneParamOutputChannelsHint);
 #ifdef OFX_EXTENSIONS_NATRON
-                param->setHostCanAddOptions(true); //< the host can allow the user to add custom entries
+                    param->setHostCanAddOptions(true); //< the host can allow the user to add custom entries
 #endif
-             
-                param->appendOption(kPlaneLabelColorRGBA);
-                param->appendOption(kPlaneLabelMotionForwardPlaneName);
-                param->appendOption(kPlaneLabelMotionBackwardPlaneName);
-                param->appendOption(kPlaneLabelDisparityLeftPlaneName);
-                param->appendOption(kPlaneLabelDisparityRightPlaneName);
-                if (addAllChoice) {
-                    param->appendOption(kPlaneLabelAll);
+                    
+                    param->appendOption(kPlaneLabelColorRGBA);
+                    /*param->appendOption(kPlaneLabelMotionForwardPlaneName);
+                    param->appendOption(kPlaneLabelMotionBackwardPlaneName);
+                    param->appendOption(kPlaneLabelDisparityLeftPlaneName);
+                    param->appendOption(kPlaneLabelDisparityRightPlaneName);*/
+                    if (addAllChoice) {
+                        param->appendOption(kPlaneLabelAll);
+                    }
+                    param->setEvaluateOnChange(false);
+                    param->setIsPersistant(true);
+                    param->setDefault(0);
+                    param->setAnimates(false);
+                    desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
+                    if (page) {
+                        page->addChild(*param);
+                    }
+                    ret = param;
                 }
-                param->setEvaluateOnChange(false);
-                param->setIsPersistant(false);
-                param->setDefault(0);
-                param->setAnimates(false);
-                desc.addClipPreferencesSlaveParam(*param); // < the menu is built in getClipPreferences
-                if (page) {
-                    page->addChild(*param);
+                {
+                    //Add a hidden string param that will remember the value of the choice
+                    OFX::StringParamDescriptor* param = desc.defineStringParam(kMultiPlaneParamOutputChannelsChoice);
+                    param->setLabel(kMultiPlaneParamOutputChannelsLabel "Choice");
+                    param->setIsSecret(true);
+                    if (page) {
+                        page->addChild(*param);
+                    }
                 }
-                ret = param;
+                {
+                    OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kMultiPlaneParamOutputChannelsRefreshButton);
+                    param->setLabel(kMultiPlaneParamOutputChannels "RefreshButton");
+                    param->setIsSecret(true);
+                    if (page) {
+                        page->addChild(*param);
+                    }
+                }
+                return ret;
             }
+            
+            
+            OFX::ChoiceParamDescriptor* describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
+                                                                          OFX::PageParamDescriptor* page,
+                                                                          const std::vector<std::string>& clips,
+                                                                          const std::string& name,
+                                                                          const std::string& label,
+                                                                          const std::string& hint)
+            
             {
-                //Add a hidden string param that will remember the value of the choice
-                OFX::StringParamDescriptor* param = desc.defineStringParam(kMultiPlaneParamOutputChannelsChoice);
-                param->setLabel(kMultiPlaneParamOutputChannelsLabel "Choice");
-                param->setIsSecret(true);
-                if (page) {
-                    page->addChild(*param);
+                ChoiceParamDescriptor *ret;
+                {
+                    ChoiceParamDescriptor *param = desc.defineChoiceParam(name);
+                    param->setLabel(label);
+                    param->setHint(hint);
+                    param->setAnimates(false);
+                    addInputChannelOptionsRGBA(param, clips, true);
+                    param->setEvaluateOnChange(false);
+                    param->setIsPersistant(true);
+                    if (page) {
+                        page->addChild(*param);
+                    }
+                    ret = param;
                 }
-            }
-            return ret;
-        }
-        
-        
-        OFX::ChoiceParamDescriptor* describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
-                                                                      OFX::PageParamDescriptor* page,
-                                                                      const std::vector<std::string>& clips,
-                                                                      const std::string& name,
-                                                                      const std::string& label,
-                                                                      const std::string& hint)
-        
-        {
-            ChoiceParamDescriptor *ret;
-            {
-                ChoiceParamDescriptor *param = desc.defineChoiceParam(name);
-                param->setLabel(label);
-                param->setHint(hint);
-                param->setAnimates(false);
-                addInputChannelOptionsRGBA(param, clips, true, 0);
-                param->setEvaluateOnChange(false);
-                param->setIsPersistant(false);
-                if (page) {
-                    page->addChild(*param);
+                {
+                    std::string strName = name + "Choice";
+                    //Add a hidden string param that will remember the value of the choice
+                    OFX::StringParamDescriptor* param = desc.defineStringParam(strName);
+                    param->setLabel(label + "Choice");
+                    param->setIsSecret(true);
+                    if (page) {
+                        page->addChild(*param);
+                    }
                 }
-                ret = param;
-            }
-            {
-                std::string strName = name + "Choice";
-                //Add a hidden string param that will remember the value of the choice
-                OFX::StringParamDescriptor* param = desc.defineStringParam(strName);
-                param->setLabel(label + "Choice");
-                param->setIsSecret(true);
-                if (page) {
-                    page->addChild(*param);
+                {
+                    std::string strName = name + "RefreshButton";
+                    OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(strName);
+                    param->setLabel(label + "RefreshButton");
+                    param->setIsSecret(true);
+                    if (page) {
+                        page->addChild(*param);
+                    }
                 }
+                return ret;
             }
-            return ret;
-        }
+        } // Factory
         
     } // namespace MultiPlane
 
