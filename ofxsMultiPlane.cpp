@@ -256,7 +256,12 @@ static void appendComponents(const std::string& clipName,
                 continue;
             }
             for (std::size_t i = 0; i < channels.size(); ++i) {
-                std::string opt = clipName + ".";
+                std::string opt;
+                if (!clipName.empty()) {
+                    opt += clipName;
+                    opt += '.';
+                }
+
                 if (!layer.empty()) {
                     opt.append(layer);
                     opt.push_back('.');
@@ -274,7 +279,11 @@ static void appendComponents(const std::string& clipName,
             
             if (!secondLayer.empty()) {
                 for (std::size_t i = 0; i < channels.size(); ++i) {
-                    std::string opt = clipName + ".";
+                    std::string opt;
+                    if (!clipName.empty()) {
+                        opt += clipName;
+                        opt += '.';
+                    }
                     if (!secondLayer.empty()) {
                         opt.append(secondLayer);
                         opt.push_back('.');
@@ -302,27 +311,36 @@ static void parseLayerString(const std::string& encoded, bool* isColor)
     }
 }
     
-static void parseMaskChannelString(const std::string& encodedChannel,
-                                       std::string* nodeName,
+static bool parseMaskChannelString(const std::string& encodedChannel,
+                                       std::string* clipName,
                                        std::string* layerName,
                                        std::string* channelName,
                                        bool *isColor)
 {
-    std::size_t foundLastDot = encodedChannel.find_last_of(".");
-    if (foundLastDot != std::string::npos) {
-        *layerName = encodedChannel.substr(0, foundLastDot);
-        std::size_t foundPrevDot = layerName->find_first_of(".");
-        if (foundPrevDot != std::string::npos) {
-            //Remove the node name
-            *layerName = layerName->substr(foundPrevDot + 1);
-            *nodeName = layerName->substr(0, foundPrevDot);
-        } else {
-            *nodeName = *layerName;
-            layerName->clear();
+    std::size_t foundLastDot = encodedChannel.find_last_of('.');
+    if (foundLastDot == std::string::npos) {
+        *isColor = false;
+        if (encodedChannel == "None") {
+            *layerName = "None";
+            return true;
         }
-        *isColor = *layerName == kPlaneLabelColorRGBA || *layerName == kPlaneLabelColorRGB || *layerName == kPlaneLabelColorAlpha;
-        *channelName = encodedChannel.substr(foundLastDot + 1);
+        return false;
     }
+    *channelName = encodedChannel.substr(foundLastDot + 1);
+    
+    std::string baseName = encodedChannel.substr(0, foundLastDot);
+    std::size_t foundPrevDot = baseName.find_first_of('.');
+    if (foundPrevDot != std::string::npos) {
+        //Remove the node name
+        *layerName = baseName.substr(foundPrevDot + 1);
+        *clipName = baseName.substr(0, foundPrevDot);
+    } else {
+        *layerName = baseName;
+        clipName->clear();
+    }
+    *isColor = *layerName == kPlaneLabelColorRGBA || *layerName == kPlaneLabelColorRGB || *layerName == kPlaneLabelColorAlpha;
+    return true;
+
 }
 
 class ChoiceMergeEntriesData
@@ -468,6 +486,9 @@ void mergeChannelEntries(const std::vector<std::string>& newEntries,
         bool found = false;
         for (std::size_t j = 0; j < mergedEntries->size(); ++j) {
             if (mergingFunctor((*mergedEntries)[j],newEntries[i], mergingData)) {
+                if ((*mergedEntries)[j] != newEntries[i]) {
+                    (*mergedEntries)[j] = newEntries[i];
+                }
                 found = true;
                 break;
             }
