@@ -614,6 +614,7 @@ namespace OFX {
             
             
             void addParamToRebuild(const ChoiceParamClips* paramData,
+                                   bool addChoiceAllToOutput,
                                 std::map<OFX::Clip*, std::vector<std::string> >& componentsCache);
             
             void buildChannelsMenus();
@@ -631,8 +632,13 @@ namespace OFX {
             std::map<OFX::Clip*, std::vector<std::string> > clipComponentsCache;
             std::map<std::string, ChoiceParamClips> params;
             
+            // Used in the checkIfChangedParamCalledOnDynamicChoiceInternal function when refreshing the choice menu.
+            // We need to know if it had the all choice in the last call made to buildChannelMenus()
+            bool lastBuildChannelMenusHadAllChoice;
+            
             MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
             : _publicInterface(publicInterface)
+            , lastBuildChannelMenusHadAllChoice(false)
             {
                 
             }
@@ -670,7 +676,7 @@ namespace OFX {
             paramData.buttonparam = fetchPushButtonParam(paramName + "RefreshButton");
             assert(paramData.param && paramData.stringparam && paramData.buttonparam);
             paramData.isOutput = paramName == kMultiPlaneParamOutputChannels;
-            assert(!paramData.isOutput || (dependsClips.size() == 1 && dependsClips[0] && dependsClips[0]->name() == kOfxImageEffectOutputClipName));
+            assert(!paramData.isOutput || (dependsClips.size() == 1 && dependsClips[0]));
             paramData.clips = dependsClips;
             for (std::size_t i = 0; i < dependsClips.size(); ++i) {
                 paramData.clipsName.push_back(dependsClips[i]->name());
@@ -731,13 +737,16 @@ namespace OFX {
         }
         
         void
-        MultiPlaneEffect::buildChannelMenus(const std::string& paramName, bool mergeEntries)
+        MultiPlaneEffect::buildChannelMenus(const std::string& paramName, bool mergeEntries, bool addChoiceAllToOutput)
         {
+            
+            _imp->lastBuildChannelMenusHadAllChoice = addChoiceAllToOutput;
+            
             BuildChannelMenusData data(mergeEntries);
             if (paramName.empty()) {
                 // build all
                 for (std::map<std::string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
-                    data.addParamToRebuild(&it->second, _imp->clipComponentsCache);
+                    data.addParamToRebuild(&it->second, addChoiceAllToOutput, _imp->clipComponentsCache);
                 }
                 data.buildChannelsMenus();
                 
@@ -754,7 +763,7 @@ namespace OFX {
             } else {
                 std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
                 if (found != _imp->params.end()) {
-                    data.addParamToRebuild(&found->second, _imp->clipComponentsCache);
+                    data.addParamToRebuild(&found->second, addChoiceAllToOutput, _imp->clipComponentsCache);
                 }
                 data.buildChannelsMenus();
                 try {
@@ -838,7 +847,8 @@ namespace OFX {
         }
         
         void BuildChannelMenusData::addParamToRebuild(const OFX::MultiPlane::ChoiceParamClips *paramData,
-                                                       std::map<OFX::Clip*, std::vector<std::string> >& componentsCache)
+                                                      bool addChoiceAllToOutput,
+                                                      std::map<OFX::Clip*, std::vector<std::string> >& componentsCache)
         {
             
             ChoiceParamData& data = params[paramData];
@@ -864,6 +874,10 @@ namespace OFX {
                     
                     // Create the clip info
                     paramData->clips[i]->getComponentsPresent(&clipInfo.componentsPresent);
+                    
+                    if (paramData->isOutput && addChoiceAllToOutput) {
+                        clipInfo.componentsPresent.push_back(kPlaneLabelAll);
+                    }
                     
                     std::map<OFX::Clip*, std::vector<std::string> >::iterator foundCompsCache = componentsCache.find(paramData->clips[i]);
                     if (foundCompsCache != componentsCache.end()) {
@@ -910,7 +924,7 @@ namespace OFX {
                     setChannelsFromStringParamInternal(param.param, param.stringparam, options, true);
                     return MultiPlaneEffect::eChangedParamRetCodeStringParamChanged;
                 } else if (paramName == param.buttonparam->getName()) {
-                    _publicInterface->buildChannelMenus(param.param->getName(), false);
+                    _publicInterface->buildChannelMenus(param.param->getName(), false, lastBuildChannelMenusHadAllChoice);
                     return MultiPlaneEffect::eChangedParamRetCodeButtonParamChanged;
                 }
             }
@@ -1153,7 +1167,7 @@ namespace OFX {
                 layerName == kPlaneLabelColorRGBA ||
                 layerName == kPlaneLabelColorRGB ||
                 layerName == kPlaneLabelColorAlpha || found->second.param->getIsSecret()) {
-                assert(found->second.clips[0] && found->second.clips[0]->name() == kOfxImageEffectOutputClipName);
+                assert(found->second.clips[0]);
                 std::string comp = found->second.clips[0]->getPixelComponentsProperty();
                 *ofxComponents = comp;
                 *ofxPlane = kFnOfxImagePlaneColour;

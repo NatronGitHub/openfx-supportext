@@ -142,7 +142,7 @@ namespace OFX {
              * The only way to properly refresh the dynamic choice is when getClipPreferences is called.
              * If paramName is empty, all channel menus will be refreshed.
              **/
-            void buildChannelMenus(const std::string& paramName = std::string(), bool mergeEntries = true);
+            void buildChannelMenus(const std::string& paramName = std::string(), bool mergeEntries = true, bool addChoiceAllToOutput = false);
             
             /**
              * @brief Returns the clip component presents that were used for this clip in the previous call to buildChannelMenus.
