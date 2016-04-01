@@ -311,7 +311,7 @@ static void parseLayerString(const std::string& encoded, bool* isColor)
     }
 }
     
-static bool parseMaskChannelString(const std::string& encodedChannel,
+static bool parseChannelString(const std::string& encodedChannel,
                                        std::string* clipName,
                                        std::string* layerName,
                                        std::string* channelName,
@@ -320,8 +320,11 @@ static bool parseMaskChannelString(const std::string& encodedChannel,
     std::size_t foundLastDot = encodedChannel.find_last_of('.');
     if (foundLastDot == std::string::npos) {
         *isColor = false;
-        if (encodedChannel == "None") {
-            *layerName = "None";
+        if (encodedChannel == kMultiPlaneParamOutputOption0) {
+            *layerName = kMultiPlaneParamOutputOption0;
+            return true;
+        } else if (encodedChannel == kMultiPlaneParamOutputOption1) {
+            *layerName = kMultiPlaneParamOutputOption1;
             return true;
         }
         return false;
@@ -379,6 +382,9 @@ public:
     virtual void clear()
     {
         dataSet = false;
+        bNode.clear();
+        bLayer.clear();
+        bChannel.clear();
     }
     
     virtual ~MergeChannelData()
@@ -395,7 +401,7 @@ static bool channelEqualityFunctorInternal(const std::string& aLayer,
                                                    bool bIsColor)
 {
     if (aChannel.empty() && bChannel.empty()) {
-        // None choice
+        // kMultiPlaneParamOutputOption0 and kMultiPlaneParamOutputOption1 choice
         return aLayer == bLayer;
     } else if (aChannel != bChannel) {
         return false;
@@ -416,9 +422,9 @@ static bool channelEqualityFunctor(const std::string& a, const std::string& b, C
     assert(mergeData);
     std::string aNode,aLayer,aChannel;
     bool aIsColor;
-    parseMaskChannelString(a,&aNode,&aLayer,&aChannel,&aIsColor);
+    parseChannelString(a,&aNode,&aLayer,&aChannel,&aIsColor);
     if (!mergeData->dataSet) {
-        parseMaskChannelString(b,&mergeData->bNode,&mergeData->bLayer,&mergeData->bChannel,&mergeData->isColor);
+        parseChannelString(b,&mergeData->bNode,&mergeData->bLayer,&mergeData->bChannel,&mergeData->isColor);
         mergeData->dataSet = true;
     }
     return channelEqualityFunctorInternal(aLayer, aChannel, mergeData->bLayer, mergeData->bChannel, aIsColor, mergeData->isColor);
