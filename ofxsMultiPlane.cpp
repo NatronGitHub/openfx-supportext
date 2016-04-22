@@ -793,10 +793,12 @@ namespace OFX {
                     data.addParamToRebuild(&found->second, addChoiceAllToOutput, _imp->clipComponentsCache);
                 }
                 data.buildChannelsMenus();
-                try {
-                    _imp->setChannelsFromStringParamInternal(found->second.param, found->second.stringparam, data.getParamOptions(&found->second), true);
-                } catch (...) {
-                    throwSuiteStatusException(kOfxStatFailed);
+                if (found != _imp->params.end()) {
+                    try {
+                        _imp->setChannelsFromStringParamInternal(found->second.param, found->second.stringparam, data.getParamOptions(&found->second), true);
+                    } catch (...) {
+                        throwSuiteStatusException(kOfxStatFailed);
+                    }
                 }
             }
             
