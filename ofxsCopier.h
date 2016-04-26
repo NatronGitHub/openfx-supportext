@@ -811,8 +811,10 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     assert(srcPixelComponentCount == dstPixelComponentCount);
     assert(srcPixelComponentCount == nComponents);
     (void)srcPixelComponents;
+    (void)srcPixelComponentCount;
     (void)srcBitDepth;
     (void)dstPixelComponents;
+    (void)dstPixelComponentCount;
     (void)dstBitDepth;
     (void)instance;
 
