@@ -44,7 +44,8 @@ rectIsEmpty(const Rect & r)
     return (r.x2 <= r.x1) || (r.y2 <= r.y1);
 }
 
-///Bounding box of two rectangles
+/// Bounding box of two rectangles
+/// bbox may be aliased to a or b
 inline void
 rectBoundingBox(const OfxRectD & a,
                 const OfxRectD & b,
@@ -73,6 +74,7 @@ rectIsInfinite(const Rect & r)
 }
 
 /// compute the intersection of two rectangles, and return true if they intersect
+/// intersection may be aliased to r1 or r2
 template <typename Rect>
 bool
 rectIntersection(const Rect & r1,
