@@ -35,8 +35,6 @@
 
 namespace OFX {
 namespace Coords {
-
-
 template <typename Rect>
 bool
 rectIsEmpty(const Rect & r)
@@ -51,12 +49,14 @@ rectBoundingBox(const OfxRectD & a,
                 const OfxRectD & b,
                 OfxRectD* bbox)
 {
-    if (rectIsEmpty(a)) {
+    if ( rectIsEmpty(a) ) {
         *bbox = b;
+
         return;
     }
-    if (rectIsEmpty(b)) {
+    if ( rectIsEmpty(b) ) {
         *bbox = a;
+
         return;
     }
     bbox->x1 = std::min(a.x1, b.x1);
@@ -88,6 +88,7 @@ rectIntersection(const Rect & r1,
             intersection->y1 = 0;
             intersection->y2 = 0;
         }
+
         return false;
     }
 
@@ -98,17 +99,19 @@ rectIntersection(const Rect & r1,
             intersection->y1 = 0;
             intersection->y2 = 0;
         }
+
         return false;
     }
 
     if (intersection) {
-        intersection->x1 = std::max(r1.x1,r2.x1);
+        intersection->x1 = std::max(r1.x1, r2.x1);
         // the region must be *at least* empty, thus the maximin.
-        intersection->x2 = std::max( intersection->x1,std::min(r1.x2,r2.x2) );
-        intersection->y1 = std::max(r1.y1,r2.y1);
+        intersection->x2 = std::max( intersection->x1, std::min(r1.x2, r2.x2) );
+        intersection->y1 = std::max(r1.y1, r2.y1);
         // the region must be *at least* empty, thus the maximin.
-        intersection->y2 = std::max( intersection->y1,std::min(r1.y2,r2.y2) );
+        intersection->y2 = std::max( intersection->y1, std::min(r1.y2, r2.y2) );
     }
+
     return true;
 }
 
@@ -168,8 +171,9 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
                  double par,
                  OfxRectI *rect)
 {
-    if (rectIsEmpty(regionOfInterest)) {
+    if ( rectIsEmpty(regionOfInterest) ) {
         rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
+
         return;
     }
     rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par);
@@ -184,8 +188,9 @@ toPixelNearest(const OfxRectD & regionOfInterest,
                double par,
                OfxRectI *rect)
 {
-    if (rectIsEmpty(regionOfInterest)) {
+    if ( rectIsEmpty(regionOfInterest) ) {
         rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
+
         return;
     }
     rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par + 0.5);
@@ -243,8 +248,9 @@ toCanonical(const OfxRectI & rect,
             double par,
             OfxRectD *regionOfInterest)
 {
-    if (rectIsEmpty(rect)) {
+    if ( rectIsEmpty(rect) ) {
         regionOfInterest->x1 = regionOfInterest->y1 = regionOfInterest->x2 = regionOfInterest->y2 = 0;
+
         return;
     }
     regionOfInterest->x1 = rect.x1 * par / renderScale.x;

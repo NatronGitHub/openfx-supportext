@@ -68,10 +68,13 @@
 #define kParamTransformInteractiveOld "interactive"
 
 namespace OFX {
-
-inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform, OfxPointD* scale)
+inline void
+ofxsTransformGetScale(const OfxPointD &scaleParam,
+                      bool scaleUniform,
+                      OfxPointD* scale)
 {
     const double SCALE_MIN = 0.0001;
+
     scale->x = scaleParam.x;
     if (std::fabs(scale->x) < SCALE_MIN) {
         scale->x = (scale->x >= 0) ? SCALE_MIN : -SCALE_MIN;
@@ -89,10 +92,12 @@ inline void ofxsTransformGetScale(const OfxPointD &scaleParam, bool scaleUniform
 /// add Transform params. page and group are optional
 void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams, bool noTranslate = false);
 
-class TransformInteractHelper : private OFX::InteractAbstract
+class TransformInteractHelper
+    : private OFX::InteractAbstract
 {
 protected:
-    enum DrawStateEnum {
+    enum DrawStateEnum
+    {
         eInActive = 0, //< nothing happening
         eCircleHovered, //< the scale circle is hovered
         eLeftPointHovered, //< the left point of the circle is hovered
@@ -104,8 +109,9 @@ protected:
         eSkewXBarHoverered, //< the skew bar is hovered
         eSkewYBarHoverered //< the skew bar is hovered
     };
-    
-    enum MouseStateEnum {
+
+    enum MouseStateEnum
+    {
         eReleased = 0,
         eDraggingCircle,
         eDraggingLeftPoint,
@@ -118,7 +124,7 @@ protected:
         eDraggingSkewXBar,
         eDraggingSkewYBar
     };
-    
+
     enum OrientationEnum
     {
         eOrientationAllDirections = 0,
@@ -126,7 +132,7 @@ protected:
         eOrientationHorizontal,
         eOrientationVertical
     };
-    
+
     DrawStateEnum _drawState;
     MouseStateEnum _mouseState;
     int _modifierStateCtrl;
@@ -135,7 +141,6 @@ protected:
     ImageEffect* _effect;
     Interact* _interact;
     OfxPointD _lastMousePos;
-
     OfxPointD _centerDrag;
     OfxPointD _translateDrag;
     OfxPointD _scaleParamDrag;
@@ -151,7 +156,8 @@ public:
     TransformInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false);
 
     /** @brief virtual destructor */
-    virtual ~TransformInteractHelper() {
+    virtual ~TransformInteractHelper()
+    {
         // fetched clips and params are owned and deleted by the ImageEffect and its ParamSet
     }
 
@@ -162,8 +168,10 @@ public:
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE;
     virtual bool keyDown(const OFX::KeyArgs &args) OVERRIDE;
     virtual bool keyUp(const OFX::KeyArgs &args) OVERRIDE;
-    virtual bool keyRepeat(const KeyArgs &/*args*/) OVERRIDE { return false; }
-    virtual void gainFocus(const FocusArgs &/*args*/) OVERRIDE {}
+    virtual bool keyRepeat(const KeyArgs & /*args*/) OVERRIDE { return false; }
+
+    virtual void gainFocus(const FocusArgs & /*args*/) OVERRIDE {}
+
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 
 private:
@@ -183,19 +191,25 @@ private:
 
 typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteract;
 
-class TransformOverlayDescriptor : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteract> {};
+class TransformOverlayDescriptor
+    : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteract>
+{
+};
 
-class TransformInteractHelperOldParams: public TransformInteractHelper
+class TransformInteractHelperOldParams
+    : public TransformInteractHelper
 {
 public:
-    TransformInteractHelperOldParams(OFX::ImageEffect* effect, OFX::Interact* interact)
-    : TransformInteractHelper(effect, interact, true) {}
+    TransformInteractHelperOldParams(OFX::ImageEffect* effect,
+                                     OFX::Interact* interact)
+        : TransformInteractHelper(effect, interact, true) {}
 };
 
 typedef OverlayInteractFromHelper<TransformInteractHelperOldParams> TransformInteractOldParams;
 
-class TransformOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptorOldParams, TransformInteractOldParams> {};
-
-
+class TransformOverlayDescriptorOldParams
+    : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptorOldParams, TransformInteractOldParams>
+{
+};
 }
 #endif /* defined(openfx_supportext_ofxsTransformInteract_h) */

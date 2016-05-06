@@ -88,17 +88,17 @@ public:
     RectangleInteract(OfxInteractHandle handle,
                       OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
-          , _effect(effect)
-          , _lastMousePos()
-          , _mouseState(eMouseStateIdle)
-          , _drawState(eDrawStateInactive)
-          , _modifierStateCtrl(0)
-          , _modifierStateShift(0)
-          , _enable(0)
-          , _btmLeft(0)
-          , _size(0)
+        , _effect(effect)
+        , _lastMousePos()
+        , _mouseState(eMouseStateIdle)
+        , _drawState(eDrawStateInactive)
+        , _modifierStateCtrl(0)
+        , _modifierStateShift(0)
+        , _enable(0)
+        , _btmLeft(0)
+        , _size(0)
     {
-        if (_effect->paramExists(kParamRectangleInteractEnable)) {
+        if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
         }
         _btmLeft = effect->fetchDouble2DParam(kParamRectangleInteractBtmLeft);

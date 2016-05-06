@@ -43,26 +43,26 @@
 using namespace OFX;
 
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
-: ImageEffect(handle)
-, _dstClip(0)
-, _srcClip(0)
-, _backwardButton(0)
-, _prevButton(0)
-, _nextButton(0)
-, _forwardButton(0)
-, _instanceName(0)
+    : ImageEffect(handle)
+    , _dstClip(0)
+    , _srcClip(0)
+    , _backwardButton(0)
+    , _prevButton(0)
+    , _nextButton(0)
+    , _forwardButton(0)
+    , _instanceName(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(_dstClip->getPixelComponents() == ePixelComponentAlpha ||
            _dstClip->getPixelComponents() == ePixelComponentRGB ||
            _dstClip->getPixelComponents() == ePixelComponentRGBA);
     _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert((!_srcClip && getContext() == OFX::eContextGenerator) ||
-           (_srcClip->getPixelComponents() == ePixelComponentAlpha ||
-            _srcClip->getPixelComponents() == ePixelComponentRGB ||
-            _srcClip->getPixelComponents() == ePixelComponentRGBA));
-    
-    
+    assert( (!_srcClip && getContext() == OFX::eContextGenerator) ||
+            (_srcClip->getPixelComponents() == ePixelComponentAlpha ||
+             _srcClip->getPixelComponents() == ePixelComponentRGB ||
+             _srcClip->getPixelComponents() == ePixelComponentRGBA) );
+
+
     _backwardButton = fetchPushButtonParam(kParamTrackingBackward);
     _prevButton = fetchPushButtonParam(kParamTrackingPrevious);
     _nextButton = fetchPushButtonParam(kParamTrackingNext);
@@ -78,12 +78,13 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+
         return false;
     }
-    
+
     identityClip = _srcClip;
     identityTime = args.time;
-    
+
     return true;
 }
 
@@ -93,12 +94,13 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+
         return;
     }
-    
+
     OFX::TrackArguments trackArgs;
     trackArgs.renderScale = args.renderScale;
-    if (paramName == kParamTrackingBackward && _srcClip && _srcClip->isConnected()) {
+    if ( (paramName == kParamTrackingBackward) && _srcClip && _srcClip->isConnected() ) {
         trackArgs.first = args.time;
         //double first,last; timeLineGetBounds(first, last); trackArgs.last = first + 1;// wrong: we want the srcClip range
         OfxRangeD range = _srcClip->getFrameRange();
@@ -108,19 +110,19 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
             trackArgs.reason = args.reason;
             trackRange(trackArgs);
         }
-    } else if (paramName == kParamTrackingPrevious && _srcClip && _srcClip->isConnected()) {
+    } else if ( (paramName == kParamTrackingPrevious) && _srcClip && _srcClip->isConnected() ) {
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = false;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kParamTrackingNext && _srcClip && _srcClip->isConnected()) {
+    } else if ( (paramName == kParamTrackingNext) && _srcClip && _srcClip->isConnected() ) {
         trackArgs.first = args.time;
         trackArgs.last = trackArgs.first;
         trackArgs.forward = true;
         trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if (paramName == kParamTrackingForward && _srcClip && _srcClip->isConnected()) {
+    } else if ( (paramName == kParamTrackingForward) && _srcClip && _srcClip->isConnected() ) {
         trackArgs.first = args.time;
         //double first,last; timeLineGetBounds(first, last); trackArgs.last = last - 1; // wrong: we want the srcClip range
         OfxRangeD range = _srcClip->getFrameRange();
@@ -140,7 +142,7 @@ GenericTrackerPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArgumen
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
     }
-    
+
     return false;
 }
 
@@ -154,31 +156,31 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
     //desc.addSupportedBitDepth(eBitDepthUByte);
     //desc.addSupportedBitDepth(eBitDepthUShort);
     //desc.addSupportedBitDepth(eBitDepthFloat);
-    
+
     // single instance depends on the algorithm
     //desc.setSingleInstance(false);
-    
+
     // no host frame threading (anyway, the tracker always returns identity)
     desc.setHostFrameThreading(false);
-    
+
     ///We do temporal clip access
     desc.setTemporalClipAccess(true);
-    
+
     // rendertwicealways must be set to true if the tracker cannot handle interlaced content (most don't)
     //desc.setRenderTwiceAlways(true);
-    
+
     desc.setSupportsMultipleClipPARs(false);
-    
+
     // support multithread (anyway, the tracker always returns identity)
     desc.setRenderThreadSafety(kRenderThreadSafety);
-    
+
     // support tiles (anyway, the tracker always returns identity)
     desc.setSupportsTiles(kSupportsTiles);
-    
+
     // in order to support render scale, render() must take into account the pixelaspectratio and the renderscale
     // and scale the transform appropriately.
     // All other functions are usually in canonical coordinates.
-    
+
     ///We support multi-resolution (which does not mean we support render scale)
     desc.setSupportsMultiResolution(kSupportsMultiResolution);
 #ifdef OFX_EXTENSIONS_NATRON
@@ -195,28 +197,28 @@ OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     // always declare the source clip first, because some hosts may consider
     // it as the default input clip (e.g. Nuke)
     ClipDescriptor *srcClip = desc.defineClip(kOfxImageEffectSimpleSourceClipName);
-    
+
     srcClip->addSupportedComponent(ePixelComponentRGBA);
     srcClip->addSupportedComponent(ePixelComponentRGB);
     srcClip->addSupportedComponent(ePixelComponentAlpha);
-    
+
     ///we do temporal clip access
     srcClip->setTemporalClipAccess(true);
     srcClip->setSupportsTiles(kSupportsTiles);
     srcClip->setIsMask(false);
     srcClip->setOptional(false);
-    
+
     // create the mandated output clip
     ClipDescriptor *dstClip = desc.defineClip(kOfxImageEffectOutputClipName);
     dstClip->addSupportedComponent(ePixelComponentRGBA);
     dstClip->addSupportedComponent(ePixelComponentRGB);
     dstClip->addSupportedComponent(ePixelComponentAlpha);
     dstClip->setSupportsTiles(kSupportsTiles);
-    
-    
+
+
     // make some pages and to things in
     PageParamDescriptor *page = desc.definePageParam("Controls");
-    
+
     return page;
 }
 
@@ -240,8 +242,8 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-    
-    
+
+
     // backward
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
@@ -252,7 +254,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-    
+
     // prev
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
@@ -263,7 +265,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-    
+
     // next
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
@@ -274,7 +276,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-    
+
     // forward
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
@@ -302,6 +304,7 @@ bool
 TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 {
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
+
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
     GLdouble projection[16];
@@ -309,11 +312,11 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2./(projection[0] * viewport[2]);
-    shadow.y = 2./(projection[5] * viewport[3]);
+    shadow.x = 2. / (projection[0] * viewport[2]);
+    shadow.y = 2. / (projection[5] * viewport[3]);
 
-    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
-    
+    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc, xoff, yoff;
+
     if (_ms != eMouseStateIdle) {
         xi1 = _innerBtmLeftDragPos.x;
         yi1 = _innerBtmLeftDragPos.y;
@@ -344,18 +347,18 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         xo2 += (xc + xoff);
         yo2 += (yc + yoff);
     }
-    
-    
+
+
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
     glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
-    glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
+    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
     glLineWidth(1.5f);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
@@ -366,37 +369,37 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
         // translate (1,-1) pixels
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
-        
-        glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+
+        glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         glBegin(GL_LINE_LOOP);
         glVertex2d(xi1, yi1);
         glVertex2d(xi1, yi2);
         glVertex2d(xi2, yi2);
         glVertex2d(xi2, yi1);
         glEnd();
-        
+
         glBegin(GL_LINE_LOOP);
         glVertex2d(xo1, yo1);
         glVertex2d(xo1, yo2);
         glVertex2d(xo2, yo2);
         glVertex2d(xo2, yo1);
         glEnd();
-        
+
         glPointSize(POINT_SIZE);
         glBegin(GL_POINTS);
-        
+
         ///draw center
-        if ( (_ds == eDrawStateHoveringCenter) || (_ms == eMouseStateDraggingCenter)) {
+        if ( (_ds == eDrawStateHoveringCenter) || (_ms == eMouseStateDraggingCenter) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xc, yc);
-        
-        if (xoff != 0 || yoff != 0) {
+
+        if ( (xoff != 0) || (yoff != 0) ) {
             glVertex2d(xc + xoff, yc + yoff);
         }
-        
+
         //////DRAWING INNER POINTS
         if ( (_ds == eDrawStateHoveringInnerBtmLeft) || (_ms == eMouseStateDraggingInnerBtmLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
@@ -422,20 +425,20 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi1, yi2);
         }
-        
+
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xc + xoff, yi2);
         }
-        
+
         if ( (_ds == eDrawStateHoveringInnerTopRight) || (_ms == eMouseStateDraggingInnerTopRight) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xi2, yi2);
         }
-        
-        
+
+
         //////DRAWING OUTTER POINTS
-        
+
         if ( (_ds == eDrawStateHoveringOuterBtmLeft) || (_ms == eMouseStateDraggingOuterBtmLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo1, yo1);
@@ -456,7 +459,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo2, yc + yoff);
         }
-        
+
         if ( (_ds == eDrawStateHoveringOuterTopLeft) || (_ms == eMouseStateDraggingOuterTopLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo1, yo2);
@@ -469,99 +472,99 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
             glColor3f(0.f * l, 1.f * l, 0.f * l);
             glVertex2d(xo2, yo2);
         }
-        
+
         glEnd();
-        
-        if (xoff != 0 || yoff != 0) {
+
+        if ( (xoff != 0) || (yoff != 0) ) {
             glBegin(GL_LINES);
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
             glVertex2d(xc, yc);
             glVertex2d(xc + xoff, yc + yoff);
             glEnd();
         }
-        
+
         double handleSizeX = HANDLE_SIZE * pscale.x;
         double handleSizeY = HANDLE_SIZE * pscale.y;
-        
+
         ///now show small lines at handle positions
         glBegin(GL_LINES);
-        
+
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xi1, yc + yoff);
         glVertex2d(xi1 - handleSizeX, yc + yoff);
-        
+
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xc + xoff, yi2);
         glVertex2d(xc + xoff, yi2 + handleSizeY);
-        
+
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xi2, yc + yoff);
         glVertex2d(xi2 + handleSizeX, yc + yoff);
-        
+
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xc + xoff, yi1);
         glVertex2d(xc + xoff, yi1 - handleSizeY);
-        
+
         //////DRAWING OUTTER HANDLES
-        
+
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xo1, yc + yoff);
         glVertex2d(xo1 - handleSizeX, yc + yoff);
-        
+
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xc + xoff, yo2);
         glVertex2d(xc + xoff, yo2 + handleSizeY);
-        
+
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xo2 + handleSizeX, yc + yoff);
         glVertex2d(xo2, yc + yoff);
-        
+
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
             glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
         glVertex2d(xc + xoff, yo1);
         glVertex2d(xc + xoff, yo1 - handleSizeY);
         glEnd();
-        
-        
-        glColor3f((float)color.r * l, (float)color.g * l, (float)color.b * l);
+
+
+        glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         std::string name;
         _name->getValue(name);
         TextRenderer::bitmapString( xc, yc, name.c_str() );
     }
-    
+
     //glPopAttrib();
-    
+
     return true;
 } // draw
 
@@ -569,14 +572,14 @@ bool
 TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
-    
     bool didSomething = false;
     bool valuesChanged = false;
     OfxPointD delta;
+
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
-    
-    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
+
+    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc, xoff, yoff;
     if (_ms == eMouseStateIdle) {
         _innerBtmLeft->getValueAtTime( args.time, xi1, yi1);
         _innerTopRight->getValueAtTime(args.time, xi2, yi2);
@@ -611,7 +614,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 
 
     bool lastStateWasHovered = _ds != eDrawStateInactive;
-    
+
     if (_ms == eMouseStateIdle) {
         // test center first
         if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
@@ -669,7 +672,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             _ds = eDrawStateInactive;
         }
     }
-    
+
     double multiplier = _controlDown ? 0 : 1;
     if (_ms == eMouseStateDraggingInnerBtmLeft) {
         xi1 += delta.x;
@@ -686,37 +689,34 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         yo2 -= delta.y;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingInnerTopLeft) {
         xi1 += delta.x;
         yi1 -= delta.y;
-        
+
         yi2 += delta.y;
         xi2 -= delta.x;
-        
+
         xo1 += delta.x;
         yo1 -= delta.y;
-        
+
         yo2 += delta.y;
         xo2 -= delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingInnerTopRight) {
         xi1 -= delta.x;
         yi1 -= delta.y;
-        
+
         yi2 += delta.y;
         xi2 += delta.x;
-        
+
         xo1 -= delta.x;
         yo1 -= delta.y;
-        
+
         yo2 += delta.y;
         xo2 += delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingInnerBtmRight) {
         yi1 += delta.y;
         xi1 -= delta.x;
@@ -731,18 +731,16 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo2 += delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingInnerTopMid) {
         yi1 -= delta.y;
 
         yi2 += delta.y;
 
         yo1 -= delta.y;
-        
-        yo2 += delta.y;
-        
-        valuesChanged = true;
 
+        yo2 += delta.y;
+
+        valuesChanged = true;
     } else if (_ms == eMouseStateDraggingInnerMidRight) {
         xi1 -= delta.x;
 
@@ -751,31 +749,28 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo1 -= delta.x;
 
         xo2 += delta.x;
-        
-        valuesChanged = true;
 
+        valuesChanged = true;
     } else if (_ms == eMouseStateDraggingInnerBtmMid) {
         yi1 += delta.y;
 
         yi2 -= delta.y;
-        
+
         yo1 += delta.y;
 
         yo2 -= delta.y;
-        
-        valuesChanged = true;
 
+        valuesChanged = true;
     } else if (_ms == eMouseStateDraggingInnerMidLeft) {
         xi1 += delta.x;
 
         xi2 -= delta.x;
-        
+
         xo1 += delta.x;
 
         xo2 -= delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterBtmLeft) {
         xo1 += delta.x;
         yo1 += delta.y;
@@ -784,7 +779,6 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         yo2 -= multiplier * delta.y;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterTopLeft) {
         xo1 += delta.x;
         if (!_controlDown) {
@@ -795,7 +789,6 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo2 -= multiplier * delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterTopRight) {
         if (!_controlDown) {
             xo1 -= delta.x;
@@ -806,7 +799,6 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo2 +=  delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterBtmRight) {
         yo1 += delta.y;
         if (!_controlDown) {
@@ -817,7 +809,6 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo2 +=  delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterTopMid) {
         if (!_controlDown) {
             yo1 -= delta.y;
@@ -826,7 +817,6 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         yo2 += delta.y;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterMidRight) {
         if (!_controlDown) {
             xo1 -= delta.x;
@@ -835,22 +825,19 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         xo2 +=  delta.x;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterBtmMid) {
         yo1 += delta.y;
 
         yo2 -= multiplier * delta.y;
 
         valuesChanged = true;
-
     } else if (_ms == eMouseStateDraggingOuterMidLeft) {
         xo1 += delta.x;
 
         xo2 -= multiplier * delta.x;
 
         valuesChanged = true;
-
-    } else if (_ms == eMouseStateDraggingCenter || _ms == eMouseStateDraggingOffset) {
+    } else if ( (_ms == eMouseStateDraggingCenter) || (_ms == eMouseStateDraggingOffset) ) {
         xi1 += delta.x;
         yi1 += delta.y;
 
@@ -874,21 +861,21 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 
         valuesChanged = true;
     }
-    
-    
+
+
     if ( isDraggingOuterPoint() ) {
         /// outer rect must at least contain the inner rect
-        
+
         if (xo1 > xi1) {
             xo1 = xi1;
             valuesChanged = true;
         }
-        
+
         if (yo1 > yi1) {
             yo1 = yi1;
             valuesChanged = true;
         }
-        
+
         if (xo2 < xi2) {
             xo2 = xi2;
             valuesChanged = true;
@@ -898,10 +885,10 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             valuesChanged = true;
         }
     }
-    
+
     if ( isDraggingInnerPoint() ) {
         /// inner rect must contain center point
-        if (xi1 > (xc + xoff) ) {
+        if ( xi1 > (xc + xoff) ) {
             double diffX = xi1 - xc - xoff;
             xi1 = xc + xoff;
             xo1 -= diffX;
@@ -909,7 +896,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             xi2 += multiplier * diffX;
             valuesChanged = true;
         }
-        if (yi1 > (yc + yoff)) {
+        if ( yi1 > (yc + yoff) ) {
             double diffY = yi1 - yc - yoff;
             yi1 = yc + yoff;
             yo1 -= diffY;
@@ -917,7 +904,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             yi2 += multiplier * diffY;
             valuesChanged = true;
         }
-        if (xi2 <= (xc + xoff)) {
+        if ( xi2 <= (xc + xoff) ) {
             double diffX = xi2 - xc - xoff;
             xi2 = xc + xoff;
             xo2 += diffX;
@@ -925,7 +912,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             xi1 -= multiplier * diffX;
             valuesChanged = true;
         }
-        if (yi2 <= (yc + yoff)) {
+        if ( yi2 <= (yc + yoff) ) {
             double diffY = yi2 - yc - yoff;
             yi2 = yc + yoff;
             yo2 -= diffY;
@@ -934,7 +921,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
             valuesChanged = true;
         }
     }
-    
+
     ///forbid 0 pixels wide rectangles
     if (xi2 <= xi1) {
         xi1 = (xi2 + xi1) / 2;
@@ -956,8 +943,8 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
         yo2 = yo1 + 1;
         valuesChanged = true;
     }
-    
-    
+
+
     ///repaint if we toggled off a hovered handle
     if (lastStateWasHovered) {
         didSomething = true;
@@ -985,7 +972,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
     }
 
     _lastMousePos = args.penPosition;
-    
+
     return didSomething || valuesChanged;
 } // penMotion
 
@@ -993,16 +980,16 @@ bool
 TrackerRegionInteract::penDown(const OFX::PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
-    
     bool didSomething = false;
-    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc,xoff,yoff;
+    double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc, xoff, yoff;
+
     _innerBtmLeft->getValueAtTime( args.time, xi1, yi1);
     _innerTopRight->getValueAtTime(args.time, xi2, yi2);
     _outerBtmLeft->getValueAtTime( args.time, xo1, yo1);
     _outerTopRight->getValueAtTime(args.time, xo2, yo2);
     _center->getValueAtTime(args.time, xc, yc);
     _offset->getValueAtTime(args.time, xoff, yoff);
-    
+
     ///innerBtmLeft and outerBtmLeft are relative to the center, make them absolute
     xi1 += (xc + xoff);
     yi1 += (yc + yoff);
@@ -1012,7 +999,7 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     yo1 += (yc + yoff);
     xo2 += (xc + xoff);
     yo2 += (yc + yoff);
-    
+
     // test center first
     if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
         if (_controlDown > 0) {
@@ -1021,7 +1008,7 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
             _ms = eMouseStateDraggingCenter;
         }
         didSomething = true;
-    } else if (xoff != 0 && yoff != 0 && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale)) {
+    } else if ( (xoff != 0) && (yoff != 0) && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale) ) {
         _ms = eMouseStateDraggingOffset;
         didSomething = true;
     } else if ( isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale) ) {
@@ -1075,8 +1062,8 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     } else {
         _ms = eMouseStateIdle;
     }
-    
-    
+
+
     ///Keep the points in absolute coordinates
     _innerBtmLeftDragPos.x  = xi1;
     _innerBtmLeftDragPos.y  = yi1;
@@ -1090,7 +1077,7 @@ TrackerRegionInteract::penDown(const OFX::PenArgs &args)
     _centerDragPos.y        = yc;
     _offsetDragPos.x        = xoff;
     _offsetDragPos.y        = yoff;
-    
+
     _lastMousePos = args.penPosition;
 
     if (didSomething) {
@@ -1132,7 +1119,7 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
     if (_ms == eMouseStateIdle) {
         return false;
     }
-    
+
     const OfxPointD &center = _centerDragPos;
     const OfxPointD &offset = _offsetDragPos;
     _effect->beginEditBlock("setTrackerRegion");
@@ -1140,13 +1127,13 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
         OfxPointD btmLeft;
         btmLeft.x = _innerBtmLeftDragPos.x - center.x - offset.x;
         btmLeft.y = _innerBtmLeftDragPos.y - center.y - offset.y;
-        
+
         _innerBtmLeft->setValue(btmLeft.x, btmLeft.y);
-        
+
         OfxPointD topRight;
         topRight.x = _innerTopRightDragPos.x - center.x - offset.x;
         topRight.y = _innerTopRightDragPos.y - center.y - offset.y;
-        
+
         _innerTopRight->setValue(topRight.x, topRight.y);
     }
     {
@@ -1154,13 +1141,13 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
         btmLeft.x = _outerBtmLeftDragPos.x - center.x - offset.x;
         btmLeft.y = _outerBtmLeftDragPos.y - center.y - offset.y;
         _outerBtmLeft->setValue(btmLeft.x, btmLeft.y);
-        
+
         OfxPointD topRight;
         topRight.x = _outerTopRightDragPos.x - center.x - offset.x;
         topRight.y = _outerTopRightDragPos.y - center.y - offset.y;
         _outerTopRight->setValue(topRight.x, topRight.y);
     }
-    
+
     if (_ms == eMouseStateDraggingCenter) {
         _center->setValueAtTime(args.time, _centerDragPos.x, _centerDragPos.y);
     } else if (_ms == eMouseStateDraggingOffset) {
@@ -1183,7 +1170,7 @@ TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
     } else if ( (args.keySymbol == kOfxKey_Alt_L) || (args.keySymbol == kOfxKey_Alt_R) ) {
         ++_altDown;
     }
-    
+
     return false;
 }
 
@@ -1199,7 +1186,7 @@ TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
             --_altDown;
         }
     }
-    
+
     return false;
 }
 

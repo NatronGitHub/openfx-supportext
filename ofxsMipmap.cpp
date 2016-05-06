@@ -25,7 +25,7 @@
 namespace OFX {
 // update the window of dst defined by dstRoI by halving the corresponding area in src.
 // proofread and fixed by F. Devernay on 3/10/2014
-template <typename PIX,int nComponents>
+template <typename PIX, int nComponents>
 static void
 halveWindow(const OfxRectI & dstRoI,
             const PIX* srcPixels,
@@ -35,12 +35,11 @@ halveWindow(const OfxRectI & dstRoI,
             const OfxRectI & dstBounds,
             int dstRowBytes)
 {
-
     assert(dstRoI.x1 * 2 >= (srcBounds.x1 - 1) && (dstRoI.x2 - 1) * 2 < srcBounds.x2 &&
            dstRoI.y1 * 2 >= (srcBounds.y1 - 1) && (dstRoI.y2 - 1) * 2 < srcBounds.y2);
     int srcRowSize = srcRowBytes / sizeof(PIX);
     int dstRowSize = dstRowBytes / sizeof(PIX);
-    
+
     // offset pointers so that srcData and dstData correspond to pixel (0,0)
     const PIX* const srcData = srcPixels - (srcBounds.x1 * nComponents + srcRowSize * srcBounds.y1);
     PIX* const dstData       = dstPixels - (dstBounds.x1 * nComponents + dstRowSize * dstBounds.y1);
@@ -54,7 +53,6 @@ halveWindow(const OfxRectI & dstRoI,
         int srcy = y * 2;
         bool pickThisRow = srcBounds.y1 <= (srcy + 0) && (srcy + 0) < srcBounds.y2;
         bool pickNextRow = srcBounds.y1 <= (srcy + 1) && (srcy + 1) < srcBounds.y2;
-
         const int sumH = (int)pickNextRow + (int)pickThisRow;
         assert(sumH == 1 || sumH == 2);
 
@@ -67,7 +65,6 @@ halveWindow(const OfxRectI & dstRoI,
             int srcx = x * 2;
             bool pickThisCol = srcBounds.x1 <= (srcx + 0) && (srcx + 0) < srcBounds.x2;
             bool pickNextCol = srcBounds.x1 <= (srcx + 1) && (srcx + 1) < srcBounds.x2;
-
             const int sumW = (int)pickThisCol + (int)pickNextCol;
             assert(sumW == 1 || sumW == 2);
             const int sum = sumW * sumH;
@@ -79,7 +76,7 @@ halveWindow(const OfxRectI & dstRoI,
 
                 const PIX a = (pickThisCol && pickThisRow) ? *(srcPixStart + k) : 0;
                 const PIX b = (pickNextCol && pickThisRow) ? *(srcPixStart + k + nComponents) : 0;
-                const PIX c = (pickThisCol && pickNextRow) ? *(srcPixStart + k + srcRowSize): 0;
+                const PIX c = (pickThisCol && pickNextRow) ? *(srcPixStart + k + srcRowSize) : 0;
                 const PIX d = (pickNextCol && pickNextRow) ? *(srcPixStart + k + srcRowSize  + nComponents)  : 0;
 
                 assert( sumW == 2 || ( sumW == 1 && ( (a == 0 && c == 0) || (b == 0 && d == 0) ) ) );
@@ -88,11 +85,11 @@ halveWindow(const OfxRectI & dstRoI,
             }
         }
     }
-}
+} // halveWindow
 
 // update the window of dst defined by originalRenderWindow by mipmapping the windows of src defined by renderWindowFullRes
 // proofread and fixed by F. Devernay on 3/10/2014
-template <typename PIX,int nComponents>
+template <typename PIX, int nComponents>
 static void
 buildMipMapLevel(OFX::ImageEffect* instance,
                  const OfxRectI & originalRenderWindow,
@@ -202,12 +199,12 @@ ofxsScalePixelData(OFX::ImageEffect* instance,
         buildMipMapLevel<float, 3>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,
                                    srcBounds, srcRowBytes, (float*)dstPixelData, dstBounds, dstRowBytes);
     }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
-        buildMipMapLevel<float, 1>(instance, originalRenderWindow, renderWindow,levels, (const float*)srcPixelData,
+        buildMipMapLevel<float, 1>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,
                                    srcBounds, srcRowBytes, (float*)dstPixelData, dstBounds, dstRowBytes);
     }     // switch
 }
 
-template <typename PIX,int nComponents>
+template <typename PIX, int nComponents>
 static void
 ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
                               const OfxRectI & renderWindow,
@@ -280,14 +277,14 @@ ofxsBuildMipMaps(OFX::ImageEffect* instance,
     }
 
     if (dstPixelComponents == OFX::ePixelComponentRGBA) {
-        ofxsBuildMipMapsForComponents<float,4>(instance,renderWindow,srcPixelData,srcBounds,
-                                               srcRowBytes,maxLevel,mipmaps);
+        ofxsBuildMipMapsForComponents<float, 4>(instance, renderWindow, srcPixelData, srcBounds,
+                                                srcRowBytes, maxLevel, mipmaps);
     } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
-        ofxsBuildMipMapsForComponents<float,3>(instance,renderWindow,srcPixelData,srcBounds,
-                                               srcRowBytes,maxLevel,mipmaps);
+        ofxsBuildMipMapsForComponents<float, 3>(instance, renderWindow, srcPixelData, srcBounds,
+                                                srcRowBytes, maxLevel, mipmaps);
     }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
-        ofxsBuildMipMapsForComponents<float,1>(instance,renderWindow,srcPixelData,srcBounds,
-                                               srcRowBytes,maxLevel,mipmaps);
+        ofxsBuildMipMapsForComponents<float, 1>(instance, renderWindow, srcPixelData, srcBounds,
+                                                srcRowBytes, maxLevel, mipmaps);
     }
 }
 } // OFX

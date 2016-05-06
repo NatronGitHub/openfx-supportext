@@ -81,7 +81,7 @@ enum GeneratorExtentEnum
 #define kParamGeneratorCenter "recenter"
 #define kParamGeneratorCenterLabel "Center"
 #define kParamGeneratorCenterHint "Centers the region of definition to the input region of definition. " \
-"If there is no input, then the region of definition is centered to the project window."
+    "If there is no input, then the region of definition is centered to the project window."
 
 
 class GeneratorPlugin
@@ -102,16 +102,16 @@ protected:
     OFX::Int2DParam  *_range;
     OFX::PushButtonParam *_recenter;
     bool _useOutputComponentsAndDepth;
-    
+
 public:
 
     GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth);
 
 protected:
-    
+
     // Override to return the source clip if there's any.
     virtual OFX::Clip* getSrcClip() const { return 0; }
-    
+
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
     bool getRegionOfDefinition(OfxRectD &rod);
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
@@ -123,7 +123,9 @@ protected:
 private:
 
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
-    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &/*args*/, OfxRectD &rod) OVERRIDE  {
+    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments & /*args*/,
+                                       OfxRectD &rod) OVERRIDE
+    {
         return getRegionOfDefinition(rod);
     }
 
@@ -172,7 +174,6 @@ private:
     virtual bool allowBtmMidInteraction() const OVERRIDE FINAL;
     virtual bool allowMidLeftInteraction() const OVERRIDE FINAL;
     virtual bool allowCenterInteraction() const OVERRIDE FINAL;
-
     OFX::ChoiceParam* _extent;
     GeneratorExtentEnum _extentValue;
 };

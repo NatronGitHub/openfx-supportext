@@ -82,18 +82,37 @@ getComponentBytes(OFX::BitDepthEnum bitDepth)
 {
     // compute bytes per component
     switch (bitDepth) {
-    case OFX::eBitDepthNone:       return 0; break;
-    case OFX::eBitDepthUByte:      return 1; break;
-    case OFX::eBitDepthUShort:     return 2; break;
-    case OFX::eBitDepthHalf:       return 2; break;
-    case OFX::eBitDepthFloat:      return 4; break;
+    case OFX::eBitDepthNone:
+
+        return 0; break;
+    case OFX::eBitDepthUByte:
+
+        return 1; break;
+    case OFX::eBitDepthUShort:
+
+        return 2; break;
+    case OFX::eBitDepthHalf:
+
+        return 2; break;
+    case OFX::eBitDepthFloat:
+
+        return 4; break;
 #ifdef OFX_EXTENSIONS_VEGAS
-    case OFX::eBitDepthUByteBGRA:  return 1; break;
-    case OFX::eBitDepthUShortBGRA: return 2; break;
-    case OFX::eBitDepthFloatBGRA:  return 4; break;
+    case OFX::eBitDepthUByteBGRA:
+
+        return 1; break;
+    case OFX::eBitDepthUShortBGRA:
+
+        return 2; break;
+    case OFX::eBitDepthFloatBGRA:
+
+        return 4; break;
 #endif
-    case OFX::eBitDepthCustom:     return 0; break;
+    case OFX::eBitDepthCustom:
+
+        return 0; break;
     }
+
     return 0;
 }
 
@@ -134,7 +153,7 @@ getPixelAddress(const void* pixelData,
 
     // are we in the image bounds
     if ( withinBoundsCheck && (
-        ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0)) ) {
+             ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0) ) ) {
         return 0;
     }
     char *pix = (char *) ( ( (char *) pixelData ) + (size_t)(y - bounds.y1) * rowBytes );
@@ -164,13 +183,13 @@ public:
     /** @brief ctor */
     PixelProcessor(OFX::ImageEffect &effect)
         : _effect(effect)
-          , _dstPixelData(0)
-          , _dstBounds()
-          , _dstPixelComponents(OFX::ePixelComponentNone)
-          , _dstPixelComponentCount(0)
-          , _dstBitDepth(OFX::eBitDepthNone)
-          , _dstPixelBytes(0)
-          , _dstRowBytes(0)
+        , _dstPixelData(0)
+        , _dstBounds()
+        , _dstPixelComponents(OFX::ePixelComponentNone)
+        , _dstPixelComponentCount(0)
+        , _dstBitDepth(OFX::eBitDepthNone)
+        , _dstPixelBytes(0)
+        , _dstRowBytes(0)
     {
         _renderWindow.x1 = _renderWindow.y1 = _renderWindow.x2 = _renderWindow.y2 = 0;
     }
@@ -254,12 +273,12 @@ public:
     virtual void process(void)
     {
         // _dstPixelData may be NULL (e.g. when doing multi-pass, as in FrameBlend)
-        assert(!_dstPixelData ||
-               (_dstBounds.x1 <= _renderWindow.x1 && _renderWindow.x2 <= _dstBounds.x2 &&
-                _dstBounds.y1 <= _renderWindow.y1 && _renderWindow.y2 <= _dstBounds.y2));
+        assert( !_dstPixelData ||
+                (_dstBounds.x1 <= _renderWindow.x1 && _renderWindow.x2 <= _dstBounds.x2 &&
+                 _dstBounds.y1 <= _renderWindow.y1 && _renderWindow.y2 <= _dstBounds.y2) );
         // is it OK ?
-        if ( (_dstPixelData && !( ( _dstBounds.x1 <= _renderWindow.x1) && ( _renderWindow.x2 <= _dstBounds.x2) &&
-                ( _dstBounds.y1 <= _renderWindow.y1) && ( _renderWindow.y2 <= _dstBounds.y2) )) ||
+        if ( ( _dstPixelData && !( ( _dstBounds.x1 <= _renderWindow.x1) && ( _renderWindow.x2 <= _dstBounds.x2) &&
+                                   ( _dstBounds.y1 <= _renderWindow.y1) && ( _renderWindow.y2 <= _dstBounds.y2) ) ) ||
              (_renderWindow.x1 >= _renderWindow.x2) ||
              (_renderWindow.y1 >= _renderWindow.y2) ) {
             return;
@@ -269,10 +288,10 @@ public:
         preProcess();
 
         // make sure there are at least 4096 pixels per CPU and at least 1 line par CPU
-        unsigned int nCPUs = (std::min(_renderWindow.x2 - _renderWindow.x1, 4096) *
-                              (_renderWindow.y2 - _renderWindow.y1)) / 4096;
+        unsigned int nCPUs = ( std::min(_renderWindow.x2 - _renderWindow.x1, 4096) *
+                               (_renderWindow.y2 - _renderWindow.y1) ) / 4096;
         // make sure the number of CPUs is valid (and use at least 1 CPU)
-        nCPUs = std::max(1u, std::min(nCPUs, OFX::MultiThread::getNumCPUs()));
+        nCPUs = std::max( 1u, std::min( nCPUs, OFX::MultiThread::getNumCPUs() ) );
 
         // call the base multi threading code, should put a pre & post thread calls in too
         multiThread(nCPUs);
@@ -323,21 +342,21 @@ public:
     /** @brief no arg ctor */
     PixelProcessorFilterBase(OFX::ImageEffect &instance)
         : OFX::PixelProcessor(instance)
-          , _srcPixelData(0)
-          , _srcBounds()
-          , _srcPixelComponents(OFX::ePixelComponentNone)
-          , _srcPixelComponentCount(0)
-          , _srcBitDepth(OFX::eBitDepthNone)
-          , _srcPixelBytes(0)
-          , _srcRowBytes(0)
-          , _srcBoundary(0)
-          , _origImg(0)
-          , _maskImg(0)
-          , _premult(false)
-          , _premultChannel(3)
-          , _doMasking(false)
-          , _mix(1.)
-          , _maskInvert(false)
+        , _srcPixelData(0)
+        , _srcBounds()
+        , _srcPixelComponents(OFX::ePixelComponentNone)
+        , _srcPixelComponentCount(0)
+        , _srcBitDepth(OFX::eBitDepthNone)
+        , _srcPixelBytes(0)
+        , _srcRowBytes(0)
+        , _srcBoundary(0)
+        , _origImg(0)
+        , _maskImg(0)
+        , _premult(false)
+        , _premultChannel(3)
+        , _doMasking(false)
+        , _mix(1.)
+        , _maskInvert(false)
     {
     }
 
@@ -402,7 +421,7 @@ protected:
     const void* getSrcPixelAddress(int x,
                                    int y) const
     {
-        if (!_srcPixelData  || _srcPixelBytes == 0 || _srcBounds.x2 <= _srcBounds.x1 || _srcBounds.y2 <= _srcBounds.y1) {
+        if ( !_srcPixelData  || (_srcPixelBytes == 0) || (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) {
             return 0;
         }
         // are we in the image bounds
@@ -422,10 +441,10 @@ protected:
                 }
             } else if (_srcBoundary == 2) {
                 // Repeat/Periodic
-                if (x < _srcBounds.x1 || x >= _srcBounds.x2) {
+                if ( (x < _srcBounds.x1) || (x >= _srcBounds.x2) ) {
                     x = _srcBounds.x1 + positive_modulo(x - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                 }
-                if (y < _srcBounds.y1 || y >= _srcBounds.y2) {
+                if ( (y < _srcBounds.y1) || (y >= _srcBounds.y2) ) {
                     y = _srcBounds.y1 + positive_modulo(y - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
             } else {
@@ -440,7 +459,9 @@ protected:
         return (void *) pix;
     }
 
-    static int positive_modulo(int i, int n) {
+    static int positive_modulo(int i,
+                               int n)
+    {
         return (i % n + n) % n;
     }
 };

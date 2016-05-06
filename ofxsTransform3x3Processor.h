@@ -34,7 +34,7 @@
 // constants for the motion blur algorithm (may depend on _motionblur)
 #define kTransform3x3ProcessorMotionBlurMaxError (_motionblur * maxValue / 1000.)
 #define kTransform3x3ProcessorMotionBlurMinIterations ( std::max( 13, (int)(kTransform3x3ProcessorMotionBlurMaxIterations / 3) ) )
-#define kTransform3x3ProcessorMotionBlurMaxIterations ((int)(_motionblur * 40))
+#define kTransform3x3ProcessorMotionBlurMaxIterations ( (int)(_motionblur * 40) )
 
 namespace OFX {
 class Transform3x3ProcessorBase
@@ -58,16 +58,16 @@ public:
 
     Transform3x3ProcessorBase(OFX::ImageEffect &instance)
         : OFX::ImageProcessor(instance)
-          , _srcImg(0)
-          , _maskImg(0)
-          , _invtransform()
-          , _invtransformalpha(0)
-          , _invtransformsize(0)
-          , _blackOutside(false)
-          , _motionblur(0.)
-          , _domask(false)
-          , _mix(1.0)
-          , _maskInvert(false)
+        , _srcImg(0)
+        , _maskImg(0)
+        , _invtransform()
+        , _invtransformalpha(0)
+        , _invtransformsize(0)
+        , _blackOutside(false)
+        , _motionblur(0.)
+        , _domask(false)
+        , _mix(1.0)
+        , _maskInvert(false)
     {
     }
 
@@ -186,26 +186,26 @@ private:
                     double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
                     double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
                     if (filter == eFilterImpulse) {
-                        ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
+                        ofxsFilterInterpolate2D<PIX, nComponents, filter, clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
                     } else {
                         bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
                         bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
-                        if (_blackOutside && !(xinside && yinside)) {
+                        if ( _blackOutside && !(xinside && yinside) ) {
                             xinside = yinside = false;
                         }
 
-                        double Jxx = xinside ? (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z) : 0.;
-                        double Jxy = xinside ? (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z) : 0.;
-                        double Jyx = yinside ? (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z) : 0;
-                        double Jyy = yinside ? (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z) : 0.;
-                        ofxsFilterInterpolate2DSuper<PIX,nComponents,filter,clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                        double Jxx = xinside ? (H.a * transformed.z - transformed.x * H.g) / (transformed.z * transformed.z) : 0.;
+                        double Jxy = xinside ? (H.b * transformed.z - transformed.x * H.h) / (transformed.z * transformed.z) : 0.;
+                        double Jyx = yinside ? (H.d * transformed.z - transformed.y * H.g) / (transformed.z * transformed.z) : 0;
+                        double Jyy = yinside ? (H.e * transformed.z - transformed.y * H.h) / (transformed.z * transformed.z) : 0.;
+                        ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                     }
                 }
 
                 ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
             }
         }
-    }
+    } // multiThreadProcessImagesNoBlur
 
     void multiThreadProcessImagesMotionBlur(const OfxRectI &procWindow)
     {
@@ -245,7 +245,7 @@ private:
                     mean[c] = 0.;
                     var[c] = (double)maxValue * maxValue;
                 }
-                unsigned int seed = (unsigned int)(hash(hash(x + (unsigned int)(0x10000 * _motionblur)) + y));
+                unsigned int seed = (unsigned int)( hash(hash( x + (unsigned int)(0x10000 * _motionblur) ) + y) );
                 int sample = 0;
                 const int minsamples = kTransform3x3ProcessorMotionBlurMinIterations; // minimum number of samples (at most maxIt/3
                 int maxsamples = minsamples;
@@ -255,7 +255,7 @@ private:
                         int t;
                         if (sample < minsamples) {
                             // distribute the first samples evenly over the interval
-                            t = (int)(( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples);
+                            t = (int)( ( sample  + van_der_corput<2>(seed) ) * _invtransformsize / (double)minsamples );
                         } else {
                             t = (int)(van_der_corput<2>(seed) * _invtransformsize);
                         }
@@ -275,19 +275,19 @@ private:
                             double fx = transformed.z != 0 ? transformed.x / transformed.z : transformed.x;
                             double fy = transformed.z != 0 ? transformed.y / transformed.z : transformed.y;
                             if (filter == eFilterImpulse) {
-                                ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
+                                ofxsFilterInterpolate2D<PIX, nComponents, filter, clamp>(fx, fy, _srcImg, _blackOutside, tmpPix);
                             } else {
                                 bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
                                 bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
-                                if (_blackOutside && !(xinside && yinside)) {
+                                if ( _blackOutside && !(xinside && yinside) ) {
                                     xinside = yinside = false;
                                 }
 
-                                double Jxx = xinside ? (H.a*transformed.z - transformed.x*H.g)/(transformed.z*transformed.z) : 0.;
-                                double Jxy = xinside ? (H.b*transformed.z - transformed.x*H.h)/(transformed.z*transformed.z) : 0.;
-                                double Jyx = yinside ? (H.d*transformed.z - transformed.y*H.g)/(transformed.z*transformed.z) : 0;
-                                double Jyy = yinside ? (H.e*transformed.z - transformed.y*H.h)/(transformed.z*transformed.z) : 0.;
-                                ofxsFilterInterpolate2DSuper<PIX,nComponents,filter,clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                                double Jxx = xinside ? (H.a * transformed.z - transformed.x * H.g) / (transformed.z * transformed.z) : 0.;
+                                double Jxy = xinside ? (H.b * transformed.z - transformed.x * H.h) / (transformed.z * transformed.z) : 0.;
+                                double Jyx = yinside ? (H.d * transformed.z - transformed.y * H.g) / (transformed.z * transformed.z) : 0;
+                                double Jyy = yinside ? (H.e * transformed.z - transformed.y * H.h) / (transformed.z * transformed.z) : 0.;
+                                ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                             }
                         }
                         if (!_invtransformalpha) {
@@ -319,7 +319,7 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2), maxIt ) );
                                 }
                             }
                         }
@@ -339,7 +339,7 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2),maxIt ) );
+                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2), maxIt ) );
                                 }
                             }
                         }
@@ -351,7 +351,7 @@ private:
                 ofxsMaskMix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, _srcImg, _domask, _maskImg, (float)_mix, _maskInvert, dstPix);
             }
         }
-    }
+    } // multiThreadProcessImagesMotionBlur
 
     // Compute the /seed/th element of the van der Corput sequence
     // see http://en.wikipedia.org/wiki/Van_der_Corput_sequence

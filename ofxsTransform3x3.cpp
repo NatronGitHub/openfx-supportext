@@ -22,28 +22,28 @@
  */
 
 /*
- Although the indications from nuke/fnOfxExtensions.h were followed, and the
- kFnOfxImageEffectActionGetTransform action was implemented in the Support
- library, that action is never called by the Nuke host.
+   Although the indications from nuke/fnOfxExtensions.h were followed, and the
+   kFnOfxImageEffectActionGetTransform action was implemented in the Support
+   library, that action is never called by the Nuke host.
 
- The extension was implemented as specified in Natron and in the Support library.
- 
- @see gHostDescription.canTransform, ImageEffectDescriptor::setCanTransform(),
- and ImageEffect::getTransform().
+   The extension was implemented as specified in Natron and in the Support library.
 
- There is also an open question about how the last plugin in a transform chain
- may get the concatenated transform from upstream, the untransformed source image,
- concatenate its own transform and apply the resulting transform in its render
- action.
- 
- Our solution is to have kFnOfxImageEffectCanTransform set on source clips for which
- a transform can be attached to fetched images.
- @see ClipDescriptor::setCanTransform().
+   @see gHostDescription.canTransform, ImageEffectDescriptor::setCanTransform(),
+   and ImageEffect::getTransform().
 
- In this case, images fetched from the host may have a kFnOfxPropMatrix2D attached,
- which must be combined with the transformation applied by the effect (which
- may be any deformation function, not only a homography).
- @see ImageBase::getTransform() and ImageBase::getTransformIsIdentity
+   There is also an open question about how the last plugin in a transform chain
+   may get the concatenated transform from upstream, the untransformed source image,
+   concatenate its own transform and apply the resulting transform in its render
+   action.
+
+   Our solution is to have kFnOfxImageEffectCanTransform set on source clips for which
+   a transform can be attached to fetched images.
+   @see ClipDescriptor::setCanTransform().
+
+   In this case, images fetched from the host may have a kFnOfxPropMatrix2D attached,
+   which must be combined with the transformation applied by the effect (which
+   may be any deformation function, not only a homography).
+   @see ImageBase::getTransform() and ImageBase::getTransformIsIdentity
  */
 // Uncomment the following to enable the experimental host transform code.
 #define ENABLE_HOST_TRANSFORM
@@ -84,38 +84,38 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
                                        Transform3x3ParamsTypeEnum paramsType)
     : ImageEffect(handle)
-      , _dstClip(0)
-      , _srcClip(0)
-      , _maskClip(0)
-      , _paramsType(paramsType)
-      , _invert(0)
-      , _filter(0)
-      , _clamp(0)
-      , _blackOutside(0)
-      , _motionblur(0)
-      , _amount(0)
-      , _centered(0)
-      , _fading(0)
-      , _directionalBlur(0)
-      , _shutter(0)
-      , _shutteroffset(0)
-      , _shuttercustomoffset(0)
-      , _masked(masked)
-      , _mix(0)
-      , _maskApply(0)
-      , _maskInvert(0)
+    , _dstClip(0)
+    , _srcClip(0)
+    , _maskClip(0)
+    , _paramsType(paramsType)
+    , _invert(0)
+    , _filter(0)
+    , _clamp(0)
+    , _blackOutside(0)
+    , _motionblur(0)
+    , _amount(0)
+    , _centered(0)
+    , _fading(0)
+    , _directionalBlur(0)
+    , _shutter(0)
+    , _shutteroffset(0)
+    , _shuttercustomoffset(0)
+    , _masked(masked)
+    , _mix(0)
+    , _maskApply(0)
+    , _maskInvert(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
     _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert(!_srcClip || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4));
+    assert( !_srcClip || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4) );
     // name of mask clip depends on the context
     if (masked) {
         _maskClip = fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
         assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
-    if (paramExists(kParamTransform3x3Invert)) {
+    if ( paramExists(kParamTransform3x3Invert) ) {
         // Transform3x3-GENERIC
         _invert = fetchBooleanParam(kParamTransform3x3Invert);
         // GENERIC
@@ -123,7 +123,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
         _clamp = fetchBooleanParam(kParamFilterClamp);
         _blackOutside = fetchBooleanParam(kParamFilterBlackOutside);
         assert(_invert && _filter && _clamp && _blackOutside);
-        if (paramExists(kParamTransform3x3MotionBlur)) {
+        if ( paramExists(kParamTransform3x3MotionBlur) ) {
             _motionblur = fetchDoubleParam(kParamTransform3x3MotionBlur); // GodRays may not have have _motionblur
             assert(_motionblur);
         }
@@ -171,25 +171,28 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
     if ( !dst.get() ) {
         OFX::throwSuiteStatusException(kOfxStatFailed);
+
         return;
     }
-    OFX::BitDepthEnum         dstBitDepth    = dst->getPixelDepth();
-    OFX::PixelComponentEnum   dstComponents  = dst->getPixelComponents();
-    if (dstBitDepth != _dstClip->getPixelDepth() ||
-        dstComponents != _dstClip->getPixelComponents()) {
+    OFX::BitDepthEnum dstBitDepth    = dst->getPixelDepth();
+    OFX::PixelComponentEnum dstComponents  = dst->getPixelComponents();
+    if ( ( dstBitDepth != _dstClip->getPixelDepth() ) ||
+         ( dstComponents != _dstClip->getPixelComponents() ) ) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
         OFX::throwSuiteStatusException(kOfxStatFailed);
+
         return;
     }
     if ( (dst->getRenderScale().x != args.renderScale.x) ||
          ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( (dst->getField() != OFX::eFieldNone /* for DaVinci Resolve */ && dst->getField() != args.fieldToRender)) ) {
+         ( ( (dst->getField() != OFX::eFieldNone) /* for DaVinci Resolve */ && (dst->getField() != args.fieldToRender) ) ) ) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
         OFX::throwSuiteStatusException(kOfxStatFailed);
+
         return;
     }
-    std::auto_ptr<const OFX::Image> src((_srcClip && _srcClip->isConnected()) ?
-                                        _srcClip->fetchImage(args.time) : 0);
+    std::auto_ptr<const OFX::Image> src( ( _srcClip && _srcClip->isConnected() ) ?
+                                         _srcClip->fetchImage(args.time) : 0 );
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<OFX::Matrix3x3> invtransform;
@@ -232,6 +235,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         OFX::PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
             OFX::throwSuiteStatusException(kOfxStatFailed);
+
             return;
         }
 
@@ -286,7 +290,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                 std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
             } else {
                 for (size_t i = 0; i < invtransformalpha.size(); ++i) {
-                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i])/amountTo, fading);
+                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i]) / amountTo, fading);
                 }
             }
         } else {
@@ -344,7 +348,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     }
 
     // auto ptr for the mask.
-    bool doMasking = (_masked && (!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+    bool doMasking = ( _masked && ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
     std::auto_ptr<const OFX::Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
     if (doMasking) {
         bool maskInvert = false;
@@ -438,10 +442,10 @@ ofxsTransformRegionFromRoD(const OfxRectD &srcRoD,
                            OfxRectD &rod)
 {
     /// now transform the 4 corners of the source clip to the output image
-    p[0] = transform * OFX::Point3D(srcRoD.x1,srcRoD.y1,1);
-    p[1] = transform * OFX::Point3D(srcRoD.x1,srcRoD.y2,1);
-    p[2] = transform * OFX::Point3D(srcRoD.x2,srcRoD.y2,1);
-    p[3] = transform * OFX::Point3D(srcRoD.x2,srcRoD.y1,1);
+    p[0] = transform * OFX::Point3D(srcRoD.x1, srcRoD.y1, 1);
+    p[1] = transform * OFX::Point3D(srcRoD.x1, srcRoD.y2, 1);
+    p[2] = transform * OFX::Point3D(srcRoD.x2, srcRoD.y2, 1);
+    p[3] = transform * OFX::Point3D(srcRoD.x2, srcRoD.y1, 1);
 
     ofxsTransformRegionFromPoints(p, rod);
 }
@@ -467,7 +471,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
     // - At the end, expand the bounding box by the maximum L-infinity distance between consecutive positions of each corner.
 
     OfxRangeD range;
-    bool hasmotionblur = ((shutter != 0. || directionalBlur) && motionblur != 0.);
+    bool hasmotionblur = ( (shutter != 0. || directionalBlur) && motionblur != 0. );
 
     if (hasmotionblur && !directionalBlur) {
         OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
@@ -539,8 +543,8 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
             p_prev[3] = p[3];
             if (directionalBlur) {
                 const int dirBlurIterMax = 8;
-                ++ dirBlurIter;
-                amount = 1. - dirBlurIter/(double)dirBlurIterMax;
+                ++dirBlurIter;
+                amount = 1. - dirBlurIter / (double)dirBlurIterMax;
                 last = dirBlurIter == dirBlurIterMax;
             } else {
                 t = std::floor(t * 4 + 1) / 4; // next quarter-frame
@@ -592,7 +596,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     }
 
     double mix = 1.;
-    bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+    bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
     if (doMasking && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
@@ -657,7 +661,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
-    if ( doMasking && (mix != 1. || _maskClip->isConnected()) ) {
+    if ( doMasking && ( (mix != 1.) || _maskClip->isConnected() ) ) {
         // for masking or mixing, we also need the source image.
         // compute the union of both RODs
         OFX::Coords::rectBoundingBox(rod, srcRoD, &rod);
@@ -684,7 +688,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     const OfxRectD roi = args.regionOfInterest;
     OfxRectD srcRoI;
     double mix = 1.;
-    bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+    bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
     if (doMasking) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
@@ -784,6 +788,7 @@ Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 {
     const double time = args.time;
     FilterEnum filter = args.renderQualityDraft ? eFilterImpulse : eFilterCubic;
+
     if (!args.renderQualityDraft && _filter) {
         filter = (FilterEnum)_filter->getValueAtTime(time);
     }
@@ -890,43 +895,43 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
 
     assert(1 <= dstComponentCount && dstComponentCount <= 4);
     switch (dstComponentCount) {
-        case 4:
-            if (_masked) {
-                renderInternal<4,true>(args, dstBitDepth);
-            } else {
-                renderInternal<4,false>(args, dstBitDepth);
-            }
-            break;
-        case 3:
-            if (_masked) {
-                renderInternal<3,true>(args, dstBitDepth);
-            } else {
-                renderInternal<3,false>(args, dstBitDepth);
-            }
-            break;
-        case 2:
-            if (_masked) {
-                renderInternal<2,true>(args, dstBitDepth);
-            } else {
-                renderInternal<2,false>(args, dstBitDepth);
-            }
-            break;
-        case 1:
-            if (_masked) {
-                renderInternal<1,true>(args, dstBitDepth);
-            } else {
-                renderInternal<1,false>(args, dstBitDepth);
-            }
-            break;
-        default:
-            break;
+    case 4:
+        if (_masked) {
+            renderInternal<4, true>(args, dstBitDepth);
+        } else {
+            renderInternal<4, false>(args, dstBitDepth);
+        }
+        break;
+    case 3:
+        if (_masked) {
+            renderInternal<3, true>(args, dstBitDepth);
+        } else {
+            renderInternal<3, false>(args, dstBitDepth);
+        }
+        break;
+    case 2:
+        if (_masked) {
+            renderInternal<2, true>(args, dstBitDepth);
+        } else {
+            renderInternal<2, false>(args, dstBitDepth);
+        }
+        break;
+    case 1:
+        if (_masked) {
+            renderInternal<1, true>(args, dstBitDepth);
+        } else {
+            renderInternal<1, false>(args, dstBitDepth);
+        }
+        break;
+    default:
+        break;
     }
 }
 
 bool
 Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                OFX::Clip * &identityClip,
-                               double &/*identityTime*/)
+                               double & /*identityTime*/)
 {
     // must clear persistent message in isIdentity, or render() is not called by Nuke after an error
     clearPersistentMessage();
@@ -984,7 +989,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             return true;
         }
 
-        bool doMasking = ((!_maskApply || _maskApply->getValueAtTime(args.time)) && _maskClip && _maskClip->isConnected());
+        bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
         if (doMasking) {
             bool maskInvert;
             _maskInvert->getValueAtTime(args.time, maskInvert);
@@ -992,9 +997,9 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                 OfxRectI maskRoD;
                 OFX::Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
                 // effect is identity if the renderWindow doesn't intersect the mask RoD
-                if (!OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0)) {
+                if ( !OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
                     identityClip = _srcClip;
-                    
+
                     return true;
                 }
             }
@@ -1002,7 +1007,7 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
     }
 
     return false;
-}
+} // Transform3x3Plugin::isIdentity
 
 #ifdef OFX_EXTENSIONS_NUKE
 // overridden getTransform
@@ -1035,7 +1040,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
             _shutter->getValueAtTime(time, shutter);
         }
     }
-    if ( ((shutter != 0.) && (motionblur != 0.)) || directionalBlur) {
+    if ( ( (shutter != 0.) && (motionblur != 0.) ) || directionalBlur ) {
         // effect has blur
         return false;
     }
@@ -1078,9 +1083,9 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
     transformMatrix[8] = transformPixel.i;
 
     return true;
-}
+} // Transform3x3Plugin::getTransform
 
-#endif
+#endif // ifdef OFX_EXTENSIONS_NUKE
 
 size_t
 Transform3x3Plugin::getInverseTransforms(double time,
@@ -1097,7 +1102,6 @@ Transform3x3Plugin::getInverseTransforms(double time,
                                          size_t invtransformsizealloc) const
 {
     OfxRangeD range;
-
     OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
     double t_start = range.min;
     double t_end = range.max; // shutter time
@@ -1158,11 +1162,11 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
     OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
     OFX::Matrix3x3 invtransformCanonical;
-
     size_t invtransformsize = 0;
+
     for (size_t i = 0; i < invtransformsizealloc; ++i) {
         //double a = 1. - i / (double)(invtransformsizealloc - 1); // Theoretically better
-        double a = 1. - (i+1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
+        double a = 1. - (i + 1) / (double)(invtransformsizealloc); // To be compatible with Nuke (Nuke bug?)
         double amt = amountFrom + (amountTo - amountFrom) * a;
         bool success = getInverseTransformCanonical(time, view, amt, invert, &invtransformCanonical); // virtual function
         if (success) {
@@ -1182,7 +1186,7 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                     invtransform[i].i == invtransform[0].i);
         }
     }
-    if (invtransformsize != 0 && allequal) { // there is only one transform, no need to do motion blur!
+    if ( (invtransformsize != 0) && allequal ) { // there is only one transform, no need to do motion blur!
         invtransformsize = 1;
     }
 
@@ -1295,7 +1299,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
 #ifdef OFX_EXTENSIONS_NUKE
     srcClip->setCanTransform(true); // source images can have a transform attached
 #endif
-    
+
     if (masked) {
         // GENERIC (MASKED)
         //
@@ -1327,7 +1331,7 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     PageParamDescriptor *page = desc.definePageParam("Controls");
 
     return page;
-}
+} // OFX::Transform3x3DescribeInContextBegin
 
 void
 OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
@@ -1417,7 +1421,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
 
         shutterDescribeInContext(desc, context, page);
     }
-    
+
     if (masked) {
         // GENERIC (MASKED)
         //

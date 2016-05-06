@@ -54,7 +54,6 @@ namespace OFX {
 // It was fixed in the March 2009 SVG specification, which was used for this implementation.
 
 namespace MergeImages2D {
-
 // please keep this long list sorted alphabetically
 enum MergingFunctionEnum
 {
@@ -151,7 +150,7 @@ isMaskable(MergingFunctionEnum operation)
     }
 
     return true;
-}
+} // isMaskable
 
 // is the operator separable for R,G,B components, or do they have to be processed simultaneously?
 inline bool
@@ -176,123 +175,162 @@ getOperationString(MergingFunctionEnum operation)
 {
     switch (operation) {
     case eMergeATop:
+
         return "atop";
 
     case eMergeAverage:
+
         return "average";
 
     case eMergeColor:
+
         return "color";
 
     case eMergeColorBurn:
+
         return "color-burn";
 
     case eMergeColorDodge:
+
         return "color-dodge";
 
     case eMergeConjointOver:
+
         return "conjoint-over";
 
     case eMergeCopy:
+
         return "copy";
 
     case eMergeDifference:
+
         return "difference";
 
     case eMergeDisjointOver:
+
         return "disjoint-over";
 
     case eMergeDivide:
+
         return "divide";
 
     case eMergeExclusion:
+
         return "exclusion";
 
     case eMergeFreeze:
+
         return "freeze";
 
     case eMergeFrom:
+
         return "from";
 
     case eMergeGeometric:
+
         return "geometric";
 
     case eMergeGrainExtract:
+
         return "grain-extract";
 
     case eMergeGrainMerge:
+
         return "grain-merge";
 
     case eMergeHardLight:
+
         return "hard-light";
 
     case eMergeHue:
+
         return "hue";
 
     case eMergeHypot:
+
         return "hypot";
 
     case eMergeIn:
+
         return "in";
 
     //case eMergeInterpolated:
     //    return "interpolated";
 
     case eMergeLuminosity:
+
         return "luminosity";
 
     case eMergeMask:
+
         return "mask";
 
     case eMergeMatte:
+
         return "matte";
 
     case eMergeMax:
+
         return "max";
 
     case eMergeMin:
+
         return "min";
 
     case eMergeMinus:
+
         return "minus";
 
     case eMergeMultiply:
+
         return "multiply";
 
     case eMergeOut:
+
         return "out";
 
     case eMergeOver:
+
         return "over";
 
     case eMergeOverlay:
+
         return "overlay";
 
     case eMergePinLight:
+
         return "pinlight";
 
     case eMergePlus:
+
         return "plus";
 
     case eMergeReflect:
+
         return "reflect";
 
     case eMergeSaturation:
+
         return "saturation";
 
     case eMergeScreen:
+
         return "screen";
 
     case eMergeSoftLight:
+
         return "soft-light";
 
     case eMergeStencil:
+
         return "stencil";
 
     case eMergeUnder:
+
         return "under";
 
     case eMergeXOR:
+
         return "xor";
     } // switch
 
@@ -304,123 +342,162 @@ getOperationDescription(MergingFunctionEnum operation)
 {
     switch (operation) {
     case eMergeATop:
+
         return "Ab + B(1 - a) (a.k.a. src-atop)";
 
     case eMergeAverage:
+
         return "(A + B) / 2";
 
     case eMergeColor:
+
         return "SetLum(A, Lum(B))";
 
     case eMergeColorBurn:
+
         return "darken B towards A";
 
     case eMergeColorDodge:
+
         return "brighten B towards A";
 
     case eMergeConjointOver:
+
         return "A + B(1-a)/b, A if a > b";
 
     case eMergeCopy:
+
         return "A (a.k.a. src)";
 
     case eMergeDifference:
+
         return "abs(A-B) (a.k.a. absminus)";
 
     case eMergeDisjointOver:
+
         return "A+B(1-a)/b, A+B if a+b < 1";
 
     case eMergeDivide:
+
         return "A/B, 0 if A < 0 and B < 0";
-            
+
     case eMergeExclusion:
+
         return "A+B-2AB";
 
     case eMergeFreeze:
+
         return "1-sqrt(1-A)/B";
 
     case eMergeFrom:
+
         return "B-A (a.k.a. subtract)";
 
     case eMergeGeometric:
+
         return "2AB/(A+B)";
 
     case eMergeGrainExtract:
+
         return "B - A + 0.5";
 
     case eMergeGrainMerge:
+
         return "B + A - 0.5";
 
     case eMergeHardLight:
+
         return "multiply if A < 0.5, screen if A > 0.5";
 
     case eMergeHue:
+
         return "SetLum(SetSat(A, Sat(B)), Lum(B))";
 
     case eMergeHypot:
+
         return "sqrt(A*A+B*B)";
 
     case eMergeIn:
+
         return "Ab (a.k.a. src-in)";
 
     //case eMergeInterpolated:
     //    return "(like average but better and slower)";
 
     case eMergeLuminosity:
+
         return "SetLum(B, Lum(A))";
 
     case eMergeMask:
+
         return "Ba (a.k.a dst-in)";
 
     case eMergeMatte:
+
         return "Aa + B(1-a) (unpremultiplied over)";
 
     case eMergeMax:
+
         return "max(A, B) (a.k.a. lighten only)";
 
     case eMergeMin:
+
         return "min(A, B) (a.k.a. darken only)";
 
     case eMergeMinus:
+
         return "A-B";
 
     case eMergeMultiply:
+
         return "AB, 0 if A < 0 and B < 0";
 
     case eMergeOut:
+
         return "A(1-b) (a.k.a. src-out)";
 
     case eMergeOver:
+
         return "A+B(1-a) (a.k.a. src-over)";
 
     case eMergeOverlay:
+
         return "multiply if B < 0.5, screen if B > 0.5";
 
     case eMergePinLight:
+
         return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2.0 ) else";
 
     case eMergePlus:
+
         return "A+B (a.k.a. add)";
 
     case eMergeReflect:
+
         return "A*A / (1 - B)";
 
     case eMergeSaturation:
+
         return "SetLum(SetSat(B, Sat(A)), Lum(B))";
 
     case eMergeScreen:
+
         return "A+B-AB if A or B <= 1, otherwise max(A, B)";
 
     case eMergeSoftLight:
+
         return "burn-in if A < 0.5, lighten if A > 0.5";
 
     case eMergeStencil:
+
         return "B(1-a) (a.k.a. dst-out)";
 
     case eMergeUnder:
+
         return "A(1-b)+B (a.k.a. dst-over)";
 
     case eMergeXOR:
+
         return "A(1-b)+B(1-a)";
     } // switch
 
@@ -437,68 +514,73 @@ inline std::string
 getOperationGroupString(MergingFunctionEnum operation)
 {
     switch (operation) {
-            // Porter Duff Compositing Operators
-            // missing: clear
-        case eMergeCopy: // src
-            // missing: dst
-        case eMergeOver: // src-over
-        case eMergeUnder: // dst-over
-        case eMergeIn: // src-in
-        case eMergeMask: // dst-in
-        case eMergeOut: // src-out
-        case eMergeStencil: // dst-out
-        case eMergeATop: // src-atop
-        case eMergeXOR: // xor
-            return "Operator";
+    // Porter Duff Compositing Operators
+    // missing: clear
+    case eMergeCopy:     // src
+    // missing: dst
+    case eMergeOver:     // src-over
+    case eMergeUnder:     // dst-over
+    case eMergeIn:     // src-in
+    case eMergeMask:     // dst-in
+    case eMergeOut:     // src-out
+    case eMergeStencil:     // dst-out
+    case eMergeATop:     // src-atop
+    case eMergeXOR:     // xor
+        return "Operator";
 
-            // Blend modes, see https://en.wikipedia.org/wiki/Blend_modes
+    // Blend modes, see https://en.wikipedia.org/wiki/Blend_modes
 
-            // Multiply and screen
-        case eMergeMultiply:
-        case eMergeScreen:
-        case eMergeOverlay:
-        case eMergeHardLight:
-        case eMergeSoftLight:
-            return "Multiply and Screen";
+    // Multiply and screen
+    case eMergeMultiply:
+    case eMergeScreen:
+    case eMergeOverlay:
+    case eMergeHardLight:
+    case eMergeSoftLight:
 
-            // Dodge and burn
-        case eMergeColorDodge:
-        case eMergeColorBurn:
-        case eMergePinLight:
-        //case eMergeDifference:
-        case eMergeExclusion:
+        return "Multiply and Screen";
+
+    // Dodge and burn
+    case eMergeColorDodge:
+    case eMergeColorBurn:
+    case eMergePinLight:
+    //case eMergeDifference:
+    case eMergeExclusion:
+
         //case eMergeDivide:
-            return "Dodge and Burn";
+        return "Dodge and Burn";
 
-            // Simple arithmetic blend modes
-        case eMergeDivide:
-        case eMergePlus:
-        case eMergeFrom:
-        case eMergeMinus:
-        case eMergeDifference:
-        case eMergeMin:
-        case eMergeMax:
-            return "HSL";
+    // Simple arithmetic blend modes
+    case eMergeDivide:
+    case eMergePlus:
+    case eMergeFrom:
+    case eMergeMinus:
+    case eMergeDifference:
+    case eMergeMin:
+    case eMergeMax:
 
-            // Hue, saturation, luminosity
-        case eMergeHue:
-        case eMergeSaturation:
-        case eMergeColor:
-        case eMergeLuminosity:
-            return "HSL";
+        return "HSL";
 
-        case eMergeAverage:
-        case eMergeConjointOver:
-        case eMergeDisjointOver:
-        case eMergeFreeze:
-        case eMergeGeometric:
-        case eMergeGrainExtract:
-        case eMergeGrainMerge:
-        case eMergeHypot:
-        //case eMergeInterpolated:
-        case eMergeMatte:
-        case eMergeReflect:
-            return "Other";
+    // Hue, saturation, luminosity
+    case eMergeHue:
+    case eMergeSaturation:
+    case eMergeColor:
+    case eMergeLuminosity:
+
+        return "HSL";
+
+    case eMergeAverage:
+    case eMergeConjointOver:
+    case eMergeDisjointOver:
+    case eMergeFreeze:
+    case eMergeGeometric:
+    case eMergeGrainExtract:
+    case eMergeGrainMerge:
+    case eMergeHypot:
+    //case eMergeInterpolated:
+    case eMergeMatte:
+    case eMergeReflect:
+
+        return "Other";
     } // switch
 
     return "unknown";
@@ -528,21 +610,20 @@ plusFunctor(PIX A,
     return A + B;
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 grainExtractFunctor(PIX A,
-                  PIX B)
+                    PIX B)
 {
-    return (B - A + (PIX)maxValue/2);
+    return (B - A + (PIX)maxValue / 2);
 }
 
-
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 grainMergeFunctor(PIX A,
                   PIX B)
 {
-    return (B + A - (PIX)maxValue/2);
+    return (B + A - (PIX)maxValue / 2);
 }
 
 template <typename PIX>
@@ -565,7 +646,7 @@ divideFunctor(PIX A,
     return A / B;
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 exclusionFunctor(PIX A,
                  PIX B)
@@ -587,6 +668,7 @@ geometricFunctor(PIX A,
                  PIX B)
 {
     double sum = (double)A + (double)B;
+
     if (sum == 0) {
         return 0;
     } else {
@@ -594,7 +676,7 @@ geometricFunctor(PIX A,
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 multiplyFunctor(PIX A,
                 PIX B)
@@ -602,19 +684,19 @@ multiplyFunctor(PIX A,
     return PIX(A * B / (double)maxValue);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 screenFunctor(PIX A,
               PIX B)
 {
-    if (A <= maxValue || B <= maxValue) {
-        return PIX((double)A + B - (double)A * B);
+    if ( (A <= maxValue) || (B <= maxValue) ) {
+        return PIX( (double)A + B - (double)A * B );
     } else {
-        return std::max(A,B);
+        return std::max(A, B);
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 hardLightFunctor(PIX A,
                  PIX B)
@@ -622,11 +704,11 @@ hardLightFunctor(PIX A,
     if ( A < ( (double)maxValue / 2. ) ) {
         return PIX(2 * A * B / (double)maxValue);
     } else {
-        return PIX(maxValue * ( 1. - 2 * (1. - A / (double)maxValue) * (1. - B / (double)maxValue) ));
+        return PIX( maxValue * ( 1. - 2 * (1. - A / (double)maxValue) * (1. - B / (double)maxValue) ) );
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 softLightFunctor(PIX A,
                  PIX B)
@@ -635,11 +717,11 @@ softLightFunctor(PIX A,
     double Bn = B / (double)maxValue;
 
     if (2 * An <= 1) {
-        return PIX(maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ));
+        return PIX( maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ) );
     } else if (4 * Bn <= 1) {
-        return PIX(maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ));
+        return PIX( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
     } else {
-        return PIX(maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ));
+        return PIX( maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ) );
     }
 }
 
@@ -648,7 +730,7 @@ PIX
 hypotFunctor(PIX A,
              PIX B)
 {
-    return PIX(std::sqrt( (double)(A * A + B * B) ));
+    return PIX( std::sqrt( (double)(A * A + B * B) ) );
 }
 
 template <typename PIX>
@@ -664,7 +746,7 @@ PIX
 darkenFunctor(PIX A,
               PIX B)
 {
-    return std::min(A,B);
+    return std::min(A, B);
 }
 
 template <typename PIX>
@@ -672,10 +754,10 @@ PIX
 lightenFunctor(PIX A,
                PIX B)
 {
-    return std::max(A,B);
+    return std::max(A, B);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 overlayFunctor(PIX A,
                PIX B)
@@ -685,14 +767,14 @@ overlayFunctor(PIX A,
 
     if (2 * Bn <= 1.) {
         // multiply
-        return PIX(maxValue * (2 * An * Bn));
+        return PIX( maxValue * (2 * An * Bn) );
     } else {
         // screen
-        return PIX(maxValue * ( 1 - 2 * (1 - Bn) * (1 - An) ));
+        return PIX( maxValue * ( 1 - 2 * (1 - Bn) * (1 - An) ) );
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 colorDodgeFunctor(PIX A,
                   PIX B)
@@ -700,11 +782,11 @@ colorDodgeFunctor(PIX A,
     if (A >= maxValue) {
         return A;
     } else {
-        return PIX(maxValue * std::min( 1., B / (maxValue - (double)A) ));
+        return PIX( maxValue * std::min( 1., B / (maxValue - (double)A) ) );
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 colorBurnFunctor(PIX A,
                  PIX B)
@@ -712,21 +794,21 @@ colorBurnFunctor(PIX A,
     if (A <= 0) {
         return A;
     } else {
-        return PIX(maxValue * ( 1. - std::min(1., (maxValue - B) / (double)A) ));
+        return PIX( maxValue * ( 1. - std::min(1., (maxValue - B) / (double)A) ) );
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 pinLightFunctor(PIX A,
                 PIX B)
 {
     PIX max2 = PIX( (double)maxValue / 2. );
 
-    return A >= max2 ? std::max(B,(A - max2) * 2) : std::min(B,A * 2);
+    return A >= max2 ? std::max(B, (A - max2) * 2) : std::min(B, A * 2);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 reflectFunctor(PIX A,
                PIX B)
@@ -734,11 +816,11 @@ reflectFunctor(PIX A,
     if (B >= maxValue) {
         return maxValue;
     } else {
-        return PIX(std::min( (double)maxValue, A * A / (double)(maxValue - B) ));
+        return PIX( std::min( (double)maxValue, A * A / (double)(maxValue - B) ) );
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 freezeFunctor(PIX A,
               PIX B)
@@ -749,13 +831,13 @@ freezeFunctor(PIX A,
         double An = A / (double)maxValue;
         double Bn = B / (double)maxValue;
 
-        return PIX(std::max( 0., maxValue * (1 - std::sqrt( std::max(0., 1. - An) ) / Bn) ));
+        return PIX( std::max( 0., maxValue * (1 - std::sqrt( std::max(0., 1. - An) ) / Bn) ) );
     }
 }
 
 // This functions seems wrong. Is it a confusion with cosine interpolation?
 // see http://paulbourke.net/miscellaneous/interpolation/
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 interpolatedFunctor(PIX A,
                     PIX B)
@@ -763,34 +845,34 @@ interpolatedFunctor(PIX A,
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
 
-    return PIX(maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) ));
+    return PIX( maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) ) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 atopFunctor(PIX A,
             PIX B,
             PIX alphaA,
             PIX alphaB)
 {
-    return PIX(A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue));
+    return PIX( A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 conjointOverFunctor(PIX A,
                     PIX B,
                     PIX alphaA,
                     PIX alphaB)
 {
-    if (alphaA > alphaB || !alphaB) {
+    if ( (alphaA > alphaB) || !alphaB ) {
         return A;
     } else {
         return A + B * (maxValue - alphaA) / alphaB;
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 disjointOverFunctor(PIX A,
                     PIX B,
@@ -804,7 +886,7 @@ disjointOverFunctor(PIX A,
     }
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 inFunctor(PIX A,
           PIX /*B*/,
@@ -814,17 +896,17 @@ inFunctor(PIX A,
     return PIX(A * alphaB / (double)maxValue);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 matteFunctor(PIX A,
              PIX B,
              PIX alphaA,
              PIX /*alphaB*/)
 {
-    return PIX(A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue));
+    return PIX( A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 maskFunctor(PIX /*A*/,
             PIX B,
@@ -834,37 +916,37 @@ maskFunctor(PIX /*A*/,
     return PIX(B * alphaA / (double)maxValue);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 outFunctor(PIX A,
            PIX /*B*/,
            PIX /*alphaA*/,
            PIX alphaB)
 {
-    return PIX(A * (1. - alphaB / (double)maxValue));
+    return PIX( A * (1. - alphaB / (double)maxValue) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 overFunctor(PIX A,
             PIX B,
             PIX alphaA,
             PIX /*alphaB*/)
 {
-    return PIX(A + B * (1 - alphaA / (double)maxValue));
+    return PIX( A + B * (1 - alphaA / (double)maxValue) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 stencilFunctor(PIX /*A*/,
                PIX B,
                PIX alphaA,
                PIX /*alphaB*/)
 {
-    return PIX(B * (1 - alphaA / (double)maxValue));
+    return PIX( B * (1 - alphaA / (double)maxValue) );
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 underFunctor(PIX A,
              PIX B,
@@ -874,14 +956,14 @@ underFunctor(PIX A,
     return PIX(A * (1 - alphaB / (double)maxValue) + B);
 }
 
-template <typename PIX,int maxValue>
+template <typename PIX, int maxValue>
 PIX
 xorFunctor(PIX A,
            PIX B,
            PIX alphaA,
            PIX alphaB)
 {
-    return PIX(A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue));
+    return PIX( A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -989,13 +1071,13 @@ xorFunctor(PIX A,
  */
 typedef struct
 {
-    float	r;
-    float	g;
-    float	b;
+    float r;
+    float g;
+    float b;
 } rgb_t;
-
 inline bool
-float_is_zero(float f) {
+float_is_zero(float f)
+{
     return (-FLT_MIN < (f) && (f) < FLT_MIN);
 }
 
@@ -1024,7 +1106,8 @@ get_sat (const rgb_t *c)
 }
 
 inline void
-clip_color (rgb_t *color, float a)
+clip_color (rgb_t *color,
+            float a)
 {
     float l = get_lum(color);
     float n = channel_min(color);
@@ -1032,33 +1115,35 @@ clip_color (rgb_t *color, float a)
     float t;
 
     if (n < 0.0f) {
-	t = l - n;
-	if (float_is_zero(t)) {
-	    color->r = 0.0f;
-	    color->g = 0.0f;
-	    color->b = 0.0f;
-	} else {
-	    color->r = l + (((color->r - l) * l) / t);
-	    color->g = l + (((color->g - l) * l) / t);
-	    color->b = l + (((color->b - l) * l) / t);
-	}
+        t = l - n;
+        if ( float_is_zero(t) ) {
+            color->r = 0.0f;
+            color->g = 0.0f;
+            color->b = 0.0f;
+        } else {
+            color->r = l + ( ( (color->r - l) * l ) / t );
+            color->g = l + ( ( (color->g - l) * l ) / t );
+            color->b = l + ( ( (color->b - l) * l ) / t );
+        }
     }
     if (x > a) {
-	t = x - l;
-	if (float_is_zero(t)) {
-	    color->r = a;
-	    color->g = a;
-	    color->b = a;
-	} else {
-	    color->r = l + (((color->r - l) * (a - l) / t));
-	    color->g = l + (((color->g - l) * (a - l) / t));
-	    color->b = l + (((color->b - l) * (a - l) / t));
-	}
+        t = x - l;
+        if ( float_is_zero(t) ) {
+            color->r = a;
+            color->g = a;
+            color->b = a;
+        } else {
+            color->r = l + ( ( (color->r - l) * (a - l) / t ) );
+            color->g = l + ( ( (color->g - l) * (a - l) / t ) );
+            color->b = l + ( ( (color->b - l) * (a - l) / t ) );
+        }
     }
 }
 
 static void
-set_lum (rgb_t *color, float sa, float l)
+set_lum (rgb_t *color,
+         float sa,
+         float l)
 {
     float d = l - get_lum(color);
 
@@ -1070,7 +1155,8 @@ set_lum (rgb_t *color, float sa, float l)
 }
 
 inline void
-set_sat (rgb_t *src, float sat)
+set_sat (rgb_t *src,
+         float sat)
 {
     float *max, *mid, *min;
     float t;
@@ -1111,15 +1197,15 @@ set_sat (rgb_t *src, float sat)
 
     t = *max - *min;
 
-    if (float_is_zero(t)) {
+    if ( float_is_zero(t) ) {
         *mid = *max = 0.0f;
     } else {
-        *mid = ((*mid - *min) * sat) / t;
+        *mid = ( (*mid - *min) * sat ) / t;
         *max = sat;
     }
-    
+
     *min = 0.0f;
-}
+} // set_sat
 
 /* Hue:
  *
@@ -1130,8 +1216,10 @@ set_sat (rgb_t *src, float sat)
  */
 inline void
 blend_hsl_hue (rgb_t *res,
-	       const rgb_t *dest, float da,
-	       const rgb_t *src, float sa)
+               const rgb_t *dest,
+               float da,
+               const rgb_t *src,
+               float sa)
 {
     res->r = src->r * da;
     res->g = src->g * da;
@@ -1141,7 +1229,7 @@ blend_hsl_hue (rgb_t *res,
     set_lum(res, sa * da, get_lum(dest) * sa);
 }
 
-/* 
+/*
  * Saturation
  *
  *     as * ad * B(s/as, d/ad)
@@ -1152,8 +1240,10 @@ blend_hsl_hue (rgb_t *res,
  */
 inline void
 blend_hsl_saturation (rgb_t *res,
-		      const rgb_t *dest, float da,
-		      const rgb_t *src, float sa)
+                      const rgb_t *dest,
+                      float da,
+                      const rgb_t *src,
+                      float sa)
 {
     res->r = dest->r * sa;
     res->g = dest->g * sa;
@@ -1163,7 +1253,7 @@ blend_hsl_saturation (rgb_t *res,
     set_lum(res, sa * da, get_lum(dest) * sa);
 }
 
-/* 
+/*
  * Color
  *
  *     as * ad * B(s/as, d/as)
@@ -1172,8 +1262,10 @@ blend_hsl_saturation (rgb_t *res,
  */
 inline void
 blend_hsl_color (rgb_t *res,
-		 const rgb_t *dest, float da,
-		 const rgb_t *src, float sa)
+                 const rgb_t *dest,
+                 float da,
+                 const rgb_t *src,
+                 float sa)
 {
     res->r = src->r * da;
     res->g = src->g * da;
@@ -1191,8 +1283,10 @@ blend_hsl_color (rgb_t *res,
  */
 inline void
 blend_hsl_luminosity (rgb_t *res,
-		      const rgb_t *dest, float da,
-		      const rgb_t *src, float sa)
+                      const rgb_t *dest,
+                      float da,
+                      const rgb_t *src,
+                      float sa)
 {
     res->r = dest->r * sa;
     res->g = dest->g * sa;
@@ -1205,7 +1299,7 @@ blend_hsl_luminosity (rgb_t *res,
 // Code from pixman-combine-float.c
 ///////////////////////////////////////////////////////////////////////////////
 
-template <MergingFunctionEnum f,typename PIX,int nComponents,int maxValue>
+template <MergingFunctionEnum f, typename PIX, int nComponents, int maxValue>
 void
 mergePixel(bool doAlphaMasking,
            const PIX A[4],
@@ -1218,7 +1312,7 @@ mergePixel(bool doAlphaMasking,
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphaA*alphaB
     int maxComp = nComponents;
-    if (!isSeparable(f)) {
+    if ( !isSeparable(f) ) {
         // HSL modes
         rgb_t src, dest, res;
         if (a == 0) {
@@ -1235,34 +1329,34 @@ mergePixel(bool doAlphaMasking,
             dest.g = B[1] / (float)b;
             dest.b = B[2] / (float)b;
         }
-        float sa = a/(float)maxValue;
-        float da = b/(float)maxValue;
+        float sa = a / (float)maxValue;
+        float da = b / (float)maxValue;
 
         switch (f) {
-            case eMergeHue:
-                blend_hsl_hue(&res, &dest, da, &src, sa);
-                break;
+        case eMergeHue:
+            blend_hsl_hue(&res, &dest, da, &src, sa);
+            break;
 
-            case eMergeSaturation:
-                blend_hsl_saturation(&res, &dest, da, &src, sa);
-                break;
+        case eMergeSaturation:
+            blend_hsl_saturation(&res, &dest, da, &src, sa);
+            break;
 
-            case eMergeColor:
-                blend_hsl_color(&res, &dest, da, &src, sa);
-                break;
+        case eMergeColor:
+            blend_hsl_color(&res, &dest, da, &src, sa);
+            break;
 
-            case eMergeLuminosity:
-                blend_hsl_luminosity(&res, &dest, da, &src, sa);
-                break;
+        case eMergeLuminosity:
+            blend_hsl_luminosity(&res, &dest, da, &src, sa);
+            break;
 
-            default:
-                res.r = res.g = res.b = 0.f;
-                assert(false);
-                break;
+        default:
+            res.r = res.g = res.b = 0.f;
+            assert(false);
+            break;
         }
         float R[3] = { res.r, res.g, res.b };
         for (int i = 0; i < std::min(nComponents, 3); ++i) {
-            dst[i] = PIX((1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue);
+            dst[i] = PIX( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
         }
         if (nComponents == 4) {
             dst[3] = PIX(a + b - a * b / (double)maxValue);
@@ -1272,7 +1366,7 @@ mergePixel(bool doAlphaMasking,
     }
 
     // separable modes
-    if (doAlphaMasking && nComponents == 4) {
+    if ( doAlphaMasking && (nComponents == 4) ) {
         maxComp = 3;
         dst[3] = PIX(a + b - a * b / (double)maxValue);
     }
@@ -1381,7 +1475,7 @@ mergePixel(bool doAlphaMasking,
             dst[i] = stencilFunctor<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeUnder:
-            dst[i] = underFunctor<PIX,maxValue>(A[i], B[i], a, b);
+            dst[i] = underFunctor<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeXOR:
             dst[i] = xorFunctor<PIX, maxValue>(A[i], B[i], a, b);
@@ -1393,7 +1487,6 @@ mergePixel(bool doAlphaMasking,
         } // switch
     }
 } // mergePixel
-
 } // MergeImages2D
 } // OFX
 

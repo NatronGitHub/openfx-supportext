@@ -86,7 +86,8 @@ enum RampTypeEnum
     eRampTypeNone
 };
 
-class RampInteractHelper : private OFX::InteractAbstract
+class RampInteractHelper
+    : private OFX::InteractAbstract
 {
     enum InteractState
     {
@@ -94,13 +95,13 @@ class RampInteractHelper : private OFX::InteractAbstract
         eInteractStateDraggingPoint0,
         eInteractStateDraggingPoint1
     };
-    
+
     Double2DParam* _point0;
     Double2DParam* _point1;
     ChoiceParam* _type;
     BooleanParam* _interactOpen;
     BooleanParam* _interactive;
-    OfxPointD _point0DragPos,_point1DragPos;
+    OfxPointD _point0DragPos, _point1DragPos;
     bool _interactiveDrag;
     OfxPointD _lastMousePos;
     InteractState _state;
@@ -109,27 +110,29 @@ class RampInteractHelper : private OFX::InteractAbstract
     Clip *_dstClip;
 
 public:
-    RampInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false)
-    : _point0(0)
-    , _point1(0)
-    , _type(0)
-    , _interactOpen(0)
-    , _interactive(0)
-    , _point0DragPos()
-    , _point1DragPos()
-    , _interactiveDrag(false)
-    , _lastMousePos()
-    , _state(eInteractStateIdle)
-    , _effect(effect)
-    , _interact(interact)
-    , _dstClip(0)
+    RampInteractHelper(OFX::ImageEffect* effect,
+                       OFX::Interact* interact,
+                       bool oldParams = false)
+        : _point0(0)
+        , _point1(0)
+        , _type(0)
+        , _interactOpen(0)
+        , _interactive(0)
+        , _point0DragPos()
+        , _point1DragPos()
+        , _interactiveDrag(false)
+        , _lastMousePos()
+        , _state(eInteractStateIdle)
+        , _effect(effect)
+        , _interact(interact)
+        , _dstClip(0)
     {
         if (oldParams) {
             _point0 = effect->fetchDouble2DParam(kParamRampPoint0Old);
             _point1 = effect->fetchDouble2DParam(kParamRampPoint1Old);
             _type = effect->fetchChoiceParam(kParamRampTypeOld);
             _interactive = effect->fetchBooleanParam(kParamRampInteractiveOld);
-       } else {
+        } else {
             _point0 = effect->fetchDouble2DParam(kParamRampPoint0);
             _point1 = effect->fetchDouble2DParam(kParamRampPoint1);
             _type = effect->fetchChoiceParam(kParamRampType);
@@ -140,61 +143,61 @@ public:
         assert(_effect && _interact);
         _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
         assert(_dstClip);
-
     }
 
     /** @brief virtual destructor */
-    virtual ~RampInteractHelper() {
+    virtual ~RampInteractHelper()
+    {
         // fetched clips and params are owned and deleted by the ImageEffect and its ParamSet
     }
 
     /** @brief the function called to draw in the interact */
     virtual bool draw(const DrawArgs &args) OVERRIDE;
-    
+
     /** @brief the function called to handle pen motion in the interact
-     
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
     virtual bool penMotion(const PenArgs &args) OVERRIDE;
-    
+
     /** @brief the function called to handle pen down events in the interact
-     
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
     virtual bool penDown(const PenArgs &args) OVERRIDE;
-    
+
     /** @brief the function called to handle pen up events in the interact
-     
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
     virtual bool penUp(const PenArgs &args) OVERRIDE;
 
     /** @brief the function called to handle key down events in the interact
 
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
-    virtual bool keyDown(const KeyArgs &/*args*/) OVERRIDE { return false; };
+    virtual bool keyDown(const KeyArgs & /*args*/) OVERRIDE { return false; };
 
     /** @brief the function called to handle key up events in the interact
 
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
-    virtual bool keyUp(const KeyArgs &/*args*/) OVERRIDE { return false; };
+    virtual bool keyUp(const KeyArgs & /*args*/) OVERRIDE { return false; };
 
     /** @brief the function called to handle key down repeat events in the interact
 
-     returns true if the interact trapped the action in some sense. This will block the action being passed to
-     any other interact that may share the viewer.
+       returns true if the interact trapped the action in some sense. This will block the action being passed to
+       any other interact that may share the viewer.
      */
-    virtual bool keyRepeat(const KeyArgs &/*args*/) OVERRIDE { return false; };
+    virtual bool keyRepeat(const KeyArgs & /*args*/) OVERRIDE { return false; };
 
     /** @brief Called when the interact is given input focus */
-    virtual void gainFocus(const FocusArgs &/*args*/) OVERRIDE {};
+    virtual void gainFocus(const FocusArgs & /*args*/) OVERRIDE {};
 
     /** @brief Called when the interact is loses input focus */
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
@@ -202,25 +205,33 @@ public:
 
 typedef OverlayInteractFromHelper<RampInteractHelper> RampInteract;
 
-class RampOverlayDescriptor : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteract> {};
+class RampOverlayDescriptor
+    : public DefaultEffectOverlayDescriptor<RampOverlayDescriptor, RampInteract>
+{
+};
 
-class RampInteractHelperOldParams: public RampInteractHelper
+class RampInteractHelperOldParams
+    : public RampInteractHelper
 {
 public:
-    RampInteractHelperOldParams(OFX::ImageEffect* effect, OFX::Interact* interact)
-    : RampInteractHelper(effect, interact, true) {}
+    RampInteractHelperOldParams(OFX::ImageEffect* effect,
+                                OFX::Interact* interact)
+        : RampInteractHelper(effect, interact, true) {}
 };
 
 typedef OverlayInteractFromHelper<RampInteractHelperOldParams> RampInteractOldParams;
 
-class RampOverlayDescriptorOldParams : public DefaultEffectOverlayDescriptor<RampOverlayDescriptorOldParams, RampInteractOldParams> {};
+class RampOverlayDescriptorOldParams
+    : public DefaultEffectOverlayDescriptor<RampOverlayDescriptorOldParams, RampInteractOldParams>
+{
+};
 
 
 template<RampTypeEnum type>
 double
 ofxsRampFunc(double t)
 {
-    if (t >= 1. || type == eRampTypeNone) {
+    if ( (t >= 1.) || (type == eRampTypeNone) ) {
         t = 1.;
     } else if (t <= 0) {
         t = 0.;
@@ -237,90 +248,104 @@ ofxsRampFunc(double t)
         // smooth1: Catmull-Rom spline, linear start, smooth end
         //y = x*(1 + x*(1 - x))
         switch (type) {
-            case eRampTypeLinear:
-                break;
-            case eRampTypePLinear:
-                // plinear: perceptually linear in rec709
-                t = t*t*t;
-                break;
-            case eRampTypeEaseIn:
-                //t *= t; // old version, end of curve is too sharp
-                // smooth0: Catmull-Rom spline, smooth start, linear end
-                t = t*t*(2-t);
-                break;
-            case eRampTypeEaseOut:
-                //t = - t * (t - 2); // old version, start of curve is too sharp
-                // smooth1: Catmull-Rom spline, linear start, smooth end
-                t = t*(1 + t*(1 - t));
-                break;
-            case eRampTypeSmooth:
-                /*
-                  t *= 2.;
-                  if (t < 1) {
-                  t = t * t / (2.);
-                  } else {
-                  --t;
-                  t =  -0.5 * (t * (t - 2) - 1);
-                  }
-                */
-                // smooth: traditional smoothstep
-                t = t*t*(3 - 2*t);
-                break;
-            case eRampTypeNone:
-                t = 1.;
-                break;
-            default:
-                break;
-        }
-    }
-    return t;
-}
-
-template<RampTypeEnum type>
-double
-ofxsRampFunc(const OfxPointD& p0, double nx, double ny, const OfxPointD& p)
-{
-    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
-    return ofxsRampFunc<type>(t);
-}
-
-inline double
-ofxsRampFunc(const OfxPointD& p0, double nx, double ny, RampTypeEnum type, const OfxPointD& p)
-{
-    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
-    switch (type) {
         case eRampTypeLinear:
-            return ofxsRampFunc<eRampTypeLinear>(t);
             break;
         case eRampTypePLinear:
-            return ofxsRampFunc<eRampTypePLinear>(t);
+            // plinear: perceptually linear in rec709
+            t = t * t * t;
             break;
         case eRampTypeEaseIn:
-            return ofxsRampFunc<eRampTypeEaseIn>(t);
+            //t *= t; // old version, end of curve is too sharp
+            // smooth0: Catmull-Rom spline, smooth start, linear end
+            t = t * t * (2 - t);
             break;
         case eRampTypeEaseOut:
-            return ofxsRampFunc<eRampTypeEaseOut>(t);
+            //t = - t * (t - 2); // old version, start of curve is too sharp
+            // smooth1: Catmull-Rom spline, linear start, smooth end
+            t = t * ( 1 + t * (1 - t) );
             break;
         case eRampTypeSmooth:
-            return ofxsRampFunc<eRampTypeSmooth>(t);
+            /*
+               t *= 2.;
+               if (t < 1) {
+               t = t * t / (2.);
+               } else {
+               --t;
+               t =  -0.5 * (t * (t - 2) - 1);
+               }
+             */
+            // smooth: traditional smoothstep
+            t = t * t * (3 - 2 * t);
             break;
         case eRampTypeNone:
             t = 1.;
             break;
         default:
             break;
+        }
     }
+
+    return t;
+} // ofxsRampFunc
+
+template<RampTypeEnum type>
+double
+ofxsRampFunc(const OfxPointD& p0,
+             double nx,
+             double ny,
+             const OfxPointD& p)
+{
+    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
+
+    return ofxsRampFunc<type>(t);
+}
+
+inline double
+ofxsRampFunc(const OfxPointD& p0,
+             double nx,
+             double ny,
+             RampTypeEnum type,
+             const OfxPointD& p)
+{
+    double t = (p.x - p0.x) * nx + (p.y - p0.y) * ny;
+
+    switch (type) {
+    case eRampTypeLinear:
+
+        return ofxsRampFunc<eRampTypeLinear>(t);
+        break;
+    case eRampTypePLinear:
+
+        return ofxsRampFunc<eRampTypePLinear>(t);
+        break;
+    case eRampTypeEaseIn:
+
+        return ofxsRampFunc<eRampTypeEaseIn>(t);
+        break;
+    case eRampTypeEaseOut:
+
+        return ofxsRampFunc<eRampTypeEaseOut>(t);
+        break;
+    case eRampTypeSmooth:
+
+        return ofxsRampFunc<eRampTypeSmooth>(t);
+        break;
+    case eRampTypeNone:
+        t = 1.;
+        break;
+    default:
+        break;
+    }
+
     return t;
 }
 
-void
-ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
-                       OFX::PageParamDescriptor *page,
-                       OFX::GroupParamDescriptor *group,
-                       RampTypeEnum defaultType,
-                       bool isOpen,
-                       bool oldParams);
-
+void ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
+                            OFX::PageParamDescriptor *page,
+                            OFX::GroupParamDescriptor *group,
+                            RampTypeEnum defaultType,
+                            bool isOpen,
+                            bool oldParams);
 } // namespace OFX
 
 #endif /* defined(openfx_supportext_ofxsRamp_h) */

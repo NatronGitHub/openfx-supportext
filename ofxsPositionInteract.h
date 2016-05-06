@@ -69,14 +69,14 @@ public:
     PositionInteract(OfxInteractHandle handle,
                      OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
-          , _state(eMouseStateInactive)
-          , _position(0)
-          , _interactive(0)
-          , _interactiveDrag(false)
-          , _hasNativeHostPositionHandle(false)
+        , _state(eMouseStateInactive)
+        , _position(0)
+        , _interactive(0)
+        , _interactiveDrag(false)
+        , _hasNativeHostPositionHandle(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
-        if (PositionInteractParam::interactiveName()) {
+        if ( PositionInteractParam::interactiveName() ) {
             _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
         }
         assert(_position);
@@ -106,7 +106,7 @@ private:
     OfxPointD _penPosition;
     bool _interactiveDrag;
     bool _hasNativeHostPositionHandle;
-    
+
     double pointSize() const
     {
         return 5;
@@ -124,7 +124,7 @@ private:
     inline double fround(double val,
                          double pscale)
     {
-        double pscale10 = std::pow( 10.,std::floor( std::log10(pscale) ) );
+        double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
         return pscale10 * std::floor(val / pscale10 + 0.5);
     }
@@ -137,8 +137,8 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    if (_position->getIsSecret() ||
-        !_position->getIsEnable()) {
+    if ( _position->getIsSecret() ||
+         !_position->getIsEnable() ) {
         return false;
     }
 
@@ -150,8 +150,8 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2./(projection[0] * viewport[2]);
-    shadow.y = 2./(projection[5] * viewport[3]);
+    shadow.x = 2. / (projection[0] * viewport[2]);
+    shadow.y = 2. / (projection[5] * viewport[3]);
 
     OfxRGBColourF col;
     switch (_state) {
@@ -203,8 +203,8 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
     if (_hasNativeHostPositionHandle) {
         return false;
     }
-    if (_position->getIsSecret() ||
-        !_position->getIsEnable()) {
+    if ( _position->getIsSecret() ||
+         !_position->getIsEnable() ) {
         return false;
     }
 
@@ -218,7 +218,6 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 
     // pen position is in cannonical coords
     const OfxPointD &penPos = args.penPosition;
-
     bool didSomething = false;
     bool valuesChanged = false;
 
@@ -230,7 +229,7 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
         if ( ( std::fabs(penPos.x - pos.x) <= pointTolerance() * pscale.x) &&
              ( std::fabs(penPos.y - pos.y) <= pointTolerance() * pscale.y) ) {
             newState = eMouseStatePoised;
-        } else   {
+        } else {
             newState = eMouseStateInactive;
         }
 
@@ -248,8 +247,8 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
         break;
     }
     }
-    
-    if (_state != eMouseStateInactive && _interactiveDrag && valuesChanged) {
+
+    if ( (_state != eMouseStateInactive) && _interactiveDrag && valuesChanged ) {
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
     }
 
@@ -258,7 +257,7 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
     }
 
     return didSomething || valuesChanged;
-}
+} // >::penMotion
 
 template <typename ParamName>
 bool
@@ -270,8 +269,8 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     if (!_position) {
         return false;
     }
-    if (_position->getIsSecret() ||
-        !_position->getIsEnable()) {
+    if ( _position->getIsSecret() ||
+         !_position->getIsEnable() ) {
         return false;
     }
 
@@ -299,8 +298,8 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     if (!_position) {
         return false;
     }
-    if (_position->getIsSecret() ||
-        !_position->getIsEnable()) {
+    if ( _position->getIsSecret() ||
+         !_position->getIsEnable() ) {
         return false;
     }
 
@@ -325,7 +324,7 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
 /** @brief Called when the interact is loses input focus */
 template <typename ParamName>
 void
-PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs &/*args*/)
+PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs & /*args*/)
 {
     _interactiveDrag = false;
     if (_state != eMouseStateInactive) {

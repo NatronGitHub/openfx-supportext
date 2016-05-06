@@ -149,6 +149,7 @@ rgb_to_hsv( float r,
 {
     float min = std::min(std::min(r, g), b);
     float max = std::max(std::max(r, g), b);
+
     *v = max;                               // v
 
     float delta = max - min;
@@ -245,12 +246,13 @@ rgb_to_hsl( float r,
 {
     float min = std::min(std::min(r, g), b);
     float max = std::max(std::max(r, g), b);
-    *l = (min + max)/2;
+
+    *l = (min + max) / 2;
 
     float delta = max - min;
 
     if (max != 0.) {
-        *s = (*l <= 0.5) ? (delta/(max+min)) : (delta/(2-max-min)); // s = delta/(1-abs(2L-1))
+        *s = (*l <= 0.5) ? ( delta / (max + min) ) : ( delta / (2 - max - min) ); // s = delta/(1-abs(2L-1))
     } else {
         // r = g = b = 0		// s = 0
         *s = 0.f;
@@ -293,7 +295,7 @@ hsl_to_rgb(float h,
     int i = std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
-    float v = (l <= 0.5f) ? (l * (1.0f + s)) : (l + s - l * s);
+    float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
     float sv = (v - p ) / v;
     float vsf = v * sv * f;
@@ -346,21 +348,21 @@ rgb_to_hsi( float r,
     float nR = r; //(r < 0 ? 0 : (r > 1. ? 1. : r));
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
-    float m =std::min(std::min(nR,nG),nB);
-    float theta = (float)(std::acos(0.5f*((nR-nG)+(nR-nB))/std::sqrt(std::max(0.f,(nR-nG)*(nR-nG)+(nR-nB)*(nG-nB))))*(OFXS_HUE_CIRCLE/2)/M_PI);
+    float m = std::min(std::min(nR, nG), nB);
+    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( std::max( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / M_PI);
     float sum = nR + nG + nB;
+
     if (theta > 0) {
-        *h = (nB<=nG) ? theta : (OFXS_HUE_CIRCLE - theta);
+        *h = (nB <= nG) ? theta : (OFXS_HUE_CIRCLE - theta);
     } else {
         *h = 0.;
     }
     if (sum > 0) {
-        *s = 1 - 3/sum*m;
+        *s = 1 - 3 / sum * m;
     } else {
         *s = 0.;
     }
-    *i = sum/3;
-
+    *i = sum / 3;
 }
 
 void
@@ -372,30 +374,31 @@ hsi_to_rgb(float h,
            float *b)
 {
     float a = i * (1 - s);
-    if (h < (OFXS_HUE_CIRCLE/3)) {
+
+    if ( h < (OFXS_HUE_CIRCLE / 3) ) {
         *b = a;
-        *r = (float)(i*(1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
-        *g = 3 * i-(*r +*b);
-    } else if (h < (OFXS_HUE_CIRCLE*2/3)) {
-        h -= OFXS_HUE_CIRCLE/3;
+        *r = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
+        *g = 3 * i - (*r + *b);
+    } else if ( h < (OFXS_HUE_CIRCLE * 2 / 3) ) {
+        h -= OFXS_HUE_CIRCLE / 3;
         *r = a;
-        *g = (float)(i * (1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
+        *g = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
         *b = 3 * i - (*r + *g);
     } else {
-        h -= OFXS_HUE_CIRCLE*2/3;
+        h -= OFXS_HUE_CIRCLE * 2 / 3;
         *g = a;
-        *b = (float)(i * (1 + s * std::cos(h * M_PI/(OFXS_HUE_CIRCLE/2))/std::cos(((OFXS_HUE_CIRCLE/6) - h) * M_PI/(OFXS_HUE_CIRCLE/2))));
+        *b = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
         *r = 3 * i - (*g + *b);
     }
 } // hsi_to_rgb
 
 void
 rgb_to_ycbcr601(float r,
-             float g,
-             float b,
-             float *y,
-             float *cb,
-             float *cr)
+                float g,
+                float b,
+                float *y,
+                float *cb,
+                float *cr)
 {
     /// ref: CImg (BT.601)
     //*y  = ((255*(66*r + 129*g + 25*b) + 128)/256 + 16)/255;
@@ -404,9 +407,9 @@ rgb_to_ycbcr601(float r,
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.601)
     /// also http://www.intersil.com/data/an/AN9717.pdf
-    *y  =  0.257*r + 0.504*g + 0.098*b + 16/255.;
-    *cb = -0.148*r  -0.291*g + 0.439*b + 128/255.;
-    *cr =  0.439*r  -0.368*g  -0.071*b + 128/255.;
+    *y  =  0.257 * r + 0.504 * g + 0.098 * b + 16 / 255.;
+    *cb = -0.148 * r  - 0.291 * g + 0.439 * b + 128 / 255.;
+    *cr =  0.439 * r  - 0.368 * g  - 0.071 * b + 128 / 255.;
 }
 
 void
@@ -427,18 +430,18 @@ ycbcr601_to_rgb(float y,
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.601)
     /// also http://www.intersil.com/data/an/AN9717.pdf
-    *r = 1.164*(y - 16/255.) + 1.596*(cr - 128/255.);
-    *g = 1.164*(y - 16/255.) - 0.813*(cr - 128/255.) -0.392*(cb - 128/255.);
-    *b = 1.164*(y - 16/255.) + 2.017*(cb - 128/255.);
+    *r = 1.164 * (y - 16 / 255.) + 1.596 * (cr - 128 / 255.);
+    *g = 1.164 * (y - 16 / 255.) - 0.813 * (cr - 128 / 255.) - 0.392 * (cb - 128 / 255.);
+    *b = 1.164 * (y - 16 / 255.) + 2.017 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
 
 void
 rgb_to_ycbcr709(float r,
-                 float g,
-                 float b,
-                 float *y,
-                 float *cb,
-                 float *cr)
+                float g,
+                float b,
+                float *y,
+                float *cb,
+                float *cr)
 {
     /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
     //*y  =  0.2215 * r +0.7154 * g +0.0721 * b;
@@ -446,9 +449,9 @@ rgb_to_ycbcr709(float r,
     //*cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *y  =  0.183*r + 0.614*g + 0.062*b + 16/255.;
-    *cb = -0.101*r  -0.339*g + 0.439*b + 128/255.;
-    *cr =  0.439*r  -0.399*g  -0.040*b + 128/255.;
+    *y  =  0.183 * r + 0.614 * g + 0.062 * b + 16 / 255.;
+    *cb = -0.101 * r  - 0.339 * g + 0.439 * b + 128 / 255.;
+    *cr =  0.439 * r  - 0.399 * g  - 0.040 * b + 128 / 255.;
 }
 
 void
@@ -460,11 +463,10 @@ ycbcr709_to_rgb(float y,
                 float *b)
 {
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *r = 1.164*(y - 16/255.) + 1.793*(cr - 128/255.);
-    *g = 1.164*(y - 16/255.) - 0.533*(cr - 128/255.) -0.213*(cb - 128/255.);
-    *b = 1.164*(y - 16/255.) + 2.112*(cb - 128/255.);
+    *r = 1.164 * (y - 16 / 255.) + 1.793 * (cr - 128 / 255.);
+    *g = 1.164 * (y - 16 / 255.) - 0.533 * (cr - 128 / 255.) - 0.213 * (cb - 128 / 255.);
+    *b = 1.164 * (y - 16 / 255.) + 2.112 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
-
 
 void
 rgb_to_ypbpr601(float r,
@@ -477,9 +479,9 @@ rgb_to_ypbpr601(float r,
     /// ref: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
-    *y  =  0.299f    * r +0.587f    * g +0.114f * b;
-    *pb = -0.168736f * r -0.331264f * g +0.500f * b;
-    *pr =  0.500f    * r -0.418688f * g -0.081312f * b;
+    *y  =  0.299f    * r + 0.587f    * g + 0.114f * b;
+    *pb = -0.168736f * r - 0.331264f * g + 0.500f * b;
+    *pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
 }
 
 void
@@ -493,9 +495,9 @@ ypbpr601_to_rgb(float y,
     /// https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also ref: http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
-    *r = y                +1.402f    * pr,
-    *g = y -0.344136 * pb -0.714136f * pr;
-    *b = y +1.772f   * pb;
+    *r = y                + 1.402f    * pr,
+    *g = y - 0.344136 * pb - 0.714136f * pr;
+    *b = y + 1.772f   * pb;
 } // yuv_to_rgb
 
 void
@@ -507,9 +509,9 @@ rgb_to_ypbpr709(float r,
                 float *pr)
 {
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *y  =  0.2126f * r +0.7152f * g +0.0722f * b;
-    *pb = -0.115f  * r -0.385f  * g +0.500f  * b;
-    *pr =  0.500f  * r -0.454f  * g -0.046f  * b;
+    *y  =  0.2126f * r + 0.7152f * g + 0.0722f * b;
+    *pb = -0.115f  * r - 0.385f  * g + 0.500f  * b;
+    *pr =  0.500f  * r - 0.454f  * g - 0.046f  * b;
 }
 
 void
@@ -521,32 +523,32 @@ ypbpr709_to_rgb(float y,
                 float *b)
 {
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *r = y              +1.575f * pr,
-    *g = y -0.187f * pb -0.468f * pr;
-    *b = y +1.856f * pb;
+    *r = y              + 1.575f * pr,
+    *g = y - 0.187f * pb - 0.468f * pr;
+    *b = y + 1.856f * pb;
 } // yuv_to_rgb
 
 void
 rgb_to_yuv601(float r,
-                float g,
-                float b,
-                float *y,
-                float *u,
-                float *v)
+              float g,
+              float b,
+              float *y,
+              float *u,
+              float *v)
 {
     /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
-    *y =  0.299f   * r +0.587f   * g +0.114f  * b;
-    *u = -0.14713f * r -0.28886f * g +0.436f  * b;
-    *v =  0.615f   * r -0.51499f * g -0.10001 * b;
+    *y =  0.299f   * r + 0.587f   * g + 0.114f  * b;
+    *u = -0.14713f * r - 0.28886f * g + 0.436f  * b;
+    *v =  0.615f   * r - 0.51499f * g - 0.10001 * b;
 }
 
 void
 yuv601_to_rgb(float y,
-                float u,
-                float v,
-                float *r,
-                float *g,
-                float *b)
+              float u,
+              float v,
+              float *r,
+              float *g,
+              float *b)
 {
     /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
     *r = y                + 1.13983f * v,
@@ -556,30 +558,30 @@ yuv601_to_rgb(float y,
 
 void
 rgb_to_yuv709(float r,
-                float g,
-                float b,
-                float *y,
-                float *u,
-                float *v)
+              float g,
+              float b,
+              float *y,
+              float *u,
+              float *v)
 {
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
-    *y =  0.2126f  * r +0.7152f  * g +0.0722f  * b;
-    *u = -0.09991f * r -0.33609f * g +0.436f   * b;
-    *v =  0.615f   * r -0.55861f * g -0.05639f * b;
+    *y =  0.2126f  * r + 0.7152f  * g + 0.0722f  * b;
+    *u = -0.09991f * r - 0.33609f * g + 0.436f   * b;
+    *v =  0.615f   * r - 0.55861f * g - 0.05639f * b;
 }
 
 void
 yuv709_to_rgb(float y,
-                float u,
-                float v,
-                float *r,
-                float *g,
-                float *b)
+              float u,
+              float v,
+              float *r,
+              float *g,
+              float *b)
 {
     /// ref: https://en.wikipedia.org/wiki/YUV#HDTV_with_BT.709
-    *r = y               +1.28033f * v,
-    *g = y -0.21482f * u -0.38059f * v;
-    *b = y +2.12798f * u;
+    *r = y               + 1.28033f * v,
+    *g = y - 0.21482f * u - 0.38059f * v;
+    *b = y + 2.12798f * u;
 } // yuv_to_rgb
 
 // r,g,b values are from 0 to 1
@@ -593,9 +595,9 @@ rgb_to_xyz_rec709(float r,
                   float *y,
                   float *z)
 {
-    *x = 0.412453f*r +0.357580f*g +0.180423f*b;
-    *y = 0.212671f*r +0.715160f*g +0.072169f*b;
-    *z = 0.019334f*r +0.119193f*g +0.950227f*b;
+    *x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+    *y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+    *z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
 }
 
 // Convert pixel values from XYZ_709 to RGB color spaces.
@@ -608,15 +610,16 @@ xyz_rec709_to_rgb(float x,
                   float *g,
                   float *b)
 {
-    *r =  3.240479f*x -1.537150f*y -0.498535f*z;
-    *g = -0.969256f*x +1.875992f*y +0.041556f*z;
-    *b =  0.055648f*x -0.204043f*y +1.057311f*z;
+    *r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+    *g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+    *b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
 }
 
 static inline
-float labf(float x)
+float
+labf(float x)
 {
-    return ((x)>=0.008856f ? (std::pow(x,(float)1/3)):(7.787f*x+16.0f/116));
+    return ( (x) >= 0.008856f ? ( std::pow(x, (float)1 / 3) ) : (7.787f * x + 16.0f / 116) );
 }
 
 // Convert pixel values from XYZ_709 to Lab color spaces.
@@ -629,18 +632,20 @@ xyz_rec709_to_lab(float x,
                   float *a,
                   float *b)
 {
-    const float fx = labf(x/(0.412453f + 0.357580f + 0.180423f));
-    const float fy = labf(y/(0.212671f + 0.715160f + 0.072169f));
-    const float fz = labf(z/(0.019334f + 0.119193f + 0.950227f));
-    *l = 116*fy - 16;
-    *a = 500*(fx - fy);
-    *b = 200*(fy - fz);
+    const float fx = labf( x / (0.412453f + 0.357580f + 0.180423f) );
+    const float fy = labf( y / (0.212671f + 0.715160f + 0.072169f) );
+    const float fz = labf( z / (0.019334f + 0.119193f + 0.950227f) );
+
+    *l = 116 * fy - 16;
+    *a = 500 * (fx - fy);
+    *b = 200 * (fy - fz);
 }
 
 static inline
-float labfi(float x)
+float
+labfi(float x)
 {
-    return (x >= 0.206893f ? (x * x * x) : ((x-16.0f/116)/7.787f));
+    return ( x >= 0.206893f ? (x * x * x) : ( (x - 16.0f / 116) / 7.787f ) );
 }
 
 // Convert pixel values from Lab to XYZ_709 color spaces.
@@ -653,11 +658,12 @@ lab_to_xyz_rec709(float l,
                   float *y,
                   float *z)
 {
-    const float cy = (l+16)/116;
+    const float cy = (l + 16) / 116;
+
     *y = (0.212671f + 0.715160f + 0.072169f) * labfi(cy);
-    const float cx = a/500 + cy;
+    const float cx = a / 500 + cy;
     *x = (0.412453f + 0.357580f + 0.180423f) * labfi(cx);
-    const float cz = cy - b/200;
+    const float cz = cy - b / 200;
     *z = (0.019334f + 0.119193f + 0.950227f) * labfi(cz);
 }
 
@@ -672,6 +678,7 @@ rgb_to_lab(float r,
            float *b_)
 {
     float x, y, z;
+
     rgb_to_xyz_rec709(r, g, b, &x, &y, &z);
     xyz_rec709_to_lab(x, y, z, l, a, b_);
 }
@@ -687,11 +694,10 @@ lab_to_rgb(float l,
            float *b_)
 {
     float x, y, z;
+
     lab_to_xyz_rec709(l, a, b, &x, &y, &z);
     xyz_rec709_to_rgb(x, y, z, r, g, b_);
 }
-
-
 }         // namespace Color
 } //namespace OFX
 

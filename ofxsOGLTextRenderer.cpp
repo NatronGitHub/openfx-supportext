@@ -121,7 +121,7 @@ OFX::TextRenderer::bitmapString(const char *string,
         if (c == '\n') {
             glBitmap ( 0, 0, 0, 0, -x, (float) -font->Height, NULL );
             x = 0.0f;
-        } else   { /* Not an EOL, draw the bitmap character */
+        } else {   /* Not an EOL, draw the bitmap character */
             const GLubyte* face = font->Characters[ c ];
 
             glBitmap(

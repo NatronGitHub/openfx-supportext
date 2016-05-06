@@ -29,27 +29,28 @@
 #include "ofxsFormatResolution.h"
 #include "ofxsCoords.h"
 
-GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth)
-: OFX::ImageEffect(handle)
-, _dstClip(0)
-, _extent(0)
-, _format(0)
-, _formatSize(0)
-, _formatPar(0)
-, _btmLeft(0)
-, _size(0)
-, _interactive(0)
-, _outputComponents(0)
-, _outputBitDepth(0)
-, _range(0)
-, _recenter(0)
-, _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
-, _supportsBytes(0)
-, _supportsShorts(0)
-, _supportsFloats(0)
-, _supportsRGBA(0)
-, _supportsRGB(0)
-, _supportsAlpha(0)
+GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
+                                 bool useOutputComponentsAndDepth)
+    : OFX::ImageEffect(handle)
+    , _dstClip(0)
+    , _extent(0)
+    , _format(0)
+    , _formatSize(0)
+    , _formatPar(0)
+    , _btmLeft(0)
+    , _size(0)
+    , _interactive(0)
+    , _outputComponents(0)
+    , _outputBitDepth(0)
+    , _range(0)
+    , _recenter(0)
+    , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
+    , _supportsBytes(0)
+    , _supportsShorts(0)
+    , _supportsFloats(0)
+    , _supportsRGBA(0)
+    , _supportsRGB(0)
+    , _supportsAlpha(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
@@ -66,10 +67,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
     _recenter = fetchPushButtonParam(kParamGeneratorCenter);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
     assert(_extent && _format && _formatSize && _formatPar && _btmLeft && _size && _interactive && _recenter);
-    
+
     if (_useOutputComponentsAndDepth) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
-        
+
         if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
             _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
         }
@@ -82,24 +83,23 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
     updateParamsVisibility();
 
     const OFX::PropertySet &effectProps = getPropertySet();
-
     int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
     for (int i = 0; i < numPixelDepths; ++i) {
-        OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
+        OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum( effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i) );
         bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
         switch (pixelDepth) {
-            case OFX::eBitDepthUByte:
-                _supportsBytes  = supported;
-                break;
-            case OFX::eBitDepthUShort:
-                _supportsShorts = supported;
-                break;
-            case OFX::eBitDepthFloat:
-                _supportsFloats = supported;
-                break;
-            default:
-                // other bitdepths are not supported by this plugin
-                break;
+        case OFX::eBitDepthUByte:
+            _supportsBytes  = supported;
+            break;
+        case OFX::eBitDepthUShort:
+            _supportsShorts = supported;
+            break;
+        case OFX::eBitDepthFloat:
+            _supportsFloats = supported;
+            break;
+        default:
+            // other bitdepths are not supported by this plugin
+            break;
         }
     }
     {
@@ -120,24 +120,23 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
     }
 
     const OFX::PropertySet &dstClipProps = _dstClip->getPropertySet();
-
     int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
-    for(int i = 0; i < numComponents; ++i) {
-        OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+    for (int i = 0; i < numComponents; ++i) {
+        OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum( dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i) );
         bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
         switch (pixelComponents) {
-            case OFX::ePixelComponentRGBA:
-                _supportsRGBA  = supported;
-                break;
-            case OFX::ePixelComponentRGB:
-                _supportsRGB = supported;
-                break;
-            case OFX::ePixelComponentAlpha:
-                _supportsAlpha = supported;
-                break;
-            default:
-                // other components are not supported by this plugin
-                break;
+        case OFX::ePixelComponentRGBA:
+            _supportsRGBA  = supported;
+            break;
+        case OFX::ePixelComponentRGB:
+            _supportsRGB = supported;
+            break;
+        case OFX::ePixelComponentAlpha:
+            _supportsAlpha = supported;
+            break;
+        default:
+            // other components are not supported by this plugin
+            break;
         }
     }
     int i = 0;
@@ -157,17 +156,19 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComp
 }
 
 void
-GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents)
+GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth,
+                                 OFX::PixelComponentEnum dstComponents)
 {
     if (!_useOutputComponentsAndDepth) {
         return;
     }
-    
+
     // get the components of _dstClip
     OFX::PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
     if (dstComponents != outputComponents) {
         setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output components");
         OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+
         return;
     }
 
@@ -177,6 +178,7 @@ GeneratorPlugin::checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelCompon
         if (dstBitDepth != outputBitDepth) {
             setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host dit not take into account output bit depth");
             OFX::throwSuiteStatusException(kOfxStatErrImageFormat);
+
             return;
         }
     }
@@ -196,6 +198,7 @@ GeneratorPlugin::getTimeDomain(OfxRangeD &range)
         _range->getValue(min, max);
         range.min = min;
         range.max = max;
+
         return true;
     }
 
@@ -204,19 +207,18 @@ GeneratorPlugin::getTimeDomain(OfxRangeD &range)
 
 bool
 GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
-                           OFX::Clip * &identityClip,
-                           double &identityTime)
+                            OFX::Clip * &identityClip,
+                            double &identityTime)
 {
-    if (OFX::getImageEffectHostDescription()->isNatron && getContext() == OFX::eContextGeneral) {
-
+    if ( OFX::getImageEffectHostDescription()->isNatron && (getContext() == OFX::eContextGeneral) ) {
         // only Natron supports setting the identityClip to the output clip
 
         OFX::Clip* srcClip = getSrcClip();
-        if (srcClip && srcClip->isConnected()) {
+        if ( srcClip && srcClip->isConnected() ) {
             // If the source clip is connected, then the output is likely not to be identity
             return false;
         }
-        
+
         int min, max;
         _range->getValue(min, max);
 
@@ -224,32 +226,30 @@ GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
         if (extent == eGeneratorExtentSize) {
             ///If not animated and different than 'min' time, return identity on the min time.
             ///We need to check more parameters
-            if (paramsNotAnimated() && _size->getNumKeys() == 0 && _btmLeft->getNumKeys() == 0 && args.time != min) {
+            if ( paramsNotAnimated() && (_size->getNumKeys() == 0) && (_btmLeft->getNumKeys() == 0) && (args.time != min) ) {
                 identityClip = _dstClip;
                 identityTime = min;
+
                 return true;
             }
         } else {
             ///If not animated and different than 'min' time, return identity on the min time.
-            if (paramsNotAnimated() && args.time != min) {
+            if ( paramsNotAnimated() && (args.time != min) ) {
                 identityClip = _dstClip;
                 identityTime = min;
+
                 return true;
             }
         }
-
-
-
     }
+
     return false;
 }
-
 
 void
 GeneratorPlugin::updateParamsVisibility()
 {
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
-
     bool hasFormat = (extent == eGeneratorExtentFormat);
     bool hasSize = (extent == eGeneratorExtentSize);
 
@@ -269,7 +269,7 @@ void
 GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
                               const std::string &paramName)
 {
-    if (paramName == kParamGeneratorExtent && args.reason == OFX::eChangeUserEdit) {
+    if ( (paramName == kParamGeneratorExtent) && (args.reason == OFX::eChangeUserEdit) ) {
         updateParamsVisibility();
     } else if (paramName == kParamGeneratorFormat) {
         //the host does not handle the format itself, do it ourselves
@@ -280,13 +280,10 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         assert(par != -1);
         _formatPar->setValue(par);
         _formatSize->setValue(w, h);
-
     } else if (paramName == kParamGeneratorCenter) {
-        
         OFX::Clip* srcClip = getSrcClip();
-        
         OfxRectD srcRoD;
-        if (srcClip && srcClip->isConnected()) {
+        if ( srcClip && srcClip->isConnected() ) {
             srcRoD = srcClip->getRegionOfDefinition(args.time);
         } else {
             OfxPointD siz = getProjectSize();
@@ -299,19 +296,19 @@ GeneratorPlugin::changedParam(const OFX::InstanceChangedArgs &args,
         OfxPointD center;
         center.x = (srcRoD.x2 + srcRoD.x1) / 2.;
         center.y = (srcRoD.y2 + srcRoD.y1) / 2.;
-        
+
         OfxRectD rectangle;
         _size->getValue(rectangle.x2, rectangle.y2);
         _btmLeft->getValue(rectangle.x1, rectangle.y1);
         rectangle.x2 += rectangle.x1;
         rectangle.y2 += rectangle.y1;
-        
+
         OfxRectD newRectangle;
         newRectangle.x1 = center.x - (rectangle.x2 - rectangle.x1) / 2.;
         newRectangle.y1 = center.y - (rectangle.y2 - rectangle.y1) / 2.;
         newRectangle.x2 = newRectangle.x1 + (rectangle.x2 - rectangle.x1);
         newRectangle.y2 = newRectangle.y1 + (rectangle.y2 - rectangle.y1);
-        
+
         _size->setValue(newRectangle.x2 - newRectangle.x1, newRectangle.y2 - newRectangle.y1);
         _btmLeft->setValue(newRectangle.x1, newRectangle.y1);
     }
@@ -321,9 +318,10 @@ bool
 GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 {
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
+
     switch (extent) {
     case eGeneratorExtentFormat: {
-        int w,h;
+        int w, h;
         _formatSize->getValue(w, h);
         double par;
         _formatPar->getValue(par);
@@ -331,8 +329,9 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
         pixelFormat.x1 = pixelFormat.y1 = 0;
         pixelFormat.x2 = w;
         pixelFormat.y2 = h;
-        OfxPointD renderScale = {1.,1.};
+        OfxPointD renderScale = {1., 1.};
         OFX::Coords::toCanonical(pixelFormat, renderScale, par, &rod);
+
         return true;
     }
     case eGeneratorExtentSize: {
@@ -354,9 +353,10 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
         return true;
     }
     case eGeneratorExtentDefault:
-      
+
         return false;
     }
+
     return false;
 }
 
@@ -365,6 +365,7 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 {
     double par = 0.;
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
+
     switch (extent) {
     case eGeneratorExtentFormat: {
         //specific output format
@@ -384,16 +385,16 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     case eGeneratorExtentSize:
         break;
     }
-    
+
     if (par != 0.) {
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
-    
+
     if (_useOutputComponentsAndDepth) {
         // set the components of _dstClip
         OFX::PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
         clipPreferences.setClipComponents(*_dstClip, outputComponents);
-        
+
         if (OFX::getImageEffectHostDescription()->supportsMultipleClipDepths) {
             // set the bitDepth of _dstClip
             OFX::BitDepthEnum outputBitDepth = _outputBitDepthMap[_outputBitDepth->getValue()];
@@ -404,45 +405,52 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
 
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
                                      OFX::ImageEffect* effect)
-        : RectangleInteract(handle,effect)
-        , _extent(0)
-        , _extentValue(eGeneratorExtentDefault)
+    : RectangleInteract(handle, effect)
+    , _extent(0)
+    , _extentValue(eGeneratorExtentDefault)
 {
     _extent = effect->fetchChoiceParam(kParamGeneratorExtent);
     assert(_extent);
 }
 
-void GeneratorInteract::aboutToCheckInteractivity(OfxTime /*time*/)
+void
+GeneratorInteract::aboutToCheckInteractivity(OfxTime /*time*/)
 {
     _extentValue = (GeneratorExtentEnum)_extent->getValue();
 }
 
-bool GeneratorInteract::allowTopLeftInteraction() const
+bool
+GeneratorInteract::allowTopLeftInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
 
-bool GeneratorInteract::allowBtmRightInteraction() const
+bool
+GeneratorInteract::allowBtmRightInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
 
-bool GeneratorInteract::allowBtmLeftInteraction() const
+bool
+GeneratorInteract::allowBtmLeftInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
 
-bool GeneratorInteract::allowBtmMidInteraction() const
+bool
+GeneratorInteract::allowBtmMidInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
 
-bool GeneratorInteract::allowMidLeftInteraction() const
+bool
+GeneratorInteract::allowMidLeftInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
 
-bool GeneratorInteract::allowCenterInteraction() const
+bool
+GeneratorInteract::allowCenterInteraction() const
 {
     return _extentValue == eGeneratorExtentSize;
 }
@@ -501,8 +509,6 @@ GeneratorInteract::loseFocus(const OFX::FocusArgs &args)
     return RectangleInteract::loseFocus(args);
 }
 
-
-
 bool
 GeneratorInteract::keyDown(const OFX::KeyArgs &args)
 {
@@ -511,7 +517,7 @@ GeneratorInteract::keyDown(const OFX::KeyArgs &args)
     if (extent != eGeneratorExtentSize) {
         return false;
     }
-    
+
     return RectangleInteract::keyDown(args);
 }
 
@@ -528,7 +534,6 @@ GeneratorInteract::keyUp(const OFX::KeyArgs & args)
 }
 
 namespace OFX {
-
 void
 generatorDescribe(OFX::ImageEffectDescriptor &desc)
 {
@@ -556,7 +561,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamGeneratorExtentOptionProject, kParamGeneratorExtentOptionProjectHint);
         assert(param->getNOptions() == eGeneratorExtentDefault);
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
-        param->setDefault((int)defaultType);
+        param->setDefault( (int)defaultType );
         param->setLayoutHint(OFX::eLayoutHintNoNewLine);
         param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
@@ -564,7 +569,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-    
+
     // recenter
     {
         PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamGeneratorCenter);
@@ -620,9 +625,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-    
+
     {
-        
         int w = 0, h = 0;
         double par = -1.;
         getFormatResolution(eParamFormatPCVideo, &w, &h, &par);
@@ -637,7 +641,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 page->addChild(*param);
             }
         }
-        
+
         {
             DoubleParamDescriptor* param = desc.defineDoubleParam(kParamGeneratorPAR);
             param->setLabel(kParamGeneratorPARLabel);
@@ -688,8 +692,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
-    
- 
+
+
     // interactive
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRectangleInteractInteractive);
@@ -719,26 +723,24 @@ generatorDescribeInContext(PageParamDescriptor *page,
         bool supportsShorts = false;
         bool supportsFloats = false;
         OFX::BitDepthEnum outputBitDepthMap[4];
-        
         const OFX::PropertySet &effectProps = desc.getPropertySet();
-        
         int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
-        for(int i = 0; i < numPixelDepths; ++i) {
-            OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum(effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i));
+        for (int i = 0; i < numPixelDepths; ++i) {
+            OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum( effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i) );
             bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
             switch (pixelDepth) {
-                case OFX::eBitDepthUByte:
-                    supportsBytes  = supported;
-                    break;
-                case OFX::eBitDepthUShort:
-                    supportsShorts = supported;
-                    break;
-                case OFX::eBitDepthFloat:
-                    supportsFloats = supported;
-                    break;
-                default:
-                    // other bitdepths are not supported by this plugin
-                    break;
+            case OFX::eBitDepthUByte:
+                supportsBytes  = supported;
+                break;
+            case OFX::eBitDepthUShort:
+                supportsShorts = supported;
+                break;
+            case OFX::eBitDepthFloat:
+                supportsFloats = supported;
+                break;
+            default:
+                // other bitdepths are not supported by this plugin
+                break;
             }
         }
         {
@@ -757,32 +759,30 @@ generatorDescribeInContext(PageParamDescriptor *page,
             }
             outputBitDepthMap[i] = OFX::eBitDepthNone;
         }
-        
+
         {
             bool supportsRGBA   = false;
             bool supportsRGB    = false;
             bool supportsAlpha  = false;
-            
             OFX::PixelComponentEnum outputComponentsMap[4];
-            
             const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
             int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
-            for(int i = 0; i < numComponents; ++i) {
-                OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum(dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i));
+            for (int i = 0; i < numComponents; ++i) {
+                OFX::PixelComponentEnum pixelComponents = OFX::mapStrToPixelComponentEnum( dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i) );
                 bool supported = OFX::getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
                 switch (pixelComponents) {
-                    case OFX::ePixelComponentRGBA:
-                        supportsRGBA  = supported;
-                        break;
-                    case OFX::ePixelComponentRGB:
-                        supportsRGB = supported;
-                        break;
-                    case OFX::ePixelComponentAlpha:
-                        supportsAlpha = supported;
-                        break;
-                    default:
-                        // other components are not supported by this plugin
-                        break;
+                case OFX::ePixelComponentRGBA:
+                    supportsRGBA  = supported;
+                    break;
+                case OFX::ePixelComponentRGB:
+                    supportsRGB = supported;
+                    break;
+                case OFX::ePixelComponentAlpha:
+                    supportsAlpha = supported;
+                    break;
+                default:
+                    // other components are not supported by this plugin
+                    break;
                 }
             }
             {
@@ -801,7 +801,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 }
                 outputComponentsMap[i] = OFX::ePixelComponentNone;
             }
-            
+
             // outputComponents
             {
                 ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
@@ -828,7 +828,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 }
             }
         }
-        
+
         // ouputBitDepth
         if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
             ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
@@ -863,7 +863,5 @@ generatorDescribeInContext(PageParamDescriptor *page,
             }
         }
     } // useOutputComponentsAndDepth
-
 } // generatorDescribeInContext
-
 } // OFX

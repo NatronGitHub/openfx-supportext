@@ -34,16 +34,15 @@
 #define POINT_SIZE 5
 
 namespace OFX {
-
 static inline
 void
 crossProd(const Ofx3DPointD& u,
           const Ofx3DPointD& v,
           Ofx3DPointD* w)
 {
-    w->x = u.y*v.z - u.z*v.y;
-    w->y = u.z*v.x - u.x*v.z;
-    w->z = u.x*v.y - u.y*v.x;
+    w->x = u.y * v.z - u.z * v.y;
+    w->y = u.z * v.x - u.x * v.z;
+    w->z = u.x * v.y - u.y * v.x;
 }
 
 // round to the closest int, 1/10 int, etc
@@ -51,10 +50,11 @@ crossProd(const Ofx3DPointD& u,
 // pscale is args.pixelScale.x / args.renderScale.x;
 // pscale10 is the power of 10 below pscale
 static inline
-double fround(double val,
-              double pscale)
+double
+fround(double val,
+       double pscale)
 {
-    double pscale10 = std::pow( 10.,std::floor( std::log10(pscale) ) );
+    double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
 }
@@ -63,7 +63,8 @@ bool
 RampInteractHelper::draw(const DrawArgs &args)
 {
     const double time = args.time;
-    if (!_interactOpen->getValueAtTime(time)) {
+
+    if ( !_interactOpen->getValueAtTime(time) ) {
         return false;
     }
     RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
@@ -79,8 +80,8 @@ RampInteractHelper::draw(const DrawArgs &args)
     GLint viewport[4];
     glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2./(projection[0] * viewport[2]);
-    shadow.y = 2./(projection[5] * viewport[3]);
+    shadow.x = 2. / (projection[0] * viewport[2]);
+    shadow.y = 2. / (projection[5] * viewport[3]);
 
     OfxPointD p[2];
     if (_state == eInteractStateIdle) {
@@ -90,7 +91,7 @@ RampInteractHelper::draw(const DrawArgs &args)
         p[0] = _point0DragPos;
         p[1] = _point1DragPos;
     }
-    
+
     ///Clamp points to the rod
     OfxRectD rod = _dstClip->getRegionOfDefinition(time);
 
@@ -109,7 +110,6 @@ RampInteractHelper::draw(const DrawArgs &args)
     const Ofx3DPointD linex2 = {1, 0, -rod.x2};
     const Ofx3DPointD liney1 = {0, 1, -rod.y1};
     const Ofx3DPointD liney2 = {0, 1, -rod.y2};
-
     Ofx3DPointD line[2];
     OfxPointD pline1[2];
     OfxPointD pline2[2];
@@ -117,11 +117,11 @@ RampInteractHelper::draw(const DrawArgs &args)
     // line passing through p0
     line[0].x = p[1].x - p[0].x;
     line[0].y = p[1].y - p[0].y;
-    line[0].z = -p[0].x*(p[1].x-p[0].x) - p[0].y*(p[1].y-p[0].y);
+    line[0].z = -p[0].x * (p[1].x - p[0].x) - p[0].y * (p[1].y - p[0].y);
     // line passing through p1
     line[1].x = p[1].x - p[0].x;
     line[1].y = p[1].y - p[0].y;
-    line[1].z = -p[1].x*(p[1].x-p[0].x) - p[1].y*(p[1].y-p[0].y);
+    line[1].z = -p[1].x * (p[1].x - p[0].x) - p[1].y * (p[1].y - p[0].y);
     // for each line...
     for (int i = 0; i < 2; ++i) {
         // compute the intersection with the four lines
@@ -131,14 +131,14 @@ RampInteractHelper::draw(const DrawArgs &args)
         crossProd(line[i], linex2, &interx2);
         crossProd(line[i], liney1, &intery1);
         crossProd(line[i], liney2, &intery2);
-        if (interx1.z != 0. && interx2.z != 0.) {
+        if ( (interx1.z != 0.) && (interx2.z != 0.) ) {
             // initialize pline1 to the intersection with x=x1, pline2 with x=x2
-            pline1[i].x = interx1.x/interx1.z;
-            pline1[i].y = interx1.y/interx1.z;
-            pline2[i].x = interx2.x/interx2.z;
-            pline2[i].y = interx2.y/interx2.z;
-            if ((pline1[i].y > rod.y2 && pline2[i].y > rod.y2) ||
-                (pline1[i].y < rod.y1 && pline2[i].y < rod.y1)) {
+            pline1[i].x = interx1.x / interx1.z;
+            pline1[i].y = interx1.y / interx1.z;
+            pline2[i].x = interx2.x / interx2.z;
+            pline2[i].y = interx2.y / interx2.z;
+            if ( ( (pline1[i].y > rod.y2) && (pline2[i].y > rod.y2) ) ||
+                 ( ( pline1[i].y < rod.y1) && ( pline2[i].y < rod.y1) ) ) {
                 // line doesn't intersect rectangle, don't draw it.
                 pline1[i].x = p[i].x;
                 pline1[i].y = p[i].y;
@@ -146,33 +146,33 @@ RampInteractHelper::draw(const DrawArgs &args)
                 pline2[i].y = p[i].y;
             } else if (pline1[i].y < pline2[i].y) {
                 // y is an increasing function of x, test the two other endpoints
-                if (intery1.z != 0. && intery1.x/intery1.z > pline1[i].x) {
-                    pline1[i].x = intery1.x/intery1.z;
-                    pline1[i].y = intery1.y/intery1.z;
+                if ( (intery1.z != 0.) && (intery1.x / intery1.z > pline1[i].x) ) {
+                    pline1[i].x = intery1.x / intery1.z;
+                    pline1[i].y = intery1.y / intery1.z;
                 }
-                if (intery2.z != 0. && intery2.x/intery2.z < pline2[i].x) {
-                    pline2[i].x = intery2.x/intery2.z;
-                    pline2[i].y = intery2.y/intery2.z;
+                if ( (intery2.z != 0.) && (intery2.x / intery2.z < pline2[i].x) ) {
+                    pline2[i].x = intery2.x / intery2.z;
+                    pline2[i].y = intery2.y / intery2.z;
                 }
             } else {
                 // y is an decreasing function of x, test the two other endpoints
-                if (intery2.z != 0. && intery2.x/intery2.z > pline1[i].x) {
-                    pline1[i].x = intery2.x/intery2.z;
-                    pline1[i].y = intery2.y/intery2.z;
+                if ( (intery2.z != 0.) && (intery2.x / intery2.z > pline1[i].x) ) {
+                    pline1[i].x = intery2.x / intery2.z;
+                    pline1[i].y = intery2.y / intery2.z;
                 }
-                if (intery1.z != 0. && intery1.x/intery1.z < pline2[i].x) {
-                    pline2[i].x = intery1.x/intery1.z;
-                    pline2[i].y = intery1.y/intery1.z;
+                if ( (intery1.z != 0.) && (intery1.x / intery1.z < pline2[i].x) ) {
+                    pline2[i].x = intery1.x / intery1.z;
+                    pline2[i].y = intery1.y / intery1.z;
                 }
             }
         } else {
             // initialize pline1 to the intersection with y=y1, pline2 with y=y2
-            pline1[i].x = intery1.x/intery1.z;
-            pline1[i].y = intery1.y/intery1.z;
-            pline2[i].x = intery2.x/intery2.z;
-            pline2[i].y = intery2.y/intery2.z;
-            if ((pline1[i].x > rod.x2 && pline2[i].x > rod.x2) ||
-                (pline1[i].x < rod.x1 && pline2[i].x < rod.x1)) {
+            pline1[i].x = intery1.x / intery1.z;
+            pline1[i].y = intery1.y / intery1.z;
+            pline2[i].x = intery2.x / intery2.z;
+            pline2[i].y = intery2.y / intery2.z;
+            if ( ( (pline1[i].x > rod.x2) && (pline2[i].x > rod.x2) ) ||
+                 ( ( pline1[i].x < rod.x1) && ( pline2[i].x < rod.x1) ) ) {
                 // line doesn't intersect rectangle, don't draw it.
                 pline1[i].x = p[i].x;
                 pline1[i].y = p[i].y;
@@ -188,13 +188,13 @@ RampInteractHelper::draw(const DrawArgs &args)
     glEnable(GL_LINE_SMOOTH);
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
-    glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
+    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
     glLineWidth(1.5f);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineStipple(2, 0xAAAA);
 
     glPointSize(POINT_SIZE);
-    
+
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
@@ -205,20 +205,20 @@ RampInteractHelper::draw(const DrawArgs &args)
         // translate (1,-1) pixels
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
-        
+
         for (int i = 0; i < 2; ++i) {
             bool dragging = _state == (i == 0 ? eInteractStateDraggingPoint0 : eInteractStateDraggingPoint1);
             glBegin(GL_POINTS);
             if (dragging) {
-                glColor3f(0.f*l, 1.f*l, 0.f*l);
+                glColor3f(0.f * l, 1.f * l, 0.f * l);
             } else {
-                glColor3f((float)color.r*l, (float)color.g*l, (float)color.b*l);
+                glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
             }
             glVertex2d(p[i].x, p[i].y);
             glEnd();
 
             glBegin(GL_LINES);
-            glColor3f((float)color.r*l, (float)color.g*l, (float)color.b*l);
+            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
             glVertex2d(pline1[i].x, pline1[i].y);
             glVertex2d(pline2[i].x, pline2[i].y);
             glEnd();
@@ -232,19 +232,24 @@ RampInteractHelper::draw(const DrawArgs &args)
     //glPopAttrib();
 
     return true;
-}
+} // RampInteractHelper::draw
 
-static bool isNearby(const OfxPointD& p, double x, double y, double tolerance, const OfxPointD& pscale)
+static bool
+isNearby(const OfxPointD& p,
+         double x,
+         double y,
+         double tolerance,
+         const OfxPointD& pscale)
 {
-    return std::fabs(p.x-x) <= tolerance*pscale.x &&  std::fabs(p.y-y) <= tolerance*pscale.y;
+    return std::fabs(p.x - x) <= tolerance * pscale.x &&  std::fabs(p.y - y) <= tolerance * pscale.y;
 }
-
 
 bool
 RampInteractHelper::penMotion(const PenArgs &args)
 {
     const double time = args.time;
-    if (!_interactOpen->getValueAtTime(time)) {
+
+    if ( !_interactOpen->getValueAtTime(time) ) {
         return false;
     }
     RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
@@ -254,8 +259,7 @@ RampInteractHelper::penMotion(const PenArgs &args)
     }
 
     const OfxPointD &pscale = args.pixelScale;
-
-    OfxPointD p0,p1;
+    OfxPointD p0, p1;
     if (_state != eInteractStateIdle) {
         p0 = _point0DragPos;
         p1 = _point1DragPos;
@@ -264,27 +268,25 @@ RampInteractHelper::penMotion(const PenArgs &args)
         _point1->getValueAtTime(time, p1.x, p1.y);
     }
     bool valuesChanged = false;
-    
     OfxPointD delta;
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
-    
+
     if (_state == eInteractStateDraggingPoint0) {
         _point0DragPos.x += delta.x;
         _point0DragPos.y += delta.y;
         valuesChanged = true;
-
     } else if (_state == eInteractStateDraggingPoint1) {
         _point1DragPos.x += delta.x;
         _point1DragPos.y += delta.y;
         valuesChanged = true;
     }
 
-    if (_state != eInteractStateIdle && _interactiveDrag && valuesChanged) {
+    if ( (_state != eInteractStateIdle) && _interactiveDrag && valuesChanged ) {
         if (_state == eInteractStateDraggingPoint0) {
-            _point0->setValue(fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y));
+            _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
         } else if (_state == eInteractStateDraggingPoint1) {
-            _point1->setValue(fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y));
+            _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
         }
     }
 
@@ -295,13 +297,14 @@ RampInteractHelper::penMotion(const PenArgs &args)
     _lastMousePos = args.penPosition;
 
     return valuesChanged;
-}
+} // RampInteractHelper::penMotion
 
 bool
 RampInteractHelper::penDown(const PenArgs &args)
 {
     const double time = args.time;
-    if (!_interactOpen->getValueAtTime(time)) {
+
+    if ( !_interactOpen->getValueAtTime(time) ) {
         return false;
     }
     RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
@@ -311,8 +314,7 @@ RampInteractHelper::penDown(const PenArgs &args)
     }
 
     const OfxPointD &pscale = args.pixelScale;
-
-    OfxPointD p0,p1;
+    OfxPointD p0, p1;
     if (_state != eInteractStateIdle) {
         p0 = _point0DragPos;
         p1 = _point1DragPos;
@@ -323,17 +325,17 @@ RampInteractHelper::penDown(const PenArgs &args)
     }
 
     bool didSomething = false;
-    
-    if (isNearby(args.penPosition, p0.x, p0.y, POINT_TOLERANCE, pscale)) {
+
+    if ( isNearby(args.penPosition, p0.x, p0.y, POINT_TOLERANCE, pscale) ) {
         _state = eInteractStateDraggingPoint0;
         didSomething = true;
-    } else if (isNearby(args.penPosition, p1.x, p1.y, POINT_TOLERANCE, pscale)) {
+    } else if ( isNearby(args.penPosition, p1.x, p1.y, POINT_TOLERANCE, pscale) ) {
         _state = eInteractStateDraggingPoint1;
         didSomething = true;
     } else {
         _state = eInteractStateIdle;
     }
-    
+
     _point0DragPos = p0;
     _point1DragPos = p1;
     _lastMousePos = args.penPosition;
@@ -349,7 +351,8 @@ bool
 RampInteractHelper::penUp(const PenArgs &args)
 {
     const double time = args.time;
-    if (!_interactOpen->getValueAtTime(time)) {
+
+    if ( !_interactOpen->getValueAtTime(time) ) {
         return false;
     }
     RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
@@ -361,29 +364,29 @@ RampInteractHelper::penUp(const PenArgs &args)
     bool didSomething = false;
     const OfxPointD &pscale = args.pixelScale;
 
-    if (!_interactiveDrag && _state != eInteractStateIdle) {
+    if ( !_interactiveDrag && (_state != eInteractStateIdle) ) {
         if (_state == eInteractStateDraggingPoint0) {
             // round newx/y to the closest int, 1/10 int, etc
             // this make parameter editing easier
 
-            _point0->setValue(fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y));
+            _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
             didSomething = true;
         } else if (_state == eInteractStateDraggingPoint1) {
-            _point1->setValue(fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y));
+            _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
             didSomething = true;
         }
-    } else  if (_state != eInteractStateIdle) {
+    } else if (_state != eInteractStateIdle) {
         _interact->requestRedraw();
     }
-    
+
     _state = eInteractStateIdle;
-    
+
     return didSomething;
 }
 
 /** @brief Called when the interact is loses input focus */
 void
-RampInteractHelper::loseFocus(const FocusArgs &/*args*/)
+RampInteractHelper::loseFocus(const FocusArgs & /*args*/)
 {
     _interactiveDrag = false;
     _state = eInteractStateIdle;
@@ -517,6 +520,5 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
-}
-
+} // ofxsRampDescribeParams
 }

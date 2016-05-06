@@ -141,8 +141,8 @@ public:
             fromColorSpaceFunctionV1 fromFunc,
             toColorSpaceFunctionV1 toFunc)
         : _name(name)
-          , _fromFunc(fromFunc)
-          , _toFunc(toFunc)
+        , _fromFunc(fromFunc)
+        , _toFunc(toFunc)
     {
     }
 
@@ -311,9 +311,9 @@ class Lut
     Lut(const std::string & name,
         fromColorSpaceFunctionV1 fromFunc,
         toColorSpaceFunctionV1 toFunc)
-        : LutBase(name,fromFunc,toFunc)
-          , _init(false)
-          , _lock( new MUTEX() )
+        : LutBase(name, fromFunc, toFunc)
+        , _init(false)
+        , _lock( new MUTEX() )
     {
     }
 
@@ -565,7 +565,6 @@ public:
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
             unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
             const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
-
             unsigned char tmpPixel[4] = {0, 0, 0, 0};
             while (src_pixels != src_end) {
                 if (srcComponents == 1) {
@@ -826,7 +825,7 @@ from_func_gamma22(float v)
 inline float
 to_func_gamma22(float v)
 {
-    return (v <= 0) ? 0. : std::pow(v, 1.f/2.2f);
+    return (v <= 0) ? 0. : std::pow(v, 1.f / 2.2f);
 }
 
 /*
@@ -842,13 +841,13 @@ to_func_gamma22(float v)
 inline float
 from_func_Cineon(float v)
 {
-    return ( 1.f / ( 1.f - std::pow(10.f,1.97f) ) ) * std::pow(10.f,( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
+    return ( 1.f / ( 1.f - std::pow(10.f, 1.97f) ) ) * std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
 }
 
 inline float
 to_func_Cineon(float v)
 {
-    float offset = std::pow(10.f,1.97f);
+    float offset = std::pow(10.f, 1.97f);
 
     return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
 }
@@ -880,7 +879,7 @@ to_func_Gamma2_2(float v)
 inline float
 from_func_Panalog(float v)
 {
-    return (std::pow(10.f,(1023.f * v - 681.f) / 444.f) - 0.0408f) / 0.96f;
+    return (std::pow(10.f, (1023.f * v - 681.f) / 444.f) - 0.0408f) / 0.96f;
 }
 
 inline float
@@ -892,7 +891,7 @@ to_func_Panalog(float v)
 inline float
 from_func_ViperLog(float v)
 {
-    return std::pow(10.f,(1023.f * v - 1023.f) / 500.f);
+    return std::pow(10.f, (1023.f * v - 1023.f) / 500.f);
 }
 
 inline float
@@ -904,7 +903,7 @@ to_func_ViperLog(float v)
 inline float
 from_func_RedLog(float v)
 {
-    return (std::pow(10.f,( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
+    return (std::pow(10.f, ( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
 }
 
 inline float
@@ -916,7 +915,7 @@ to_func_RedLog(float v)
 inline float
 from_func_AlexaV3LogC(float v)
 {
-    return v > 0.1496582f ? std::pow(10.f,(v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
+    return v > 0.1496582f ? std::pow(10.f, (v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
            : ( v / 0.9661776f - 0.04378604f) * 0.18f - 0.00937677f;
 }
 
@@ -974,7 +973,7 @@ void lab_to_rgb( float l, float a, float b, float *r, float *g, float *b_ );
 class LutManager
 {
     //each lut with a ref count mapped against their name
-    typedef std::map<std::string,const LutBase * > LutsMap;
+    typedef std::map<std::string, const LutBase * > LutsMap;
 
 public:
     static LutManager &Instance()
@@ -997,9 +996,9 @@ public:
         if ( found != LutManager::m_instance.luts.end() ) {
             return found->second;
         } else {
-            Lut<MUTEX>* lut = new Lut<MUTEX>(name,fromFunc,toFunc);
+            Lut<MUTEX>* lut = new Lut<MUTEX>(name, fromFunc, toFunc);
             lut->validate();
-            std::pair<LutsMap::iterator,bool> ret =
+            std::pair<LutsMap::iterator, bool> ret =
                 LutManager::m_instance.luts.insert( std::make_pair( name, lut ) );
             assert(ret.second);
 
@@ -1013,55 +1012,55 @@ public:
     template <class MUTEX>
     static const LutBase* sRGBLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("sRGB",from_func_srgb,to_func_srgb);
+        return LutManager::m_instance.getLut<MUTEX>("sRGB", from_func_srgb, to_func_srgb);
     }
 
     template <class MUTEX>
     static const LutBase* Rec709Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Rec709",from_func_Rec709,to_func_Rec709);
+        return LutManager::m_instance.getLut<MUTEX>("Rec709", from_func_Rec709, to_func_Rec709);
     }
 
     template <class MUTEX>
     static const LutBase* CineonLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Cineon",from_func_Cineon,to_func_Cineon);
+        return LutManager::m_instance.getLut<MUTEX>("Cineon", from_func_Cineon, to_func_Cineon);
     }
 
     template <class MUTEX>
     static const LutBase* Gamma1_8Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Gamma1_8",from_func_Gamma1_8,to_func_Gamma1_8);
+        return LutManager::m_instance.getLut<MUTEX>("Gamma1_8", from_func_Gamma1_8, to_func_Gamma1_8);
     }
 
     template <class MUTEX>
     static const LutBase* Gamma2_2Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Gamma2_2",from_func_Gamma2_2,to_func_Gamma2_2);
+        return LutManager::m_instance.getLut<MUTEX>("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
     }
 
     template <class MUTEX>
     static const LutBase* PanaLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("PanaLog",from_func_Panalog,to_func_Panalog);
+        return LutManager::m_instance.getLut<MUTEX>("PanaLog", from_func_Panalog, to_func_Panalog);
     }
 
     template <class MUTEX>
     static const LutBase* ViperLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("ViperLog",from_func_ViperLog,to_func_ViperLog);
+        return LutManager::m_instance.getLut<MUTEX>("ViperLog", from_func_ViperLog, to_func_ViperLog);
     }
 
     template <class MUTEX>
     static const LutBase* RedLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("RedLog",from_func_RedLog,to_func_RedLog);
+        return LutManager::m_instance.getLut<MUTEX>("RedLog", from_func_RedLog, to_func_RedLog);
     }
 
     template <class MUTEX>
     static const LutBase* AlexaV3LogCLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC",from_func_AlexaV3LogC,to_func_AlexaV3LogC);
+        return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
     }
 
 private:

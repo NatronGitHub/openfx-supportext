@@ -37,9 +37,9 @@ public:
     /** @brief no arg ctor */
     ImageBlenderMaskedBase(OFX::ImageEffect &instance)
         : ImageBlenderBase(instance)
-          , _doMasking(false)
-          , _maskImg(0)
-          , _maskInvert(false)
+        , _doMasking(false)
+        , _maskImg(0)
+        , _maskInvert(false)
     {
     }
 

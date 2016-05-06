@@ -104,7 +104,7 @@ ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
 {
     // If the host always sees mask clips are connected, this is a problem because
     // mask will appear as black and transparent, although it is not connected
-    if (ofxsMaskIsAlwaysConnected(OFX::getImageEffectHostDescription())) {
+    if ( ofxsMaskIsAlwaysConnected( OFX::getImageEffectHostDescription() ) ) {
         OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamMaskApply);
         param->setLabel(kParamMaskApplyLabel);
         param->setHint(kParamMaskApplyHint);
@@ -136,8 +136,8 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setHint(kParamMixHint);
         param->setDefault(1.);
         param->setIncrement(0.01);
-        param->setRange(0.,1.);
-        param->setDisplayRange(0.,1.);
+        param->setRange(0., 1.);
+        param->setDisplayRange(0., 1.);
         if (page) {
             page->addChild(*param);
         }
@@ -174,7 +174,6 @@ ofxsClampIfInt(float v,
 
     return ofxsClamp(v, min, max) * maxValue + 0.5;
 }
-
 
 // normalize in [0,1]
 template <class PIX, int nComponents, int maxValue>
@@ -273,7 +272,7 @@ ofxsUnPremult(const PIX *srcPix,
         unpPix[2] = srcPix[2] / (float)maxValue;
     }
     unpPix[3] = srcPix[3] / (float)maxValue;
-}
+} // ofxsUnPremult
 
 // unpPix is in [0, 1]
 // premultiply and denormalize in [0, maxValue]
@@ -340,7 +339,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (mix == 1.) {
             // no mask, no mix
             for (int c = 0; c < nComponents; ++c) {
-                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(tmpPix[c], 0, maxValue);
+                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(tmpPix[c], 0, maxValue);
             }
         } else {
             // just mix
@@ -348,12 +347,12 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                    dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
+                    dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha;
-                    dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
+                    dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }
         }
@@ -375,12 +374,12 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         if (srcPix) {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
+                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
             }
         } else {
             for (int c = 0; c < nComponents; ++c) {
                 float v = tmpPix[c] * alpha;
-                dstPix[c] = ofxsClampIfInt<PIX,maxValue>(v, 0, maxValue);
+                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
             }
         }
     }
@@ -433,7 +432,7 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
         }
     }
 
-    return ofxsMaskMixPix<PIX,nComponents,maxValue,masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
+    return ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
 }
 } // OFX
 

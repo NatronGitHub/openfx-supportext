@@ -30,7 +30,6 @@ OFX::shutterDescribeInContext(OFX::ImageEffectDescriptor &desc,
                               OFX::ContextEnum /*context*/,
                               OFX::PageParamDescriptor* page)
 {
-
     // shutter
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(kParamShutter);
@@ -88,25 +87,26 @@ OFX::shutterRange(double time,
                   OfxRangeD* range)
 {
     switch (shutteroffset) {
-        case eShutterOffsetCentered:
-            range->min = time - shutter / 2;
-            range->max = time + shutter / 2;
-            break;
-        case eShutterOffsetStart:
-            range->min = time;
-            range->max = time + shutter;
-            break;
-        case eShutterOffsetEnd:
-            range->min = time - shutter;
-            range->max = time;
-            break;
-        case eShutterOffsetCustom:
-            range->min = time + shuttercustomoffset;
-            range->max = time + shuttercustomoffset + shutter;
-            break;
-        default:
-            range->min = time;
-            range->max = time;
-            break;
+    case eShutterOffsetCentered:
+        range->min = time - shutter / 2;
+        range->max = time + shutter / 2;
+        break;
+    case eShutterOffsetStart:
+        range->min = time;
+        range->max = time + shutter;
+        break;
+    case eShutterOffsetEnd:
+        range->min = time - shutter;
+        range->max = time;
+        break;
+    case eShutterOffsetCustom:
+        range->min = time + shuttercustomoffset;
+        range->max = time + shuttercustomoffset + shutter;
+        break;
+    default:
+        range->min = time;
+        range->max = time;
+        break;
     }
 }
+
