@@ -28,6 +28,9 @@
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
 
+// a secret parameter used to enable the interact, if it exists
+#define kParamRectangleInteractEnable "rectangleInteractEnable"
+
 #define kParamRectangleInteractBtmLeft "bottomLeft"
 #define kParamRectangleInteractBtmLeftLabel "Bottom Left"
 #define kParamRectangleInteractBtmLeftHint "Coordinates of the bottom left corner of the rectangle"
@@ -91,9 +94,13 @@ public:
           , _drawState(eDrawStateInactive)
           , _modifierStateCtrl(0)
           , _modifierStateShift(0)
+          , _enable(0)
           , _btmLeft(0)
           , _size(0)
     {
+        if (_effect->paramExists(kParamRectangleInteractEnable)) {
+            _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
+        }
         _btmLeft = effect->fetchDouble2DParam(kParamRectangleInteractBtmLeft);
         _size = effect->fetchDouble2DParam(kParamRectangleInteractSize);
         addParamToSlaveTo(_btmLeft);
@@ -191,6 +198,7 @@ private:
     DrawStateEnum _drawState;
     int _modifierStateCtrl;
     int _modifierStateShift;
+    OFX::BooleanParam* _enable;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;

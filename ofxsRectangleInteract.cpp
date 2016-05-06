@@ -90,8 +90,9 @@ drawPoint(const OfxRGBColourD &color,
 bool
 RectangleInteract::draw(const OFX::DrawArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
@@ -125,6 +126,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
     const bool centered = _modifierStateCtrl > 0;
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
+    aboutToCheckInteractivity(args.time);
 
     glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
@@ -191,8 +193,9 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 bool
 RectangleInteract::penMotion(const OFX::PenArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
@@ -440,8 +443,9 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 bool
 RectangleInteract::penDown(const OFX::PenArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
@@ -517,8 +521,9 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
 bool
 RectangleInteract::penUp(const OFX::PenArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
@@ -540,8 +545,9 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 bool
 RectangleInteract::keyDown(const OFX::KeyArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
@@ -572,8 +578,9 @@ RectangleInteract::keyDown(const OFX::KeyArgs &args)
 bool
 RectangleInteract::keyUp(const OFX::KeyArgs &args)
 {
-    if (_btmLeft->getIsSecret() || _btmLeft->getIsSecret() ||
-        !_size->getIsEnable() || !_size->getIsEnable()) {
+    if (_btmLeft->getIsSecret() || _size->getIsSecret() ||
+        !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+        (_enable && !_enable->getValueAtTime(args.time))) {
         return false;
     }
 
