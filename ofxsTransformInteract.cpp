@@ -179,8 +179,8 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformCenterOld : kParamTransformCenter);
         param->setLabel(kParamTransformCenterLabel);
         //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
-        param->setDoubleType(eDoubleTypeXYAbsolute);
         //param->setDimensionLabels("x","y");
+        param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
         param->setDefault(0.5, 0.5);
         param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)

@@ -431,8 +431,8 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint0Old : kParamRampPoint0);
         param->setLabel(kParamRampPoint0Label);
-        param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
-        param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
+        param->setDoubleType(eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical); // Nuke defaults to Normalized for XY and XYAbsolute!
         param->setDefault(100., 100.);
         param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
@@ -463,8 +463,8 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint1Old : kParamRampPoint1);
         param->setLabel(kParamRampPoint1Label);
-        param->setDoubleType(OFX::eDoubleTypeXYAbsolute);
-        param->setDefaultCoordinateSystem(OFX::eCoordinatesCanonical);
+        param->setDoubleType(eDoubleTypeXYAbsolute);
+        param->setDefaultCoordinateSystem(eCoordinatesCanonical); // Nuke defaults to Normalized for XY and XYAbsolute!
         param->setDefault(100., 200.);
         param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
