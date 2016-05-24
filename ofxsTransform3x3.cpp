@@ -112,7 +112,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     // name of mask clip depends on the context
     if (masked) {
         _maskClip = fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
-        assert(!_maskClip || _maskClip->getPixelComponents() == ePixelComponentAlpha);
+        assert(!_maskClip || !_maskClip->isConnected() || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
     if ( paramExists(kParamTransform3x3Invert) ) {
@@ -995,12 +995,16 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             _maskInvert->getValueAtTime(args.time, maskInvert);
             if (!maskInvert) {
                 OfxRectI maskRoD;
-                OFX::Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
-                // effect is identity if the renderWindow doesn't intersect the mask RoD
-                if ( !OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
-                    identityClip = _srcClip;
+                if (OFX::getImageEffectHostDescription()->supportsMultiResolution) {
+                    // In Sony Catalyst Edit, clipGetRegionOfDefinition returns the RoD in pixels instead of canonical coordinates.
+                    // In hosts that do not support multiResolution (e.g. Sony Catalyst Edit), all inputs have the same RoD anyway.
+                    OFX::Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
+                    // effect is identity if the renderWindow doesn't intersect the mask RoD
+                    if ( !OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
+                        identityClip = _srcClip;
 
-                    return true;
+                        return true;
+                    }
                 }
             }
         }
@@ -1065,7 +1069,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         return false; // no transform available, render as usual
     }
     OFX::Matrix3x3 transformCanonical = invtransform.inverse(det);
-    double srcpixelaspectratio = _srcClip ? _srcClip->getPixelAspectRatio() : 1.;
+    double srcpixelaspectratio = ( _srcClip && _srcClip->isConnected() ) ? _srcClip->getPixelAspectRatio() : 1.;
     double dstpixelaspectratio = _dstClip ? _dstClip->getPixelAspectRatio() : 1.;
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
     OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(dstpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *

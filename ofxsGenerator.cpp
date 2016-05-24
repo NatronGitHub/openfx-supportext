@@ -53,7 +53,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _supportsAlpha(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert( _dstClip && (_dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
+    assert( _dstClip && (!_dstClip->isConnected() || _dstClip->getPixelComponents() == OFX::ePixelComponentRGBA ||
                          _dstClip->getPixelComponents() == OFX::ePixelComponentRGB ||
                          _dstClip->getPixelComponents() == OFX::ePixelComponentXY ||
                          _dstClip->getPixelComponents() == OFX::ePixelComponentAlpha) );

@@ -521,4 +521,4 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         }
     }
 } // ofxsRampDescribeParams
-}
+} // namespace OFX
