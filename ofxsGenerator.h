@@ -105,7 +105,11 @@ protected:
 
 public:
 
-    GeneratorPlugin(OfxImageEffectHandle handle, bool useOutputComponentsAndDepth);
+    GeneratorPlugin(OfxImageEffectHandle handle,
+                    bool useOutputComponentsAndDepth,
+                    bool supportsBitDepthByte,
+                    bool supportsBitDepthUShort,
+                    bool supportsBitDepthFloat);
 
 protected:
 

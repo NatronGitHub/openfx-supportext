@@ -30,7 +30,10 @@
 #include "ofxsCoords.h"
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
-                                 bool useOutputComponentsAndDepth)
+                                 bool useOutputComponentsAndDepth,
+                                 bool supportsBitDepthByte,
+                                 bool supportsBitDepthUShort,
+                                 bool supportsBitDepthFloat)
     : OFX::ImageEffect(handle)
     , _dstClip(0)
     , _extent(0)
@@ -45,9 +48,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _range(0)
     , _recenter(0)
     , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
-    , _supportsBytes(0)
-    , _supportsShorts(0)
-    , _supportsFloats(0)
+    , _supportsBytes(supportsBitDepthByte)
+    , _supportsShorts(supportsBitDepthUShort)
+    , _supportsFloats(supportsBitDepthFloat)
     , _supportsRGBA(0)
     , _supportsRGB(0)
     , _supportsAlpha(0)
@@ -82,37 +85,19 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
 
     updateParamsVisibility();
 
-    const OFX::PropertySet &effectProps = getPropertySet();
-    int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
-    for (int i = 0; i < numPixelDepths; ++i) {
-        OFX::BitDepthEnum pixelDepth = OFX::mapStrToBitDepthEnum( effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i) );
-        bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
-        switch (pixelDepth) {
-        case OFX::eBitDepthUByte:
-            _supportsBytes  = supported;
-            break;
-        case OFX::eBitDepthUShort:
-            _supportsShorts = supported;
-            break;
-        case OFX::eBitDepthFloat:
-            _supportsFloats = supported;
-            break;
-        default:
-            // other bitdepths are not supported by this plugin
-            break;
-        }
-    }
+    // kOfxImageEffectPropSupportedPixelDepths is not a property of the effect instance
+    // (only the host and the plugin descriptor)
     {
         int i = 0;
-        if (_supportsFloats) {
+        if (_supportsFloats && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthFloat)) {
             _outputBitDepthMap[i] = OFX::eBitDepthFloat;
             ++i;
         }
-        if (_supportsShorts) {
+        if (_supportsShorts && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUShort)) {
             _outputBitDepthMap[i] = OFX::eBitDepthUShort;
             ++i;
         }
-        if (_supportsBytes) {
+        if (_supportsBytes && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUByte)) {
             _outputBitDepthMap[i] = OFX::eBitDepthUByte;
             ++i;
         }
