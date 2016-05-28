@@ -35,6 +35,11 @@ halveWindow(const OfxRectI & dstRoI,
             const OfxRectI & dstBounds,
             int dstRowBytes)
 {
+    assert(srcPixels && dstPixels);
+    if (!srcPixels || !dstPixels) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+
     assert(dstRoI.x1 * 2 >= (srcBounds.x1 - 1) && (dstRoI.x2 - 1) * 2 < srcBounds.x2 &&
            dstRoI.y1 * 2 >= (srcBounds.y1 - 1) && (dstRoI.y2 - 1) * 2 < srcBounds.y2);
     int srcRowSize = srcRowBytes / sizeof(PIX);
@@ -103,6 +108,10 @@ buildMipMapLevel(OFX::ImageEffect* instance,
                  int dstRowBytes)
 {
     assert(level > 0);
+    assert(srcPixels && dstPixels);
+    if (!srcPixels || !dstPixels) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
 
     std::auto_ptr<OFX::ImageMemory> mem;
     size_t memSize = 0;
@@ -181,6 +190,9 @@ ofxsScalePixelData(OFX::ImageEffect* instance,
                    int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
+    if (!srcPixelData || !dstPixelData) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
 
     // do the rendering
     if ( ( dstPixelDepth != OFX::eBitDepthFloat) ||
@@ -214,7 +226,11 @@ ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
                               unsigned int maxLevel,
                               MipMapsVector & mipmaps)
 {
-    const PIX* previousImg = srcPixels;
+    assert(srcPixelData);
+    if (!srcPixelData) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
+    const PIX* previousImg = srcPixelData;
     OfxRectI previousBounds = srcBounds;
     int previousRowBytes = srcRowBytes;
     OfxRectI nextRenderWindow = renderWindow;
@@ -267,12 +283,15 @@ ofxsBuildMipMaps(OFX::ImageEffect* instance,
                  MipMapsVector & mipmaps)
 {
     assert(srcPixelData && mipmaps->size() == maxLevel);
+    if ( !srcPixelData || (mipmaps->size() != maxLevel) ) {
+        OFX::throwSuiteStatusException(kOfxStatFailed);
+    }
 
     // do the rendering
-    if ( ( srcPixelDepth != OFX::eBitDepthFloat) ||
-         ( ( srcPixelComponents != OFX::ePixelComponentRGBA) &&
-           ( srcPixelComponents != OFX::ePixelComponentRGB) &&
-           ( srcPixelComponents != OFX::ePixelComponentAlpha) ) ) {
+    if ( srcPixelData && ( ( srcPixelDepth != OFX::eBitDepthFloat) ||
+                           ( ( srcPixelComponents != OFX::ePixelComponentRGBA) &&
+                             ( srcPixelComponents != OFX::ePixelComponentRGB) &&
+                             ( srcPixelComponents != OFX::ePixelComponentAlpha) ) ) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
     }
 

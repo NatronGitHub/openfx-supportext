@@ -108,7 +108,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
     _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert( !_srcClip || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4) );
+    assert( !_srcClip || !_srcClip->isConnected() || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4) );
     // name of mask clip depends on the context
     if (masked) {
         _maskClip = fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
