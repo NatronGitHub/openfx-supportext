@@ -94,34 +94,34 @@ struct TrackArguments
     InstanceChangeReason reason;
     OfxPointD renderScale;
 };
-    
+
 class GenericTrackerPlugin
-: public OFX::ImageEffect
+    : public OFX::ImageEffect
 {
 public:
     /** @brief ctor */
     GenericTrackerPlugin(OfxImageEffectHandle handle);
-    
+
     /**
      * @brief Nothing to do since we're identity. The host should always render the image of the input.
      **/
     virtual void render(const OFX::RenderArguments & /*args*/) OVERRIDE
     {
     }
-    
+
     /**
      * @brief Returns true always at the same time and for the source clip.
      **/
     virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE;
-    
+
     /**
      * @brief Handles the push buttons actions.
      **/
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE;
-    
+
 protected:
-    
+
     /**
      * @brief Override to track the entire range between [first,last].
      * @param forward If true then it should track from first to last, otherwise it should track
@@ -129,45 +129,43 @@ protected:
      * @param currentTime The current time at which the track has been requested.
      **/
     virtual void trackRange(const OFX::TrackArguments & args) = 0;
-    
+
     // do not need to delete these, the ImageEffect is managing them for us
     OFX::Clip *_dstClip;
     OFX::Clip *_srcClip;
-    
     OFX::PushButtonParam* _backwardButton;
     OFX::PushButtonParam* _prevButton;
     OFX::PushButtonParam* _nextButton;
     OFX::PushButtonParam* _forwardButton;
     OFX::StringParam* _instanceName;
-    
 };
-    
+
 void genericTrackerDescribe(OFX::ImageEffectDescriptor &desc);
-    
+
 OFX::PageParamDescriptor* genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context);
-    
-void genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,OFX::PageParamDescriptor* page);
-    
-    /**
-     * @brief This class represents the interact associated with one track.
-     * It is composed of the following elements:
-     * - A point which is the center point of the pattern to track
-     * - An inner rectangle which defines the bounding box of the pattern to track
-     * - An outer rectangle which defines the region where we should look for the pattern in the previous/following frames.
-     *
-     * The inner and outer rectangle are defined respectively by their bottom left corner and their size (width/height).
-     * The bottom left corner of these rectangles defines an offset relative to the center point instead of absolute coordinates.
-     * It makes it really easier everywhere in the tracker to manipulate coordinates.
-     **/
+
+void genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page);
+
+/**
+ * @brief This class represents the interact associated with one track.
+ * It is composed of the following elements:
+ * - A point which is the center point of the pattern to track
+ * - An inner rectangle which defines the bounding box of the pattern to track
+ * - An outer rectangle which defines the region where we should look for the pattern in the previous/following frames.
+ *
+ * The inner and outer rectangle are defined respectively by their bottom left corner and their size (width/height).
+ * The bottom left corner of these rectangles defines an offset relative to the center point instead of absolute coordinates.
+ * It makes it really easier everywhere in the tracker to manipulate coordinates.
+ **/
 class TrackerRegionInteract
-: public OFX::OverlayInteract
+    : public OFX::OverlayInteract
 {
     enum MouseStateEnum
     {
         eMouseStateIdle = 0,
         eMouseStateDraggingCenter,
         eMouseStateDraggingOffset,
-        
+
         eMouseStateDraggingInnerTopLeft,
         eMouseStateDraggingInnerTopRight,
         eMouseStateDraggingInnerBtmLeft,
@@ -176,7 +174,7 @@ class TrackerRegionInteract
         eMouseStateDraggingInnerMidRight,
         eMouseStateDraggingInnerBtmMid,
         eMouseStateDraggingInnerMidLeft,
-        
+
         eMouseStateDraggingOuterTopLeft,
         eMouseStateDraggingOuterTopRight,
         eMouseStateDraggingOuterBtmLeft,
@@ -186,12 +184,12 @@ class TrackerRegionInteract
         eMouseStateDraggingOuterBtmMid,
         eMouseStateDraggingOuterMidLeft
     };
-    
+
     enum DrawStateEnum
     {
         eDrawStateInactive = 0,
         eDrawStateHoveringCenter,
-        
+
         eDrawStateHoveringInnerTopLeft,
         eDrawStateHoveringInnerTopRight,
         eDrawStateHoveringInnerBtmLeft,
@@ -200,7 +198,7 @@ class TrackerRegionInteract
         eDrawStateHoveringInnerMidRight,
         eDrawStateHoveringInnerBtmMid,
         eDrawStateHoveringInnerMidLeft,
-        
+
         eDrawStateHoveringOuterTopLeft,
         eDrawStateHoveringOuterTopRight,
         eDrawStateHoveringOuterBtmLeft,
@@ -210,30 +208,30 @@ class TrackerRegionInteract
         eDrawStateHoveringOuterBtmMid,
         eDrawStateHoveringOuterMidLeft
     };
-    
+
 public:
-    
+
     TrackerRegionInteract(OfxInteractHandle handle,
                           OFX::ImageEffect* effect)
-    : OFX::OverlayInteract(handle)
-    , _lastMousePos()
-    , _ms(eMouseStateIdle)
-    , _ds(eDrawStateInactive)
-    , _center(0)
-    , _offset(0)
-    , _innerBtmLeft(0)
-    , _innerTopRight(0)
-    , _outerBtmLeft(0)
-    , _outerTopRight(0)
-    , _name(0)
-    , _centerDragPos()
-    , _offsetDragPos()
-    , _innerBtmLeftDragPos()
-    , _innerTopRightDragPos()
-    , _outerBtmLeftDragPos()
-    , _outerTopRightDragPos()
-    , _controlDown(false)
-    , _altDown(0)
+        : OFX::OverlayInteract(handle)
+        , _lastMousePos()
+        , _ms(eMouseStateIdle)
+        , _ds(eDrawStateInactive)
+        , _center(0)
+        , _offset(0)
+        , _innerBtmLeft(0)
+        , _innerTopRight(0)
+        , _outerBtmLeft(0)
+        , _outerTopRight(0)
+        , _name(0)
+        , _centerDragPos()
+        , _offsetDragPos()
+        , _innerBtmLeftDragPos()
+        , _innerTopRightDragPos()
+        , _outerBtmLeftDragPos()
+        , _outerTopRightDragPos()
+        , _controlDown(false)
+        , _altDown(0)
     {
         _center = effect->fetchDouble2DParam(kParamTrackingCenterPoint);
         _offset = effect->fetchDouble2DParam(kParamTrackingOffset);
@@ -250,7 +248,7 @@ public:
         addParamToSlaveTo(_outerTopRight);
         addParamToSlaveTo(_name);
     }
-    
+
     // overridden functions from OFX::Interact to do things
     virtual bool draw(const OFX::DrawArgs &args);
     virtual bool penMotion(const OFX::PenArgs &args);
@@ -259,11 +257,11 @@ public:
     virtual bool keyDown(const OFX::KeyArgs &args);
     virtual bool keyUp(const OFX::KeyArgs &args);
     virtual void loseFocus(const OFX::FocusArgs &args);
-    
+
 private:
     bool isDraggingInnerPoint() const;
     bool isDraggingOuterPoint() const;
-    
+
     OfxPointD _lastMousePos;
     MouseStateEnum _ms;
     DrawStateEnum _ds;
@@ -276,7 +274,7 @@ private:
     OFX::StringParam* _name;
     OfxPointD _centerDragPos;
     OfxPointD _offsetDragPos;
-    
+
     ///Here the btm left points are NOT relative to the center
     ///The offset is applied to this points
     OfxPointD _innerBtmLeftDragPos;
@@ -286,9 +284,9 @@ private:
     int _controlDown;
     int _altDown;
 };
-    
+
 class TrackerRegionOverlayDescriptor
-: public OFX::DefaultEffectOverlayDescriptor<TrackerRegionOverlayDescriptor, TrackerRegionInteract>
+    : public OFX::DefaultEffectOverlayDescriptor<TrackerRegionOverlayDescriptor, TrackerRegionInteract>
 {
 };
 } // OFX

@@ -211,5 +211,5 @@ class TransformOverlayDescriptorOldParams
     : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptorOldParams, TransformInteractOldParams>
 {
 };
-}
+} // namespace OFX
 #endif /* defined(openfx_supportext_ofxsTransformInteract_h) */

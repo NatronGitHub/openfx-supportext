@@ -89,15 +89,15 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     // (only the host and the plugin descriptor)
     {
         int i = 0;
-        if (_supportsFloats && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthFloat)) {
+        if ( _supportsFloats && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthFloat) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthFloat;
             ++i;
         }
-        if (_supportsShorts && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUShort)) {
+        if ( _supportsShorts && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUShort) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthUShort;
             ++i;
         }
-        if (_supportsBytes && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUByte)) {
+        if ( _supportsBytes && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUByte) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthUByte;
             ++i;
         }

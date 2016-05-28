@@ -121,7 +121,7 @@ getFormatResolution(const EParamFormat format,
         break;
     }
 }
-}
+} // namespace OFX
 
 #endif // ifndef IO_ofxsResolution_h
 

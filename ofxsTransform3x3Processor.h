@@ -387,6 +387,6 @@ private:
         return a;
     }
 };
-}
+} // namespace OFX
 
 #endif // MISC_TRANSFORM_H

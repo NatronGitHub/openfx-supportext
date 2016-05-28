@@ -204,5 +204,5 @@ void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
 
 void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType);
-}
+} // namespace OFX
 #endif /* defined(openfx_supportext_ofxsTransform3x3_h) */
