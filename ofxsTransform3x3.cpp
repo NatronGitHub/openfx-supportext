@@ -744,10 +744,6 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
     if (_filter) {
         filter = (FilterEnum)_filter->getValueAtTime(time);
     }
-    bool blackOutside = false;
-    if (_blackOutside) {
-        blackOutside = _blackOutside->getValueAtTime(time);
-    }
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
