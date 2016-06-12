@@ -55,6 +55,7 @@
 
 using namespace OFX;
 
+/* *INDENT-OFF* */
 /*
  * The following bitmapped fonts are defined in this file:
  * 
@@ -2044,3 +2045,4 @@ static const GLubyte* TimesRoman24_Character_Map[] = {TimesRoman24_Character_032
 /* The font structure: */
 const SFG_Font OFX::fgFontTimesRoman24 = { "-adobe-times-medium-r-normal--24-240-75-75-p-124-iso8859-1", 256, 29, TimesRoman24_Character_Map, 0, 7 };
 
+/* *INDENT-ON* */
