@@ -22,7 +22,6 @@
 
 #include "ofxsFileOpen.h"
 
-#include <string>
 #if defined(_WIN32)
 #include <windows.h>
 #include <fcntl.h>
@@ -33,43 +32,40 @@
 namespace OFX {
 
 #ifdef _WIN32
-    std::wstring utf8_to_utf16 (const std::string& str)
-    {
-        std::wstring native;
+std::wstring utf8_to_utf16 (const std::string& str)
+{
+    std::wstring native;
 
-        native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
-        MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], (int)native.size());
+    native.resize(MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, NULL, 0));
+    MultiByteToWideChar (CP_UTF8, 0, str.c_str(), -1, &native[0], (int)native.size());
 
-        return native;
-    }
+    return native;
+}
 
+std::string utf16_to_utf8 (const std::wstring& str)
+{
+    std::string utf8;
 
-
-    std::string utf16_to_utf8 (const std::wstring& str)
-    {
-        std::string utf8;
-
-        utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
-        WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], (int)utf8.size(), NULL, NULL);
+    utf8.resize(WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, NULL, 0, NULL, NULL));
+    WideCharToMultiByte (CP_UTF8, 0, str.c_str(), -1, &utf8[0], (int)utf8.size(), NULL, NULL);
         
-        return utf8;
-    }
+    return utf8;
+}
 #endif
 
-
-    FILE* open_file(const std::string& path, const std::string& mode)
-    {
+std::FILE* open_file(const std::string& path, const std::string& mode)
+{
 #ifdef _WIN32
-        // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-        std::wstring wpath = utf8_to_utf16 (path);
-        std::wstring wmode = utf8_to_utf16 (mode);
+    // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
+    std::wstring wpath = utf8_to_utf16 (path);
+    std::wstring wmode = utf8_to_utf16 (mode);
 
-        return ::_wfopen (wpath.c_str(), wmode.c_str());
+    return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
-        // on Unix platforms passing in UTF-8 works
-        return ::fopen (path.c_str(), mode.c_str());
+    // on Unix platforms passing in UTF-8 works
+    return std::fopen (path.c_str(), mode.c_str());
 #endif
-    }
+}
 
 
 } // namespace OFX
