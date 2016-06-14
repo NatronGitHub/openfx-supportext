@@ -22,6 +22,12 @@
 
 #include "ofxsFileOpen.h"
 
+#include <string>
+#if defined(_WIN32)
+#include <windows.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#endif
 
 
 namespace OFX {
@@ -55,8 +61,8 @@ namespace OFX {
     {
 #ifdef _WIN32
         // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-        std::wstring wpath = Strutil::utf8_to_utf16 (path);
-        std::wstring wmode = Strutil::utf8_to_utf16 (mode);
+        std::wstring wpath = utf8_to_utf16 (path);
+        std::wstring wmode = utf8_to_utf16 (mode);
 
         return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
