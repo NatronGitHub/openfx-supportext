@@ -118,24 +118,6 @@ LutBase::index_to_float(const unsigned short i)
     return tmp.f;
 }
 
-///initialize the singleton
-LutManager LutManager::m_instance = LutManager();
-LutManager::LutManager()
-    : luts()
-{
-}
-
-LutManager::~LutManager()
-{
-    ////the luts must all have been released before!
-    ////This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
-    //// by this singleton because it makes their destruction time uncertain regarding to
-    ///the host multi-thread suite.
-    for (LutsMap::iterator it = luts.begin(); it != luts.end(); ++it) {
-        delete it->second;
-    }
-}
-
 // r,g,b values are from 0 to 1
 // h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 //		if s == 0, then h = 0 (undefined)

@@ -35,6 +35,7 @@
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
 #include "ofxsPixelProcessor.h"
+#include "ofxsMultiThread.h"
 
 #define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
 //#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
@@ -299,6 +300,9 @@ template <class MUTEX>
 class Lut
     : public LutBase
 {
+
+    typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
+
     /// the fast lookup tables are mutable, because they are automatically initialized post-construction,
     /// and never change afterwards
     mutable unsigned short toFunc_hipart_to_uint8xx[0x10000];                 /// contains  2^16 = 65536 values between 0-255
@@ -306,8 +310,7 @@ class Lut
     mutable bool _init;                 ///< false if the tables are not yet initialized
     mutable std::auto_ptr<MUTEX> _lock;                 ///< protects _init
 
-    friend class LutManager;
-    ///private constructor, used by LutManager
+public:
     Lut(const std::string & name,
         fromColorSpaceFunctionV1 fromFunc,
         toColorSpaceFunctionV1 toFunc)
@@ -320,6 +323,9 @@ class Lut
     virtual ~Lut()
     {
     }
+
+private:
+    
 
     ///init luts
     ///it uses fromColorSpaceFloatToLinearFloat(float) and toColorSpaceFloatFromLinearFloat(float)
@@ -353,16 +359,13 @@ public:
     //Called by all public members
     void validate() const
     {
-        _lock->lock();
+        AutoMutex locker(*_lock);
 
         if (_init) {
-            _lock->unlock();
-
             return;
         }
         fillTables();
         _init = true;
-        _lock->unlock();
     }
 
     virtual float fromColorSpaceFloatToLinearFloat(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
@@ -776,6 +779,19 @@ public:
     }
 };
 
+
+inline float
+from_func_linear(float v)
+{
+    return v;
+}
+
+inline float
+to_func_linear(float v)
+{
+    return v;
+}
+
 inline float
 from_func_srgb(float v)
 {
@@ -968,99 +984,128 @@ void lab_to_xyz_rec709( float l, float a, float b, float *x, float *y, float *z 
 void rgb_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
 void lab_to_rgb( float l, float a, float b, float *r, float *g, float *b_ );
 
+
 // a Singleton that holds precomputed LUTs for the whole application.
 // The m_instance member is static and is thus built before the first call to Instance().
+template <class MUTEX>
 class LutManager
 {
+
+    typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
+
     //each lut with a ref count mapped against their name
-    typedef std::map<std::string, const LutBase * > LutsMap;
+    struct LutContainer
+    {
+        const LutBase* lut;
+        int refCount;
+
+        LutContainer() : lut(0), refCount(0) {}
+    };
+    typedef std::map<std::string, LutContainer > LutsMap;
 
 public:
-    static LutManager &Instance()
+    static LutManager<MUTEX>& Instance()
     {
+        static LutManager<MUTEX> m_instance;
         return m_instance;
     };
 
     /**
      * @brief Returns a pointer to a lut with the given name and the given from and to functions.
      * If a lut with the same name didn't already exist, then it will create one.
-     * WARNING : NOT THREAD-SAFE
+     * Ownership of the returned pointer remains to the LutManager.
+     * You must release the lut when you are done using it.
      **/
-    template <class MUTEX>
     static const LutBase* getLut(const std::string & name,
                                  fromColorSpaceFunctionV1 fromFunc,
                                  toColorSpaceFunctionV1 toFunc)
     {
-        LutsMap::iterator found = LutManager::m_instance.luts.find(name);
 
-        if ( found != LutManager::m_instance.luts.end() ) {
-            return found->second;
+        AutoMutex locker(Instance().lutsMutex);
+
+        typename LutsMap::iterator found = Instance().luts.find(name);
+
+        if ( found != Instance().luts.end() ) {
+            ++found->second.refCount;
+            return found->second.lut;
         } else {
-            Lut<MUTEX>* lut = new Lut<MUTEX>(name, fromFunc, toFunc);
-            lut->validate();
-            std::pair<LutsMap::iterator, bool> ret =
-                LutManager::m_instance.luts.insert( std::make_pair( name, lut ) );
-            assert(ret.second);
+            LutContainer& c = Instance().luts[name];
 
-            return ret.first->second;
+            Lut<MUTEX>* lut = new Lut<MUTEX>(name, fromFunc, toFunc);;
+            lut->validate();
+            c.lut = lut;
+            c.refCount = 1;
+            return c.lut;
         }
 
         return NULL;
     }
 
+
+    static void releaseLut(const std::string& name)
+    {
+        AutoMutex locker(Instance().lutsMutex);
+        typename LutsMap::iterator found = Instance().luts.find(name);
+        if (found != Instance().luts.end()) {
+            if (found->second.refCount == 1) {
+                delete found->second.lut;
+                Instance().luts.erase(found);
+            } else {
+                --found->second.refCount;
+                assert(found->second.refCount > 0);
+            }
+        }
+    }
+
     ///buit-ins color-spaces
-    template <class MUTEX>
+    static const LutBase* linearLut()
+    {
+        return Instance().getLut("Linear", from_func_linear, to_func_linear);
+    }
+
     static const LutBase* sRGBLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("sRGB", from_func_srgb, to_func_srgb);
+        return Instance().getLut("sRGB", from_func_srgb, to_func_srgb);
     }
 
-    template <class MUTEX>
     static const LutBase* Rec709Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Rec709", from_func_Rec709, to_func_Rec709);
+        return Instance().getLut("Rec709", from_func_Rec709, to_func_Rec709);
     }
 
-    template <class MUTEX>
     static const LutBase* CineonLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Cineon", from_func_Cineon, to_func_Cineon);
+        return Instance().getLut("Cineon", from_func_Cineon, to_func_Cineon);
     }
 
-    template <class MUTEX>
     static const LutBase* Gamma1_8Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Gamma1_8", from_func_Gamma1_8, to_func_Gamma1_8);
+        return Instance().getLut("Gamma1_8", from_func_Gamma1_8, to_func_Gamma1_8);
     }
 
-    template <class MUTEX>
     static const LutBase* Gamma2_2Lut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
+        return Instance().getLut("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
     }
 
-    template <class MUTEX>
     static const LutBase* PanaLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("PanaLog", from_func_Panalog, to_func_Panalog);
+        return Instance().getLut("PanaLog", from_func_Panalog, to_func_Panalog);
     }
 
-    template <class MUTEX>
     static const LutBase* ViperLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("ViperLog", from_func_ViperLog, to_func_ViperLog);
+        return Instance().getLut("ViperLog", from_func_ViperLog, to_func_ViperLog);
     }
 
-    template <class MUTEX>
     static const LutBase* RedLogLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("RedLog", from_func_RedLog, to_func_RedLog);
+        return Instance().getLut("RedLog", from_func_RedLog, to_func_RedLog);
     }
 
-    template <class MUTEX>
     static const LutBase* AlexaV3LogCLut()
     {
-        return LutManager::m_instance.getLut<MUTEX>("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
+        return Instance().getLut("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
     }
 
 private:
@@ -1073,15 +1118,29 @@ private:
     {
     }
 
-    static LutManager m_instance;
-    LutManager();
 
-    ////the luts must all have been released before!
-    ////This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
-    //// by this singleton because it makes their destruction time uncertain regarding to
-    ///the host multi-thread suite.
-    ~LutManager();
+    LutManager()
+    : lutsMutex()
+    , luts()
+    {
 
+    }
+
+    ~LutManager()
+    {
+
+        // The luts must all have been released before!
+        // This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
+        // by this singleton because it makes their destruction time uncertain regarding to
+        // the host multi-thread suite.
+        // Make sure every call to getLut() is paired with a call to releaseLut()
+        assert(luts.empty());
+        for (typename LutsMap::iterator it = luts.begin(); it!=luts.end(); ++it) {
+            delete it->second.lut;
+        }
+    }
+
+    MUTEX lutsMutex;
     LutsMap luts;
 };
 
@@ -1092,8 +1151,16 @@ getLut(const std::string & name,
        fromColorSpaceFunctionV1 fromFunc,
        toColorSpaceFunctionV1 toFunc)
 {
-    return LutManager::getLut<MUTEX>(name, fromFunc, toFunc);
+    return LutManager<MUTEX>::getLut(name, fromFunc, toFunc);
 }
+
+template <class MUTEX>
+void
+releaseLut(const std::string& name)
+{
+    return LutManager<MUTEX>::releaseLut(name);
+}
+
 }         //namespace Color
 }     //namespace OFX
 
