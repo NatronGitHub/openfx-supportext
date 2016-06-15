@@ -1015,13 +1015,12 @@ public:
      * If a lut with the same name didn't already exist, then it will create one.
      * Ownership of the returned pointer remains to the LutManager.
      * You must release the lut when you are done using it.
+     * @WARNING: Not thread-safe. You should call it in the load() action of your plug-in
      **/
     static const LutBase* getLut(const std::string & name,
                                  fromColorSpaceFunctionV1 fromFunc,
                                  toColorSpaceFunctionV1 toFunc)
     {
-
-        AutoMutex locker(Instance().lutsMutex);
 
         typename LutsMap::iterator found = Instance().luts.find(name);
 
@@ -1041,10 +1040,12 @@ public:
         return NULL;
     }
 
-
+    /**
+     * @brief Release a lut previously retrieved with getLut()
+    * @WARNING: Not thread-safe. You should call it in the unload() action of your plug-in
+     **/
     static void releaseLut(const std::string& name)
     {
-        AutoMutex locker(Instance().lutsMutex);
         typename LutsMap::iterator found = Instance().luts.find(name);
         if (found != Instance().luts.end()) {
             if (found->second.refCount == 1) {
@@ -1120,8 +1121,7 @@ private:
 
 
     LutManager()
-    : lutsMutex()
-    , luts()
+    : luts()
     {
 
     }
@@ -1140,7 +1140,6 @@ private:
         }
     }
 
-    MUTEX lutsMutex;
     LutsMap luts;
 };
 
