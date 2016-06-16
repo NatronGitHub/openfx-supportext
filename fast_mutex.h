@@ -152,11 +152,11 @@ class fast_mutex {
       int oldLock;
   #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
       asm volatile (
-        "movl $1,%%eax\n\t"
-        "xchg %%eax,%0\n\t"
-        "movl %%eax,%1\n\t"
-        : "=m" (mLock), "=m" (oldLock)
-        :
+        "movl $1,%%eax\n\t" // move 1 to eax
+        "xchg %%eax,%0\n\t" // try to set the lock bit
+        "movl %%eax,%1\n\t" // export our result to a test var
+        : "=m" (mLock), "=r" (oldLock) // use a register for output [used to be "=r" (oldLock)]
+        : "m" (mLock) // mLock is both input and output [used to be empty]
         : "%eax", "memory"
       );
   #elif defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))
@@ -201,8 +201,8 @@ class fast_mutex {
 #if defined(_FAST_MUTEX_ASM_)
   #if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
       asm volatile (
-        "movl $0,%%eax\n\t"
-        "xchg %%eax,%0\n\t"
+        "movl $0,%%eax\n\t" // move 1 to eax
+        "xchg %%eax,%0\n\t" // unset the lock bit
         : "=m" (mLock)
         :
         : "%eax", "memory"
