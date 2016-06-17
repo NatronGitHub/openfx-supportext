@@ -155,7 +155,7 @@ class fast_mutex {
         "movl $1,%%eax\n\t" // move 1 to eax
         "xchg %%eax,%0\n\t" // try to set the lock bit
         "movl %%eax,%1\n\t" // export our result to a test var
-        : "=m" (mLock), "=r" (oldLock) // use a register for output [used to be "=r" (oldLock)]
+        : "=m" (mLock), "=r" (oldLock) // use a register for output [used to be "=m" (oldLock)]
         : "m" (mLock) // mLock is both input and output [used to be empty]
         : "%eax", "memory"
       );
