@@ -53,17 +53,17 @@ std::string utf16_to_utf8 (const std::wstring& str)
 }
 #endif
 
-std::FILE* open_file(const std::string& path, const std::string& mode)
+std::FILE* fopen_utf8(const char* path_utf8, const char* mode)
 {
 #ifdef _WIN32
     // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
-    std::wstring wpath = utf8_to_utf16 (path);
+    std::wstring wpath = utf8_to_utf16 (path_utf8);
     std::wstring wmode = utf8_to_utf16 (mode);
 
     return ::_wfopen (wpath.c_str(), wmode.c_str());
 #else
     // on Unix platforms passing in UTF-8 works
-    return std::fopen (path.c_str(), mode.c_str());
+    return std::fopen (path_utf8, mode);
 #endif
 }
 

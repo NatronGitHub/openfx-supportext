@@ -33,7 +33,7 @@ std::wstring utf8_to_utf16 (const std::string& utf8str);
 std::string utf16_to_utf8 (const std::wstring& str);
 #endif
 
-std::FILE* open_file(const std::string& path, const std::string& mode);
+std::FILE* fopen_utf8(const char* path, const char* mode);
 
 } // namespace OFX
 #endif /* defined(openfx_supportext_ofxsFileOpen_h) */
