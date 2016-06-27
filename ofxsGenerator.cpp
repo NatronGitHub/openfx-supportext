@@ -23,6 +23,7 @@
 #include "ofxsGenerator.h"
 
 #include <cmath>
+#include <cfloat> // DBL_MAX
 #include <cassert>
 #include <limits>
 

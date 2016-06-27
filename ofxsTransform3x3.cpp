@@ -48,6 +48,7 @@
 // Uncomment the following to enable the experimental host transform code.
 #define ENABLE_HOST_TRANSFORM
 
+#include <cfloat> // DBL_MAX
 #include <memory>
 #include <algorithm>
 

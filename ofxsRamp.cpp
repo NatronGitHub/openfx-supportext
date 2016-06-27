@@ -22,8 +22,9 @@
  */
 
 #include "ofxsRamp.h"
+
 #include <cmath>
-#include <cfloat>
+#include <cfloat> // DBL_MAX
 
 #ifdef __APPLE__
 #include <OpenGL/gl.h>

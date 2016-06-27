@@ -24,7 +24,7 @@
 
 #include <memory>
 #include <cmath>
-#include <cfloat>
+#include <cfloat> // DBL_MAX
 #include <algorithm>
 
 #ifdef __APPLE__
