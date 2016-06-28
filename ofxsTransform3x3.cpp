@@ -596,6 +596,16 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         return true;
     }
 
+    if ( OFX::Coords::rectIsEmpty(srcRoD) ) {
+        // return an empty RoD
+        rod.x1 = 0.;
+        rod.x2 = 0.;
+        rod.y1 = 0.;
+        rod.y2 = 0.;
+
+        return true;
+    }
+
     double mix = 1.;
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
     if (doMasking && _mix) {
