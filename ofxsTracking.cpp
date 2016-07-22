@@ -236,7 +236,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
         param->setInstanceSpecific(true);
         ////param->setIsSecret(false); // it has to be user-editable
         ////param->setEnabled(true); // it has to be user-editable
-        ////param->setIsPersistant(true); // it has to be saved with the instance parameters
+        ////param->setIsPersistent(true); // it has to be saved with the instance parameters
         param->setEvaluateOnChange(false); // it is meaningless
         if (page) {
             page->addChild(*param);
