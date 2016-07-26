@@ -19,8 +19,6 @@
 #ifndef openfx_supportext_ofxsOGLUtilities_h
 #define openfx_supportext_ofxsOGLUtilities_h
 
-#include "ofxsOGLDebug.h"
-
 namespace OFX {
 
 /**
