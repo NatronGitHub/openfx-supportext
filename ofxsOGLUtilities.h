@@ -31,8 +31,15 @@ namespace OFX {
  * draw function of an interact (if you only use interacts) or in the contextAttached action of your
  * plug-in if you support OpenGL rendering.
  * Note that the OpenGL version loaded is the one specified when generating glad.h
+ * @returns true if OpenGL was load successfully, false otherwise.
+ * Reasons for failure might be:
+ * - opengl32.dll was not found, or libGL.so was not found or OpenGL.framework was not found
+ * - glGetString does not return a valid version
+ * Note: It does NOT check that required extensions and functions have actually been found,
+ * nor that the OpenGL version of the driver matches the version at which glad was generated.
+ * Use functions below for that.
  **/
-void ofxsLoadOpenGLOnce();
+bool ofxsLoadOpenGLOnce();
 
 /**
  * @brief Returns the OpenGL major version loaded by GLAD. This is the version of the client driver

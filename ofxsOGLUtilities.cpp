@@ -155,7 +155,7 @@ extern "C" {
 
 namespace OFX {
 
-void ofxsLoadOpenGLOnce()
+bool ofxsLoadOpenGLOnce()
 {
 
 
@@ -163,7 +163,7 @@ void ofxsLoadOpenGLOnce()
     AutoMutex locker(&g_glLoadOnceMutex);
     if (g_glLoaded) {
         // Already loaded, don't do it again
-        return;
+        return true;
     }
 
     // Reasons for failure might be:
@@ -201,6 +201,8 @@ void ofxsLoadOpenGLOnce()
         glad_glGenVertexArrays = glad_glGenVertexArraysAPPLE;
         glad_glIsVertexArray = glad_glIsVertexArrayAPPLE;
     }
+
+    return g_glLoaded;
 
 } // ofxsLoadGLOnce
 
