@@ -9,5 +9,5 @@ namespace OFX {
 
 template class OSGLFunctions<false>;
 
-} // namespace OFX
+} // namespace OFX 
 

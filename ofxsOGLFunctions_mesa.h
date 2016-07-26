@@ -627,6 +627,6 @@ void OSGLFunctions<false>::load_functions() {
 #endif // HAVE_OSMESA
 } // load_functions 
 
-} // namespace OFX
+} // namespace OFX 
 
 #endif // OSGLFUNCTIONS_mesa_H
