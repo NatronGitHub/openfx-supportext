@@ -1288,7 +1288,7 @@ describeInContextAddOutputLayerChoice(bool addAllChoice,
             param->appendOption(kPlaneLabelAll);
         }
         param->setEvaluateOnChange(false);
-        param->setIsPersistant(true);
+        param->setIsPersistent(true);
         param->setDefault(0);
         param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);             // < the menu is built in getClipPreferences
@@ -1335,7 +1335,7 @@ describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
         param->setAnimates(false);
         addInputChannelOptionsRGBA(param, clips, true);
         param->setEvaluateOnChange(false);
-        param->setIsPersistant(true);
+        param->setIsPersistent(true);
         if (page) {
             page->addChild(*param);
         }
