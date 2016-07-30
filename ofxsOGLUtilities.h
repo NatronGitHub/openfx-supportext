@@ -20,12 +20,11 @@
 #define openfx_supportext_ofxsOGLUtilities_h
 
 namespace OFX {
-
 /**
  * @brief Loads OpenGL functions using GLAD so that they are available if using glad.h or ofxsOGLFunctions.h
  * Note: this function will loads them once only, subsequent calls to this function do nothing.
  * This is thread-safe (protected by a mutex).
- * An OpenGL context MUST be bound when calling this function. A good place to call it is in the 
+ * An OpenGL context MUST be bound when calling this function. A good place to call it is in the
  * draw function of an interact (if you only use interacts) or in the contextAttached action of your
  * plug-in if you support OpenGL rendering.
  * Note that the OpenGL version loaded is the one specified when generating glad.h
@@ -47,42 +46,41 @@ bool ofxsLoadOpenGLOnce();
 int getOpenGLMajorVersion();
 
 /**
-* @brief Returns the OpenGL minor version loaded by GLAD. This is the version of the client driver
-* and may differ from the version for which GLAD was generated.
-* Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
-**/
+ * @brief Returns the OpenGL minor version loaded by GLAD. This is the version of the client driver
+ * and may differ from the version for which GLAD was generated.
+ * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
+ **/
 int getOpenGLMinorVersion();
 
 /**
-* @brief Returns whether the OpenGL driver of the client support the GL_ARB_texture_float extension.
-* Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
-**/
+ * @brief Returns whether the OpenGL driver of the client support the GL_ARB_texture_float extension.
+ * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
+ **/
 bool getOpenGLSupportsTextureFloat();
 
 /**
-* @brief Returns whether the OpenGL driver of the client support the GL_ARB_framebuffer_object extension.
-* Note that if it is unsupported but GL_EXT_framebuffer_object is supported this function will return true
-* and all functions of the GL_ARB_framebuffer_object extension will be in fact using the functions of
-* GL_EXT_framebuffer_object.
-* Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
-**/
+ * @brief Returns whether the OpenGL driver of the client support the GL_ARB_framebuffer_object extension.
+ * Note that if it is unsupported but GL_EXT_framebuffer_object is supported this function will return true
+ * and all functions of the GL_ARB_framebuffer_object extension will be in fact using the functions of
+ * GL_EXT_framebuffer_object.
+ * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
+ **/
 bool getOpenGLSupportFramebuffer();
 
 /**
-* @brief Returns whether the OpenGL driver of the client support the GL_ARB_pixel_buffer_object extension.
-* Note that if it is unsupported but GLAD_GL_APPLE_vertex_array_object is supported this function will return true
-* and all functions of the GLAD_GL_ARB_vertex_array_object extension will be in fact using the functions of
-* GLAD_GL_APPLE_vertex_array_object.
-* Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
-**/
+ * @brief Returns whether the OpenGL driver of the client support the GL_ARB_pixel_buffer_object extension.
+ * Note that if it is unsupported but GLAD_GL_APPLE_vertex_array_object is supported this function will return true
+ * and all functions of the GLAD_GL_ARB_vertex_array_object extension will be in fact using the functions of
+ * GLAD_GL_APPLE_vertex_array_object.
+ * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
+ **/
 bool getOpenGLSupportPixelbuffer();
 
 /**
-* @brief Returns whether the OpenGL driver of the client support the GL_ARB_vertex_array_object extension.
-* Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
-**/
+ * @brief Returns whether the OpenGL driver of the client support the GL_ARB_vertex_array_object extension.
+ * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
+ **/
 bool getOpenGLSupportVertexArray();
-
 } // namespace OFX
 
 #endif /* defined(openfx_supportext_ofxsOGLDebug_h) */

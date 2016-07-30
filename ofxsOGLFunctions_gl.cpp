@@ -1,9 +1,7 @@
 /*THIS FILE WAS GENERATED AUTOMATICALLY FROM glad.h, DO NOT EDIT*/
 
 
-
 #include "ofxsOGLFunctions.h"
-
 
 
 extern "C" {
@@ -612,9 +610,10 @@ extern PFNGLISVERTEXARRAYAPPLEPROC glad_glIsVertexArrayAPPLE;
 
 
 namespace OFX {
-
 template <>
-void OSGLFunctions<true>::load_functions() {
+void
+OSGLFunctions<true>::load_functions()
+{
     _mglCullFace = glad_glCullFace;
     _mglFrontFace = glad_glFrontFace;
     _mglHint = glad_glHint;
@@ -1216,9 +1215,8 @@ void OSGLFunctions<true>::load_functions() {
     _mglDeleteVertexArraysAPPLE = glad_glDeleteVertexArraysAPPLE;
     _mglGenVertexArraysAPPLE = glad_glGenVertexArraysAPPLE;
     _mglIsVertexArrayAPPLE = glad_glIsVertexArrayAPPLE;
-} // load_functions 
+} // load_functions
 
 template class OSGLFunctions<true>;
-
-} // namespace OFX 
+} // namespace OFX
 

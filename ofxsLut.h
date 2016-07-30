@@ -300,7 +300,6 @@ template <class MUTEX>
 class Lut
     : public LutBase
 {
-
     typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
 
     /// the fast lookup tables are mutable, because they are automatically initialized post-construction,
@@ -325,7 +324,7 @@ public:
     }
 
 private:
-    
+
 
     ///init luts
     ///it uses fromColorSpaceFloatToLinearFloat(float) and toColorSpaceFloatFromLinearFloat(float)
@@ -990,7 +989,6 @@ void lab_to_rgb( float l, float a, float b, float *r, float *g, float *b_ );
 template <class MUTEX>
 class LutManager
 {
-
     typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
 
     //each lut with a ref count mapped against their name
@@ -1001,12 +999,14 @@ class LutManager
 
         LutContainer() : lut(0), refCount(0) {}
     };
+
     typedef std::map<std::string, LutContainer > LutsMap;
 
 public:
     static LutManager<MUTEX>& Instance()
     {
         static LutManager<MUTEX> m_instance;
+
         return m_instance;
     };
 
@@ -1021,11 +1021,11 @@ public:
                                  fromColorSpaceFunctionV1 fromFunc,
                                  toColorSpaceFunctionV1 toFunc)
     {
-
         typename LutsMap::iterator found = Instance().luts.find(name);
 
         if ( found != Instance().luts.end() ) {
             ++found->second.refCount;
+
             return found->second.lut;
         } else {
             LutContainer& c = Instance().luts[name];
@@ -1034,6 +1034,7 @@ public:
             lut->validate();
             c.lut = lut;
             c.refCount = 1;
+
             return c.lut;
         }
 
@@ -1042,12 +1043,12 @@ public:
 
     /**
      * @brief Release a lut previously retrieved with getLut()
-    * @WARNING: Not thread-safe. You should call it in the unload() action of your plug-in
+     * @WARNING: Not thread-safe. You should call it in the unload() action of your plug-in
      **/
     static void releaseLut(const std::string& name)
     {
         typename LutsMap::iterator found = Instance().luts.find(name);
-        if (found != Instance().luts.end()) {
+        if ( found != Instance().luts.end() ) {
             if (found->second.refCount == 1) {
                 delete found->second.lut;
                 Instance().luts.erase(found);
@@ -1119,23 +1120,20 @@ private:
     {
     }
 
-
     LutManager()
-    : luts()
+        : luts()
     {
-
     }
 
     ~LutManager()
     {
-
         // The luts must all have been released before!
         // This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
         // by this singleton because it makes their destruction time uncertain regarding to
         // the host multi-thread suite.
         // Make sure every call to getLut() is paired with a call to releaseLut()
-        assert(luts.empty());
-        for (typename LutsMap::iterator it = luts.begin(); it!=luts.end(); ++it) {
+        assert( luts.empty() );
+        for (typename LutsMap::iterator it = luts.begin(); it != luts.end(); ++it) {
             delete it->second.lut;
         }
     }
@@ -1159,7 +1157,6 @@ releaseLut(const std::string& name)
 {
     return LutManager<MUTEX>::releaseLut(name);
 }
-
 }         //namespace Color
 }     //namespace OFX
 

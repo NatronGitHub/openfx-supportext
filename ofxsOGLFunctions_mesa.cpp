@@ -1,7 +1,6 @@
 /*THIS FILE WAS GENERATED AUTOMATICALLY FROM glad.h, DO NOT EDIT*/
 
 
-
 #include "ofxsOGLFunctions.h"
 
 #ifdef HAVE_OSMESA
@@ -13,9 +12,10 @@
 
 
 namespace OFX {
-
 template <>
-void OSGLFunctions<false>::load_functions() {
+void
+OSGLFunctions<false>::load_functions()
+{
 #ifdef HAVE_OSMESA
 
     _mglCullFace = (PFNGLCULLFACEPROC)OSMesaGetProcAddress("glCullFace");
@@ -620,9 +620,8 @@ void OSGLFunctions<false>::load_functions() {
     _mglGenVertexArraysAPPLE = (PFNGLGENVERTEXARRAYSAPPLEPROC)OSMesaGetProcAddress("glGenVertexArraysAPPLE");
     _mglIsVertexArrayAPPLE = (PFNGLISVERTEXARRAYAPPLEPROC)OSMesaGetProcAddress("glIsVertexArrayAPPLE");
 #endif // HAVE_OSMESA
-} // load_functions 
+} // load_functions
 
 template class OSGLFunctions<false>;
-
-} // namespace OFX 
+} // namespace OFX
 
