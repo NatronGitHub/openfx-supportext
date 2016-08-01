@@ -486,6 +486,7 @@ public:
         assert(dstPixelComponentCount == 3 || dstPixelComponentCount == 4);
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
+            // coverity[dont_call]
             int xstart = renderWindow.x1 + std::rand() % (renderWindow.x2 - renderWindow.x1);
             unsigned error[3] = {
                 0x80, 0x80, 0x80
