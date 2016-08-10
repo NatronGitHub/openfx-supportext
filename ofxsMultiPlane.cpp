@@ -1008,9 +1008,10 @@ MultiPlaneEffect::getPlaneNeededForParam(double time,
     int channelIndex;
     found->second.param->getValueAtTime(time, channelIndex);
     std::string channelEncoded;
-    try {
+    if ( 0 <= channelIndex && channelIndex < found->second.param->getNOptions() ) {
         found->second.param->getOption(channelIndex, channelEncoded);
-    } catch (...) {
+    } else {
+        return false;
     }
 
     if ( channelEncoded.empty() ) {
