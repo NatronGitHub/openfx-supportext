@@ -24,7 +24,9 @@
 #define openfx_supportext_ofxsTracking_h
 
 #include "ofxsImageEffect.h"
+#ifdef OFX_EXTENSIONS_NATRON
 #include "ofxNatron.h"
+#endif
 #include "ofxsMacros.h"
 
 #define kParamTrackingCenterPoint "center"

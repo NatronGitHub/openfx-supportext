@@ -26,7 +26,9 @@
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
 #include "ofxsRectangleInteract.h"
+#ifdef OFX_EXTENSIONS_NATRON
 #include "ofxNatron.h"
+#endif
 
 #define kParamGeneratorExtent "extent"
 #define kParamGeneratorExtentLabel "Extent"
