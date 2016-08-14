@@ -374,6 +374,8 @@ hsi_to_rgb(float h,
     }
 } // hsi_to_rgb
 
+// RGB in the range 0-1 to YCbCr in the video range
+// (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
 void
 rgb_to_ycbcr601(float r,
                 float g,
@@ -390,10 +392,12 @@ rgb_to_ycbcr601(float r,
     /// ref: http://www.equasys.de/colorconversion.html (BT.601)
     /// also http://www.intersil.com/data/an/AN9717.pdf
     *y  =  0.257 * r + 0.504 * g + 0.098 * b + 16 / 255.;
-    *cb = -0.148 * r  - 0.291 * g + 0.439 * b + 128 / 255.;
-    *cr =  0.439 * r  - 0.368 * g  - 0.071 * b + 128 / 255.;
+    *cb = -0.148 * r - 0.291 * g + 0.439 * b + 128 / 255.;
+    *cr =  0.439 * r - 0.368 * g - 0.071 * b + 128 / 255.;
 }
 
+// YCbCr in the video range (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// to RGB in the range 0-1
 void
 ycbcr601_to_rgb(float y,
                 float cb,
@@ -417,6 +421,8 @@ ycbcr601_to_rgb(float y,
     *b = 1.164 * (y - 16 / 255.) + 2.017 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
 
+// RGB in the range 0-1 to YCbCr in the video range
+// (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
 void
 rgb_to_ycbcr709(float r,
                 float g,
@@ -432,10 +438,12 @@ rgb_to_ycbcr709(float r,
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
     *y  =  0.183 * r + 0.614 * g + 0.062 * b + 16 / 255.;
-    *cb = -0.101 * r  - 0.339 * g + 0.439 * b + 128 / 255.;
-    *cr =  0.439 * r  - 0.399 * g  - 0.040 * b + 128 / 255.;
+    *cb = -0.101 * r - 0.339 * g + 0.439 * b + 128 / 255.;
+    *cr =  0.439 * r - 0.399 * g - 0.040 * b + 128 / 255.;
 }
 
+// YCbCr in the video range (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// to RGB in the range 0-1
 void
 ycbcr709_to_rgb(float y,
                 float cb,
@@ -450,6 +458,7 @@ ycbcr709_to_rgb(float y,
     *b = 1.164 * (y - 16 / 255.) + 2.112 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
 
+// RGB in the range 0-1 to YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5)
 void
 rgb_to_ypbpr601(float r,
                 float g,
@@ -466,6 +475,7 @@ rgb_to_ypbpr601(float r,
     *pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
 }
 
+// YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to RGB in the range 0-1
 void
 ypbpr601_to_rgb(float y,
                 float pb,
@@ -482,6 +492,7 @@ ypbpr601_to_rgb(float y,
     *b = y + 1.772f   * pb;
 } // yuv_to_rgb
 
+// RGB in the range 0-1 to YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5)
 void
 rgb_to_ypbpr709(float r,
                 float g,
@@ -494,8 +505,14 @@ rgb_to_ypbpr709(float r,
     *y  =  0.2126f * r + 0.7152f * g + 0.0722f * b;
     *pb = -0.115f  * r - 0.385f  * g + 0.500f  * b;
     *pr =  0.500f  * r - 0.454f  * g - 0.046f  * b;
+
+    // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
+    //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
+    //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
+    //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
 }
 
+// YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to RGB in the range 0-1
 void
 ypbpr709_to_rgb(float y,
                 float pb,
@@ -505,11 +522,19 @@ ypbpr709_to_rgb(float y,
                 float *b)
 {
     /// ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *r = y              + 1.575f * pr,
+    *r = y               + 1.575f * pr,
     *g = y - 0.187f * pb - 0.468f * pr;
     *b = y + 1.856f * pb;
+
+    // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
+    // (there is a sign error on the R' coeff for Cr in Poynton's doc)
+    //*r = y                + 1.5701f * pr,
+    //*g = y - 0.1870f * pb - 0.4664f * pr;
+    //*b = y + 1.8556f * pb;
 } // yuv_to_rgb
 
+// RGB in the range 0-1 to YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615)
 void
 rgb_to_yuv601(float r,
               float g,
@@ -524,6 +549,8 @@ rgb_to_yuv601(float r,
     *v =  0.615f   * r - 0.51499f * g - 0.10001 * b;
 }
 
+// YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615) to RGB in the range 0-1
 void
 yuv601_to_rgb(float y,
               float u,
@@ -538,6 +565,8 @@ yuv601_to_rgb(float y,
     *b = y + 2.03211f * u;
 } // yuv_to_rgb
 
+// RGB in the range 0-1 to YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615)
 void
 rgb_to_yuv709(float r,
               float g,
@@ -552,6 +581,8 @@ rgb_to_yuv709(float r,
     *v =  0.615f   * r - 0.55861f * g - 0.05639f * b;
 }
 
+// YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615) to RGB in the range 0-1
 void
 yuv709_to_rgb(float y,
               float u,
