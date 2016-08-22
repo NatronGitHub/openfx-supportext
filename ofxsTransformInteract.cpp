@@ -229,6 +229,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamTransformInteractiveOld : kParamTransformInteractive);
         param->setLabel(kParamTransformInteractiveLabel);
         param->setHint(kParamTransformInteractiveHint);
+        param->setDefault(true);
         param->setEvaluateOnChange(false);
         if (group) {
             param->setParent(*group);
