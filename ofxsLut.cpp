@@ -502,14 +502,18 @@ rgb_to_ypbpr709(float r,
                 float *pr)
 {
     // ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *y  =  0.2126f * r + 0.7152f * g + 0.0722f * b;
-    *pb = -0.115f  * r - 0.385f  * g + 0.500f  * b; // or (b - y)/1.8556
-    *pr =  0.500f  * r - 0.454f  * g - 0.046f  * b; // or (r - y)/1.5748
+    //*y  =  0.2126f * r + 0.7152f * g + 0.0722f * b;
+    //*pb = -0.115f  * r - 0.385f  * g + 0.500f  * b; // or (b - y)/1.8556
+    //*pr =  0.500f  * r - 0.454f  * g - 0.046f  * b; // or (r - y)/1.5748
 
     // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
     //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
     //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
     //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
+
+    *y  =  0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
+    *pb =  (b - *y) / 1.8556;
+    *pr =  (r - *y) / 1.5748;
 }
 
 // Y'CbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
@@ -522,15 +526,20 @@ ypbpr_to_rgb709(float y,
                 float *b)
 {
     // ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *r = y               + 1.575f * pr,
-    *g = y - 0.187f * pb - 0.468f * pr;
-    *b = y + 1.856f * pb;
+    //*r = y               + 1.575f * pr,
+    //*g = y - 0.187f * pb - 0.468f * pr;
+    //*b = y + 1.856f * pb;
 
     // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
     // (there is a sign error on the R' coeff for Cr in Poynton's doc)
     //*r = y                + 1.5701f * pr,
     //*g = y - 0.1870f * pb - 0.4664f * pr;
     //*b = y + 1.8556f * pb;
+
+    *b = pb * 1.8556 + y;
+    *r = pr * 1.5748 + y;
+    //*g = (y - 0.2126f * *r - 0.0722f * *b) / 0.7152f;
+    *g = (y - 0.2126390058 * *r - 0.07219231534 * *b) / 0.7151686783;
 } // yuv_to_rgb
 
 // R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
@@ -545,9 +554,10 @@ rgb_to_ypbpr2020(float r,
     // ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
     // (Rec.2020, table 4 p4)
     //
-    *y  =  0.2627f * r + 0.6780f * g + 0.0593f * b;
-    *pb =  (b - *y) / 1.8814f;
-    *pr =  (r - *y) / 1.4746f;
+    //*y  =  0.2627f * r + 0.6780f * g + 0.0593f * b;
+    *y = 0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b;
+    *pb =  (b - *y) / 1.8814;
+    *pr =  (r - *y) / 1.4746;
 
     // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
     //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
@@ -567,9 +577,10 @@ ypbpr_to_rgb2020(float y,
     // ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
     // (Rec.2020, table 4 p4)
     //
-    *b = pb * 1.8814f + y;
-    *r = pr * 1.4746f + y;
-    *g = (y - 0.2627f * *r - 0.0593f * *b) / 0.6780f;
+    *b = pb * 1.8814 + y;
+    *r = pr * 1.4746 + y;
+    //*g = (y - 0.2627f * *r - 0.0593f * *b) / 0.6780f;
+    *g = (y - 0.2627002119 * *r - 0.0593017165 * *b) / 0.6779980711;
 } // yuv_to_rgb
 
 // R'G'B' in the range 0-1 to Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,
@@ -679,7 +690,7 @@ xyz_to_rgb709(float x,
 }
 
 // r,g,b values are from 0 to 1
-// Convert pixel values from RGB_709 to XYZ color spaces.
+// Convert pixel values from RGB_2020 to XYZ color spaces.
 // Uses the standard D65 white point.
 void
 rgb2020_to_xyz(float r,
@@ -712,6 +723,80 @@ xyz_to_rgb2020(float x,
     *r =  1.7166511880 * x + -0.3556707838 * y + -0.2533662814 * z;
     *g = -0.6666843518 * x +  1.6164812366 * y +  0.0157685458 * z;
     *b =  0.0176398574 * x + -0.0427706133 * y +  0.9421031212 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_ACES_AP0 to XYZ color spaces.
+// Uses the standard D65 white point.
+void
+rgbACESAP0_to_xyz(float r,
+                  float g,
+                  float b,
+                  float *x,
+                  float *y,
+                  float *z)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *x = 0.9525523959 * r + 0.0000000000 * g +  0.0000936786 * b;
+    *y = 0.3439664498 * r + 0.7281660966 * g + -0.0721325464 * b;
+    *z = 0.0000000000 * r + 0.0000000000 * g +  1.0088251844 * b;
+}
+
+// Convert pixel values from XYZ to RGB_ACES_AP0 color spaces.
+// Uses the standard D65 white point.
+void
+xyz_to_rgbACESAP0(float x,
+                  float y,
+                  float z,
+                  float *r,
+                  float *g,
+                  float *b)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.0498110175 * x +  0.0000000000 * y + -0.0000974845 * z;
+    *g = -0.4959030231 * x +  1.3733130458 * y +  0.0982400361 * z;
+    *b =  0.0000000000 * x +  0.0000000000 * y +  0.9912520182 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_ACES_AP1 to XYZ color spaces.
+// Uses the standard D65 white point.
+void
+rgbACESAP1_to_xyz(float r,
+                  float g,
+                  float b,
+                  float *x,
+                  float *y,
+                  float *z)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *x =  0.6624541811 * r +  0.1340042065 * g +  0.1561876870 * b;
+    *y =  0.2722287168 * r +  0.6740817658 * g +  0.0536895174 * b;
+    *z = -0.0055746495 * r +  0.0040607335 * g +  1.0103391003 * b;
+}
+
+// Convert pixel values from XYZ to RGB_ACES_AP1 color spaces.
+// Uses the standard D65 white point.
+void
+xyz_to_rgbACESAP1(float x,
+                  float y,
+                  float z,
+                  float *r,
+                  float *g,
+                  float *b)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.6410233797 * x + -0.3248032942 * y + -0.2364246952 * z;
+    *g = -0.6636628587 * x +  1.6153315917 * y +  0.0167563477 * z;
+    *b =  0.0117218943 * x + -0.0082844420 * y +  0.9883948585 * z;
 }
 
 static inline

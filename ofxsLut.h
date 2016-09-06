@@ -993,6 +993,12 @@ void xyz_to_rgb709( float x, float y, float z, float *r, float *g, float *b );
 void rgb2020_to_xyz( float r, float g, float b, float *x, float *y, float *z );
 void xyz_to_rgb2020( float x, float y, float z, float *r, float *g, float *b );
 
+void rgbACESAP0_to_xyz( float r, float g, float b, float *x, float *y, float *z );
+void xyz_to_rgbACESAP0( float x, float y, float z, float *r, float *g, float *b );
+
+void rgbACESAP1_to_xyz( float r, float g, float b, float *x, float *y, float *z );
+void xyz_to_rgbACESAP1( float x, float y, float z, float *r, float *g, float *b );
+
 void xyz_to_lab( float x, float y, float z, float *l, float *a, float *b );
 void lab_to_xyz( float l, float a, float b, float *x, float *y, float *z );
 
