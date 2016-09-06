@@ -812,23 +812,32 @@ to_func_srgb(float v)
     }
 }
 
+// Rec.709 and Rec.2020 share the same transfer function (and illuminant), except that
+// Rec.2020 is more precise.
+// https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
+// Since this is float, we use the coefficients from Rec.2020
 inline float
 from_func_Rec709(float v)
 {
-    if (v < 0.081f) {
+    //if (v < 0.081f) {
+    if (v < 0.08145f) {
         return (v < 0.0f) ? 0.0f : v * (1.0f / 4.5f);
     } else {
-        return std::pow( (v + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f) );
+        //return std::pow( (v + 0.099f) * (1.0f / 1.099f), (1.0f / 0.45f) );
+        return std::pow( (v + 0.0993f) * (1.0f / 1.0993f), (1.0f / 0.45f) );
     }
 }
 
+// see above comment
 inline float
 to_func_Rec709(float v)
 {
-    if (v < 0.018f) {
+    //if (v < 0.018f) {
+    if (v < 0.0181f) {
         return (v < 0.0f) ? 0.0f : v * 4.5f;
     } else {
-        return 1.099f * std::pow(v, 0.45f) - 0.099f;
+        //return 1.099f * std::pow(v, 0.45f) - 0.099f;
+        return 1.0993f * std::pow(v, 0.45f) - (1.0993f - 1.f);
     }
 }
 
@@ -958,31 +967,37 @@ void rgb_to_hsi( float r, float g, float b, float *h, float *s, float *i );
 void hsi_to_rgb( float h, float s, float i, float *r, float *g, float *b );
 
 void rgb_to_ycbcr601( float r, float g, float b, float *y, float *cb, float *cr );
-void ycbcr601_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
+void ycbcr_to_rgb601( float y, float cb, float cr, float *r, float *g, float *b );
 
 void rgb_to_ycbcr709( float r, float g, float b, float *y, float *cb, float *cr );
-void ycbcr709_to_rgb( float y, float cb, float cr, float *r, float *g, float *b );
+void ycbcr_to_rgb709( float y, float cb, float cr, float *r, float *g, float *b );
 
 void rgb_to_ypbpr601( float r, float g, float b, float *y, float *pb, float *pr );
-void ypbpr601_to_rgb( float y, float pb, float pr, float *r, float *g, float *b );
+void ypbpr_to_rgb601( float y, float pb, float pr, float *r, float *g, float *b );
 
 void rgb_to_ypbpr709( float r, float g, float b, float *y, float *pb, float *pr );
-void ypbpr709_to_rgb( float y, float pb, float pr, float *r, float *g, float *b );
+void ypbpr_to_rgb709( float y, float pb, float pr, float *r, float *g, float *b );
+
+void rgb_to_ypbpr2020( float r, float g, float b, float *y, float *pb, float *pr );
+void ypbpr_to_rgb2020( float y, float pb, float pr, float *r, float *g, float *b );
 
 void rgb_to_yuv601( float r, float g, float b, float *y, float *u, float *v );
-void yuv601_to_rgb( float y, float u, float v, float *r, float *g, float *b );
+void yuv_to_rgb601( float y, float u, float v, float *r, float *g, float *b );
 
 void rgb_to_yuv709( float r, float g, float b, float *y, float *u, float *v );
-void yuv709_to_rgb( float y, float u, float v, float *r, float *g, float *b );
+void yuv_to_rgb709( float y, float u, float v, float *r, float *g, float *b );
 
-void rgb_to_xyz_rec709( float r, float g, float b, float *x, float *y, float *z );
-void xyz_rec709_to_rgb( float x, float y, float z, float *r, float *g, float *b );
+void rgb709_to_xyz( float r, float g, float b, float *x, float *y, float *z );
+void xyz_to_rgb709( float x, float y, float z, float *r, float *g, float *b );
 
-void xyz_rec709_to_lab( float x, float y, float z, float *l, float *a, float *b );
-void lab_to_xyz_rec709( float l, float a, float b, float *x, float *y, float *z );
+void rgb2020_to_xyz( float r, float g, float b, float *x, float *y, float *z );
+void xyz_to_rgb2020( float x, float y, float z, float *r, float *g, float *b );
 
-void rgb_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
-void lab_to_rgb( float l, float a, float b, float *r, float *g, float *b_ );
+void xyz_to_lab( float x, float y, float z, float *l, float *a, float *b );
+void lab_to_xyz( float l, float a, float b, float *x, float *y, float *z );
+
+void rgb709_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
+void lab_to_rgb709( float l, float a, float b, float *r, float *g, float *b_ );
 
 
 // a Singleton that holds precomputed LUTs for the whole application.

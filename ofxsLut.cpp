@@ -374,8 +374,8 @@ hsi_to_rgb(float h,
     }
 } // hsi_to_rgb
 
-// RGB in the range 0-1 to YCbCr in the video range
-// (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// R'G'B' in the range 0-1 to Y'CbCr in the video range
+// (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
 void
 rgb_to_ycbcr601(float r,
                 float g,
@@ -396,10 +396,10 @@ rgb_to_ycbcr601(float r,
     *cr =  0.439 * r - 0.368 * g - 0.071 * b + 128 / 255.;
 }
 
-// YCbCr in the video range (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
-// to RGB in the range 0-1
+// Y'CbCr in the video range (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// to R'G'B' in the range 0-1
 void
-ycbcr601_to_rgb(float y,
+ycbcr_to_rgb601(float y,
                 float cb,
                 float cr,
                 float *r,
@@ -421,8 +421,8 @@ ycbcr601_to_rgb(float y,
     *b = 1.164 * (y - 16 / 255.) + 2.017 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
 
-// RGB in the range 0-1 to YCbCr in the video range
-// (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// R'G'B' in the range 0-1 to Y'CbCr in the video range
+// (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
 void
 rgb_to_ycbcr709(float r,
                 float g,
@@ -431,34 +431,34 @@ rgb_to_ycbcr709(float r,
                 float *cb,
                 float *cr)
 {
-    /// ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
+    // ref: http://www.poynton.com/PDFs/coloureq.pdf (BT.709)
     //*y  =  0.2215 * r +0.7154 * g +0.0721 * b;
     //*cb = -0.1145 * r -0.3855 * g +0.5000 * b + 128./255;
     //*cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
 
-    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    // ref: http://www.equasys.de/colorconversion.html (BT.709)
     *y  =  0.183 * r + 0.614 * g + 0.062 * b + 16 / 255.;
     *cb = -0.101 * r - 0.339 * g + 0.439 * b + 128 / 255.;
     *cr =  0.439 * r - 0.399 * g - 0.040 * b + 128 / 255.;
 }
 
-// YCbCr in the video range (Y = 16/255 to 235/255, CbCr = 16/255 to 240/255)
-// to RGB in the range 0-1
+// Y'CbCr in the video range (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
+// to R'G'B' in the range 0-1
 void
-ycbcr709_to_rgb(float y,
+ycbcr_to_rgb709(float y,
                 float cb,
                 float cr,
                 float *r,
                 float *g,
                 float *b)
 {
-    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    // ref: http://www.equasys.de/colorconversion.html (BT.709)
     *r = 1.164 * (y - 16 / 255.) + 1.793 * (cr - 128 / 255.);
     *g = 1.164 * (y - 16 / 255.) - 0.533 * (cr - 128 / 255.) - 0.213 * (cb - 128 / 255.);
     *b = 1.164 * (y - 16 / 255.) + 2.112 * (cb - 128 / 255.);
 } // ycbcr_to_rgb
 
-// RGB in the range 0-1 to YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5)
+// R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
 void
 rgb_to_ypbpr601(float r,
                 float g,
@@ -467,7 +467,7 @@ rgb_to_ypbpr601(float r,
                 float *pb,
                 float *pr)
 {
-    /// ref: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
+    // ref: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
     *y  =  0.299f    * r + 0.587f    * g + 0.114f * b;
@@ -475,16 +475,16 @@ rgb_to_ypbpr601(float r,
     *pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
 }
 
-// YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to RGB in the range 0-1
+// Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
 void
-ypbpr601_to_rgb(float y,
+ypbpr_to_rgb601(float y,
                 float pb,
                 float pr,
                 float *r,
                 float *g,
                 float *b)
 {
-    /// https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
+    // https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also ref: http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
     *r = y                + 1.402f    * pr,
@@ -492,7 +492,7 @@ ypbpr601_to_rgb(float y,
     *b = y + 1.772f   * pb;
 } // yuv_to_rgb
 
-// RGB in the range 0-1 to YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5)
+// R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
 void
 rgb_to_ypbpr709(float r,
                 float g,
@@ -501,10 +501,10 @@ rgb_to_ypbpr709(float r,
                 float *pb,
                 float *pr)
 {
-    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    // ref: http://www.equasys.de/colorconversion.html (BT.709)
     *y  =  0.2126f * r + 0.7152f * g + 0.0722f * b;
-    *pb = -0.115f  * r - 0.385f  * g + 0.500f  * b;
-    *pr =  0.500f  * r - 0.454f  * g - 0.046f  * b;
+    *pb = -0.115f  * r - 0.385f  * g + 0.500f  * b; // or (b - y)/1.8556
+    *pr =  0.500f  * r - 0.454f  * g - 0.046f  * b; // or (r - y)/1.5748
 
     // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
     //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
@@ -512,16 +512,16 @@ rgb_to_ypbpr709(float r,
     //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
 }
 
-// YCbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to RGB in the range 0-1
+// Y'CbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
 void
-ypbpr709_to_rgb(float y,
+ypbpr_to_rgb709(float y,
                 float pb,
                 float pr,
                 float *r,
                 float *g,
                 float *b)
 {
-    /// ref: http://www.equasys.de/colorconversion.html (BT.709)
+    // ref: http://www.equasys.de/colorconversion.html (BT.709)
     *r = y               + 1.575f * pr,
     *g = y - 0.187f * pb - 0.468f * pr;
     *b = y + 1.856f * pb;
@@ -533,7 +533,46 @@ ypbpr709_to_rgb(float y,
     //*b = y + 1.8556f * pb;
 } // yuv_to_rgb
 
-// RGB in the range 0-1 to YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
+void
+rgb_to_ypbpr2020(float r,
+                 float g,
+                 float b,
+                 float *y,
+                 float *pb,
+                 float *pr)
+{
+    // ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
+    // (Rec.2020, table 4 p4)
+    //
+    *y  =  0.2627f * r + 0.6780f * g + 0.0593f * b;
+    *pb =  (b - *y) / 1.8814f;
+    *pr =  (r - *y) / 1.4746f;
+
+    // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
+    //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
+    //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
+    //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
+}
+
+// Y'CbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
+void
+ypbpr_to_rgb2020(float y,
+                 float pb,
+                 float pr,
+                 float *r,
+                 float *g,
+                 float *b)
+{
+    // ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
+    // (Rec.2020, table 4 p4)
+    //
+    *b = pb * 1.8814f + y;
+    *r = pr * 1.4746f + y;
+    *g = (y - 0.2627f * *r - 0.0593f * *b) / 0.6780f;
+} // yuv_to_rgb
+
+// R'G'B' in the range 0-1 to Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,
 // V in the range -0.615 - 0.615)
 void
 rgb_to_yuv601(float r,
@@ -549,10 +588,10 @@ rgb_to_yuv601(float r,
     *v =  0.615f   * r - 0.51499f * g - 0.10001 * b;
 }
 
-// YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
-// V in the range -0.615 - 0.615) to RGB in the range 0-1
+// Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615) to R'G'B' in the range 0-1
 void
-yuv601_to_rgb(float y,
+yuv_to_rgb601(float y,
               float u,
               float v,
               float *r,
@@ -565,7 +604,7 @@ yuv601_to_rgb(float y,
     *b = y + 2.03211f * u;
 } // yuv_to_rgb
 
-// RGB in the range 0-1 to YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// R'G'B' in the range 0-1 to Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,
 // V in the range -0.615 - 0.615)
 void
 rgb_to_yuv709(float r,
@@ -581,10 +620,10 @@ rgb_to_yuv709(float r,
     *v =  0.615f   * r - 0.55861f * g - 0.05639f * b;
 }
 
-// YUV (Y in the range 0-1, U in the range -0.436 - 0.436,
-// V in the range -0.615 - 0.615) to RGB in the range 0-1
+// Y'UV (Y in the range 0-1, U in the range -0.436 - 0.436,
+// V in the range -0.615 - 0.615) to R'G'B' in the range 0-1
 void
-yuv709_to_rgb(float y,
+yuv_to_rgb709(float y,
               float u,
               float v,
               float *r,
@@ -598,34 +637,81 @@ yuv709_to_rgb(float y,
 } // yuv_to_rgb
 
 // r,g,b values are from 0 to 1
-// Convert pixel values from RGB to XYZ_709 color spaces.
+// Convert pixel values from RGB_709 to XYZ color spaces.
 // Uses the standard D65 white point.
 void
-rgb_to_xyz_rec709(float r,
-                  float g,
-                  float b,
-                  float *x,
-                  float *y,
-                  float *z)
+rgb709_to_xyz(float r,
+              float g,
+              float b,
+              float *x,
+              float *y,
+              float *z)
 {
-    *x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
-    *y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
-    *z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+    //*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+    //*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+    //*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+    //> with(linalg):
+    //> M:=matrix([[3.2409699419, -1.5373831776, -0.4986107603],[-0.9692436363, 1.8759675015, 0.0415550574],[ 0.0556300797, -0.2039769589,  1.0569715142]]);
+    //> inverse(M);
+
+    *x = 0.4123907992 * r + 0.3575843394 * g + 0.1804807884 * b;
+    *y = 0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
+    *z = 0.0193308187 * r + 0.1191947798 * g + 0.9505321522 * b;
 }
 
-// Convert pixel values from XYZ_709 to RGB color spaces.
+// Convert pixel values from XYZ to RGB_709 color spaces.
 // Uses the standard D65 white point.
 void
-xyz_rec709_to_rgb(float x,
-                  float y,
-                  float z,
-                  float *r,
-                  float *g,
-                  float *b)
+xyz_to_rgb709(float x,
+              float y,
+              float z,
+              float *r,
+              float *g,
+              float *b)
 {
-    *r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
-    *g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
-    *b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+    //*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+    //*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+    //*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  3.2409699419 * x + -1.5373831776 * y + -0.4986107603 * z;
+    *g = -0.9692436363 * x +  1.8759675015 * y +  0.0415550574 * z;
+    *b =  0.0556300797 * x + -0.2039769589 * y +  1.0569715142 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_709 to XYZ color spaces.
+// Uses the standard D65 white point.
+void
+rgb2020_to_xyz(float r,
+               float g,
+               float b,
+               float *x,
+               float *y,
+               float *z)
+{
+    //> with(linalg):
+    //> P:=matrix([[1.7166511880,-0.3556707838,-0.2533662814],[-0.6666843518,1.6164812366,0.0157685458],[0.0176398574,-0.0427706133,0.9421031212]]);
+    //> inverse(P);
+
+    *x = 0.6369580481 * r + 0.1446169036 * g + 0.1688809752 * b;
+    *y = 0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b;
+    *z = 0.0000000000 * r + 0.0280726931 * g + 1.060985058  * b;
+}
+
+// Convert pixel values from XYZ to RGB_2020 color spaces.
+// Uses the standard D65 white point.
+void
+xyz_to_rgb2020(float x,
+               float y,
+               float z,
+               float *r,
+               float *g,
+               float *b)
+{
+    //https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.7166511880 * x + -0.3556707838 * y + -0.2533662814 * z;
+    *g = -0.6666843518 * x +  1.6164812366 * y +  0.0157685458 * z;
+    *b =  0.0176398574 * x + -0.0427706133 * y +  0.9421031212 * z;
 }
 
 static inline
@@ -635,15 +721,15 @@ labf(float x)
     return ( (x) >= 0.008856f ? ( std::pow(x, (float)1 / 3) ) : (7.787f * x + 16.0f / 116) );
 }
 
-// Convert pixel values from XYZ_709 to Lab color spaces.
+// Convert pixel values from XYZ to Lab color spaces.
 // Uses the standard D65 white point.
 void
-xyz_rec709_to_lab(float x,
-                  float y,
-                  float z,
-                  float *l,
-                  float *a,
-                  float *b)
+xyz_to_lab(float x,
+           float y,
+           float z,
+           float *l,
+           float *a,
+           float *b)
 {
     const float fx = labf( x / (0.412453f + 0.357580f + 0.180423f) );
     const float fy = labf( y / (0.212671f + 0.715160f + 0.072169f) );
@@ -664,12 +750,12 @@ labfi(float x)
 // Convert pixel values from Lab to XYZ_709 color spaces.
 // Uses the standard D65 white point.
 void
-lab_to_xyz_rec709(float l,
-                  float a,
-                  float b,
-                  float *x,
-                  float *y,
-                  float *z)
+lab_to_xyz(float l,
+           float a,
+           float b,
+           float *x,
+           float *y,
+           float *z)
 {
     const float cy = (l + 16) / 116;
 
@@ -683,33 +769,33 @@ lab_to_xyz_rec709(float l,
 // Convert pixel values from RGB to Lab color spaces.
 // Uses the standard D65 white point.
 void
-rgb_to_lab(float r,
-           float g,
-           float b,
-           float *l,
-           float *a,
-           float *b_)
+rgb709_to_lab(float r,
+              float g,
+              float b,
+              float *l,
+              float *a,
+              float *b_)
 {
     float x, y, z;
 
-    rgb_to_xyz_rec709(r, g, b, &x, &y, &z);
-    xyz_rec709_to_lab(x, y, z, l, a, b_);
+    rgb709_to_xyz(r, g, b, &x, &y, &z);
+    xyz_to_lab(x, y, z, l, a, b_);
 }
 
 // Convert pixel values from RGB to Lab color spaces.
 // Uses the standard D65 white point.
 void
-lab_to_rgb(float l,
-           float a,
-           float b,
-           float *r,
-           float *g,
-           float *b_)
+lab_to_rgb709(float l,
+              float a,
+              float b,
+              float *r,
+              float *g,
+              float *b_)
 {
     float x, y, z;
 
-    lab_to_xyz_rec709(l, a, b, &x, &y, &z);
-    xyz_rec709_to_rgb(x, y, z, r, g, b_);
+    lab_to_xyz(l, a, b, &x, &y, &z);
+    xyz_to_rgb709(x, y, z, r, g, b_);
 }
 }         // namespace Color
 } //namespace OFX
