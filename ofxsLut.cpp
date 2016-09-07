@@ -470,9 +470,15 @@ rgb_to_ypbpr601(float r,
     // ref: https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
-    *y  =  0.299f    * r + 0.587f    * g + 0.114f * b;
-    *pb = -0.168736f * r - 0.331264f * g + 0.500f * b;
-    *pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
+    //*y  =  0.299f    * r + 0.587f    * g + 0.114f * b;
+    //*pb = -0.168736f * r - 0.331264f * g + 0.500f * b;
+    //*pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
+
+#define Kb 0.114
+#define Kr 0.299
+    *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
+    *pb =  (b - *y) / ( 2 * (1 - Kb) );
+    *pr =  (r - *y) / ( 2 * (1 - Kr) );
 }
 
 // Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
@@ -487,9 +493,15 @@ ypbpr_to_rgb601(float y,
     // https://en.wikipedia.org/wiki/YCbCr#ITU-R_BT.601_conversion
     // also ref: http://www.equasys.de/colorconversion.html (BT.601)
     // and http://public.kitware.com/vxl/doc/release/core/vil/html/vil__colour__space_8cxx_source.html
-    *r = y                + 1.402f    * pr,
-    *g = y - 0.344136 * pb - 0.714136f * pr;
-    *b = y + 1.772f   * pb;
+    //*r = y                + 1.402f    * pr,
+    //*g = y - 0.344136 * pb - 0.714136f * pr;
+    //*b = y + 1.772f   * pb;
+
+    *b = pb * ( 2 * (1 - Kb) ) + y;
+    *r = pr * ( 2 * (1 - Kr) ) + y;
+    *g = (y - Kr * *r - Kb * *b) / (1 - Kr - Kb);
+#undef Kb
+#undef Kr
 } // yuv_to_rgb
 
 // R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
@@ -511,9 +523,14 @@ rgb_to_ypbpr709(float r,
     //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
     //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
 
-    *y  =  0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
-    *pb =  (b - *y) / 1.8556;
-    *pr =  (r - *y) / 1.5748;
+    //*y  =  0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
+    //*pb =  (b - *y) / 1.8556;
+    //*pr =  (r - *y) / 1.5748;
+#define Kb 0.07219231534
+#define Kr 0.2126390058
+    *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
+    *pb =  (b - *y) / ( 2 * (1 - Kb) );
+    *pr =  (r - *y) / ( 2 * (1 - Kr) );
 }
 
 // Y'CbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
@@ -536,10 +553,15 @@ ypbpr_to_rgb709(float y,
     //*g = y - 0.1870f * pb - 0.4664f * pr;
     //*b = y + 1.8556f * pb;
 
-    *b = pb * 1.8556 + y;
-    *r = pr * 1.5748 + y;
-    //*g = (y - 0.2126f * *r - 0.0722f * *b) / 0.7152f;
-    *g = (y - 0.2126390058 * *r - 0.07219231534 * *b) / 0.7151686783;
+    //*b = pb * 1.8556 + y;
+    //*r = pr * 1.5748 + y;
+    ////*g = (y - 0.2126f * *r - 0.0722f * *b) / 0.7152f;
+    //*g = (y - 0.2126390058 * *r - 0.07219231534 * *b) / 0.7151686783;
+    *b = pb * ( 2 * (1 - Kb) ) + y;
+    *r = pr * ( 2 * (1 - Kr) ) + y;
+    *g = (y - Kr * *r - Kb * *b) / (1 - Kr - Kb);
+#undef Kb
+#undef Kr
 } // yuv_to_rgb
 
 // R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
@@ -555,14 +577,18 @@ rgb_to_ypbpr2020(float r,
     // (Rec.2020, table 4 p4)
     //
     //*y  =  0.2627f * r + 0.6780f * g + 0.0593f * b;
-    *y = 0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b;
-    *pb =  (b - *y) / 1.8814;
-    *pr =  (r - *y) / 1.4746;
+    //*pb =  (b - *y) / 1.8814;
+    //*pr =  (r - *y) / 1.4746;
 
     // ref: http://www.poynton.com/PDFs/coloureq.pdf (10.5)
     //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
     //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
     //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
+#define Kb 0.0593
+#define Kr 0.2627
+    *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
+    *pb =  (b - *y) / ( 2 * (1 - Kb) );
+    *pr =  (r - *y) / ( 2 * (1 - Kr) );
 }
 
 // Y'CbCr Analog (Y in the range 0-1, PbPr in the range -0.5 - 0.5) to R'G'B' in the range 0-1
@@ -577,10 +603,14 @@ ypbpr_to_rgb2020(float y,
     // ref: https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
     // (Rec.2020, table 4 p4)
     //
-    *b = pb * 1.8814 + y;
-    *r = pr * 1.4746 + y;
+    //*b = pb * 1.8814 + y;
+    //*r = pr * 1.4746 + y;
     //*g = (y - 0.2627f * *r - 0.0593f * *b) / 0.6780f;
-    *g = (y - 0.2627002119 * *r - 0.0593017165 * *b) / 0.6779980711;
+    *b = pb * ( 2 * (1 - Kb) ) + y;
+    *r = pr * ( 2 * (1 - Kr) ) + y;
+    *g = (y - Kr * *r - Kb * *b) / (1 - Kr - Kb);
+#undef Kb
+#undef Kr
 } // yuv_to_rgb
 
 // R'G'B' in the range 0-1 to Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,
@@ -648,7 +678,7 @@ yuv_to_rgb709(float y,
 } // yuv_to_rgb
 
 // r,g,b values are from 0 to 1
-// Convert pixel values from RGB_709 to XYZ color spaces.
+// Convert pixel values from linear RGB_709 or sRGB to XYZ color spaces.
 // Uses the standard D65 white point.
 void
 rgb709_to_xyz(float r,
@@ -670,7 +700,7 @@ rgb709_to_xyz(float r,
     *z = 0.0193308187 * r + 0.1191947798 * g + 0.9505321522 * b;
 }
 
-// Convert pixel values from XYZ to RGB_709 color spaces.
+// Convert pixel values from XYZ to linear RGB_709 or sRGB color spaces.
 // Uses the standard D65 white point.
 void
 xyz_to_rgb709(float x,
@@ -727,7 +757,7 @@ xyz_to_rgb2020(float x,
 
 // r,g,b values are from 0 to 1
 // Convert pixel values from RGB_ACES_AP0 to XYZ color spaces.
-// Uses the standard D65 white point.
+// Uses the ACES white point (close to D60).
 void
 rgbACESAP0_to_xyz(float r,
                   float g,
@@ -744,8 +774,8 @@ rgbACESAP0_to_xyz(float r,
     *z = 0.0000000000 * r + 0.0000000000 * g +  1.0088251844 * b;
 }
 
-// Convert pixel values from XYZ to RGB_ACES_AP0 color spaces.
-// Uses the standard D65 white point.
+// Convert pixel values from XYZ to RGB_ACES_AP0 (with the ACES illuminant) color spaces.
+// Uses the ACES white point (close to D60).
 void
 xyz_to_rgbACESAP0(float x,
                   float y,
@@ -764,7 +794,7 @@ xyz_to_rgbACESAP0(float x,
 
 // r,g,b values are from 0 to 1
 // Convert pixel values from RGB_ACES_AP1 to XYZ color spaces.
-// Uses the standard D65 white point.
+// Uses the ACES white point (close to D60).
 void
 rgbACESAP1_to_xyz(float r,
                   float g,
@@ -782,7 +812,7 @@ rgbACESAP1_to_xyz(float r,
 }
 
 // Convert pixel values from XYZ to RGB_ACES_AP1 color spaces.
-// Uses the standard D65 white point.
+// Uses the ACES white point (close to D60).
 void
 xyz_to_rgbACESAP1(float x,
                   float y,
@@ -832,7 +862,7 @@ labfi(float x)
     return ( x >= 0.206893f ? (x * x * x) : ( (x - 16.0f / 116) / 7.787f ) );
 }
 
-// Convert pixel values from Lab to XYZ_709 color spaces.
+// Convert pixel values from Lab to XYZ color spaces.
 // Uses the standard D65 white point.
 void
 lab_to_xyz(float l,

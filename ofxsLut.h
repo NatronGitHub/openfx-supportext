@@ -792,6 +792,7 @@ to_func_linear(float v)
     return v;
 }
 
+// sRGB to Linear (verified)
 inline float
 from_func_srgb(float v)
 {
@@ -802,6 +803,7 @@ from_func_srgb(float v)
     }
 }
 
+// Linear to sRGB
 inline float
 to_func_srgb(float v)
 {
@@ -816,6 +818,8 @@ to_func_srgb(float v)
 // Rec.2020 is more precise.
 // https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
 // Since this is float, we use the coefficients from Rec.2020
+
+// From Rec.709 to Linear
 inline float
 from_func_Rec709(float v)
 {
@@ -829,6 +833,7 @@ from_func_Rec709(float v)
 }
 
 // see above comment
+// to Rec.709 from Linear
 inline float
 to_func_Rec709(float v)
 {
@@ -841,18 +846,6 @@ to_func_Rec709(float v)
     }
 }
 
-inline float
-from_func_gamma22(float v)
-{
-    return (v <= 0) ? 0. : std::pow(v, 2.2f);
-}
-
-inline float
-to_func_gamma22(float v)
-{
-    return (v <= 0) ? 0. : std::pow(v, 1.f / 2.2f);
-}
-
 /*
    Following the formula:
    offset = pow(10,(blackpoint - whitepoint) * 0.002 / gammaSensito)
@@ -863,12 +856,14 @@ to_func_gamma22(float v)
    whitepoint = 685.0
    gammasensito = 0.6
  */
+/// from Cineon to Linear
 inline float
 from_func_Cineon(float v)
 {
     return ( 1.f / ( 1.f - std::pow(10.f, 1.97f) ) ) * std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
 }
 
+/// to Cineon from Linear
 inline float
 to_func_Cineon(float v)
 {
@@ -877,66 +872,77 @@ to_func_Cineon(float v)
     return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
 }
 
+// from Gamma 1.8 to Linear
 inline float
 from_func_Gamma1_8(float v)
 {
-    return std::pow(v, 0.55f);
+    return (v <= 0) ? 0. : std::pow(v, 1.8f);
 }
 
+// to Gamma 1.8 from Linear
 inline float
 to_func_Gamma1_8(float v)
 {
-    return std::pow(v, 1.8f);
+    return (v <= 0) ? 0. : std::pow(v, 0.55f);
 }
 
+// Linear to Gamma 2.2
 inline float
 from_func_Gamma2_2(float v)
 {
-    return std::pow(v, 0.45f);
+    return (v <= 0) ? 0. : std::pow(v, 0.45f);
 }
 
+// Gamma 2.2 to Linear
 inline float
 to_func_Gamma2_2(float v)
 {
-    return std::pow(v, 2.2f);
+    return (v <= 0) ? 0. : std::pow(v, 2.2f);
 }
 
+/// from Panalog to Linear
 inline float
 from_func_Panalog(float v)
 {
-    return (std::pow(10.f, (1023.f * v - 681.f) / 444.f) - 0.0408f) / 0.96f;
+    return (std::pow(10.f, (1023.f * v - 681.f) / 444.f) - 0.0408f) / (1.0f - 0.0408f);
 }
 
+/// to Panalog from Linear
 inline float
 to_func_Panalog(float v)
 {
-    return (444.f * std::log10(0.0408f + 0.96f * v) + 681.f) / 1023.f;
+    return (444.f * std::log10(0.0408f + (1.0f - 0.0408f) * v) + 681.f) / 1023.f;
 }
 
+/// from REDLog to Linear
+inline float
+from_func_REDLog(float v)
+{
+    return (std::pow(10.f, (1023.f * v - 1023.f) / 511.f) - 0.01) / (1.0f - 0.01f);
+}
+
+/// to REDLog from Linear
+    inline float
+to_func_REDLog(float v)
+{
+    return (511.f * std::log10(0.01f + (1.0f - 0.01f) * v) + 1023.) / 1023.f;
+}
+
+/// from ViperLog to Linear
 inline float
 from_func_ViperLog(float v)
 {
     return std::pow(10.f, (1023.f * v - 1023.f) / 500.f);
 }
 
+/// to ViperLog from Linear
 inline float
 to_func_ViperLog(float v)
 {
     return (500.f * std::log10(v) + 1023.f) / 1023.f;
 }
 
-inline float
-from_func_RedLog(float v)
-{
-    return (std::pow(10.f, ( 1023.f * v - 1023.f ) / 511.f) - 0.01f) / 0.99f;
-}
-
-inline float
-to_func_RedLog(float v)
-{
-    return (511.f * std::log10(0.01f + 0.99f * v) + 1023.f) / 1023.f;
-}
-
+/// from AlexaV3LogC to Linear
 inline float
 from_func_AlexaV3LogC(float v)
 {
@@ -944,6 +950,7 @@ from_func_AlexaV3LogC(float v)
            : ( v / 0.9661776f - 0.04378604f) * 0.18f - 0.00937677f;
 }
 
+/// from Linear to AlexaV3LogC
 inline float
 to_func_AlexaV3LogC(float v)
 {
@@ -1112,9 +1119,9 @@ public:
         return Instance().getLut("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
     }
 
-    static const LutBase* PanaLogLut()
+    static const LutBase* PanalogLut()
     {
-        return Instance().getLut("PanaLog", from_func_Panalog, to_func_Panalog);
+        return Instance().getLut("Panalog", from_func_Panalog, to_func_Panalog);
     }
 
     static const LutBase* ViperLogLut()
@@ -1122,9 +1129,9 @@ public:
         return Instance().getLut("ViperLog", from_func_ViperLog, to_func_ViperLog);
     }
 
-    static const LutBase* RedLogLut()
+    static const LutBase* REDLogLut()
     {
-        return Instance().getLut("RedLog", from_func_RedLog, to_func_RedLog);
+        return Instance().getLut("REDLog", from_func_REDLog, to_func_REDLog);
     }
 
     static const LutBase* AlexaV3LogCLut()
