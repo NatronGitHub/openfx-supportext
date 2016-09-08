@@ -848,10 +848,10 @@ to_func_Rec709(float v)
 
 /*
    Following the formula:
-   offset = pow(10,(blackpoint - whitepoint) * 0.002 / gammaSensito)
+   offset = pow(10,(blackpoint - whitepoint) * 0.002 / gamma)
    gain = 1/(1-offset)
-   linear = gain * pow(10,(1023*v - whitepoint)*0.002/gammaSensito)
-   cineon = (log10((v + offset) /gain)/ (0.002 / gammaSensito) + whitepoint)/1023
+   linear = gain * (pow(10,(1023*v - whitepoint)*0.002/gamma) - offset)
+   cineon = (log10((v + offset) /gain)/ (0.002 / gamma) + whitepoint)/1023
    Here we're using: blackpoint = 95.0
    whitepoint = 685.0
    gammasensito = 0.6
@@ -860,16 +860,22 @@ to_func_Rec709(float v)
 inline float
 from_func_Cineon(float v)
 {
-    return ( 1.f / ( 1.f - std::pow(10.f, 1.97f) ) ) * std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
+    //return ( 1.f / ( 1.f - std::pow(10.f, -1.97f) ) ) * std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
+    //float offset = std::pow(10.f, (95.f - 685.f)*0.002f/0.6f);
+    //float offset = 0.01079775161f;
+    return ( 1.f / ( 1.f - 0.01079775161f ) ) * ( std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f) - 0.01079775161f);
 }
 
 /// to Cineon from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Cineon(float v)
 {
-    float offset = std::pow(10.f, 1.97f);
+    //float offset = std::pow(10.f, -1.97f);
+    //float offset = std::pow(10.f, (95.f - 685.f)*0.002f/0.6f);
+    //float offset = 0.01079775161f;
 
-    return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
+    //return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
+    return (std::log10( (v + 0.01079775161f) / ( 1.f / (1.f - 0.01079775161f) ) ) / (0.002f / 0.6f) + 685.0f) / 1023.f;
 }
 
 /// from Gamma 1.8 to Linear Electro-Optical Transfer Function (EOTF)
@@ -946,16 +952,56 @@ to_func_ViperLog(float v)
 inline float
 from_func_AlexaV3LogC(float v)
 {
+    // ref: "ALEXA LOG C Curve-Usage in VFX" PDF, p9
     return v > 0.1496582f ? std::pow(10.f, (v - 0.385537f) / 0.2471896f) * 0.18f - 0.00937677f
            : ( v / 0.9661776f - 0.04378604f) * 0.18f - 0.00937677f;
 }
 
-/// from Linear to AlexaV3LogC Opto-Electronic Transfer Function (OETF)
+/// from Linear to AlexaV3LogC (EI=800) Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_AlexaV3LogC(float v)
 {
+    // ref: "ALEXA LOG C Curve-Usage in VFX" PDF, p9
     return v > 0.010591f ?  0.247190f * std::log10(5.555556f * v + 0.052272f) + 0.385537f
            : v * 5.367655f + 0.092809f;
+}
+
+/// from SLog1 to Linear Electro-Optical Transfer Function (EOTF)
+inline float
+from_func_SLog1(float v)
+{
+    // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
+    return v >= 90./1023. ? (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)*0.9
+           : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/5.*0.9;
+}
+
+/// from Linear to SLog1 Opto-Electronic Transfer Function (OETF)
+inline float
+to_func_SLog1(float v)
+{
+    // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
+    return v >= -0.00008153227156 ? ((std::log10((v / 0.9) + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
+           : (((v / 0.9) * 5. + 0.030001222851889303)*(940.0-64.0) + 64.)/1023;
+}
+
+/// from SLog2 to Linear Electro-Optical Transfer Function (EOTF)
+inline float
+from_func_SLog2(float v)
+{
+    // http://community.thefoundry.co.uk/discussion/topic.aspx?f=189&t=100372
+    // nuke.root().knob('luts').addCurve("SLog2-Ref", "{ (t>=90.0/1023.0)? 219.0*(pow(10.0, (((t*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)/155.0*0.9 : ((t*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/3.53881278538813*0.9 }")
+    // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
+    return v >= 90./1023. ? 219.0 * (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)/155.0*0.9
+          : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/3.53881278538813*0.9;
+}
+
+/// from Linear to SLog2 Opto-Electronic Transfer Function (OETF)
+inline float
+to_func_SLog2(float v)
+{
+    // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
+    return v >= -0.00008153227156 ? ((std::log10((v / 0.9) * 155. / 219. + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
+            : (((v / 0.9) * 3.53881278538813 + 0.030001222851889303)*(940.0-64.0) + 64.)/1023;
 }
 
 /// convert RGB to HSV
