@@ -124,12 +124,11 @@ ofxsMaskDescribeParams(OFX::ImageEffectDescriptor &desc,
 
 inline
 void
-ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
+ofxsMixDescribeParams(OFX::ImageEffectDescriptor &desc,
                           OFX::PageParamDescriptor *page)
 {
     // GENERIC (MASKED)
     //
-    ofxsMaskDescribeParams(desc, page);
     {
         OFX::DoubleParamDescriptor* param = desc.defineDoubleParam(kParamMix);
         param->setLabel(kParamMixLabel);
@@ -143,6 +142,18 @@ ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
         }
     }
 }
+
+inline
+void
+ofxsMaskMixDescribeParams(OFX::ImageEffectDescriptor &desc,
+                          OFX::PageParamDescriptor *page)
+{
+    // GENERIC (MASKED)
+    //
+    ofxsMaskDescribeParams(desc, page);
+    ofxsMixDescribeParams(desc, page);
+}
+
 
 template <class T>
 inline
@@ -318,6 +329,62 @@ ofxsPremult(const float unpPix[4],
 }
 
 // tmpPix is not normalized, it is within [0,maxValue]
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsPix(const float *tmpPix, //!< interpolated pixel
+        PIX *dstPix) //!< destination pixel
+{
+    // no mask, no mix
+    for (int c = 0; c < nComponents; ++c) {
+        dstPix[c] = ofxsClampIfInt<PIX, maxValue>(tmpPix[c], 0, maxValue);
+    }
+} // ofxsMixPix
+
+// unpPix is normalized between [0,1]
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsPremultPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
+               bool premult,
+               int premultChannel,
+               PIX *dstPix) //!< destination pixel
+{
+    float tmpPix[nComponents];
+
+    // unpPix is in [0..1]
+    ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
+    // tmpPix is in [0..maxValue]
+    ofxsPix<PIX, nComponents, maxValue>(tmpPix, dstPix);
+}
+
+
+// tmpPix is not normalized, it is within [0,maxValue]
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsMixPix(const float *tmpPix, //!< interpolated pixel
+           const PIX *srcPix, //!< the background image (the output is srcImg where maskImg=0, else it is tmpPix)
+           float mix, //!< mix factor between the output and bkImg
+           PIX *dstPix) //!< destination pixel
+{
+    if (mix == 1.) {
+        ofxsPix<PIX, nComponents, maxValue>(tmpPix, dstPix);
+    } else {
+        // just mix
+        float alpha = mix;
+        if (srcPix) {
+            for (int c = 0; c < nComponents; ++c) {
+                float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
+                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
+            }
+        } else {
+            for (int c = 0; c < nComponents; ++c) {
+                float v = tmpPix[c] * alpha;
+                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
+            }
+        }
+    }
+} // ofxsMixPix
+
+// tmpPix is not normalized, it is within [0,maxValue]
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
@@ -336,26 +403,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
 
     // are we doing masking
     if (!masked) {
-        if (mix == 1.) {
-            // no mask, no mix
-            for (int c = 0; c < nComponents; ++c) {
-                dstPix[c] = ofxsClampIfInt<PIX, maxValue>(tmpPix[c], 0, maxValue);
-            }
-        } else {
-            // just mix
-            float alpha = mix;
-            if (srcPix) {
-                for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                    dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
-                }
-            } else {
-                for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha;
-                    dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
-                }
-            }
-        }
+        ofxsMixPix<PIX, nComponents, maxValue>(tmpPix, srcPix, mix, dstPix);
     } else {
         if (domask) {
             // we do, get the pixel from the mask
@@ -407,6 +455,24 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
     ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
     // tmpPix is in [0..maxValue]
     ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, x, y, srcPix, domask, maskImg, mix, maskInvert, dstPix);
+}
+
+// unpPix is normalized between [0,1]
+template <class PIX, int nComponents, int maxValue>
+void
+ofxsPremultMixPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
+                  bool premult,
+                  int premultChannel,
+                  const PIX *srcPix, //!< the background image (the output is srcImg where maskImg=0, else it is tmpPix)
+                  float mix, //!< mix factor between the output and bkImg
+                  PIX *dstPix) //!< destination pixel
+{
+    float tmpPix[nComponents];
+
+    // unpPix is in [0..1]
+    ofxsPremult<PIX, nComponents, maxValue>(unpPix, tmpPix, premult, premultChannel);
+    // tmpPix is in [0..maxValue]
+    ofxsMixPix<PIX, nComponents, maxValue>(tmpPix, srcPix, mix, dstPix);
 }
 
 // tmpPix is not normalized, it is within [0,maxValue]
