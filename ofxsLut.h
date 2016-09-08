@@ -792,7 +792,7 @@ to_func_linear(float v)
     return v;
 }
 
-// sRGB to Linear (verified)
+/// from sRGB to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_srgb(float v)
 {
@@ -803,7 +803,7 @@ from_func_srgb(float v)
     }
 }
 
-// Linear to sRGB
+/// to sRGB from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_srgb(float v)
 {
@@ -819,7 +819,7 @@ to_func_srgb(float v)
 // https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2020-0-201208-S!!PDF-E.pdf
 // Since this is float, we use the coefficients from Rec.2020
 
-// From Rec.709 to Linear
+/// From Rec.709 to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_Rec709(float v)
 {
@@ -833,7 +833,7 @@ from_func_Rec709(float v)
 }
 
 // see above comment
-// to Rec.709 from Linear
+/// to Rec.709 from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Rec709(float v)
 {
@@ -856,14 +856,14 @@ to_func_Rec709(float v)
    whitepoint = 685.0
    gammasensito = 0.6
  */
-/// from Cineon to Linear
+/// from Cineon to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_Cineon(float v)
 {
     return ( 1.f / ( 1.f - std::pow(10.f, 1.97f) ) ) * std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f);
 }
 
-/// to Cineon from Linear
+/// to Cineon from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Cineon(float v)
 {
@@ -872,77 +872,77 @@ to_func_Cineon(float v)
     return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
 }
 
-// from Gamma 1.8 to Linear
+/// from Gamma 1.8 to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_Gamma1_8(float v)
 {
-    return (v <= 0) ? 0. : std::pow(v, 1.8f);
+    return (v < 0.0f) ? 0.0f : std::pow(v, 1.8f);
 }
 
-// to Gamma 1.8 from Linear
+/// to Gamma 1.8 from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Gamma1_8(float v)
 {
-    return (v <= 0) ? 0. : std::pow(v, 0.55f);
+    return (v < 0.0f) ? 0.0f : std::pow(v, 0.55f);
 }
 
-// Linear to Gamma 2.2
+/// from Gamma 2.2 to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_Gamma2_2(float v)
 {
-    return (v <= 0) ? 0. : std::pow(v, 0.45f);
+    return (v < 0.0f) ? 0.0f : std::pow(v, 2.2f);
 }
 
-// Gamma 2.2 to Linear
+/// to Gamma 2.2 from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Gamma2_2(float v)
 {
-    return (v <= 0) ? 0. : std::pow(v, 2.2f);
+    return (v < 0.0f) ? 0.0f : std::pow(v, 0.45f);
 }
 
-/// from Panalog to Linear
+/// from Panalog to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_Panalog(float v)
 {
     return (std::pow(10.f, (1023.f * v - 681.f) / 444.f) - 0.0408f) / (1.0f - 0.0408f);
 }
 
-/// to Panalog from Linear
+/// to Panalog from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Panalog(float v)
 {
     return (444.f * std::log10(0.0408f + (1.0f - 0.0408f) * v) + 681.f) / 1023.f;
 }
 
-/// from REDLog to Linear
+/// from REDLog to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_REDLog(float v)
 {
     return (std::pow(10.f, (1023.f * v - 1023.f) / 511.f) - 0.01) / (1.0f - 0.01f);
 }
 
-/// to REDLog from Linear
+/// to REDLog from Linear Opto-Electronic Transfer Function (OETF)
     inline float
 to_func_REDLog(float v)
 {
     return (511.f * std::log10(0.01f + (1.0f - 0.01f) * v) + 1023.) / 1023.f;
 }
 
-/// from ViperLog to Linear
+/// from ViperLog to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_ViperLog(float v)
 {
     return std::pow(10.f, (1023.f * v - 1023.f) / 500.f);
 }
 
-/// to ViperLog from Linear
+/// to ViperLog from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_ViperLog(float v)
 {
     return (500.f * std::log10(v) + 1023.f) / 1023.f;
 }
 
-/// from AlexaV3LogC to Linear
+/// from AlexaV3LogC to Linear Electro-Optical Transfer Function (EOTF)
 inline float
 from_func_AlexaV3LogC(float v)
 {
@@ -950,7 +950,7 @@ from_func_AlexaV3LogC(float v)
            : ( v / 0.9661776f - 0.04378604f) * 0.18f - 0.00937677f;
 }
 
-/// from Linear to AlexaV3LogC
+/// from Linear to AlexaV3LogC Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_AlexaV3LogC(float v)
 {
