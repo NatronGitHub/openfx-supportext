@@ -197,6 +197,7 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
                                 GeneratorExtentEnum defaultType,
+                                PixelComponentEnum defaultComponents, // either RGBA, RGB or Alpha
                                 bool useOutputComponentsAndDepth,
                                 ContextEnum context);
 } // OFX

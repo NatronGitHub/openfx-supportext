@@ -531,6 +531,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
                            GeneratorExtentEnum defaultType,
+                           PixelComponentEnum defaultComponents, // either RGBA, RGB or Alpha
                            bool useOutputComponentsAndDepth,
                            ContextEnum context)
 {
@@ -794,19 +795,33 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 param->setLabel(kParamGeneratorOutputComponentsLabel);
                 param->setHint(kParamGeneratorOutputComponentsHint);
                 // the following must be in the same order as in describe(), so that the map works
+                int defIndex = 0;
+                int nOptions = 0;
                 if (supportsRGBA) {
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
                     param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
+                    if (defaultComponents == ePixelComponentRGBA) {
+                        defIndex = nOptions;
+                    }
+                    ++nOptions;
                 }
                 if (supportsRGB) {
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
                     param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
+                    if (defaultComponents == ePixelComponentRGB) {
+                        defIndex = nOptions;
+                    }
+                    ++nOptions;
                 }
                 if (supportsAlpha) {
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
                     param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
+                    if (defaultComponents == ePixelComponentAlpha) {
+                        defIndex = nOptions;
+                    }
+                    ++nOptions;
                 }
-                param->setDefault(0);
+                param->setDefault(defIndex);
                 param->setAnimates(false);
                 desc.addClipPreferencesSlaveParam(*param);
                 if (page) {
