@@ -757,7 +757,7 @@ xyz_to_rgb2020(float x,
 
 // r,g,b values are from 0 to 1
 // Convert pixel values from RGB_ACES_AP0 to XYZ color spaces.
-// Uses the ACES white point (close to D60).
+// Uses the ACES white point (approx. D60).
 void
 rgbACESAP0_to_xyz(float r,
                   float g,
@@ -775,7 +775,7 @@ rgbACESAP0_to_xyz(float r,
 }
 
 // Convert pixel values from XYZ to RGB_ACES_AP0 (with the ACES illuminant) color spaces.
-// Uses the ACES white point (close to D60).
+// Uses the ACES white point (approx. D60).
 void
 xyz_to_rgbACESAP0(float x,
                   float y,
@@ -794,7 +794,7 @@ xyz_to_rgbACESAP0(float x,
 
 // r,g,b values are from 0 to 1
 // Convert pixel values from RGB_ACES_AP1 to XYZ color spaces.
-// Uses the ACES white point (close to D60).
+// Uses the ACES white point (approx. D60).
 void
 rgbACESAP1_to_xyz(float r,
                   float g,
@@ -812,7 +812,7 @@ rgbACESAP1_to_xyz(float r,
 }
 
 // Convert pixel values from XYZ to RGB_ACES_AP1 color spaces.
-// Uses the ACES white point (close to D60).
+// Uses the ACES white point (approx. D60).
 void
 xyz_to_rgbACESAP1(float x,
                   float y,

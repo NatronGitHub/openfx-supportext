@@ -780,6 +780,17 @@ public:
 };
 
 
+////////////////////////////////////////////////////////////////
+// Transfer functions
+//
+// from_func_*: EOTF (Electro-Optical Transfer Function)
+// to_func_*: OETF (Opto-Electronic Transfer Function)
+//
+// more can be found at:
+// https://github.com/colour-science/colour/tree/develop/colour/models/rgb/transfer_functions
+//
+////////////////////////////////////////////////////////////////
+
 inline float
 from_func_linear(float v)
 {
@@ -1002,6 +1013,24 @@ to_func_SLog2(float v)
     // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
     return v >= -0.00008153227156 ? ((std::log10((v / 0.9) * 155. / 219. + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
             : (((v / 0.9) * 3.53881278538813 + 0.030001222851889303)*(940.0-64.0) + 64.)/1023;
+}
+
+/// from SLog3 to Linear Electro-Optical Transfer Function (EOTF)
+inline float
+from_func_SLog3(float v)
+{
+    // http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
+    return v >= 171.2102946929 / 1023.0 ? std::pow(10.0, ((v * 1023.0 - 420.0) / 261.5)) * (0.18 + 0.01) - 0.01
+          : (v * 1023.0 - 95.0) * 0.01125000 / (171.2102946929 - 95.0);
+}
+
+/// from Linear to SLog3 Opto-Electronic Transfer Function (OETF)
+inline float
+to_func_SLog3(float v)
+{
+    // http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
+    return v >= 0.01125000 ? (420.0 + std::log10((v + 0.01) / (0.18 + 0.01)) * 261.5) / 1023.0
+         : (v * (171.2102946929 - 95.0)/0.01125000 + 95.0) / 1023.0;
 }
 
 /// convert RGB to HSV
@@ -1234,5 +1263,52 @@ releaseLut(const std::string& name)
 }
 }         //namespace Color
 }     //namespace OFX
+
+/*
+ RGB reference primaries.
+ 
+ more can be found at https://github.com/colour-science/colour/tree/develop/colour/models/rgb/dataset
+
+ ACES-Gamut
+ http://www.digitalpreservation.gov/partners/documents/IIF_Overview_August_2010.pdf
+ -      |  CIE x  |  CIE y
+ Red    | 0.73470 | 0.26530
+ Green  | 0.00000 | 1.00000
+ Blue   | 0.00010 | -0.07700
+ White  | 0.32168 | 0.33767 (approx. D60)
+ 
+ Sony S-Gamut3.Cine
+ http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
+ -      |  CIE x  |  CIE y
+ Red    | 0.76600 | 0.27500
+ Green  | 0.22500 | 0.80000
+ Blue   | 0.08900 | -0.08700
+ White  | 0.31270 | 0.32900 (D65)
+
+ Sony S-Gamut/S-Gamut3
+ http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
+ -      |  CIE x  |  CIE y
+ Red    | 0.73000 | 0.28000
+ Green  | 0.14000 | 0.85500
+ Blue   | 0.10000 | -0.05000
+ White  | 0.31270 | 0.32900 (D65)
+
+ DCI-P3
+ http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
+ -      |  CIE x  |  CIE y
+ Red    | 0.68000 | 0.32000
+ Green  | 0.26500 | 0.69000
+ Blue   | 0.15000 | 0.06000
+ White  | 0.31400 | 0.35100 (DCI)
+ 
+ sRGB/Rec709
+ http://en.wikipedia.org/wiki/SRGB
+ -      |  CIE x  |  CIE y
+ Red    | 0.64000 | 0.33000
+ Green  | 0.30000 | 0.60000
+ Blue   | 0.15000 | 0.06000
+ White  | 0.31270 | 0.32900 (D65)
+
+ */
 
 #endif // ifndef openfx_supportext_ofxsLut_h
