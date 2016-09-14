@@ -47,6 +47,7 @@
 #define kParamGeneratorOutputComponentsHint "Components in the output"
 #define kParamGeneratorOutputComponentsOptionRGBA "RGBA"
 #define kParamGeneratorOutputComponentsOptionRGB "RGB"
+#define kParamGeneratorOutputComponentsOptionXY "XY"
 #define kParamGeneratorOutputComponentsOptionAlpha "Alpha"
 
 #define kParamGeneratorOutputBitDepth "outputBitDepth"
@@ -54,6 +55,7 @@
 #define kParamGeneratorOutputBitDepthHint "Bit depth of the output.\n8 bits uses the sRGB colorspace, 16-bits uses Rec.709."
 #define kParamGeneratorOutputBitDepthOptionByte "Byte (8 bits)"
 #define kParamGeneratorOutputBitDepthOptionShort "Short (16 bits)"
+#define kParamGeneratorOutputBitDepthOptionHalf "Half (16 bits)"
 #define kParamGeneratorOutputBitDepthOptionFloat "Float (32 bits)"
 
 #define kParamGeneratorRange "frameRange"
@@ -111,6 +113,7 @@ public:
                     bool useOutputComponentsAndDepth,
                     bool supportsBitDepthByte,
                     bool supportsBitDepthUShort,
+                    bool supportsBitDepthHalf,
                     bool supportsBitDepthFloat);
 
 protected:
@@ -144,13 +147,15 @@ private:
     virtual bool paramsNotAnimated() = 0;
 
 private:
-    OFX::PixelComponentEnum _outputComponentsMap[4];
-    OFX::BitDepthEnum _outputBitDepthMap[4];
-    bool _supportsBytes;
-    bool _supportsShorts;
-    bool _supportsFloats;
+    OFX::PixelComponentEnum _outputComponentsMap[10];
+    OFX::BitDepthEnum _outputBitDepthMap[10];
+    bool _supportsByte;
+    bool _supportsUShort;
+    bool _supportsHalf;
+    bool _supportsFloat;
     bool _supportsRGBA;
     bool _supportsRGB;
+    bool _supportsXY;
     bool _supportsAlpha;
 };
 
@@ -197,7 +202,7 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
                                 GeneratorExtentEnum defaultType,
-                                PixelComponentEnum defaultComponents, // either RGBA, RGB or Alpha
+                                PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
                                 bool useOutputComponentsAndDepth,
                                 ContextEnum context);
 } // OFX

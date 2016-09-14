@@ -34,6 +34,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
                                  bool useOutputComponentsAndDepth,
                                  bool supportsBitDepthByte,
                                  bool supportsBitDepthUShort,
+                                 bool supportsBitDepthHalf,
                                  bool supportsBitDepthFloat)
     : OFX::ImageEffect(handle)
     , _dstClip(0)
@@ -49,11 +50,13 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _range(0)
     , _recenter(0)
     , _useOutputComponentsAndDepth(useOutputComponentsAndDepth)
-    , _supportsBytes(supportsBitDepthByte)
-    , _supportsShorts(supportsBitDepthUShort)
-    , _supportsFloats(supportsBitDepthFloat)
+    , _supportsByte(supportsBitDepthByte)
+    , _supportsUShort(supportsBitDepthUShort)
+    , _supportsHalf(supportsBitDepthHalf)
+    , _supportsFloat(supportsBitDepthFloat)
     , _supportsRGBA(0)
     , _supportsRGB(0)
+    , _supportsXY(0)
     , _supportsAlpha(0)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
@@ -90,15 +93,19 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     // (only the host and the plugin descriptor)
     {
         int i = 0;
-        if ( _supportsFloats && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthFloat) ) {
+        if ( _supportsFloat && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthFloat) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthFloat;
             ++i;
         }
-        if ( _supportsShorts && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUShort) ) {
+        if ( _supportsHalf && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthHalf) ) {
+            _outputBitDepthMap[i] = OFX::eBitDepthHalf;
+            ++i;
+        }
+        if ( _supportsUShort && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUShort) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthUShort;
             ++i;
         }
-        if ( _supportsBytes && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUByte) ) {
+        if ( _supportsByte && OFX::getImageEffectHostDescription()->supportsBitDepth(OFX::eBitDepthUByte) ) {
             _outputBitDepthMap[i] = OFX::eBitDepthUByte;
             ++i;
         }
@@ -117,6 +124,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
         case OFX::ePixelComponentRGB:
             _supportsRGB = supported;
             break;
+        case OFX::ePixelComponentXY:
+            _supportsXY = supported;
+            break;
         case OFX::ePixelComponentAlpha:
             _supportsAlpha = supported;
             break;
@@ -132,6 +142,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     }
     if (_supportsRGB) {
         _outputComponentsMap[i] = OFX::ePixelComponentRGB;
+        ++i;
+    }
+    if (_supportsXY) {
+        _outputComponentsMap[i] = OFX::ePixelComponentXY;
         ++i;
     }
     if (_supportsAlpha) {
@@ -531,7 +545,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            OFX::ImageEffectDescriptor &desc,
                            OFX::ClipDescriptor &dstClip,
                            GeneratorExtentEnum defaultType,
-                           PixelComponentEnum defaultComponents, // either RGBA, RGB or Alpha
+                           PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
                            bool useOutputComponentsAndDepth,
                            ContextEnum context)
 {
@@ -706,10 +720,11 @@ generatorDescribeInContext(PageParamDescriptor *page,
     }
 
     if (useOutputComponentsAndDepth) {
-        bool supportsBytes  = false;
-        bool supportsShorts = false;
-        bool supportsFloats = false;
-        OFX::BitDepthEnum outputBitDepthMap[4];
+        bool supportsByte  = false;
+        bool supportsUShort = false;
+        bool supportsHalf = false;
+        bool supportsFloat = false;
+        OFX::BitDepthEnum outputBitDepthMap[10];
         const OFX::PropertySet &effectProps = desc.getPropertySet();
         int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
         for (int i = 0; i < numPixelDepths; ++i) {
@@ -717,13 +732,16 @@ generatorDescribeInContext(PageParamDescriptor *page,
             bool supported = OFX::getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
             switch (pixelDepth) {
             case OFX::eBitDepthUByte:
-                supportsBytes  = supported;
+                supportsByte  = supported;
                 break;
             case OFX::eBitDepthUShort:
-                supportsShorts = supported;
+                supportsUShort = supported;
+                break;
+            case OFX::eBitDepthHalf:
+                supportsHalf = supported;
                 break;
             case OFX::eBitDepthFloat:
-                supportsFloats = supported;
+                supportsFloat = supported;
                 break;
             default:
                 // other bitdepths are not supported by this plugin
@@ -732,15 +750,19 @@ generatorDescribeInContext(PageParamDescriptor *page,
         }
         {
             int i = 0;
-            if (supportsFloats) {
+            if (supportsFloat) {
                 outputBitDepthMap[i] = OFX::eBitDepthFloat;
                 ++i;
             }
-            if (supportsShorts) {
+            if (supportsHalf) {
+                outputBitDepthMap[i] = OFX::eBitDepthHalf;
+                ++i;
+            }
+            if (supportsUShort) {
                 outputBitDepthMap[i] = OFX::eBitDepthUShort;
                 ++i;
             }
-            if (supportsBytes) {
+            if (supportsByte) {
                 outputBitDepthMap[i] = OFX::eBitDepthUByte;
                 ++i;
             }
@@ -750,8 +772,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
         {
             bool supportsRGBA   = false;
             bool supportsRGB    = false;
+            bool supportsXY     = false;
             bool supportsAlpha  = false;
-            OFX::PixelComponentEnum outputComponentsMap[4];
+            OFX::PixelComponentEnum outputComponentsMap[10];
             const OFX::PropertySet &dstClipProps = dstClip.getPropertySet();
             int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
             for (int i = 0; i < numComponents; ++i) {
@@ -763,6 +786,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
                     break;
                 case OFX::ePixelComponentRGB:
                     supportsRGB = supported;
+                    break;
+                case OFX::ePixelComponentXY:
+                    supportsXY = supported;
                     break;
                 case OFX::ePixelComponentAlpha:
                     supportsAlpha = supported;
@@ -780,6 +806,10 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 }
                 if (supportsRGB) {
                     outputComponentsMap[i] = OFX::ePixelComponentRGB;
+                    ++i;
+                }
+                if (supportsXY) {
+                    outputComponentsMap[i] = OFX::ePixelComponentXY;
                     ++i;
                 }
                 if (supportsAlpha) {
@@ -813,6 +843,14 @@ generatorDescribeInContext(PageParamDescriptor *page,
                     }
                     ++nOptions;
                 }
+                if (supportsXY) {
+                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentXY);
+                    param->appendOption(kParamGeneratorOutputComponentsOptionXY);
+                    if (defaultComponents == ePixelComponentXY) {
+                        defIndex = nOptions;
+                    }
+                    ++nOptions;
+                }
                 if (supportsAlpha) {
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
                     param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
@@ -836,19 +874,24 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setLabel(kParamGeneratorOutputBitDepthLabel);
             param->setHint(kParamGeneratorOutputBitDepthHint);
             // the following must be in the same order as in describe(), so that the map works
-            if (supportsFloats) {
+            if (supportsFloat) {
                 // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
+                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
                 param->appendOption(kParamGeneratorOutputBitDepthOptionFloat);
             }
-            if (supportsShorts) {
+            if (supportsHalf) {
                 // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
+                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthHalf);
+                param->appendOption(kParamGeneratorOutputBitDepthOptionHalf);
+            }
+            if (supportsUShort) {
+                // coverity[check_return]
+                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
                 param->appendOption(kParamGeneratorOutputBitDepthOptionShort);
             }
-            if (supportsBytes) {
+            if (supportsByte) {
                 // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 4 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
+                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
                 param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
             }
             param->setDefault(0);
