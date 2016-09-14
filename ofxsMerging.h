@@ -865,10 +865,10 @@ conjointOverFunctor(PIX A,
                     PIX alphaA,
                     PIX alphaB)
 {
-    if (alphaA > alphaB) {
+    if ( (alphaA > alphaB) || !alphaB ) {
         return A;
     } else {
-        return A + B * (1. - ((alphaB <= 0) ? 0. : (alphaA / (double)alphaB)));
+        return A + B * (maxValue - alphaA) / alphaB;
     }
 }
 
@@ -882,7 +882,7 @@ disjointOverFunctor(PIX A,
     if ( (alphaA + alphaB) < maxValue ) {
         return A + B;
     } else {
-        return A + B * (maxValue - alphaA) / (alphaB <= 0 ? maxValue : alphaB);
+        return A + B * (maxValue - alphaA) / alphaB;
     }
 }
 
@@ -1306,7 +1306,7 @@ mergePixel(bool doAlphaMasking,
            const PIX B[4],
            PIX* dst)
 {
-    doAlphaMasking = (f == eMergeMatte) || (doAlphaMasking && isMaskable(f));
+    doAlphaMasking = doAlphaMasking && isMaskable(f);
     PIX a = A[3];
     PIX b = B[3];
 
