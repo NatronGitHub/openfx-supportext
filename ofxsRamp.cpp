@@ -497,7 +497,7 @@ ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamRampInteractOpenLabel);
         param->setHint(kParamRampInteractOpenHint);
         param->setDefault(isOpen); // open by default
-        param->setIsSecret(true); // secret by default, but this can be changed for specific hosts
+        param->setIsSecretAndDisabled(true); // secret by default, but this can be changed for specific hosts
         param->setAnimates(false);
         if (group) {
             param->setParent(*group);

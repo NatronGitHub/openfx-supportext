@@ -253,16 +253,11 @@ GeneratorPlugin::updateParamsVisibility()
     bool hasFormat = (extent == eGeneratorExtentFormat);
     bool hasSize = (extent == eGeneratorExtentSize);
 
-    _format->setEnabled(hasFormat);
-    _format->setIsSecret(!hasFormat);
-    _size->setEnabled(hasSize);
-    _size->setIsSecret(!hasSize);
-    _recenter->setEnabled(hasSize);
-    _recenter->setIsSecret(!hasSize);
-    _btmLeft->setEnabled(hasSize);
-    _btmLeft->setIsSecret(!hasSize);
-    _interactive->setEnabled(hasSize);
-    _interactive->setIsSecret(!hasSize);
+    _format->setIsSecretAndDisabled(!hasFormat);
+    _size->setIsSecretAndDisabled(!hasSize);
+    _recenter->setIsSecretAndDisabled(!hasSize);
+    _btmLeft->setIsSecretAndDisabled(!hasSize);
+    _interactive->setIsSecretAndDisabled(!hasSize);
 }
 
 void
@@ -636,7 +631,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             Int2DParamDescriptor* param = desc.defineInt2DParam(kParamGeneratorSize);
             param->setLabel(kParamGeneratorSizeLabel);
             param->setHint(kParamGeneratorSizeHint);
-            param->setIsSecret(true);
+            param->setIsSecretAndDisabled(true);
             param->setDefault(w, h);
             if (page) {
                 page->addChild(*param);
@@ -647,7 +642,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             DoubleParamDescriptor* param = desc.defineDoubleParam(kParamGeneratorPAR);
             param->setLabel(kParamGeneratorPARLabel);
             param->setHint(kParamGeneratorPARHint);
-            param->setIsSecret(true);
+            param->setIsSecretAndDisabled(true);
             param->setRange(0., DBL_MAX);
             param->setDisplayRange(0.5, 2.);
             param->setDefault(par);
@@ -898,7 +893,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
 #ifndef DEBUG
             // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
             // Disable it for now (in the future, there may be colorspace conversion options)
-            param->setIsSecret(true); // always secret
+            param->setIsSecretAndDisabled(true); // always secret
 #endif
             param->setAnimates(false);
             desc.addClipPreferencesSlaveParam(*param);

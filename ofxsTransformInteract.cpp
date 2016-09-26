@@ -214,7 +214,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamTransformInteractOpenLabel);
         param->setHint(kParamTransformInteractOpenHint);
         param->setDefault(isOpen); // open by default
-        param->setIsSecret(true); // secret by default, but this can be changed for specific hosts
+        param->setIsSecretAndDisabled(true); // secret by default, but this can be changed for specific hosts
         param->setAnimates(false);
         if (group) {
             param->setParent(*group);

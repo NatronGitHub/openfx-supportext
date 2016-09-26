@@ -1302,7 +1302,7 @@ describeInContextAddOutputLayerChoice(bool addAllChoice,
         //Add a hidden string param that will remember the value of the choice
         OFX::StringParamDescriptor* param = desc.defineStringParam(kMultiPlaneParamOutputChannelsChoice);
         param->setLabel(kMultiPlaneParamOutputChannelsLabel "Choice");
-        param->setIsSecret(true);
+        param->setIsSecretAndDisabled(true);
         if (page) {
             page->addChild(*param);
         }
@@ -1310,7 +1310,7 @@ describeInContextAddOutputLayerChoice(bool addAllChoice,
     {
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kMultiPlaneParamOutputChannelsRefreshButton);
         param->setLabel(kMultiPlaneParamOutputChannels "RefreshButton");
-        param->setIsSecret(true);
+        param->setIsSecretAndDisabled(true);
         if (page) {
             page->addChild(*param);
         }
@@ -1347,7 +1347,7 @@ describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
         //Add a hidden string param that will remember the value of the choice
         OFX::StringParamDescriptor* param = desc.defineStringParam(strName);
         param->setLabel(label + "Choice");
-        param->setIsSecret(true);
+        param->setIsSecretAndDisabled(true);
         if (page) {
             page->addChild(*param);
         }
@@ -1356,7 +1356,7 @@ describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
         std::string strName = name + "RefreshButton";
         OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(strName);
         param->setLabel(label + "RefreshButton");
-        param->setIsSecret(true);
+        param->setIsSecretAndDisabled(true);
         if (page) {
             page->addChild(*param);
         }
