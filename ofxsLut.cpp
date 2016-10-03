@@ -59,7 +59,7 @@ static const o32_host_order_t o32_host_order = {
 };
 #define O32_HOST_ORDER (o32_host_order.value)
 unsigned short
-LutBase::hipart(const float f)
+Lut::hipart(const float f)
 {
     union
     {
@@ -84,7 +84,7 @@ LutBase::hipart(const float f)
 }
 
 float
-LutBase::index_to_float(const unsigned short i)
+Lut::index_to_float(const unsigned short i)
 {
     union
     {

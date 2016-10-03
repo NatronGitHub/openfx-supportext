@@ -129,201 +129,39 @@ typedef float (*fromColorSpaceFunctionV1)(float v);
 typedef float (*toColorSpaceFunctionV1)(float v);
 
 
-class LutBase
-{
-protected:
-    std::string _name;                 ///< name of the lut
-    fromColorSpaceFunctionV1 _fromFunc;
-    toColorSpaceFunctionV1 _toFunc;
-
-public:
-
-    LutBase(const std::string & name,
-            fromColorSpaceFunctionV1 fromFunc,
-            toColorSpaceFunctionV1 toFunc)
-        : _name(name)
-        , _fromFunc(fromFunc)
-        , _toFunc(toFunc)
-    {
-    }
-
-    virtual ~LutBase()
-    {
-    }
-
-    const std::string & getName() const
-    {
-        return _name;
-    }
-
-    /* @brief Converts a float ranging in [0 - 1.f] in the desired color-space to linear color-space also ranging in [0 - 1.f]
-     * This function is not fast!
-     * @see fromColorSpaceFloatToLinearFloatFast(float)
-     */
-    virtual float fromColorSpaceFloatToLinearFloat(float v) const = 0;
-
-    /* @brief Converts a float ranging in [0 - 1.f] in  linear color-space to the desired color-space to also ranging in [0 - 1.f]
-     * This function is not fast!
-     */
-    virtual float toColorSpaceFloatFromLinearFloat(float v) const = 0;
-
-    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
-     * @return A float in [0 - 1.f] in the destination color-space.
-     */
-    // It is not recommended to use this function, because the output is quantized
-    // If one really needs float, one has to use the full function (or OpenColorIO)
-
-    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
-     * @return A byte in [0 - 255] in the destination color-space.
-     */
-    virtual unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const = 0;
-
-    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
-     * @return An unsigned short in [0 - 0xff00] in the destination color-space.
-     */
-    virtual unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const = 0;
-
-    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
-     * @return An unsigned short in [0 - 65535] in the destination color-space.
-     * This function uses localluy linear approximations of the transfer function.
-     */
-    virtual unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const = 0;
-
-    /* @brief Converts a byte ranging in [0 - 255] in the destination color-space using the look-up tables.
-     * @return A float in [0 - 1.f] in linear color-space.
-     */
-    virtual float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const = 0;
-
-    /* @brief Converts a short ranging in [0 - 65535] in the destination color-space using the look-up tables.
-     * @return A float in [0 - 1.f] in linear color-space.
-     */
-    virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const = 0;
-
-    /* @brief convert from float to byte with dithering (error diffusion).
-       It uses random numbers for error diffusion, and thus the result is different at each function call. */
-    virtual void to_byte_packed_dither(const void* pixelData,
-                                       const OfxRectI & bounds,
-                                       OFX::PixelComponentEnum pixelComponents,
-                                       int pixelComponentCount,
-                                       OFX::BitDepthEnum bitDepth,
-                                       int rowBytes,
-                                       const OfxRectI & renderWindow,
-                                       void* dstPixelData,
-                                       const OfxRectI & dstBounds,
-                                       OFX::PixelComponentEnum dstPixelComponents,
-                                       int dstPixelComponentCount,
-                                       OFX::BitDepthEnum dstBitDepth,
-                                       int dstRowBytes) const = 0;
-
-    /* @brief convert from float to byte without dithering. */
-    virtual void to_byte_packed_nodither(const void* pixelData,
-                                         const OfxRectI & bounds,
-                                         OFX::PixelComponentEnum pixelComponents,
-                                         int pixelComponentCount,
-                                         OFX::BitDepthEnum bitDepth,
-                                         int rowBytes,
-                                         const OfxRectI & renderWindow,
-                                         void* dstPixelData,
-                                         const OfxRectI & dstBounds,
-                                         OFX::PixelComponentEnum dstPixelComponents,
-                                         int dstPixelComponentCount,
-                                         OFX::BitDepthEnum dstBitDepth,
-                                         int dstRowBytes) const = 0;
-
-    /* @brief uses Rec.709 to convert from color to grayscale. */
-    virtual void to_byte_grayscale_nodither(const void* pixelData,
-                                            const OfxRectI & bounds,
-                                            OFX::PixelComponentEnum pixelComponents,
-                                            int pixelComponentCount,
-                                            OFX::BitDepthEnum bitDepth,
-                                            int rowBytes,
-                                            const OfxRectI & renderWindow,
-                                            void* dstPixelData,
-                                            const OfxRectI & dstBounds,
-                                            OFX::PixelComponentEnum dstPixelComponents,
-                                            int dstPixelComponentCount,
-                                            OFX::BitDepthEnum dstBitDepth,
-                                            int dstRowBytes) const = 0;
-
-    /* @brief convert from float to short without dithering. */
-    virtual void to_short_packed(const void* pixelData,
-                                 const OfxRectI & bounds,
-                                 OFX::PixelComponentEnum pixelComponents,
-                                 int pixelComponentCount,
-                                 OFX::BitDepthEnum bitDepth,
-                                 int rowBytes,
-                                 const OfxRectI & renderWindow,
-                                 void* dstPixelData,
-                                 const OfxRectI & dstBounds,
-                                 OFX::PixelComponentEnum dstPixelComponents,
-                                 int dstPixelComponentCount,
-                                 OFX::BitDepthEnum dstBitDepth,
-                                 int dstRowBytes) const = 0;
-    virtual void from_byte_packed(const void* pixelData,
-                                  const OfxRectI & bounds,
-                                  OFX::PixelComponentEnum pixelComponents,
-                                  int pixelComponentCount,
-                                  OFX::BitDepthEnum bitDepth,
-                                  int rowBytes,
-                                  const OfxRectI & renderWindow,
-                                  void* dstPixelData,
-                                  const OfxRectI & dstBounds,
-                                  OFX::PixelComponentEnum dstPixelComponents,
-                                  int dstPixelComponentCount,
-                                  OFX::BitDepthEnum dstBitDepth,
-                                  int dstRowBytes) const = 0;
-    virtual void from_short_packed(const void* pixelData,
-                                   const OfxRectI & bounds,
-                                   OFX::PixelComponentEnum pixelComponents,
-                                   int pixelComponentCount,
-                                   OFX::BitDepthEnum bitDepth,
-                                   int rowBytes,
-                                   const OfxRectI & renderWindow,
-                                   void* dstPixelData,
-                                   const OfxRectI & dstBounds,
-                                   OFX::PixelComponentEnum dstPixelComponents,
-                                   int dstPixelComponentCount,
-                                   OFX::BitDepthEnum dstBitDepth,
-                                   int dstRowBytes) const = 0;
-
-protected:
-
-    static float index_to_float(const unsigned short i);
-    static unsigned short hipart(const float f);
-};
-
 /**
  * @brief A Lut (look-up table) used to speed-up color-spaces conversions.
  * If you plan on doing linear conversion, you should just use the Linear class instead.
  **/
-template <class MUTEX>
 class Lut
-    : public LutBase
 {
-    typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
+    template<class MUTEX>
+    friend class LutManager;
+
+    std::string _name;                 ///< name of the lut
+    fromColorSpaceFunctionV1 _fromFunc;
+    toColorSpaceFunctionV1 _toFunc;
 
     /// the fast lookup tables are mutable, because they are automatically initialized post-construction,
     /// and never change afterwards
     mutable unsigned short toFunc_hipart_to_uint8xx[0x10000];                 /// contains  2^16 = 65536 values between 0-255
     mutable float fromFunc_uint8_to_float[256];                 /// values between 0-1.f
-    mutable bool _init;                 ///< false if the tables are not yet initialized
-    mutable std::auto_ptr<MUTEX> _lock;                 ///< protects _init
 
-public:
+private:
+    // Luts should be allocated and destroyed  through the LutManager
     Lut(const std::string & name,
         fromColorSpaceFunctionV1 fromFunc,
         toColorSpaceFunctionV1 toFunc)
-        : LutBase(name, fromFunc, toFunc)
-        , _init(false)
-        , _lock( new MUTEX() )
+        : _name(name)
+        , _fromFunc(fromFunc)
+        , _toFunc(toFunc)
     {
+        fillTables();
     }
 
     virtual ~Lut()
     {
     }
-
-private:
 
 
     ///init luts
@@ -331,9 +169,6 @@ private:
     ///Called by validate()
     void fillTables() const
     {
-        if (_init) {
-            return;
-        }
         // fill all
         for (int i = 0; i < 0x10000; ++i) {
             float inp = index_to_float( (unsigned short)i );
@@ -355,47 +190,53 @@ private:
 
 public:
 
-    //Called by all public members
-    void validate() const
-    {
-        AutoMutex locker(*_lock);
-
-        if (_init) {
-            return;
-        }
-        fillTables();
-        _init = true;
-    }
-
-    virtual float fromColorSpaceFloatToLinearFloat(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a float ranging in [0 - 1.f] in the desired color-space to linear color-space also ranging in [0 - 1.f]
+     * This function is not fast!
+     * @see fromColorSpaceFloatToLinearFloatFast(float)
+     */
+    float fromColorSpaceFloatToLinearFloat(float v) const WARN_UNUSED_RETURN
     {
         return _fromFunc(v);
     }
 
-    virtual float toColorSpaceFloatFromLinearFloat(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a float ranging in [0 - 1.f] in  linear color-space to the desired color-space to also ranging in [0 - 1.f]
+     * This function is not fast!
+     */
+    float toColorSpaceFloatFromLinearFloat(float v) const WARN_UNUSED_RETURN
     {
         return _toFunc(v);
     }
 
-    virtual unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
-    {
-        assert(_init);
+    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
+     * @return A float in [0 - 1.f] in the destination color-space.
+     */
+    // It is not recommended to use this function, because the output is quantized
+    // If one really needs float, one has to use the full function (or OpenColorIO)
 
+    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
+     * @return A byte in [0 - 255] in the destination color-space.
+     */
+    unsigned char toColorSpaceUint8FromLinearFloatFast(float v) const WARN_UNUSED_RETURN
+    {
         return Color::uint8xxToChar(toFunc_hipart_to_uint8xx[hipart(v)]);
     }
 
-    virtual unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
+     * @return An unsigned short in [0 - 0xff00] in the destination color-space.
+     */
+    unsigned short toColorSpaceUint8xxFromLinearFloatFast(float v) const WARN_UNUSED_RETURN
     {
-        assert(_init);
-
         return toFunc_hipart_to_uint8xx[hipart(v)];
     }
 
     // the following only works for increasing LUTs
 
-    virtual unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
+     * @return An unsigned short in [0 - 65535] in the destination color-space.
+     * This function uses localluy linear approximations of the transfer function.
+     */
+    unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const WARN_UNUSED_RETURN
     {
-        assert(_init);
         // algorithm:
         // - convert to 8 bits -> val8u
         // - convert val8u-1, val8u and val8u+1 to float
@@ -433,16 +274,19 @@ public:
         return (v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5;
     }
 
-    virtual float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a byte ranging in [0 - 255] in the destination color-space using the look-up tables.
+     * @return A float in [0 - 1.f] in linear color-space.
+     */
+    float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const WARN_UNUSED_RETURN
     {
-        assert(_init);
-
         return fromFunc_uint8_to_float[v];
     }
 
-    virtual float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const OVERRIDE FINAL WARN_UNUSED_RETURN
+    /* @brief Converts a short ranging in [0 - 65535] in the destination color-space using the look-up tables.
+     * @return A float in [0 - 1.f] in linear color-space.
+     */
+    float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const WARN_UNUSED_RETURN
     {
-        assert(_init);
         // the following is from ImageMagick's quantum.h
         unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
         unsigned char v8u_next = v8u_prev + 1;
@@ -455,19 +299,21 @@ public:
         return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
     }
 
-    virtual void to_byte_packed_dither(const void* pixelData,
-                                       const OfxRectI & bounds,
-                                       OFX::PixelComponentEnum pixelComponents,
-                                       int pixelComponentCount,
-                                       OFX::BitDepthEnum bitDepth,
-                                       int rowBytes,
-                                       const OfxRectI & renderWindow,
-                                       void* dstPixelData,
-                                       const OfxRectI & dstBounds,
-                                       OFX::PixelComponentEnum dstPixelComponents,
-                                       int dstPixelComponentCount,
-                                       OFX::BitDepthEnum dstBitDepth,
-                                       int dstRowBytes) const OVERRIDE FINAL
+    /* @brief convert from float to byte with dithering (error diffusion).
+     It uses random numbers for error diffusion, and thus the result is different at each function call. */
+    void to_byte_packed_dither(const void* pixelData,
+                               const OfxRectI & bounds,
+                               OFX::PixelComponentEnum pixelComponents,
+                               int pixelComponentCount,
+                               OFX::BitDepthEnum bitDepth,
+                               int rowBytes,
+                               const OfxRectI & renderWindow,
+                               void* dstPixelData,
+                               const OfxRectI & dstBounds,
+                               OFX::PixelComponentEnum dstPixelComponents,
+                               int dstPixelComponentCount,
+                               OFX::BitDepthEnum dstBitDepth,
+                               int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte && pixelComponents == dstPixelComponents);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
@@ -480,7 +326,7 @@ public:
                                            renderWindow,
                                            dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
         }
-        validate();
+        //validate();
 
         const int nComponents = dstPixelComponentCount;
         assert(dstPixelComponentCount == 3 || dstPixelComponentCount == 4);
@@ -538,19 +384,20 @@ public:
         }
     } // to_byte_packed_dither
 
-    virtual void to_byte_packed_nodither(const void* pixelData,
-                                         const OfxRectI & bounds,
-                                         OFX::PixelComponentEnum pixelComponents,
-                                         int pixelComponentCount,
-                                         OFX::BitDepthEnum bitDepth,
-                                         int rowBytes,
-                                         const OfxRectI & renderWindow,
-                                         void* dstPixelData,
-                                         const OfxRectI & dstBounds,
-                                         OFX::PixelComponentEnum dstPixelComponents,
-                                         int dstPixelComponentCount,
-                                         OFX::BitDepthEnum dstBitDepth,
-                                         int dstRowBytes) const OVERRIDE FINAL
+    /* @brief convert from float to byte without dithering. */
+    void to_byte_packed_nodither(const void* pixelData,
+                                 const OfxRectI & bounds,
+                                 OFX::PixelComponentEnum pixelComponents,
+                                 int pixelComponentCount,
+                                 OFX::BitDepthEnum bitDepth,
+                                 int rowBytes,
+                                 const OfxRectI & renderWindow,
+                                 void* dstPixelData,
+                                 const OfxRectI & dstBounds,
+                                 OFX::PixelComponentEnum dstPixelComponents,
+                                 int dstPixelComponentCount,
+                                 OFX::BitDepthEnum dstBitDepth,
+                                 int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte);
         assert(pixelComponents == ePixelComponentRGBA || pixelComponents == ePixelComponentRGB || pixelComponents == ePixelComponentAlpha);
@@ -559,7 +406,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-        validate();
+        //validate();
 
         const int srcComponents = pixelComponentCount;
         const int dstComponents = dstPixelComponentCount;
@@ -595,20 +442,20 @@ public:
         }
     } // to_byte_packed_nodither
 
-    // uses Rec.709 to convert from color to grayscale
-    virtual void to_byte_grayscale_nodither(const void* pixelData,
-                                            const OfxRectI & bounds,
-                                            OFX::PixelComponentEnum pixelComponents,
-                                            int pixelComponentCount,
-                                            OFX::BitDepthEnum bitDepth,
-                                            int rowBytes,
-                                            const OfxRectI & renderWindow,
-                                            void* dstPixelData,
-                                            const OfxRectI & dstBounds,
-                                            OFX::PixelComponentEnum dstPixelComponents,
-                                            int dstPixelComponentCount,
-                                            OFX::BitDepthEnum dstBitDepth,
-                                            int dstRowBytes) const OVERRIDE FINAL
+    /* @brief uses Rec.709 to convert from color to grayscale. */
+    void to_byte_grayscale_nodither(const void* pixelData,
+                                    const OfxRectI & bounds,
+                                    OFX::PixelComponentEnum pixelComponents,
+                                    int pixelComponentCount,
+                                    OFX::BitDepthEnum bitDepth,
+                                    int rowBytes,
+                                    const OfxRectI & renderWindow,
+                                    void* dstPixelData,
+                                    const OfxRectI & dstBounds,
+                                    OFX::PixelComponentEnum dstPixelComponents,
+                                    int dstPixelComponentCount,
+                                    OFX::BitDepthEnum dstBitDepth,
+                                    int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUByte &&
                (pixelComponents == ePixelComponentRGB || pixelComponents == ePixelComponentRGBA) &&
@@ -619,7 +466,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-        validate();
+        //validate();
 
         const int srcComponents = pixelComponentCount;
 
@@ -637,26 +484,27 @@ public:
         }
     } // to_byte_packed_nodither
 
-    virtual void to_short_packed(const void* pixelData,
-                                 const OfxRectI & bounds,
-                                 OFX::PixelComponentEnum pixelComponents,
-                                 int pixelComponentCount,
-                                 OFX::BitDepthEnum bitDepth,
-                                 int rowBytes,
-                                 const OfxRectI & renderWindow,
-                                 void* dstPixelData,
-                                 const OfxRectI & dstBounds,
-                                 OFX::PixelComponentEnum dstPixelComponents,
-                                 int dstPixelComponentCount,
-                                 OFX::BitDepthEnum dstBitDepth,
-                                 int dstRowBytes) const OVERRIDE FINAL
+    /* @brief convert from float to short without dithering. */
+    void to_short_packed(const void* pixelData,
+                         const OfxRectI & bounds,
+                         OFX::PixelComponentEnum pixelComponents,
+                         int pixelComponentCount,
+                         OFX::BitDepthEnum bitDepth,
+                         int rowBytes,
+                         const OfxRectI & renderWindow,
+                         void* dstPixelData,
+                         const OfxRectI & dstBounds,
+                         OFX::PixelComponentEnum dstPixelComponents,
+                         int dstPixelComponentCount,
+                         OFX::BitDepthEnum dstBitDepth,
+                         int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthFloat && dstBitDepth == eBitDepthUShort && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-        validate();
+        //validate();
 
         const int nComponents = pixelComponentCount;
 
@@ -684,26 +532,26 @@ public:
         }
     }
 
-    virtual void from_byte_packed(const void* pixelData,
-                                  const OfxRectI & bounds,
-                                  OFX::PixelComponentEnum pixelComponents,
-                                  int pixelComponentCount,
-                                  OFX::BitDepthEnum bitDepth,
-                                  int rowBytes,
-                                  const OfxRectI & renderWindow,
-                                  void* dstPixelData,
-                                  const OfxRectI & dstBounds,
-                                  OFX::PixelComponentEnum dstPixelComponents,
-                                  int dstPixelComponentCount,
-                                  OFX::BitDepthEnum dstBitDepth,
-                                  int dstRowBytes) const OVERRIDE FINAL
+    void from_byte_packed(const void* pixelData,
+                          const OfxRectI & bounds,
+                          OFX::PixelComponentEnum pixelComponents,
+                          int pixelComponentCount,
+                          OFX::BitDepthEnum bitDepth,
+                          int rowBytes,
+                          const OfxRectI & renderWindow,
+                          void* dstPixelData,
+                          const OfxRectI & dstBounds,
+                          OFX::PixelComponentEnum dstPixelComponents,
+                          int dstPixelComponentCount,
+                          OFX::BitDepthEnum dstBitDepth,
+                          int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthUByte && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-        validate();
+        //validate();
 
         const int nComponents = pixelComponentCount;
 
@@ -731,26 +579,26 @@ public:
         }
     }
 
-    virtual void from_short_packed(const void* pixelData,
-                                   const OfxRectI & bounds,
-                                   OFX::PixelComponentEnum pixelComponents,
-                                   int pixelComponentCount,
-                                   OFX::BitDepthEnum bitDepth,
-                                   int rowBytes,
-                                   const OfxRectI & renderWindow,
-                                   void* dstPixelData,
-                                   const OfxRectI & dstBounds,
-                                   OFX::PixelComponentEnum dstPixelComponents,
-                                   int dstPixelComponentCount,
-                                   OFX::BitDepthEnum dstBitDepth,
-                                   int dstRowBytes) const OVERRIDE FINAL
+    void from_short_packed(const void* pixelData,
+                           const OfxRectI & bounds,
+                           OFX::PixelComponentEnum pixelComponents,
+                           int pixelComponentCount,
+                           OFX::BitDepthEnum bitDepth,
+                           int rowBytes,
+                           const OfxRectI & renderWindow,
+                           void* dstPixelData,
+                           const OfxRectI & dstBounds,
+                           OFX::PixelComponentEnum dstPixelComponents,
+                           int dstPixelComponentCount,
+                           OFX::BitDepthEnum dstBitDepth,
+                           int dstRowBytes) const
     {
         assert(bitDepth == eBitDepthUShort && dstBitDepth == eBitDepthFloat && pixelComponents == dstPixelComponents && pixelComponentCount == dstPixelComponentCount);
         assert(bounds.x1 <= renderWindow.x1 && renderWindow.x2 <= bounds.x2 &&
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
-        validate();
+        //validate();
 
         const int nComponents = pixelComponentCount;
 
@@ -777,6 +625,10 @@ public:
             }
         }
     }
+
+private:
+    static float index_to_float(const unsigned short i);
+    static unsigned short hipart(const float f);
 };
 
 
@@ -1088,31 +940,29 @@ void rgb709_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
 void lab_to_rgb709( float l, float a, float b, float *r, float *g, float *b_ );
 
 
-// a Singleton that holds precomputed LUTs for the whole application.
-// The m_instance member is static and is thus built before the first call to Instance().
+// an object that holds precomputed LUTs for the whole application.
+// The LutManager object should be constructed in the plugin factory's load() function, and destructed in the unload() function
+// Luts are allocated on request, and destructed either on request, or when the LutManager is destroyed
 template <class MUTEX>
 class LutManager
 {
     typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
 
-    //each lut with a ref count mapped against their name
-    struct LutContainer
-    {
-        const LutBase* lut;
-        int refCount;
-
-        LutContainer() : lut(0), refCount(0) {}
-    };
-
-    typedef std::map<std::string, LutContainer > LutsMap;
+    typedef std::map<std::string, const Lut* > LutsMap;
 
 public:
-    static LutManager<MUTEX>& Instance()
+    LutManager()
+    : _lock()
+    , _luts()
     {
-        static LutManager<MUTEX> m_instance;
+    }
 
-        return m_instance;
-    };
+    ~LutManager()
+    {
+        for (typename LutsMap::iterator it = _luts.begin(); it != _luts.end(); ++it) {
+            delete it->second;
+        }
+    }
 
     /**
      * @brief Returns a pointer to a lut with the given name and the given from and to functions.
@@ -1121,25 +971,22 @@ public:
      * You must release the lut when you are done using it.
      * @WARNING: Not thread-safe. You should call it in the load() action of your plug-in
      **/
-    static const LutBase* getLut(const std::string & name,
+    const Lut* getLut(const std::string & name,
                                  fromColorSpaceFunctionV1 fromFunc,
                                  toColorSpaceFunctionV1 toFunc)
     {
-        typename LutsMap::iterator found = Instance().luts.find(name);
+        AutoMutex l(_lock);
+        typename LutsMap::iterator found = _luts.find(name);
 
-        if ( found != Instance().luts.end() ) {
-            ++found->second.refCount;
+        if ( found != _luts.end() ) {
 
-            return found->second.lut;
+            return found->second;
         } else {
-            LutContainer& c = Instance().luts[name];
+            Lut* lut = new Lut(name, fromFunc, toFunc);;
+            //lut->validate();
+            _luts[name] = lut;
 
-            Lut<MUTEX>* lut = new Lut<MUTEX>(name, fromFunc, toFunc);;
-            lut->validate();
-            c.lut = lut;
-            c.refCount = 1;
-
-            return c.lut;
+            return lut;
         }
 
         return NULL;
@@ -1147,120 +994,77 @@ public:
 
     /**
      * @brief Release a lut previously retrieved with getLut()
-     * @WARNING: Not thread-safe. You should call it in the unload() action of your plug-in
      **/
-    static void releaseLut(const std::string& name)
+    void releaseLut(const std::string& name)
     {
-        typename LutsMap::iterator found = Instance().luts.find(name);
-        if ( found != Instance().luts.end() ) {
-            if (found->second.refCount == 1) {
-                delete found->second.lut;
-                Instance().luts.erase(found);
-            } else {
-                --found->second.refCount;
-                assert(found->second.refCount > 0);
-            }
+        AutoMutex l(_lock);
+        typename LutsMap::iterator found = _luts.find(name);
+        if ( found != _luts.end() ) {
+            delete found->second;
+            _luts.erase(found);
         }
     }
 
     ///buit-ins color-spaces
-    static const LutBase* linearLut()
+    const Lut* linearLut()
     {
-        return Instance().getLut("Linear", from_func_linear, to_func_linear);
+        return getLut("Linear", from_func_linear, to_func_linear);
     }
 
-    static const LutBase* sRGBLut()
+    const Lut* sRGBLut()
     {
-        return Instance().getLut("sRGB", from_func_srgb, to_func_srgb);
+        return getLut("sRGB", from_func_srgb, to_func_srgb);
     }
 
-    static const LutBase* Rec709Lut()
+    const Lut* Rec709Lut()
     {
-        return Instance().getLut("Rec709", from_func_Rec709, to_func_Rec709);
+        return getLut("Rec709", from_func_Rec709, to_func_Rec709);
     }
 
-    static const LutBase* CineonLut()
+    const Lut* CineonLut()
     {
-        return Instance().getLut("Cineon", from_func_Cineon, to_func_Cineon);
+        return getLut("Cineon", from_func_Cineon, to_func_Cineon);
     }
 
-    static const LutBase* Gamma1_8Lut()
+    const Lut* Gamma1_8Lut()
     {
-        return Instance().getLut("Gamma1_8", from_func_Gamma1_8, to_func_Gamma1_8);
+        return getLut("Gamma1_8", from_func_Gamma1_8, to_func_Gamma1_8);
     }
 
-    static const LutBase* Gamma2_2Lut()
+    const Lut* Gamma2_2Lut()
     {
-        return Instance().getLut("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
+        return getLut("Gamma2_2", from_func_Gamma2_2, to_func_Gamma2_2);
     }
 
-    static const LutBase* PanalogLut()
+    const Lut* PanalogLut()
     {
-        return Instance().getLut("Panalog", from_func_Panalog, to_func_Panalog);
+        return getLut("Panalog", from_func_Panalog, to_func_Panalog);
     }
 
-    static const LutBase* ViperLogLut()
+    const Lut* ViperLogLut()
     {
-        return Instance().getLut("ViperLog", from_func_ViperLog, to_func_ViperLog);
+        return getLut("ViperLog", from_func_ViperLog, to_func_ViperLog);
     }
 
-    static const LutBase* REDLogLut()
+    const Lut* REDLogLut()
     {
-        return Instance().getLut("REDLog", from_func_REDLog, to_func_REDLog);
+        return getLut("REDLog", from_func_REDLog, to_func_REDLog);
     }
 
-    static const LutBase* AlexaV3LogCLut()
+    const Lut* AlexaV3LogCLut()
     {
-        return Instance().getLut("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
+        return getLut("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
     }
 
 private:
-    LutManager &operator= (const LutManager &)
-    {
-        return *this;
-    }
+    LutManager &operator= (const LutManager &);
+    LutManager(const LutManager &);
 
-    LutManager(const LutManager &)
-    {
-    }
 
-    LutManager()
-        : luts()
-    {
-    }
-
-    ~LutManager()
-    {
-        // The luts must all have been released before!
-        // This is because the Lut holds a OFX::MultiThread::Mutex and it can't be deleted
-        // by this singleton because it makes their destruction time uncertain regarding to
-        // the host multi-thread suite.
-        // Make sure every call to getLut() is paired with a call to releaseLut()
-        assert( luts.empty() );
-        for (typename LutsMap::iterator it = luts.begin(); it != luts.end(); ++it) {
-            delete it->second.lut;
-        }
-    }
-
-    LutsMap luts;
+    mutable MUTEX _lock;                 ///< protects _luts
+    LutsMap _luts;
 };
 
-
-template <class MUTEX>
-const LutBase*
-getLut(const std::string & name,
-       fromColorSpaceFunctionV1 fromFunc,
-       toColorSpaceFunctionV1 toFunc)
-{
-    return LutManager<MUTEX>::getLut(name, fromFunc, toFunc);
-}
-
-template <class MUTEX>
-void
-releaseLut(const std::string& name)
-{
-    return LutManager<MUTEX>::releaseLut(name);
-}
 }         //namespace Color
 }     //namespace OFX
 
