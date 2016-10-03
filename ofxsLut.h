@@ -1087,14 +1087,12 @@ void lab_to_xyz( float l, float a, float b, float *x, float *y, float *z );
 void rgb709_to_lab( float r, float g, float b, float *l, float *a, float *b_ );
 void lab_to_rgb709( float l, float a, float b, float *r, float *g, float *b_ );
 
+
 // a Singleton that holds precomputed LUTs for the whole application.
 // The m_instance member is static and is thus built before the first call to Instance().
 template <class MUTEX>
 class LutManager
 {
-
-private:
-
     typedef OFX::MultiThread::AutoMutexT<MUTEX> AutoMutex;
 
     //each lut with a ref count mapped against their name
@@ -1108,15 +1106,13 @@ private:
 
     typedef std::map<std::string, LutContainer > LutsMap;
 
+public:
     static LutManager<MUTEX>& Instance()
     {
         static LutManager<MUTEX> m_instance;
 
         return m_instance;
     };
-
-public:
-    // Following methods are private, use the LutAccess RAII class instead
 
     /**
      * @brief Returns a pointer to a lut with the given name and the given from and to functions.
@@ -1217,8 +1213,8 @@ public:
     {
         return Instance().getLut("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
     }
-private:
 
+private:
     LutManager &operator= (const LutManager &)
     {
         return *this;
@@ -1246,78 +1242,26 @@ private:
         }
     }
 
-
     LutsMap luts;
 };
 
-/**
- * @brief Get access to a lut. This object must be destroyed when done. 
- * If MUTEX type is a mutex of the multi-thread suite, you cannot use this class as a static variable as
- * the multi-thread suite availability is undefined during static variables tear-down.
- **/
-class LutAccess
+
+template <class MUTEX>
+const LutBase*
+getLut(const std::string & name,
+       fromColorSpaceFunctionV1 fromFunc,
+       toColorSpaceFunctionV1 toFunc)
 {
-public:
+    return LutManager<MUTEX>::getLut(name, fromFunc, toFunc);
+}
 
-    LutAccess()
-    {
-
-    }
-
-    virtual const LutBase* operator->() const = 0;
-
-    virtual ~LutAccess()
-    {
-
-    }
-
-};
-
-#define LUT_NAME_STRINGIZE_(name) # name
-#define LUT_NAME_STRINGIZE(name) \
-LUT_NAME_STRINGIZE_(name)
-
-
-#define DECLARE_LUT_ACCESS(CLASS_NAME, fromFunc, toFunc) \
-    template<class MUTEX> \
-    class CLASS_NAME : public LutAccess { \
-        const LutBase* _lut; \
-    public: \
-        CLASS_NAME() \
-        : LutAccess() \
-        , _lut(0) \
-        { \
-            _lut = LutManager<MUTEX>::getLut(LUT_NAME_STRINGIZE(CLASS_NAME), fromFunc, toFunc); \
-        } \
-        \
-        virtual const LutBase* operator->() const \
-        { \
-            assert(_lut); \
-            return _lut; \
-        } \
-        \
-        \
-        virtual ~CLASS_NAME() \
-        { \
-            if (_lut) { \
-                LutManager<MUTEX>::releaseLut(_lut->getName()); \
-            } \
-            _lut = 0; \
-        } \
-    };
-
-DECLARE_LUT_ACCESS(LinearLut, from_func_linear, to_func_linear);
-DECLARE_LUT_ACCESS(sRGBLut, from_func_srgb, to_func_srgb);
-DECLARE_LUT_ACCESS(Rec709Lut, from_func_Rec709, to_func_Rec709);
-DECLARE_LUT_ACCESS(CineonLut, from_func_Cineon, to_func_Cineon);
-DECLARE_LUT_ACCESS(Gamma1_8Lut, from_func_Gamma1_8, to_func_Gamma1_8);
-DECLARE_LUT_ACCESS(Gamma2_2Lut, from_func_Gamma2_2, to_func_Gamma2_2);
-DECLARE_LUT_ACCESS(PanalogLut, from_func_Panalog, to_func_Panalog);
-DECLARE_LUT_ACCESS(ViperLogLut, from_func_ViperLog, to_func_ViperLog);
-DECLARE_LUT_ACCESS(REDLogLut, from_func_REDLog, to_func_REDLog);
-DECLARE_LUT_ACCESS(AlexaV3LogCLut, from_func_AlexaV3LogC, to_func_AlexaV3LogC);
-
-}     //namespace Color
+template <class MUTEX>
+void
+releaseLut(const std::string& name)
+{
+    return LutManager<MUTEX>::releaseLut(name);
+}
+}         //namespace Color
 }     //namespace OFX
 
 /*
