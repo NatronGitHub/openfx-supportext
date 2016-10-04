@@ -396,6 +396,17 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
             clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
         }
     }
+#ifdef OFX_EXTENSIONS_NATRON
+    if (par != 0.) {
+        OfxRectD rod;
+        if ( getRegionOfDefinition(rod) ) { // don't set format if default
+            OfxRectI format;
+            const OfxPointD rsOne = {1., 1.};
+            OFX::Coords::toPixelNearest(rod, rsOne, par, &format);
+            clipPreferences.setOutputFormat(format);
+        }
+    }
+#endif
 }
 
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
