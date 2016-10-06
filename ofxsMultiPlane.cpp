@@ -1336,7 +1336,7 @@ describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
         param->setAnimates(false);
         addInputChannelOptionsRGBA(param, clips, true);
         param->setEvaluateOnChange(false);
-        param->setIsPersistent(true);
+        param->setIsPersistent(false);
         if (page) {
             page->addChild(*param);
         }
