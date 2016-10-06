@@ -1160,6 +1160,9 @@ MultiPlaneEffect::getPlaneNeededForParam(double time,
                 }
             }
             assert(foundChannel != -1);
+            if (foundChannel == -1) {
+                return false;
+            }
             *ofxPlane = *it;
             *channelIndexInPlane = foundChannel;
             *ofxComponents = *it;
