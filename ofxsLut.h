@@ -921,17 +921,189 @@ void yuv_to_rgb601( float y, float u, float v, float *r, float *g, float *b );
 void rgb_to_yuv709( float r, float g, float b, float *y, float *u, float *v );
 void yuv_to_rgb709( float y, float u, float v, float *r, float *g, float *b );
 
-void rgb709_to_xyz( float r, float g, float b, float *x, float *y, float *z );
-void xyz_to_rgb709( float x, float y, float z, float *r, float *g, float *b );
+// r,g,b values are from 0 to 1
+// Convert pixel values from linear RGB_709 or sRGB to XYZ color spaces.
+// Uses the standard D65 white point.
+template<typename T>
+T rgb709_to_y( T r, T g, T b )
+{
+    return 0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
+}
 
-void rgb2020_to_xyz( float r, float g, float b, float *x, float *y, float *z );
-void xyz_to_rgb2020( float x, float y, float z, float *r, float *g, float *b );
+template<typename T>
+void
+rgb709_to_xyz(T r,
+              T g,
+              T b,
+              T *x,
+              T *y,
+              T *z)
+{
+    //*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
+    //*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
+    //*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+    //> with(linalg):
+    //> M:=matrix([[3.2409699419, -1.5373831776, -0.4986107603],[-0.9692436363, 1.8759675015, 0.0415550574],[ 0.0556300797, -0.2039769589,  1.0569715142]]);
+    //> inverse(M);
 
-void rgbACESAP0_to_xyz( float r, float g, float b, float *x, float *y, float *z );
-void xyz_to_rgbACESAP0( float x, float y, float z, float *r, float *g, float *b );
+    *x = 0.4123907992 * r + 0.3575843394 * g + 0.1804807884 * b;
+    *y = rgb709_to_y(r, g, b);
+    *z = 0.0193308187 * r + 0.1191947798 * g + 0.9505321522 * b;
+}
 
-void rgbACESAP1_to_xyz( float r, float g, float b, float *x, float *y, float *z );
-void xyz_to_rgbACESAP1( float x, float y, float z, float *r, float *g, float *b );
+// Convert pixel values from XYZ to linear RGB_709 or sRGB color spaces.
+// Uses the standard D65 white point.
+template<typename T>
+void
+xyz_to_rgb709(T x,
+              T y,
+              T z,
+              T *r,
+              T *g,
+              T *b)
+{
+    //*r =  3.240479f * x - 1.537150f * y - 0.498535f * z;
+    //*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
+    //*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  3.2409699419 * x + -1.5373831776 * y + -0.4986107603 * z;
+    *g = -0.9692436363 * x +  1.8759675015 * y +  0.0415550574 * z;
+    *b =  0.0556300797 * x + -0.2039769589 * y +  1.0569715142 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_2020 to XYZ color spaces.
+// Uses the standard D65 white point.
+template<typename T>
+T rgb2020_to_y( T r, T g, T b )
+{
+    return 0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b;
+}
+
+template<typename T>
+void
+rgb2020_to_xyz(T r,
+               T g,
+               T b,
+               T *x,
+               T *y,
+               T *z)
+{
+    //> with(linalg):
+    //> P:=matrix([[1.7166511880,-0.3556707838,-0.2533662814],[-0.6666843518,1.6164812366,0.0157685458],[0.0176398574,-0.0427706133,0.9421031212]]);
+    //> inverse(P);
+
+    *x = 0.6369580481 * r + 0.1446169036 * g + 0.1688809752 * b;
+    *y = rgb2020_to_y(r, g, b);
+    *z = 0.0000000000 * r + 0.0280726931 * g + 1.060985058  * b;
+}
+
+// Convert pixel values from XYZ to RGB_2020 color spaces.
+// Uses the standard D65 white point.
+template<typename T>
+void
+xyz_to_rgb2020(T x,
+               T y,
+               T z,
+               T *r,
+               T *g,
+               T *b)
+{
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.7166511880 * x + -0.3556707838 * y + -0.2533662814 * z;
+    *g = -0.6666843518 * x +  1.6164812366 * y +  0.0157685458 * z;
+    *b =  0.0176398574 * x + -0.0427706133 * y +  0.9421031212 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_ACES_AP0 to XYZ color spaces.
+// Uses the ACES white point (approx. D60).
+template<typename T>
+T rgbACESAP0_to_y( T r, T g, T b )
+{
+    return 0.3439664498 * r + 0.7281660966 * g + -0.0721325464 * b;
+}
+
+template<typename T>
+void
+rgbACESAP0_to_xyz(T r,
+                  T g,
+                  T b,
+                  T *x,
+                  T *y,
+                  T *z)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *x = 0.9525523959 * r + 0.0000000000 * g +  0.0000936786 * b;
+    *y = rgbACESAP0_to_y(r, g, b);
+    *z = 0.0000000000 * r + 0.0000000000 * g +  1.0088251844 * b;
+}
+
+// Convert pixel values from XYZ to RGB_ACES_AP0 (with the ACES illuminant) color spaces.
+// Uses the ACES white point (approx. D60).
+template<typename T>
+void
+xyz_to_rgbACESAP0(T x,
+                  T y,
+                  T z,
+                  T *r,
+                  T *g,
+                  T *b)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.0498110175 * x +  0.0000000000 * y + -0.0000974845 * z;
+    *g = -0.4959030231 * x +  1.3733130458 * y +  0.0982400361 * z;
+    *b =  0.0000000000 * x +  0.0000000000 * y +  0.9912520182 * z;
+}
+
+// r,g,b values are from 0 to 1
+// Convert pixel values from RGB_ACES_AP1 to XYZ color spaces.
+// Uses the ACES white point (approx. D60).
+template<typename T>
+T rgbACESAP1_to_y( T r, T g, T b )
+{
+    return 0.2722287168 * r +  0.6740817658 * g +  0.0536895174 * b;
+}
+
+template<typename T>
+void
+rgbACESAP1_to_xyz(T r,
+                  T g,
+                  T b,
+                  T *x,
+                  T *y,
+                  T *z)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *x =  0.6624541811 * r +  0.1340042065 * g +  0.1561876870 * b;
+    *y =  rgbACESAP1_to_y(r, g, b);
+    *z = -0.0055746495 * r +  0.0040607335 * g +  1.0103391003 * b;
+}
+
+// Convert pixel values from XYZ to RGB_ACES_AP1 color spaces.
+// Uses the ACES white point (approx. D60).
+template<typename T>
+void
+xyz_to_rgbACESAP1(T x,
+                  T y,
+                  T z,
+                  T *r,
+                  T *g,
+                  T *b)
+{
+    // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+    // and
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
+    *r =  1.6410233797 * x + -0.3248032942 * y + -0.2364246952 * z;
+    *g = -0.6636628587 * x +  1.6153315917 * y +  0.0167563477 * z;
+    *b =  0.0117218943 * x + -0.0082844420 * y +  0.9883948585 * z;
+}
 
 void xyz_to_lab( float x, float y, float z, float *l, float *a, float *b );
 void lab_to_xyz( float l, float a, float b, float *x, float *y, float *z );
