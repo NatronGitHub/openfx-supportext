@@ -124,10 +124,7 @@ protected:
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
     bool getRegionOfDefinition(OfxRectD &rod);
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
-    // must be called by derived class if it is reimplemented (see Radial.cpp for example)
-    virtual bool isIdentity(const OFX::IsIdentityArguments &args,
-                            OFX::Clip * &identityClip,
-                            double &identityTime) OVERRIDE;
+
 
 private:
 
@@ -143,8 +140,6 @@ private:
 
 
     void updateParamsVisibility();
-
-    virtual bool paramsNotAnimated() = 0;
 
 private:
     OFX::PixelComponentEnum _outputComponentsMap[10];

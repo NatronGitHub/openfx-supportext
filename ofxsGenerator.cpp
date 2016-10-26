@@ -205,46 +205,7 @@ GeneratorPlugin::getTimeDomain(OfxRangeD &range)
     return false;
 }
 
-bool
-GeneratorPlugin::isIdentity(const OFX::IsIdentityArguments &args,
-                            OFX::Clip * &identityClip,
-                            double &identityTime)
-{
-    if ( OFX::getImageEffectHostDescription()->isNatron && (getContext() == OFX::eContextGeneral) ) {
-        // only Natron supports setting the identityClip to the output clip
 
-        OFX::Clip* srcClip = getSrcClip();
-        if ( srcClip && srcClip->isConnected() ) {
-            // If the source clip is connected, then the output is likely not to be identity
-            return false;
-        }
-
-        int min, max;
-        _range->getValue(min, max);
-
-        GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
-        if (extent == eGeneratorExtentSize) {
-            ///If not animated and different than 'min' time, return identity on the min time.
-            ///We need to check more parameters
-            if ( paramsNotAnimated() && (_size->getNumKeys() == 0) && (_btmLeft->getNumKeys() == 0) && (args.time != min) ) {
-                identityClip = _dstClip;
-                identityTime = min;
-
-                return true;
-            }
-        } else {
-            ///If not animated and different than 'min' time, return identity on the min time.
-            if ( paramsNotAnimated() && (args.time != min) ) {
-                identityClip = _dstClip;
-                identityTime = min;
-
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
 
 void
 GeneratorPlugin::updateParamsVisibility()
