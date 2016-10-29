@@ -397,6 +397,7 @@ public:
     PixelCopierPremult(OFX::ImageEffect &instance)
         : OFX::PixelProcessorFilterBase(instance)
     {
+        assert(srcMaxValue);
         assert( (srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4) );
     }
 

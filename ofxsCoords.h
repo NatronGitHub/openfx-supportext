@@ -171,6 +171,7 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
                  double par,
                  OfxRectI *rect)
 {
+    assert(par);
     if ( rectIsEmpty(regionOfInterest) ) {
         rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
 
@@ -188,6 +189,7 @@ toPixelNearest(const OfxRectD & regionOfInterest,
                double par,
                OfxRectI *rect)
 {
+    assert(par);
     if ( rectIsEmpty(regionOfInterest) ) {
         rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
 
@@ -205,6 +207,7 @@ toPixel(const OfxPointD & p_canonical,
         double par,
         OfxPointI *p_pixel)
 {
+    assert(par);
     p_pixel->x = (int)std::floor(p_canonical.x * renderScale.x / par);
     p_pixel->y = (int)std::floor(p_canonical.y * renderScale.y);
 }
@@ -216,6 +219,7 @@ toPixelSub(const OfxPointD & p_canonical,
            double par,
            OfxPointD *p_pixel)
 {
+    assert(par);
     p_pixel->x = p_canonical.x * renderScale.x / par - 0.5;
     p_pixel->y = p_canonical.y * renderScale.y - 0.5;
 }
@@ -227,6 +231,7 @@ toCanonical(const OfxPointI & p_pixel,
             double par,
             OfxPointD *p_canonical)
 {
+    assert(par);
     p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
     p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
 }
@@ -238,6 +243,7 @@ toCanonicalSub(const OfxPointD & p_pixel,
                double par,
                OfxPointD *p_canonical)
 {
+    assert(par);
     p_canonical->x = (p_pixel.x + 0.5) * par / renderScale.x;
     p_canonical->y = (p_pixel.y + 0.5) / renderScale.y;
 }
@@ -248,6 +254,7 @@ toCanonical(const OfxRectI & rect,
             double par,
             OfxRectD *regionOfInterest)
 {
+    assert(par);
     if ( rectIsEmpty(rect) ) {
         regionOfInterest->x1 = regionOfInterest->y1 = regionOfInterest->x2 = regionOfInterest->y2 = 0;
 
