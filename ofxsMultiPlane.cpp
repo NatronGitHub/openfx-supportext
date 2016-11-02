@@ -661,6 +661,7 @@ struct MultiPlaneEffectPrivate
     // We need to know if it had the all choice in the last call made to buildChannelMenus()
     bool lastBuildChannelMenusHadAllChoice;
 
+
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
         : _publicInterface(publicInterface)
         , lastBuildChannelMenusHadAllChoice(false)
@@ -921,22 +922,20 @@ BuildChannelMenusData::addParamToRebuild(const OFX::MultiPlane::ChoiceParamClips
 MultiPlaneEffect::ChangedParamRetCode
 MultiPlaneEffectPrivate::checkIfChangedParamCalledOnDynamicChoiceInternal(const std::string& paramName,
                                                                           const ChoiceParamClips& param,
-                                                                          OFX::InstanceChangeReason /*reason*/)
+                                                                          OFX::InstanceChangeReason reason)
 {
     if (param.stringparam) {
-        if ( paramName == param.param->getName() ) {
+        if ( paramName == param.param->getName()  && reason == OFX::eChangeUserEdit) {
             int choice_i;
             param.param->getValue(choice_i);
             std::string optionName;
             param.param->getOption(choice_i, optionName);
             param.stringparam->setValue(optionName);
-
             return MultiPlaneEffect::eChangedParamRetCodeChoiceParamChanged;
         } else if ( paramName == param.stringparam->getName() ) {
             std::vector<std::string> options;
             param.param->getOptions(&options);
             setChannelsFromStringParamInternal(param.param, param.stringparam, options, true);
-
             return MultiPlaneEffect::eChangedParamRetCodeStringParamChanged;
         } else if ( paramName == param.buttonparam->getName() ) {
             _publicInterface->buildChannelMenus(param.param->getName(), false, lastBuildChannelMenusHadAllChoice);
