@@ -325,12 +325,12 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     switch (extent) {
     case eGeneratorExtentFormat: {
         //specific output format
-        _formatPar->getValue(par);
+        par = _formatPar->getValue();
         break;
     }
     case eGeneratorExtentProject:
     case eGeneratorExtentDefault: {
-        /// this should be the defalut value given by the host, no need to set it.
+        /// this should be the default value given by the host, no need to set it.
         /// @see Instance::setupClipPreferencesArgs() in HostSupport, it should have
         /// the line:
         /// double inputPar = getProjectPixelAspectRatio();
@@ -340,10 +340,6 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
     }
     case eGeneratorExtentSize:
         break;
-    }
-
-    if (par != 0.) {
-        clipPreferences.setPixelAspectRatio(*_dstClip, par);
     }
 
     if (_useOutputComponentsAndDepth) {
@@ -357,8 +353,9 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
             clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
         }
     }
+    if (extent == eGeneratorExtentFormat) {
+        clipPreferences.setPixelAspectRatio(*_dstClip, par);
 #ifdef OFX_EXTENSIONS_NATRON
-    if (par != 0.) {
         OfxRectD rod;
         if ( getRegionOfDefinition(rod) ) { // don't set format if default
             OfxRectI format;
@@ -366,8 +363,8 @@ GeneratorPlugin::getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences)
             OFX::Coords::toPixelNearest(rod, rsOne, par, &format);
             clipPreferences.setOutputFormat(format);
         }
-    }
 #endif
+    }
 }
 
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
