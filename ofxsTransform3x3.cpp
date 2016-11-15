@@ -1029,10 +1029,12 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
 {
     //std::cout << "getTransform called!" << std::endl;
 
-    assert(!_masked); // this should never get called for masked plugins, since they don't advertise that they can transform
-    if (_masked) {
-        return false;
-    }
+    // Even if the plugin advertizes it cannot transform, getTransform() may be called, e.g. to
+    // get a transform for the overlays. We thus always return a transform.
+    //assert(!_masked); // this should never get called for masked plugins, since they don't advertise that they can transform
+    //if (_masked) {
+    //    return false;
+    //}
 
     const double time = args.time;
 
