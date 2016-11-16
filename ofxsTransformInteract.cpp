@@ -1093,7 +1093,7 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
         double prevDistSq = (targetCenter.x - previousPos.x) * (targetCenter.x - previousPos.x) + (targetCenter.y - previousPos.y) * (targetCenter.y - previousPos.y);
         if (prevDistSq != 0.) {
             const double distSq = (targetCenter.x - currentPos.x) * (targetCenter.x - currentPos.x) + (targetCenter.y - currentPos.y) * (targetCenter.y - currentPos.y);
-            const double distRatio = std::sqrt(distSq / prevDistSq);
+            const double distRatio = std::sqrt( std::max(distSq / prevDistSq, 0.) );
             scale.x *= distRatio;
             scale.y *= distRatio;
             //_scale->setValue(scale.x, scale.y);
