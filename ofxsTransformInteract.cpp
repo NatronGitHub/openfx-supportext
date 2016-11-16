@@ -1269,7 +1269,7 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-        _effect->beginEditBlock("setTransform");
+        _effect->beginEditBlock("Set Transform");
         if (centerChanged) {
             _center->setValue(center.x, center.y);
         }
@@ -1468,7 +1468,7 @@ TransformInteractHelper::penUp(const OFX::PenArgs &args)
 
     if ( !_interactiveDrag && (_mouseState != eReleased) ) {
         // no need to redraw overlay since it is slave to the paramaters
-        _effect->beginEditBlock("setTransform");
+        _effect->beginEditBlock("Set Transform");
         if (_center) {
             _center->setValue(_centerDrag.x, _centerDrag.y);
         }
