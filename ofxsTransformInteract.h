@@ -45,6 +45,7 @@
 #define kParamTransformSkewOrderLabel "Skew Order"
 #define kParamTransformCenter "transformCenter"
 #define kParamTransformCenterLabel "Center"
+#define kParamTransformCenterChanged "transformCenterChanged"
 #define kParamTransformResetCenter "transformResetCenter"
 #define kParamTransformResetCenterLabel "Reset Center"
 #define kParamTransformResetCenterHint "Reset the position of the center to the center of the input region of definition"

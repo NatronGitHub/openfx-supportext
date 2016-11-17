@@ -208,6 +208,21 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         }
     }
 
+    // centerChanged
+    {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformCenterChanged);
+        param->setDefault(false);
+        param->setIsSecretAndDisabled(true);
+        param->setAnimates(false);
+        param->setEvaluateOnChange(false);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
     // interactOpen
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransformInteractOpen);
