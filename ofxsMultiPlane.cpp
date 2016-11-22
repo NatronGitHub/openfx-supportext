@@ -656,6 +656,7 @@ struct MultiPlaneEffectPrivate
     MultiPlaneEffect* _publicInterface;
     std::map<OFX::Clip*, std::vector<std::string> > clipComponentsCache;
     std::map<std::string, ChoiceParamClips> params;
+    OFX::Clip* dstClip;
 
     // Used in the checkIfChangedParamCalledOnDynamicChoiceInternal function when refreshing the choice menu.
     // We need to know if it had the all choice in the last call made to buildChannelMenus()
@@ -664,6 +665,7 @@ struct MultiPlaneEffectPrivate
 
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
         : _publicInterface(publicInterface)
+        , dstClip( publicInterface->fetchClip(kOfxImageEffectOutputClipName) )
         , lastBuildChannelMenusHadAllChoice(false)
     {
     }
@@ -985,6 +987,7 @@ MultiPlaneEffect::getPlaneNeededForParam(double time,
 {
     std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
 
+#pragma message WARN("TODO: this does not work on Nuke (_imp->params is empty)")
     assert( found != _imp->params.end() );
     if ( found == _imp->params.end() ) {
         return false;
@@ -1179,28 +1182,29 @@ bool
 MultiPlaneEffect::getPlaneNeededInOutput(std::string* ofxPlane,
                                          std::string* ofxComponents)
 {
+    std::string layerName;
     std::map<std::string, ChoiceParamClips>::iterator found = _imp->params.find(kMultiPlaneParamOutputChannels);
 
-    assert( found != _imp->params.end() );
-    if ( found == _imp->params.end() ) {
-        return false;
-    }
-
-
-    int layer_i;
-    found->second.param->getValue(layer_i);
-    std::string layerName;
-    try {
-        found->second.param->getOption(layer_i, layerName);
-    } catch (...) {
+    assert( _imp->params.size() == 0 || found != _imp->params.end() );
+    // kMultiPlaneParamOutputChannels does not exist if dynamic choices are not supported (e.g. Nuke)
+    if ( found != _imp->params.end() ) {
+        try {
+            found->second.param->getOption(found->second.param->getValue(), layerName);
+        } catch (...) {
+        }
     }
 
     if ( layerName.empty() ||
          ( layerName == kPlaneLabelColorRGBA) ||
          ( layerName == kPlaneLabelColorRGB) ||
          ( layerName == kPlaneLabelColorAlpha) || found->second.param->getIsSecret() ) {
-        assert(found->second.clips[0]);
-        std::string comp = found->second.clips[0]->getPixelComponentsProperty();
+        assert(found == _imp->params.end() || found->second.clips[0]);
+        std::string comp;
+        if ( found == _imp->params.end() ) {
+            comp = _imp->dstClip->getPixelComponentsProperty();
+        } else {
+            comp = found->second.clips[0]->getPixelComponentsProperty();
+        }
         *ofxComponents = comp;
         *ofxPlane = kFnOfxImagePlaneColour;
 
