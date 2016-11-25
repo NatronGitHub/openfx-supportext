@@ -37,7 +37,7 @@ halveWindow(const OfxRectI & dstRoI,
 {
     assert(srcPixels && dstPixels);
     if (!srcPixels || !dstPixels) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
 
     assert(dstRoI.x1 * 2 >= (srcBounds.x1 - 1) && (dstRoI.x2 - 1) * 2 < srcBounds.x2 &&
@@ -96,7 +96,7 @@ halveWindow(const OfxRectI & dstRoI,
 // proofread and fixed by F. Devernay on 3/10/2014
 template <typename PIX, int nComponents>
 static void
-buildMipMapLevel(OFX::ImageEffect* instance,
+buildMipMapLevel(ImageEffect* instance,
                  const OfxRectI & originalRenderWindow,
                  const OfxRectI & renderWindowFullRes,
                  unsigned int level,
@@ -110,12 +110,12 @@ buildMipMapLevel(OFX::ImageEffect* instance,
     assert(level > 0);
     assert(srcPixels && dstPixels);
     if (!srcPixels || !dstPixels) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
 
-    std::auto_ptr<OFX::ImageMemory> mem;
+    std::auto_ptr<ImageMemory> mem;
     size_t memSize = 0;
-    std::auto_ptr<OFX::ImageMemory> tmpMem;
+    std::auto_ptr<ImageMemory> tmpMem;
     size_t tmpMemSize = 0;
     PIX* nextImg = NULL;
     const PIX* previousImg = srcPixels;
@@ -145,7 +145,7 @@ buildMipMapLevel(OFX::ImageEffect* instance,
             // there should be enough memory: no need to reallocate
             assert(tmpMemSize >= memSize);
         } else {
-            tmpMem.reset( new OFX::ImageMemory(newMemSize, instance) );
+            tmpMem.reset( new ImageMemory(newMemSize, instance) );
             tmpMemSize = newMemSize;
         }
         nextImg = (float*)tmpMem->lock();
@@ -174,43 +174,43 @@ buildMipMapLevel(OFX::ImageEffect* instance,
 } // buildMipMapLevel
 
 void
-ofxsScalePixelData(OFX::ImageEffect* instance,
+ofxsScalePixelData(ImageEffect* instance,
                    const OfxRectI & originalRenderWindow,
                    const OfxRectI & renderWindow,
                    unsigned int levels,
                    const void* srcPixelData,
-                   OFX::PixelComponentEnum srcPixelComponents,
-                   OFX::BitDepthEnum srcPixelDepth,
+                   PixelComponentEnum srcPixelComponents,
+                   BitDepthEnum srcPixelDepth,
                    const OfxRectI & srcBounds,
                    int srcRowBytes,
                    void* dstPixelData,
-                   OFX::PixelComponentEnum dstPixelComponents,
-                   OFX::BitDepthEnum dstPixelDepth,
+                   PixelComponentEnum dstPixelComponents,
+                   BitDepthEnum dstPixelDepth,
                    const OfxRectI & dstBounds,
                    int dstRowBytes)
 {
     assert(srcPixelData && dstPixelData);
     if (!srcPixelData || !dstPixelData) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
 
     // do the rendering
-    if ( ( dstPixelDepth != OFX::eBitDepthFloat) ||
-         ( ( dstPixelComponents != OFX::ePixelComponentRGBA) &&
-           ( dstPixelComponents != OFX::ePixelComponentRGB) &&
-           ( dstPixelComponents != OFX::ePixelComponentAlpha) ) ||
+    if ( ( dstPixelDepth != eBitDepthFloat) ||
+         ( ( dstPixelComponents != ePixelComponentRGBA) &&
+           ( dstPixelComponents != ePixelComponentRGB) &&
+           ( dstPixelComponents != ePixelComponentAlpha) ) ||
          ( dstPixelDepth != srcPixelDepth) ||
          ( dstPixelComponents != srcPixelComponents) ) {
-        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+        throwSuiteStatusException(kOfxStatErrFormat);
     }
 
-    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+    if (dstPixelComponents == ePixelComponentRGBA) {
         buildMipMapLevel<float, 4>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,
                                    srcBounds, srcRowBytes, (float*)dstPixelData, dstBounds, dstRowBytes);
-    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+    } else if (dstPixelComponents == ePixelComponentRGB) {
         buildMipMapLevel<float, 3>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,
                                    srcBounds, srcRowBytes, (float*)dstPixelData, dstBounds, dstRowBytes);
-    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+    }  else if (dstPixelComponents == ePixelComponentAlpha) {
         buildMipMapLevel<float, 1>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,
                                    srcBounds, srcRowBytes, (float*)dstPixelData, dstBounds, dstRowBytes);
     }     // switch
@@ -218,7 +218,7 @@ ofxsScalePixelData(OFX::ImageEffect* instance,
 
 template <typename PIX, int nComponents>
 static void
-ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
+ofxsBuildMipMapsForComponents(ImageEffect* instance,
                               const OfxRectI & renderWindow,
                               const PIX* srcPixelData,
                               const OfxRectI & srcBounds,
@@ -228,7 +228,7 @@ ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
 {
     assert(srcPixelData);
     if (!srcPixelData) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
     const PIX* previousImg = srcPixelData;
     OfxRectI previousBounds = srcBounds;
@@ -257,7 +257,7 @@ ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
         mipmaps[i - 1].memSize = (nextRenderWindow.y2 - nextRenderWindow.y1) * nextRowBytes;
         mipmaps[i - 1].bounds = nextRenderWindow;
 
-        mipmaps[i - 1].data = new OFX::ImageMemory(mipmaps[i - 1].memSize, instance);
+        mipmaps[i - 1].data = new ImageMemory(mipmaps[i - 1].memSize, instance);
         tmpMemSize = newMemSize;
 
         float* nextImg = (float*)tmpMem->lock();
@@ -272,11 +272,11 @@ ofxsBuildMipMapsForComponents(OFX::ImageEffect* instance,
 }
 
 void
-ofxsBuildMipMaps(OFX::ImageEffect* instance,
+ofxsBuildMipMaps(ImageEffect* instance,
                  const OfxRectI & renderWindow,
                  const void* srcPixelData,
-                 OFX::PixelComponentEnum srcPixelComponents,
-                 OFX::BitDepthEnum srcPixelDepth,
+                 PixelComponentEnum srcPixelComponents,
+                 BitDepthEnum srcPixelDepth,
                  const OfxRectI & srcBounds,
                  int srcRowBytes,
                  unsigned int maxLevel,
@@ -284,24 +284,24 @@ ofxsBuildMipMaps(OFX::ImageEffect* instance,
 {
     assert(srcPixelData && mipmaps->size() == maxLevel);
     if ( !srcPixelData || (mipmaps->size() != maxLevel) ) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
 
     // do the rendering
-    if ( srcPixelData && ( ( srcPixelDepth != OFX::eBitDepthFloat) ||
-                           ( ( srcPixelComponents != OFX::ePixelComponentRGBA) &&
-                             ( srcPixelComponents != OFX::ePixelComponentRGB) &&
-                             ( srcPixelComponents != OFX::ePixelComponentAlpha) ) ) ) {
-        OFX::throwSuiteStatusException(kOfxStatErrFormat);
+    if ( srcPixelData && ( ( srcPixelDepth != eBitDepthFloat) ||
+                           ( ( srcPixelComponents != ePixelComponentRGBA) &&
+                             ( srcPixelComponents != ePixelComponentRGB) &&
+                             ( srcPixelComponents != ePixelComponentAlpha) ) ) ) {
+        throwSuiteStatusException(kOfxStatErrFormat);
     }
 
-    if (dstPixelComponents == OFX::ePixelComponentRGBA) {
+    if (dstPixelComponents == ePixelComponentRGBA) {
         ofxsBuildMipMapsForComponents<float, 4>(instance, renderWindow, srcPixelData, srcBounds,
                                                 srcRowBytes, maxLevel, mipmaps);
-    } else if (dstPixelComponents == OFX::ePixelComponentRGB) {
+    } else if (dstPixelComponents == ePixelComponentRGB) {
         ofxsBuildMipMapsForComponents<float, 3>(instance, renderWindow, srcPixelData, srcBounds,
                                                 srcRowBytes, maxLevel, mipmaps);
-    }  else if (dstPixelComponents == OFX::ePixelComponentAlpha) {
+    }  else if (dstPixelComponents == ePixelComponentAlpha) {
         ofxsBuildMipMapsForComponents<float, 1>(instance, renderWindow, srcPixelData, srcBounds,
                                                 srcRowBytes, maxLevel, mipmaps);
     }

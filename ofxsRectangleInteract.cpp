@@ -35,6 +35,8 @@
 #define CROSS_SIZE 7
 #define HANDLE_SIZE 6
 
+using namespace OFX;
+
 using OFX::RectangleInteract;
 
 static bool
@@ -88,7 +90,7 @@ drawPoint(const OfxRGBColourD &color,
 }
 
 bool
-RectangleInteract::draw(const OFX::DrawArgs &args)
+RectangleInteract::draw(const DrawArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -190,7 +192,7 @@ RectangleInteract::draw(const OFX::DrawArgs &args)
 } // draw
 
 bool
-RectangleInteract::penMotion(const OFX::PenArgs &args)
+RectangleInteract::penMotion(const PenArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -438,7 +440,7 @@ RectangleInteract::penMotion(const OFX::PenArgs &args)
 } // penMotion
 
 bool
-RectangleInteract::penDown(const OFX::PenArgs &args)
+RectangleInteract::penDown(const PenArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -515,7 +517,7 @@ RectangleInteract::penDown(const OFX::PenArgs &args)
 } // penDown
 
 bool
-RectangleInteract::penUp(const OFX::PenArgs &args)
+RectangleInteract::penUp(const PenArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -539,7 +541,7 @@ RectangleInteract::penUp(const OFX::PenArgs &args)
 
 // keyDown just updates the modifier state
 bool
-RectangleInteract::keyDown(const OFX::KeyArgs &args)
+RectangleInteract::keyDown(const KeyArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -573,7 +575,7 @@ RectangleInteract::keyDown(const OFX::KeyArgs &args)
 
 // keyUp just updates the modifier state
 bool
-RectangleInteract::keyUp(const OFX::KeyArgs &args)
+RectangleInteract::keyUp(const KeyArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
@@ -606,7 +608,7 @@ RectangleInteract::keyUp(const OFX::KeyArgs &args)
 
 /** @brief Called when the interact is loses input focus */
 void
-RectangleInteract::loseFocus(const OFX::FocusArgs & /*args*/)
+RectangleInteract::loseFocus(const FocusArgs & /*args*/)
 {
     // reset the modifiers state
     _modifierStateCtrl = 0;
@@ -676,4 +678,3 @@ RectangleInteract::setValue(OfxPointD btmLeft,
     _size->setValue(size.x, size.y);
     _effect->endEditBlock();
 } // penDown
-

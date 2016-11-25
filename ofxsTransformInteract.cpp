@@ -36,6 +36,8 @@
 #include "ofxsMatrix2D.h"
 #include "ofxsTransform3x3.h"
 
+using namespace OFX;
+
 #define SCALE_MAX 10000.
 
 #define CIRCLE_RADIUS_BASE 30.
@@ -47,9 +49,9 @@
 namespace OFX {
 /// add Transform params. page and group are optional
 void
-ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
-                            OFX::PageParamDescriptor *page,
-                            OFX::GroupParamDescriptor *group,
+ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
+                            PageParamDescriptor *page,
+                            GroupParamDescriptor *group,
                             bool isOpen,
                             bool oldParams,
                             bool noTranslate)
@@ -101,7 +103,7 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
         param->setRange(-SCALE_MAX, -SCALE_MAX, SCALE_MAX, SCALE_MAX);
         param->setDisplayRange(0.1, 0.1, 10, 10);
         param->setIncrement(0.01);
-        param->setLayoutHint(OFX::eLayoutHintNoNewLine, 1);
+        param->setLayoutHint(eLayoutHintNoNewLine, 1);
         if (group) {
             param->setParent(*group);
         }
@@ -258,8 +260,8 @@ ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc,
 ////////////////////////////////////////////////////////////////////////////////
 // stuff for the interact
 
-TransformInteractHelper::TransformInteractHelper(OFX::ImageEffect* effect,
-                                                 OFX::Interact* interact,
+TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
+                                                 Interact* interact,
                                                  bool oldParams)
     : _drawState(eInActive)
     , _mouseState(eReleased)
@@ -482,7 +484,7 @@ drawEllipse(const OfxRGBColourD& color,
     // we don't need to be pixel-perfect here, it's just an interact!
     // 40 segments is enough.
     for (int i = 0; i < 40; ++i) {
-        double theta = i * 2 * OFX::ofxsPi() / 40.;
+        double theta = i * 2 * ofxsPi() / 40.;
         glVertex2d( targetRadius.x * std::cos(theta), targetRadius.y * std::sin(theta) );
     }
     glEnd();
@@ -663,7 +665,7 @@ drawRotationBar(const OfxRGBColourD& color,
 
 // draw the interact
 bool
-TransformInteractHelper::draw(const OFX::DrawArgs &args)
+TransformInteractHelper::draw(const DrawArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
@@ -785,11 +787,11 @@ TransformInteractHelper::draw(const OFX::DrawArgs &args)
         // the mouse position in the ellipse frame
         double flip = 0.;
         if ( (_drawState == eSkewXBarHoverered) || (_drawState == eSkewYBarHoverered) ) {
-            double rot = OFX::ofxsToRadians(rotate);
-            OFX::Matrix3x3 transformscale;
-            transformscale = OFX::ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+            double rot = ofxsToRadians(rotate);
+            Matrix3x3 transformscale;
+            transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
 
-            OFX::Point3D previousPos;
+            Point3D previousPos;
             previousPos.x = _lastMousePos.x;
             previousPos.y = _lastMousePos.y;
             previousPos.z = 1.;
@@ -821,7 +823,7 @@ TransformInteractHelper::draw(const OFX::DrawArgs &args)
 } // TransformInteractHelper::draw
 
 static bool
-squareContains(const OFX::Point3D& pos,
+squareContains(const Point3D& pos,
                const OfxRectD& rect,
                double toleranceX = 0.,
                double toleranceY = 0.)
@@ -831,7 +833,7 @@ squareContains(const OFX::Point3D& pos,
 }
 
 static bool
-isOnEllipseBorder(const OFX::Point3D& pos,
+isOnEllipseBorder(const Point3D& pos,
                   const OfxPointD& targetRadius,
                   const OfxPointD& targetCenter,
                   double epsilon = 0.1)
@@ -847,7 +849,7 @@ isOnEllipseBorder(const OFX::Point3D& pos,
 }
 
 static bool
-isOnSkewXBar(const OFX::Point3D& pos,
+isOnSkewXBar(const Point3D& pos,
              double targetRadiusY,
              const OfxPointD& center,
              const OfxPointD& pixelScale,
@@ -866,7 +868,7 @@ isOnSkewXBar(const OFX::Point3D& pos,
 }
 
 static bool
-isOnSkewYBar(const OFX::Point3D& pos,
+isOnSkewYBar(const Point3D& pos,
              double targetRadiusX,
              const OfxPointD& center,
              const OfxPointD& pixelScale,
@@ -885,7 +887,7 @@ isOnSkewYBar(const OFX::Point3D& pos,
 }
 
 static bool
-isOnRotationBar(const OFX::Point3D& pos,
+isOnRotationBar(const Point3D& pos,
                 double targetRadiusX,
                 const OfxPointD& center,
                 const OfxPointD& pixelScale,
@@ -932,9 +934,9 @@ fround(double val,
     return pscale10 * std::floor(val / pscale10 + 0.5);
 }
 
-// overridden functions from OFX::Interact to do things
+// overridden functions from Interact to do things
 bool
-TransformInteractHelper::penMotion(const OFX::PenArgs &args)
+TransformInteractHelper::penMotion(const PenArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
@@ -1018,8 +1020,8 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 
     //double dx = args.penPosition.x - _lastMousePos.x;
     //double dy = args.penPosition.y - _lastMousePos.y;
-    double rot = OFX::ofxsToRadians(rotate);
-    OFX::Point3D penPos, prevPenPos, rotationPos, transformedPos, previousPos, currentPos;
+    double rot = ofxsToRadians(rotate);
+    Point3D penPos, prevPenPos, rotationPos, transformedPos, previousPos, currentPos;
     penPos.x = args.penPosition.x;
     penPos.y = args.penPosition.y;
     penPos.z = 1.;
@@ -1027,17 +1029,17 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
     prevPenPos.y = _lastMousePos.y;
     prevPenPos.z = 1.;
 
-    OFX::Matrix3x3 rotation, transform, transformscale;
+    Matrix3x3 rotation, transform, transformscale;
     ////for the rotation bar/translation/center dragging we dont use the same transform, we don't want to undo the rotation transform
     if ( (_mouseState != eDraggingTranslation) && (_mouseState != eDraggingCenter) ) {
         ///undo skew + rotation to the current position
-        rotation = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
-        transform = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
-        transformscale = OFX::ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+        rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
+        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
     } else {
-        rotation = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, 0., targetCenter.x, targetCenter.y);
-        transform = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
-        transformscale = OFX::ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
+        rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, 0., targetCenter.x, targetCenter.y);
+        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
+        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
     }
 
     rotationPos = rotation * penPos;
@@ -1164,7 +1166,7 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
         translateChanged = true;
     } else if (_mouseState == eDraggingCenter) {
         OfxPointD currentCenter = center;
-        OFX::Matrix3x3 R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-skewX, -skewY, !skewOrder) * ofxsMatRotation(rot);
+        Matrix3x3 R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-skewX, -skewY, !skewOrder) * ofxsMatRotation(rot);
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
@@ -1183,7 +1185,7 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
             // if there is a _translate param (i.e. this is Transform/DirBlur and not GodRays),
             // compensate the rotation, because the
             // interact is visualized on the transformed image
-            OFX::Point3D dRot;
+            Point3D dRot;
             dRot.x = dx;
             dRot.y = dy;
             dRot.z = 1.;
@@ -1210,11 +1212,11 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
             // recompute dxrot,dyrot after rounding
             double det = R.determinant();
             if (det != 0.) {
-                OFX::Matrix3x3 Rinv = R.inverse(det);
+                Matrix3x3 Rinv = R.inverse(det);
 
                 dxrot = newx - currentCenter.x;
                 dyrot = newy - currentCenter.y;
-                OFX::Point3D dRot;
+                Point3D dRot;
                 dRot.x = dxrot;
                 dRot.y = dyrot;
                 dRot.z = 1;
@@ -1241,7 +1243,7 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
         diffToCenter.y = rotationPos.y - targetCenter.y;
         diffToCenter.x = rotationPos.x - targetCenter.x;
         double angle = std::atan2(diffToCenter.y, diffToCenter.x);
-        double angledegrees = rotate + OFX::ofxsToDegrees(angle);
+        double angledegrees = rotate + ofxsToDegrees(angle);
         double closest90 = 90. * std::floor( (angledegrees + 45.) / 90. );
         if (std::fabs(angledegrees - closest90) < 5.) {
             // snap to closest multiple of 90.
@@ -1314,12 +1316,11 @@ TransformInteractHelper::penMotion(const OFX::PenArgs &args)
 } // TransformInteractHelper::penMotion
 
 bool
-TransformInteractHelper::penDown(const OFX::PenArgs &args)
+TransformInteractHelper::penDown(const PenArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }
-    using OFX::Matrix3x3;
 
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
@@ -1392,17 +1393,17 @@ TransformInteractHelper::penDown(const OFX::PenArgs &args)
     OfxRectD rightPoint = rectFromCenterPoint(right, pscale);
     OfxRectD topPoint = rectFromCenterPoint(top, pscale);
     OfxRectD bottomPoint = rectFromCenterPoint(bottom, pscale);
-    OFX::Point3D transformedPos, rotationPos;
+    Point3D transformedPos, rotationPos;
     transformedPos.x = args.penPosition.x;
     transformedPos.y = args.penPosition.y;
     transformedPos.z = 1.;
 
-    double rot = OFX::ofxsToRadians(rotate);
+    double rot = ofxsToRadians(rotate);
 
     ///now undo skew + rotation to the current position
-    OFX::Matrix3x3 rotation, transform;
-    rotation = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
-    transform = OFX::ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+    Matrix3x3 rotation, transform;
+    rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
+    transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
 
     rotationPos = rotation * transformedPos;
     if (rotationPos.z != 0) {
@@ -1474,7 +1475,7 @@ TransformInteractHelper::penDown(const OFX::PenArgs &args)
 } // TransformInteractHelper::penDown
 
 bool
-TransformInteractHelper::penUp(const OFX::PenArgs &args)
+TransformInteractHelper::penUp(const PenArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
@@ -1515,7 +1516,7 @@ TransformInteractHelper::penUp(const OFX::PenArgs &args)
 
 // keyDown just updates the modifier state
 bool
-TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
+TransformInteractHelper::keyDown(const KeyArgs &args)
 {
     // Always process, even if interact is not open, since this concerns modifiers
     //if (!_interactOpen->getValueAtTime(args.time)) {
@@ -1551,7 +1552,7 @@ TransformInteractHelper::keyDown(const OFX::KeyArgs &args)
 
 // keyUp just updates the modifier state
 bool
-TransformInteractHelper::keyUp(const OFX::KeyArgs &args)
+TransformInteractHelper::keyUp(const KeyArgs &args)
 {
     // Always process, even if interact is not open, since this concerns modifiers
     //if (!_interactOpen->getValueAtTime(args.time)) {

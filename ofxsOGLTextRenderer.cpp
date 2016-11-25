@@ -149,4 +149,3 @@ OFX::TextRenderer::bitmapString(double x,
     bitmapString(string, font);
     //glPopAttrib();
 }
-

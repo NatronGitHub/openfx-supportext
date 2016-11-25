@@ -394,10 +394,10 @@ RampInteractHelper::loseFocus(const FocusArgs & /*args*/)
 }
 
 void
-ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
-                       OFX::PageParamDescriptor *page,
-                       OFX::GroupParamDescriptor *group,
-                       OFX::RampTypeEnum defaultType,
+ofxsRampDescribeParams(ImageEffectDescriptor &desc,
+                       PageParamDescriptor *page,
+                       GroupParamDescriptor *group,
+                       RampTypeEnum defaultType,
                        bool isOpen,
                        bool oldParams)
 {

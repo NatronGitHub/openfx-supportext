@@ -73,6 +73,8 @@
 
 using namespace OFX;
 
+using std::string;
+
 // It would be nice to be able to cache the set of transforms (with motion blur) used to compute the
 // current frame between two renders.
 // Unfortunately, we cannot rely on the host sending changedParam() when the animation changes
@@ -81,6 +83,7 @@ using namespace OFX;
 
 #define kTransform3x3MotionBlurCount 1000 // number of transforms used in the motion
 
+namespace OFX {
 Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
                                        bool masked,
                                        Transform3x3ParamsTypeEnum paramsType)
@@ -108,11 +111,11 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
-    _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
+    _srcClip = getContext() == eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
     assert( !_srcClip || !_srcClip->isConnected() || (1 <= _srcClip->getPixelComponentCount() && _srcClip->getPixelComponentCount() <= 4) );
     // name of mask clip depends on the context
     if (masked) {
-        _maskClip = fetchClip(getContext() == OFX::eContextPaint ? "Brush" : "Mask");
+        _maskClip = fetchClip(getContext() == eContextPaint ? "Brush" : "Mask");
         assert(!_maskClip || !_maskClip->isConnected() || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
@@ -164,39 +167,39 @@ Transform3x3Plugin::~Transform3x3Plugin()
 /* set up and run a processor */
 void
 Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
-                                    const OFX::RenderArguments &args)
+                                    const RenderArguments &args)
 {
     assert(!_invert || _motionblur); // this method should be overridden in GodRays
     const double time = args.time;
-    std::auto_ptr<OFX::Image> dst( _dstClip->fetchImage(time) );
+    std::auto_ptr<Image> dst( _dstClip->fetchImage(time) );
 
     if ( !dst.get() ) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
 
         return;
     }
-    OFX::BitDepthEnum dstBitDepth    = dst->getPixelDepth();
-    OFX::PixelComponentEnum dstComponents  = dst->getPixelComponents();
+    BitDepthEnum dstBitDepth    = dst->getPixelDepth();
+    PixelComponentEnum dstComponents  = dst->getPixelComponents();
     if ( ( dstBitDepth != _dstClip->getPixelDepth() ) ||
          ( dstComponents != _dstClip->getPixelComponents() ) ) {
-        setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
+        throwSuiteStatusException(kOfxStatFailed);
 
         return;
     }
     if ( (dst->getRenderScale().x != args.renderScale.x) ||
          ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( ( (dst->getField() != OFX::eFieldNone) /* for DaVinci Resolve */ && (dst->getField() != args.fieldToRender) ) ) ) {
-        setPersistentMessage(OFX::Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+         ( ( (dst->getField() != eFieldNone) /* for DaVinci Resolve */ && (dst->getField() != args.fieldToRender) ) ) ) {
+        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
+        throwSuiteStatusException(kOfxStatFailed);
 
         return;
     }
-    std::auto_ptr<const OFX::Image> src( ( _srcClip && _srcClip->isConnected() ) ?
-                                         _srcClip->fetchImage(args.time) : 0 );
+    std::auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
+                                    _srcClip->fetchImage(args.time) : 0 );
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
-    std::vector<OFX::Matrix3x3> invtransform;
+    std::vector<Matrix3x3> invtransform;
     std::vector<double> invtransformalpha;
     double motionblur = 0.;
     bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
@@ -230,12 +233,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         invtransform[0].h = 0.;
         invtransform[0].i = 1.;
     } else {
-        OFX::BitDepthEnum dstBitDepth       = dst->getPixelDepth();
-        OFX::PixelComponentEnum dstComponents  = dst->getPixelComponents();
-        OFX::BitDepthEnum srcBitDepth      = src->getPixelDepth();
-        OFX::PixelComponentEnum srcComponents = src->getPixelComponents();
+        BitDepthEnum dstBitDepth       = dst->getPixelDepth();
+        PixelComponentEnum dstComponents  = dst->getPixelComponents();
+        BitDepthEnum srcBitDepth      = src->getPixelDepth();
+        PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
-            OFX::throwSuiteStatusException(kOfxStatFailed);
+            throwSuiteStatusException(kOfxStatFailed);
 
             return;
         }
@@ -263,7 +266,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                 _shutter->getValueAtTime(time, shutter);
             }
         }
-        const bool fielded = args.fieldToRender == OFX::eFieldLower || args.fieldToRender == OFX::eFieldUpper;
+        const bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
         const double srcpixelAspectRatio = src->getPixelAspectRatio();
         const double dstpixelAspectRatio = _dstClip->getPixelAspectRatio();
 
@@ -310,10 +313,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                 invtransform[0].h = 0.;
                 invtransform[0].i = 1.;
             } else {
-                OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
-                                                                               args.renderScale.y, fielded);
-                OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio,  args.renderScale.x,
-                                                                               args.renderScale.y, fielded);
+                Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
+                                                                     args.renderScale.y, fielded);
+                Matrix3x3 pixelToCanonical = ofxsMatPixelToCanonical(dstpixelAspectRatio,  args.renderScale.x,
+                                                                     args.renderScale.y, fielded);
                 invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
             }
         }
@@ -325,7 +328,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         if ( !src->getTransformIsIdentity() ) {
             double srcTransform[9]; // transform to apply to the source image, in pixel coordinates, from source to destination
             src->getTransform(srcTransform);
-            OFX::Matrix3x3 srcTransformMat;
+            Matrix3x3 srcTransformMat;
             srcTransformMat.a = srcTransform[0];
             srcTransformMat.b = srcTransform[1];
             srcTransformMat.c = srcTransform[2];
@@ -338,7 +341,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             // invert it
             double det = srcTransformMat.determinant();
             if (det != 0.) {
-                OFX::Matrix3x3 srcTransformInverse = srcTransformMat.inverse(det);
+                Matrix3x3 srcTransformInverse = srcTransformMat.inverse(det);
 
                 for (size_t i = 0; i < invtransformsize; ++i) {
                     invtransform[i] = srcTransformInverse * invtransform[i];
@@ -350,7 +353,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
     // auto ptr for the mask.
     bool doMasking = ( _masked && ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-    std::auto_ptr<const OFX::Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
+    std::auto_ptr<const Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
     if (doMasking) {
         bool maskInvert = false;
         if (_maskInvert) {
@@ -383,7 +386,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
 // compute the bounding box of the transform of four points
 static void
-ofxsTransformRegionFromPoints(const OFX::Point3D p[4],
+ofxsTransformRegionFromPoints(const Point3D p[4],
                               OfxRectD &rod)
 {
     // extract the x/y bounds
@@ -438,15 +441,15 @@ ofxsTransformRegionFromPoints(const OFX::Point3D p[4],
 // compute the bounding box of the transform of a rectangle
 static void
 ofxsTransformRegionFromRoD(const OfxRectD &srcRoD,
-                           const OFX::Matrix3x3 &transform,
-                           OFX::Point3D p[4],
+                           const Matrix3x3 &transform,
+                           Point3D p[4],
                            OfxRectD &rod)
 {
     /// now transform the 4 corners of the source clip to the output image
-    p[0] = transform * OFX::Point3D(srcRoD.x1, srcRoD.y1, 1);
-    p[1] = transform * OFX::Point3D(srcRoD.x1, srcRoD.y2, 1);
-    p[2] = transform * OFX::Point3D(srcRoD.x2, srcRoD.y2, 1);
-    p[3] = transform * OFX::Point3D(srcRoD.x2, srcRoD.y1, 1);
+    p[0] = transform * Point3D(srcRoD.x1, srcRoD.y1, 1);
+    p[1] = transform * Point3D(srcRoD.x1, srcRoD.y2, 1);
+    p[2] = transform * Point3D(srcRoD.x2, srcRoD.y2, 1);
+    p[3] = transform * Point3D(srcRoD.x2, srcRoD.y1, 1);
 
     ofxsTransformRegionFromPoints(p, rod);
 }
@@ -475,7 +478,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
     bool hasmotionblur = ( (shutter != 0. || directionalBlur) && motionblur != 0. );
 
     if (hasmotionblur && !directionalBlur) {
-        OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
+        shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
     } else {
         ///if is identity return the input rod instead of transforming
         if (isIdentity) {
@@ -498,11 +501,11 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
     double expand = 0.;
     double amount = 1.;
     int dirBlurIter = 0;
-    OFX::Point3D p_prev[4];
+    Point3D p_prev[4];
     while (!finished) {
         // compute transformed positions
         OfxRectD thisRoD;
-        OFX::Matrix3x3 transform;
+        Matrix3x3 transform;
         bool success = getInverseTransformCanonical(t, view, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
         if (!success) {
             // return infinite region
@@ -513,11 +516,11 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
 
             return;
         }
-        OFX::Point3D p[4];
+        Point3D p[4];
         ofxsTransformRegionFromRoD(rectFrom, transform, p, thisRoD);
 
         // update min/max
-        OFX::Coords::rectBoundingBox(*rectTo, thisRoD, rectTo);
+        Coords::rectBoundingBox(*rectTo, thisRoD, rectTo);
 
         // if first iteration, continue
         if (first) {
@@ -586,7 +589,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     const double time = args.time;
     const OfxRectD& srcRoD = _srcClip->getRegionOfDefinition(time);
 
-    if ( OFX::Coords::rectIsInfinite(srcRoD) ) {
+    if ( Coords::rectIsInfinite(srcRoD) ) {
         // return an infinite RoD
         rod.x1 = kOfxFlagInfiniteMin;
         rod.x2 = kOfxFlagInfiniteMax;
@@ -596,7 +599,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         return true;
     }
 
-    if ( OFX::Coords::rectIsEmpty(srcRoD) ) {
+    if ( Coords::rectIsEmpty(srcRoD) ) {
         // return an empty RoD
         rod.x1 = 0.;
         rod.x2 = 0.;
@@ -675,7 +678,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     if ( doMasking && ( (mix != 1.) || _maskClip->isConnected() ) ) {
         // for masking or mixing, we also need the source image.
         // compute the union of both RODs
-        OFX::Coords::rectBoundingBox(rod, srcRoD, &rod);
+        Coords::rectBoundingBox(rod, srcRoD, &rod);
     }
 
     // say we set it
@@ -689,8 +692,8 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
 // It may be difficult to implement for complicated transforms:
 // consequently, these transforms cannot support tiles.
 void
-Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &args,
-                                         OFX::RegionOfInterestSetter &rois)
+Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
+                                         RegionOfInterestSetter &rois)
 {
     if (!_srcClip) {
         return;
@@ -760,7 +763,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
     ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, filter, doMasking, mix, &srcRoI);
 
-    if ( OFX::Coords::rectIsInfinite(srcRoI) ) {
+    if ( Coords::rectIsInfinite(srcRoI) ) {
         // RoI cannot be infinite.
         // This is not a mathematically correct solution, but better than nothing: set to the project size
         OfxPointD size = getProjectSize();
@@ -782,7 +785,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
     if ( _masked && (mix != 1.) ) {
         // compute the bounding box with the default ROI
-        OFX::Coords::rectBoundingBox(srcRoI, args.regionOfInterest, &srcRoI);
+        Coords::rectBoundingBox(srcRoI, args.regionOfInterest, &srcRoI);
     }
 
     // no need to set it on mask (the default ROI is OK)
@@ -791,7 +794,7 @@ Transform3x3Plugin::getRegionsOfInterest(const OFX::RegionsOfInterestArguments &
 
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
-Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
+Transform3x3Plugin::renderInternalForBitDepth(const RenderArguments &args)
 {
     const double time = args.time;
     FilterEnum filter = args.renderQualityDraft ? eFilterImpulse : eFilterCubic;
@@ -874,30 +877,30 @@ Transform3x3Plugin::renderInternalForBitDepth(const OFX::RenderArguments &args)
 // the internal render function
 template <int nComponents, bool masked>
 void
-Transform3x3Plugin::renderInternal(const OFX::RenderArguments &args,
-                                   OFX::BitDepthEnum dstBitDepth)
+Transform3x3Plugin::renderInternal(const RenderArguments &args,
+                                   BitDepthEnum dstBitDepth)
 {
     switch (dstBitDepth) {
-    case OFX::eBitDepthUByte:
+    case eBitDepthUByte:
         renderInternalForBitDepth<unsigned char, nComponents, 255, masked>(args);
         break;
-    case OFX::eBitDepthUShort:
+    case eBitDepthUShort:
         renderInternalForBitDepth<unsigned short, nComponents, 65535, masked>(args);
         break;
-    case OFX::eBitDepthFloat:
+    case eBitDepthFloat:
         renderInternalForBitDepth<float, nComponents, 1, masked>(args);
         break;
     default:
-        OFX::throwSuiteStatusException(kOfxStatErrUnsupported);
+        throwSuiteStatusException(kOfxStatErrUnsupported);
     }
 }
 
 // the overridden render function
 void
-Transform3x3Plugin::render(const OFX::RenderArguments &args)
+Transform3x3Plugin::render(const RenderArguments &args)
 {
     // instantiate the render code based on the pixel depth of the dst clip
-    OFX::BitDepthEnum dstBitDepth    = _dstClip->getPixelDepth();
+    BitDepthEnum dstBitDepth    = _dstClip->getPixelDepth();
     int dstComponentCount  = _dstClip->getPixelComponentCount();
 
     assert(1 <= dstComponentCount && dstComponentCount <= 4);
@@ -937,7 +940,7 @@ Transform3x3Plugin::render(const OFX::RenderArguments &args)
 
 bool
 Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
-                               OFX::Clip * &identityClip,
+                               Clip * &identityClip,
                                double & /*identityTime*/)
 {
     // must clear persistent message in isIdentity, or render() is not called by Nuke after an error
@@ -1002,12 +1005,12 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             _maskInvert->getValueAtTime(args.time, maskInvert);
             if (!maskInvert) {
                 OfxRectI maskRoD;
-                if (OFX::getImageEffectHostDescription()->supportsMultiResolution) {
+                if (getImageEffectHostDescription()->supportsMultiResolution) {
                     // In Sony Catalyst Edit, clipGetRegionOfDefinition returns the RoD in pixels instead of canonical coordinates.
                     // In hosts that do not support multiResolution (e.g. Sony Catalyst Edit), all inputs have the same RoD anyway.
-                    OFX::Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
+                    Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
                     // effect is identity if the renderWindow doesn't intersect the mask RoD
-                    if ( !OFX::Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
+                    if ( !Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
                         identityClip = _srcClip;
 
                         return true;
@@ -1041,6 +1044,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
     // first, check if effect has blur, see Transform3x3Plugin::setupAndProcess()
     double motionblur = 0.;
     bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
+
     if (_motionblur) {
         _motionblur->getValueAtTime(time, motionblur);
     }
@@ -1065,7 +1069,7 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
         _invert->getValueAtTime(time, invert);
     }
 
-    OFX::Matrix3x3 invtransform;
+    Matrix3x3 invtransform;
     bool success = getInverseTransformCanonical(time, args.renderView, 1., invert, &invtransform);
     if (!success) {
         return false;
@@ -1077,13 +1081,13 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
     if (det == 0.) {
         return false; // no transform available, render as usual
     }
-    OFX::Matrix3x3 transformCanonical = invtransform.inverse(det);
+    Matrix3x3 transformCanonical = invtransform.inverse(det);
     double srcpixelaspectratio = ( _srcClip && _srcClip->isConnected() ) ? _srcClip->getPixelAspectRatio() : 1.;
     double dstpixelaspectratio = _dstClip ? _dstClip->getPixelAspectRatio() : 1.;
     bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
-    OFX::Matrix3x3 transformPixel = ( OFX::ofxsMatCanonicalToPixel(dstpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
-                                      transformCanonical *
-                                      OFX::ofxsMatPixelToCanonical(srcpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
+    Matrix3x3 transformPixel = ( ofxsMatCanonicalToPixel(dstpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) *
+                                 transformCanonical *
+                                 ofxsMatPixelToCanonical(srcpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
     transformClip = _srcClip;
     transformMatrix[0] = transformPixel.a;
     transformMatrix[1] = transformPixel.b;
@@ -1111,18 +1115,19 @@ Transform3x3Plugin::getInverseTransforms(double time,
                                          double shutter,
                                          ShutterOffsetEnum shutteroffset,
                                          double shuttercustomoffset,
-                                         OFX::Matrix3x3* invtransform,
+                                         Matrix3x3* invtransform,
                                          size_t invtransformsizealloc) const
 {
     OfxRangeD range;
-    OFX::shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
+
+    shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
     double t_start = range.min;
     double t_end = range.max; // shutter time
     bool allequal = true;
     size_t invtransformsize = invtransformsizealloc;
-    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 invtransformCanonical;
+    Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    Matrix3x3 pixelToCanonical = ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    Matrix3x3 invtransformCanonical;
 
     for (size_t i = 0; i < invtransformsize; ++i) {
         double t = (i == 0) ? t_start : ( t_start + i * (t_end - t_start) / (double)(invtransformsizealloc - 1) );
@@ -1167,14 +1172,14 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                                              bool invert,
                                              double amountFrom,
                                              double amountTo,
-                                             OFX::Matrix3x3* invtransform,
+                                             Matrix3x3* invtransform,
                                              double *amount,
                                              size_t invtransformsizealloc) const
 {
     bool allequal = true;
-    OFX::Matrix3x3 canonicalToPixel = OFX::ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 pixelToCanonical = OFX::ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
-    OFX::Matrix3x3 invtransformCanonical;
+    Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    Matrix3x3 pixelToCanonical = ofxsMatPixelToCanonical(dstpixelAspectRatio, renderscale.x, renderscale.y, fielded);
+    Matrix3x3 invtransformCanonical;
     size_t invtransformsize = 0;
 
     for (size_t i = 0; i < invtransformsizealloc; ++i) {
@@ -1208,8 +1213,8 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
 
 // override changedParam
 void
-Transform3x3Plugin::changedParam(const OFX::InstanceChangedArgs &args,
-                                 const std::string &paramName)
+Transform3x3Plugin::changedParam(const InstanceChangedArgs &args,
+                                 const string &paramName)
 {
     if ( (paramName == kParamTransform3x3Invert) ||
          ( paramName == kParamShutter) ||
@@ -1231,14 +1236,14 @@ Transform3x3Plugin::changedParam(const OFX::InstanceChangedArgs &args,
 
 // this method must be called by the derived class when the transform was changed
 void
-Transform3x3Plugin::changedTransform(const OFX::InstanceChangedArgs &args)
+Transform3x3Plugin::changedTransform(const InstanceChangedArgs &args)
 {
     (void)args;
 }
 
 void
-OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc,
-                          bool masked)
+Transform3x3Describe(ImageEffectDescriptor &desc,
+                     bool masked)
 {
     desc.addSupportedContext(eContextFilter);
     desc.addSupportedContext(eContextGeneral);
@@ -1286,10 +1291,10 @@ OFX::Transform3x3Describe(OFX::ImageEffectDescriptor &desc,
 #endif
 }
 
-OFX::PageParamDescriptor *
-OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
-                                        OFX::ContextEnum context,
-                                        bool masked)
+PageParamDescriptor *
+Transform3x3DescribeInContextBegin(ImageEffectDescriptor &desc,
+                                   ContextEnum context,
+                                   bool masked)
 {
     // GENERIC
 
@@ -1344,14 +1349,14 @@ OFX::Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
     PageParamDescriptor *page = desc.definePageParam("Controls");
 
     return page;
-} // OFX::Transform3x3DescribeInContextBegin
+} // Transform3x3DescribeInContextBegin
 
 void
-OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
-                                      OFX::ContextEnum context,
-                                      OFX::PageParamDescriptor* page,
-                                      bool masked,
-                                      OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType)
+Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
+                                 ContextEnum context,
+                                 PageParamDescriptor* page,
+                                 bool masked,
+                                 Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType)
 {
     // invert
     {
@@ -1367,14 +1372,14 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
     // GENERIC PARAMETERS
     //
 
-    ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur);
+    ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur);
 
     // motionBlur
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransform3x3MotionBlur);
         param->setLabel(kParamTransform3x3MotionBlurLabel);
         param->setHint(kParamTransform3x3MotionBlurHint);
-        param->setDefault(paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur ? 1. : 0.);
+        param->setDefault(paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur ? 1. : 0.);
         param->setIncrement(0.01);
         param->setRange(0., 100.);
         param->setDisplayRange(0., 4.);
@@ -1383,7 +1388,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
         }
     }
 
-    if (paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur) {
+    if (paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur) {
         {
             DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Amount);
             param->setLabel(kParamTransform3x3AmountLabel);
@@ -1419,7 +1424,7 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
                 page->addChild(*param);
             }
         }
-    } else if (paramsType == OFX::Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur) {
+    } else if (paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur) {
         // directionalBlur
         {
             BooleanParamDescriptor* param = desc.defineBooleanParam(kParamTransform3x3DirectionalBlur);
@@ -1447,4 +1452,4 @@ OFX::Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc,
 #endif
     }
 } // Transform3x3DescribeInContextEnd
-
+} // namespace OFX

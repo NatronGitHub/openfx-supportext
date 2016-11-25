@@ -677,7 +677,6 @@ yuv_to_rgb709(float y,
     *b = y + 2.12798f * u;
 } // yuv_to_rgb
 
-
 static inline
 float
 labf(float x)

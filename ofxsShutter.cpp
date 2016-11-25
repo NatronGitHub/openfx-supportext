@@ -24,11 +24,11 @@
 
 using namespace OFX;
 
-
+namespace OFX {
 void
-OFX::shutterDescribeInContext(OFX::ImageEffectDescriptor &desc,
-                              OFX::ContextEnum /*context*/,
-                              OFX::PageParamDescriptor* page)
+shutterDescribeInContext(ImageEffectDescriptor &desc,
+                         ContextEnum /*context*/,
+                         PageParamDescriptor* page)
 {
     // shutter
     {
@@ -80,11 +80,11 @@ OFX::shutterDescribeInContext(OFX::ImageEffectDescriptor &desc,
 } // shutterDescribeInContext
 
 void
-OFX::shutterRange(double time,
-                  double shutter,
-                  ShutterOffsetEnum shutteroffset,
-                  double shuttercustomoffset,
-                  OfxRangeD* range)
+shutterRange(double time,
+             double shutter,
+             ShutterOffsetEnum shutteroffset,
+             double shuttercustomoffset,
+             OfxRangeD* range)
 {
     switch (shutteroffset) {
     case eShutterOffsetCentered:
@@ -109,4 +109,4 @@ OFX::shutterRange(double time,
         break;
     }
 }
-
+} // namespace OFX

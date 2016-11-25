@@ -41,7 +41,9 @@
 #define HANDLE_SIZE 6
 
 using namespace OFX;
+using std::string;
 
+namespace OFX {
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     : ImageEffect(handle)
     , _dstClip(0)
@@ -56,8 +58,8 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     assert(_dstClip->getPixelComponents() == ePixelComponentAlpha ||
            _dstClip->getPixelComponents() == ePixelComponentRGB ||
            _dstClip->getPixelComponents() == ePixelComponentRGBA);
-    _srcClip = getContext() == OFX::eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
-    assert( (!_srcClip && getContext() == OFX::eContextGenerator) ||
+    _srcClip = getContext() == eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
+    assert( (!_srcClip && getContext() == eContextGenerator) ||
             (_srcClip->getPixelComponents() == ePixelComponentAlpha ||
              _srcClip->getPixelComponents() == ePixelComponentRGB ||
              _srcClip->getPixelComponents() == ePixelComponentRGBA) );
@@ -77,7 +79,7 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
                                  double &identityTime)
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
 
         return false;
     }
@@ -89,16 +91,16 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
 }
 
 void
-GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
-                                   const std::string &paramName)
+GenericTrackerPlugin::changedParam(const InstanceChangedArgs &args,
+                                   const string &paramName)
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
 
         return;
     }
 
-    OFX::TrackArguments trackArgs;
+    TrackArguments trackArgs;
     trackArgs.renderScale = args.renderScale;
     if ( (paramName == kParamTrackingBackward) && _srcClip && _srcClip->isConnected() ) {
         trackArgs.first = args.time;
@@ -136,18 +138,18 @@ GenericTrackerPlugin::changedParam(const OFX::InstanceChangedArgs &args,
 }
 
 bool
-GenericTrackerPlugin::getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args,
+GenericTrackerPlugin::getRegionOfDefinition(const RegionOfDefinitionArguments &args,
                                             OfxRectD & /*rod*/)
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        OFX::throwSuiteStatusException(kOfxStatFailed);
+        throwSuiteStatusException(kOfxStatFailed);
     }
 
     return false;
 }
 
 void
-OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
+genericTrackerDescribe(ImageEffectDescriptor &desc)
 {
     desc.addSupportedContext(eContextGeneral);
     desc.addSupportedContext(eContextFilter);
@@ -188,9 +190,9 @@ OFX::genericTrackerDescribe(OFX::ImageEffectDescriptor &desc)
 #endif
 }
 
-OFX::PageParamDescriptor*
-OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
-                                          OFX::ContextEnum /*context*/)
+PageParamDescriptor*
+genericTrackerDescribeInContextBegin(ImageEffectDescriptor &desc,
+                                     ContextEnum /*context*/)
 {
     // Source clip only in the filter context
     // create the mandated source clip
@@ -223,13 +225,13 @@ OFX::genericTrackerDescribeInContextBegin(OFX::ImageEffectDescriptor &desc,
 }
 
 void
-OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
-                                           OFX::PageParamDescriptor* page)
+genericTrackerDescribePointParameters(ImageEffectDescriptor &desc,
+                                      PageParamDescriptor* page)
 {
     ///Declare the name first so that in Natron it appears as the first column in the multi instance
     // name
     {
-        OFX::StringParamDescriptor* param = desc.defineStringParam(kParamTrackingLabel);
+        StringParamDescriptor* param = desc.defineStringParam(kParamTrackingLabel);
         param->setLabel(kParamTrackingLabelLabel);
         param->setHint(kParamTrackingLabelHint);
         param->setDefault(kParamTrackingLabelDefault);
@@ -246,7 +248,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
 
     // backward
     {
-        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingBackward);
         param->setLabel(kParamTrackingBackwardLabel);
         param->setHint(kParamTrackingBackwardHint);
         param->setLayoutHint(eLayoutHintNoNewLine, 1);
@@ -257,7 +259,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
 
     // prev
     {
-        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingPrevious);
         param->setLabel(kParamTrackingPreviousLabel);
         param->setHint(kParamTrackingPreviousHint);
         param->setLayoutHint(eLayoutHintNoNewLine, 1);
@@ -268,7 +270,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
 
     // next
     {
-        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingNext);
         param->setLabel(kParamTrackingNextLabel);
         param->setHint(kParamTrackingNextHint);
         param->setLayoutHint(eLayoutHintNoNewLine, 1);
@@ -279,7 +281,7 @@ OFX::genericTrackerDescribePointParameters(OFX::ImageEffectDescriptor &desc,
 
     // forward
     {
-        OFX::PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
+        PushButtonParamDescriptor* param = desc.definePushButtonParam(kParamTrackingForward);
         param->setLabel(kParamTrackingForwardLabel);
         param->setHint(kParamTrackingForwardHint);
         if (page) {
@@ -301,7 +303,7 @@ isNearby(const OfxPointD & p,
 }
 
 bool
-TrackerRegionInteract::draw(const OFX::DrawArgs &args)
+TrackerRegionInteract::draw(const DrawArgs &args)
 {
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
 
@@ -558,7 +560,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 
 
         glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
-        std::string name;
+        string name;
         _name->getValue(name);
         TextRenderer::bitmapString( xc, yc, name.c_str() );
     }
@@ -569,7 +571,7 @@ TrackerRegionInteract::draw(const OFX::DrawArgs &args)
 } // draw
 
 bool
-TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
+TrackerRegionInteract::penMotion(const PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
     bool didSomething = false;
@@ -977,7 +979,7 @@ TrackerRegionInteract::penMotion(const OFX::PenArgs &args)
 } // penMotion
 
 bool
-TrackerRegionInteract::penDown(const OFX::PenArgs &args)
+TrackerRegionInteract::penDown(const PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
     bool didSomething = false;
@@ -1114,7 +1116,7 @@ TrackerRegionInteract::isDraggingOuterPoint() const
 }
 
 bool
-TrackerRegionInteract::penUp(const OFX::PenArgs &args)
+TrackerRegionInteract::penUp(const PenArgs &args)
 {
     if (_ms == eMouseStateIdle) {
         return false;
@@ -1163,7 +1165,7 @@ TrackerRegionInteract::penUp(const OFX::PenArgs &args)
 }
 
 bool
-TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
+TrackerRegionInteract::keyDown(const KeyArgs &args)
 {
     if ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) {
         ++_controlDown;
@@ -1175,7 +1177,7 @@ TrackerRegionInteract::keyDown(const OFX::KeyArgs &args)
 }
 
 bool
-TrackerRegionInteract::keyUp(const OFX::KeyArgs &args)
+TrackerRegionInteract::keyUp(const KeyArgs &args)
 {
     if ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) {
         if (_controlDown > 0) {
@@ -1200,4 +1202,4 @@ TrackerRegionInteract::loseFocus(const FocusArgs & /*args*/)
     _ds = eDrawStateInactive;
     _ms = eMouseStateIdle;
 }
-
+} // namespace OFX
