@@ -1205,7 +1205,8 @@ MultiPlaneEffect::getPlaneNeededInOutput(string* ofxPlane,
     if ( layerName.empty() ||
          ( layerName == kPlaneLabelColorRGBA) ||
          ( layerName == kPlaneLabelColorRGB) ||
-         ( layerName == kPlaneLabelColorAlpha) || found->second.param->getIsSecret() ) {
+         ( layerName == kPlaneLabelColorAlpha) ||
+         ( (found != _imp->params.end() ) && found->second.param->getIsSecret() ) ) {
         assert(found == _imp->params.end() || found->second.clips[0]);
         string comp;
         if ( found == _imp->params.end() ) {
