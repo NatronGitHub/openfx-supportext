@@ -23,7 +23,7 @@
 #ifndef Misc_ofxsMaskMix_h
 #define Misc_ofxsMaskMix_h
 
-#include <limits>
+#include <cfloat> // FLT_EPSILON
 
 #include <ofxsImageEffect.h>
 
@@ -271,9 +271,8 @@ ofxsUnPremult(const PIX *srcPix,
     }
 
     assert(nComponents == 4);
-    const float fltmin = std::numeric_limits<float>::min();
     PIX alpha = srcPix[3];
-    if ( alpha > (PIX)(fltmin * maxValue) ) {
+    if ( alpha > (PIX)(FLT_EPSILON * maxValue) ) {
         unpPix[0] = srcPix[0] / (float)alpha;
         unpPix[1] = srcPix[1] / (float)alpha;
         unpPix[2] = srcPix[2] / (float)alpha;
