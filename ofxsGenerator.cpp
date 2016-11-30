@@ -321,6 +321,8 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
 void
 GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 {
+    clipPreferences.setOutputHasContinousSamples(true);
+
     double par = 0.;
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
