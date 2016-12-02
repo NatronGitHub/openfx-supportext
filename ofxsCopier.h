@@ -57,6 +57,10 @@ public:
 
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
 
             int srcy = dsty;
 
@@ -87,14 +91,19 @@ public:
                     } else if (_srcBoundary == 1) {
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                         assert(srcPix);
-#                     ifdef DEBUG
-                        for (int c = 0; c < nComponents; ++c) {
-                            assert(srcPix[c] == srcPix[c]); // check for NaN
-                        }
-#                     endif
-                        for (int x = procWindow.x1; x < x1; ++x) {
-                            std::copy(srcPix, srcPix + nComponents, dstPix);
-                            dstPix += nComponents;
+                        if (!srcPix) {
+                            std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
+                            dstPix += nComponents * (x1 - procWindow.x1);
+                        } else {
+#                        ifdef DEBUG
+                            for (int c = 0; c < nComponents; ++c) {
+                                assert(srcPix[c] == srcPix[c]); // check for NaN
+                            }
+#                        endif
+                            for (int x = procWindow.x1; x < x1; ++x) {
+                                std::copy(srcPix, srcPix + nComponents, dstPix);
+                                dstPix += nComponents;
+                            }
                         }
                     } else if (_srcBoundary == 2) {
                         int srcx = procWindow.x1;
@@ -104,18 +113,23 @@ public:
 
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
                         assert(srcPix);
-                        for (int x = procWindow.x1; x < x1; ++x) {
-#                         ifdef DEBUG
-                            for (int c = 0; c < nComponents; ++c) {
-                                assert(srcPix[c] == srcPix[c]); // check for NaN
-                            }
-#                         endif
-                            std::copy(srcPix, srcPix + nComponents, dstPix);
-                            dstPix += nComponents;
-                            ++srcx;
-                            if (_srcBounds.x2 <= srcx) {
-                                srcx -= (_srcBounds.y2 - _srcBounds.y1);
-                                srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                        if (!srcPix) {
+                            std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
+                            dstPix += nComponents * (x1 - procWindow.x1);
+                        } else {
+                            for (int x = procWindow.x1; x < x1; ++x) {
+#                             ifdef DEBUG
+                                for (int c = 0; c < nComponents; ++c) {
+                                    assert(srcPix[c] == srcPix[c]); // check for NaN
+                                }
+#                             endif
+                                std::copy(srcPix, srcPix + nComponents, dstPix);
+                                dstPix += nComponents;
+                                ++srcx;
+                                if (_srcBounds.x2 <= srcx) {
+                                    srcx -= (_srcBounds.y2 - _srcBounds.y1);
+                                    srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                                }
                             }
                         }
                     }
@@ -124,24 +138,33 @@ public:
                 if ( (x1 < x2) && (procWindow.x1 <= x1) && (x2 <= procWindow.x2) ) {
                     const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
                     assert(srcPix);
-#                 ifdef DEBUG
-                    for (int c = 0; c < nComponents * (x2 - x1); ++c) {
-                        assert(srcPix[c] == srcPix[c]); // check for NaN
+                    if (!srcPix) {
+                        std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x2 - x1) );
+                    } else {
+#                     ifdef DEBUG
+                        for (int c = 0; c < nComponents * (x2 - x1); ++c) {
+                            assert(srcPix[c] == srcPix[c]); // check for NaN
+                        }
+#                     endif
+                        std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1) );
                     }
-#                 endif
-                    std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1) );
                     dstPix += nComponents * (x2 - x1);
                 }
                 // end of line may be black
                 if (x2 < procWindow.x2) {
                     if ( (_srcBoundary != 1) && (_srcBoundary != 2) ) {
                         std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
+                        dstPix += nComponents * (procWindow.x2 - x2);
                     } else if (_srcBoundary == 1) {
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(x2 - 1, srcy);
                         assert(srcPix);
-                        for (int x = x2; x < procWindow.x2; ++x) {
-                            std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
-                            dstPix += nComponents;
+                        if (!srcPix) {
+                            std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
+                        } else {
+                            for (int x = x2; x < procWindow.x2; ++x) {
+                                std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents );
+                                dstPix += nComponents;
+                            }
                         }
                     } else if (_srcBoundary == 2) {
                         int srcx = x2;
@@ -151,18 +174,23 @@ public:
 
                         const PIX *srcPix = (const PIX *) getSrcPixelAddress(srcx, srcy);
                         assert(srcPix);
-                        for (int x = x2; x < procWindow.x2; ++x) {
-#                         ifdef DEBUG
-                            for (int c = 0; c < nComponents; ++c) {
-                                assert(srcPix[c] == srcPix[c]); // check for NaN
-                            }
-#                         endif
-                            std::copy(srcPix, srcPix + nComponents, dstPix);
-                            dstPix += nComponents;
-                            ++srcx;
-                            if (_srcBounds.x2 <= srcx) {
-                                srcx -= (_srcBounds.y2 - _srcBounds.y1);
-                                srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                        if (!srcPix) {
+                            std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
+                            dstPix += nComponents * (procWindow.x2 - x2);
+                        } else {
+                            for (int x = x2; x < procWindow.x2; ++x) {
+#                             ifdef DEBUG
+                                for (int c = 0; c < nComponents; ++c) {
+                                    assert(srcPix[c] == srcPix[c]); // check for NaN
+                                }
+#                             endif
+                                std::copy(srcPix, srcPix + nComponents, dstPix);
+                                dstPix += nComponents;
+                                ++srcx;
+                                if (_srcBounds.x2 <= srcx) {
+                                    srcx -= (_srcBounds.y2 - _srcBounds.y1);
+                                    srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                                }
                             }
                         }
                     }
@@ -212,6 +240,10 @@ public:
 
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
 
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
@@ -283,6 +315,10 @@ public:
 
             PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
 
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
@@ -358,7 +394,11 @@ public:
 
             DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
-
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
+            
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
@@ -428,6 +468,10 @@ public:
 
             DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
 
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
@@ -526,6 +570,10 @@ public:
 
             DSTPIX *dstPix = (DSTPIX *) getDstPixelAddress(procWindow.x1, dsty);
             assert(dstPix);
+            if (!dstPix) {
+                // coverity[dead_error_line]
+                continue;
+            }
 
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
@@ -606,10 +654,14 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     assert(dstPixelData);
     // do the rendering
     int dstRowElements = dstRowBytes / sizeof(PIX);
-    PIX* dstPixels = (PIX*)dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * dstPixelComponentCount;
-    int rowElements = dstPixelComponentCount * (renderWindow.x2 - renderWindow.x1);
+    int x1 = std::max(renderWindow.x1, dstBounds.x1);
+    int x2 = std::min(renderWindow.x2, dstBounds.x2);
+    int y1 = std::max(renderWindow.y1, dstBounds.y1);
+    int y2 = std::min(renderWindow.y2, dstBounds.y2);
+    PIX* dstPixels = (PIX*)dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * dstPixelComponentCount;
+    int rowElements = dstPixelComponentCount * (x2 - renderWindow.x1);
 
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y, dstPixels += dstRowElements) {
+    for (int y = y1; y < y2; ++y, dstPixels += dstRowElements) {
         std::fill( dstPixels, dstPixels + rowElements, PIX() ); // no src pixel here, be black and transparent
     }
 }
@@ -623,7 +675,10 @@ fillBlackNT(const OfxRectI & renderWindow,
             int dstRowBytes)
 {
     assert(dstPixelData);
-
+    if (!dstPixelData) {
+        // coverity[dead_error_line]
+        return;
+    }
     // do the rendering
     if ( (dstBitDepth != OFX::eBitDepthUByte) && (dstBitDepth != OFX::eBitDepthUShort) && (dstBitDepth != OFX::eBitDepthHalf) && (dstBitDepth != OFX::eBitDepthFloat) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
@@ -652,6 +707,11 @@ fillBlackNT(const OfxRectI & renderWindow,
     OFX::BitDepthEnum dstBitDepth;
     int dstRowBytes;
 
+    assert(dstImg);
+    if (!dstImg) {
+        // coverity[dead_error_line]
+        return;
+    }
     getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
 
@@ -698,6 +758,10 @@ fillBlackForDepth(OFX::ImageEffect &instance,
                   int dstRowBytes)
 {
     assert(dstPixelData);
+    if (!dstPixelData) {
+        // coverity[dead_error_line]
+        return;
+    }
     // do the rendering
     if ( (dstPixelComponentCount < 0) || (4 < dstPixelComponentCount) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
@@ -730,6 +794,10 @@ fillBlack(OFX::ImageEffect &instance,
           int dstRowBytes)
 {
     assert(dstPixelData);
+    if (!dstPixelData) {
+        // coverity[dead_error_line]
+        return;
+    }
     // do the rendering
     if ( (dstBitDepth != OFX::eBitDepthUByte) && (dstBitDepth != OFX::eBitDepthUShort) && (dstBitDepth != OFX::eBitDepthHalf) && (dstBitDepth != OFX::eBitDepthFloat) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
@@ -759,6 +827,11 @@ fillBlack(OFX::ImageEffect &instance,
     OFX::BitDepthEnum dstBitDepth;
     int dstRowBytes;
 
+    assert(dstImg);
+    if (!dstImg) {
+        // coverity[dead_error_line]
+        return;
+    }
     getImageData(dstImg, &dstPixelData, &dstBounds, &dstPixelComponents, &dstBitDepth, &dstRowBytes);
     int dstPixelComponentCount = dstImg->getPixelComponentCount();
 
@@ -829,12 +902,16 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     int srcRowElements = srcRowBytes / sizeof(PIX);
     assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
     assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
-    const PIX* srcPixels = srcPixelData + (size_t)(renderWindow.y1 - srcBounds.y1) * srcRowElements + (renderWindow.x1 - srcBounds.x1) * nComponents;
+    int x1 = std::max( renderWindow.x1, std::max(dstBounds.x1, srcBounds.x1) );
+    int x2 = std::min( renderWindow.x2, std::min(dstBounds.x2, srcBounds.x2) );
+    int y1 = std::max( renderWindow.y1, std::max(dstBounds.y1, srcBounds.y1) );
+    int y2 = std::min( renderWindow.y2, std::min(dstBounds.y2, srcBounds.y2) );
+    const PIX* srcPixels = srcPixelData + (size_t)(y1 - srcBounds.y1) * srcRowElements + (x1 - srcBounds.x1) * nComponents;
     int dstRowElements = dstRowBytes / sizeof(PIX);
-    PIX* dstPixels = dstPixelData + (size_t)(renderWindow.y1 - dstBounds.y1) * dstRowElements + (renderWindow.x1 - dstBounds.x1) * nComponents;
-    int rowBytes = sizeof(PIX) * nComponents * (renderWindow.x2 - renderWindow.x1);
+    PIX* dstPixels = dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * nComponents;
+    int rowBytes = sizeof(PIX) * nComponents * (x2 - x1);
 
-    for (int y = renderWindow.y1; y < renderWindow.y2; ++y, srcPixels += srcRowElements, dstPixels += dstRowElements) {
+    for (int y = y1; y < y2; ++y, srcPixels += srcRowElements, dstPixels += dstRowElements) {
         std::memcpy(dstPixels, srcPixels, rowBytes);
     }
 }
