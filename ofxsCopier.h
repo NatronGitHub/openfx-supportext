@@ -46,8 +46,6 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
-        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2); // image should be non-empty
-
         int rowBytes = sizeof(PIX) * nComponents * (procWindow.x2 - procWindow.x1);
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
@@ -370,8 +368,6 @@ public:
     {
         float unpPix[4];
 
-        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
-
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
@@ -444,8 +440,6 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
-        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
-
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
@@ -542,8 +536,6 @@ public:
     void multiThreadProcessImages(OfxRectI procWindow)
     {
         float unpPix[4];
-
-        assert(_srcBounds.x1 < _srcBounds.x2 && _srcBounds.y1 < _srcBounds.y2);
 
         if (srcNComponents == 3) {
             unpPix[3] = 1.f;
