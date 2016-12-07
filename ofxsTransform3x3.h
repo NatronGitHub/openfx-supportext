@@ -41,17 +41,17 @@
 
 // extra parameters for DirBlur:
 
-#define kParamTransform3x3Amount "amount"
-#define kParamTransform3x3AmountLabel "Amount"
-#define kParamTransform3x3AmountHint "Amount of blur transform to apply. A value of 1 means to apply the full transform range. A value of 0 means to apply no blur at all. Default is 1."
+#define kParamTransform3x3DirBlurAmount "amount"
+#define kParamTransform3x3DirBlurAmountLabel "Amount"
+#define kParamTransform3x3DirBlurAmountHint "Amount of blur transform to apply. A value of 1 means to apply the full transform range. A value of 0 means to apply no blur at all. Default is 1."
 
-#define kParamTransform3x3Centered "centered"
-#define kParamTransform3x3CenteredLabel "Centered"
-#define kParamTransform3x3CenteredHint "When checked, apply directional blur symmetrically arount the neutral position."
+#define kParamTransform3x3DirBlurCentered "centered"
+#define kParamTransform3x3DirBlurCenteredLabel "Centered"
+#define kParamTransform3x3DirBlurCenteredHint "When checked, apply directional blur symmetrically arount the neutral position."
 
-#define kParamTransform3x3Fading "fading"
-#define kParamTransform3x3FadingLabel "Fading"
-#define kParamTransform3x3FadingHint "Controls the fading function. A value of 1 corresponds to linear fading. A value of 0 disables fading. Default is 0."
+#define kParamTransform3x3DirBlurFading "fading"
+#define kParamTransform3x3DirBlurFadingLabel "Fading"
+#define kParamTransform3x3DirBlurFadingHint "Controls the fading function. A value of 1 corresponds to linear fading. A value of 0 disables fading. Default is 0."
 
 // extra parameters for non-DirBlur
 
@@ -186,9 +186,9 @@ protected:
     OFX::BooleanParam* _clamp;
     OFX::BooleanParam* _blackOutside;
     OFX::DoubleParam* _motionblur;
-    OFX::DoubleParam* _amount; // DirBlur only
-    OFX::BooleanParam* _centered; // DirBlur only
-    OFX::DoubleParam* _fading; // DirBlur only
+    OFX::DoubleParam* _dirBlurAmount; // DirBlur only
+    OFX::BooleanParam* _dirBlurCentered; // DirBlur only
+    OFX::DoubleParam* _dirBlurFading; // DirBlur only
     OFX::BooleanParam* _directionalBlur; // non-DirBlur
     OFX::DoubleParam* _shutter; // non-DirBlur
     OFX::ChoiceParam* _shutteroffset; // non-DirBlur

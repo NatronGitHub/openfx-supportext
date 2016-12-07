@@ -97,9 +97,9 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _clamp(0)
     , _blackOutside(0)
     , _motionblur(0)
-    , _amount(0)
-    , _centered(0)
-    , _fading(0)
+    , _dirBlurAmount(0)
+    , _dirBlurCentered(0)
+    , _dirBlurFading(0)
     , _directionalBlur(0)
     , _shutter(0)
     , _shutteroffset(0)
@@ -205,12 +205,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
-    if (_amount) {
-        _amount->getValueAtTime(time, amountTo);
+    if (_dirBlurAmount) {
+        _dirBlurAmount->getValueAtTime(time, amountTo);
     }
-    if (_centered) {
+    if (_dirBlurCentered) {
         bool centered;
-        _centered->getValueAtTime(time, centered);
+        _dirBlurCentered->getValueAtTime(time, centered);
         if (centered) {
             amountFrom = -amountTo;
         }
@@ -287,8 +287,8 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsize = getInverseTransformsBlur(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
             // normalize alpha, and apply gamma
             double fading = 0.;
-            if (_fading) {
-                _fading->getValueAtTime(time, fading);
+            if (_dirBlurFading) {
+                _dirBlurFading->getValueAtTime(time, fading);
             }
             if (fading <= 0.) {
                 std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
@@ -633,12 +633,12 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
-    if (_amount) {
-        _amount->getValueAtTime(time, amountTo);
+    if (_dirBlurAmount) {
+        _dirBlurAmount->getValueAtTime(time, amountTo);
     }
-    if (_centered) {
+    if (_dirBlurCentered) {
         bool centered;
-        _centered->getValueAtTime(time, centered);
+        _dirBlurCentered->getValueAtTime(time, centered);
         if (centered) {
             amountFrom = -amountTo;
         }
@@ -726,12 +726,12 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
     bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
     double amountFrom = 0.;
     double amountTo = 1.;
-    if (_amount) {
-        _amount->getValueAtTime(time, amountTo);
+    if (_dirBlurAmount) {
+        _dirBlurAmount->getValueAtTime(time, amountTo);
     }
-    if (_centered) {
+    if (_dirBlurCentered) {
         bool centered;
-        _centered->getValueAtTime(time, centered);
+        _dirBlurCentered->getValueAtTime(time, centered);
         if (centered) {
             amountFrom = -amountTo;
         }
@@ -948,9 +948,9 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
 
     const double time = args.time;
 
-    if (_amount) {
+    if (_dirBlurAmount) {
         double amount = 1.;
-        _amount->getValueAtTime(time, amount);
+        _dirBlurAmount->getValueAtTime(time, amount);
         if (amount == 0.) {
             identityClip = _srcClip;
 
@@ -1390,9 +1390,9 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
 
     if (paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeDirBlur) {
         {
-            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Amount);
-            param->setLabel(kParamTransform3x3AmountLabel);
-            param->setHint(kParamTransform3x3AmountHint);
+            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3DirBlurAmount);
+            param->setLabel(kParamTransform3x3DirBlurAmountLabel);
+            param->setHint(kParamTransform3x3DirBlurAmountHint);
             param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
             param->setDisplayRange(-1, 2.);
             param->setDefault(1);
@@ -1403,9 +1403,9 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
         }
 
         {
-            BooleanParamDescriptor *param = desc.defineBooleanParam(kParamTransform3x3Centered);
-            param->setLabel(kParamTransform3x3CenteredLabel);
-            param->setHint(kParamTransform3x3CenteredHint);
+            BooleanParamDescriptor *param = desc.defineBooleanParam(kParamTransform3x3DirBlurCentered);
+            param->setLabel(kParamTransform3x3DirBlurCenteredLabel);
+            param->setHint(kParamTransform3x3DirBlurCenteredHint);
             param->setAnimates(true); // can animate
             if (page) {
                 page->addChild(*param);
@@ -1413,9 +1413,9 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
         }
 
         {
-            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3Fading);
-            param->setLabel(kParamTransform3x3FadingLabel);
-            param->setHint(kParamTransform3x3FadingHint);
+            DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3DirBlurFading);
+            param->setLabel(kParamTransform3x3DirBlurFadingLabel);
+            param->setHint(kParamTransform3x3DirBlurFadingHint);
             param->setRange(0., 4.);
             param->setDisplayRange(0., 4.);
             param->setDefault(0.);
