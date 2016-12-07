@@ -30,21 +30,31 @@
 
 #define kParamTransformTranslate "transformTranslate"
 #define kParamTransformTranslateLabel "Translate"
+#define kParamTransformTranslateHint "Translation along the x and y axes in pixels. Can also be adjusted by clicking and dragging the center handle in the Viewer."
 #define kParamTransformRotate "transformRotate"
 #define kParamTransformRotateLabel "Rotate"
+#define kParamTransformRotateHint "Rotation angle in degrees around the Center. Can also be adjusted by clicking and dragging the rotation bar in the Viewer."
 #define kParamTransformScale "transformScale"
 #define kParamTransformScaleLabel "Scale"
+#define kParamTransformScaleHint "Scale factor along the x and y axes. Can also be adjusted by clicking and dragging the outer circle or the diameter handles in the Viewer."
 #define kParamTransformScaleUniform "transformScaleUniform"
 #define kParamTransformScaleUniformLabel "Uniform"
 #define kParamTransformScaleUniformHint "Use the X scale for both directions"
 #define kParamTransformSkewX "transformSkewX"
 #define kParamTransformSkewXLabel "Skew X"
+#define kParamTransformSkewXHint "Skew along the x axis. Can also be adjusted by clicking and dragging the skew bar in the Viewer."
 #define kParamTransformSkewY "transformSkewY"
 #define kParamTransformSkewYLabel "Skew Y"
+#define kParamTransformSkewYHint "Skew along the y axis."
 #define kParamTransformSkewOrder "transformSkewOrder"
 #define kParamTransformSkewOrderLabel "Skew Order"
+#define kParamTransformSkewOrderHint "The order in which skew transforms are applied: X then Y, or Y then X."
+#define kParamTransformAmount "transformAmount"
+#define kParamTransformAmountLabel "Amount"
+#define kParamTransformAmountHint "Amount of transform to apply. 0 means the transform is identity, 1 means to apply the full transform."
 #define kParamTransformCenter "transformCenter"
 #define kParamTransformCenterLabel "Center"
+#define kParamTransformCenterHint "Center of rotation and scale."
 #define kParamTransformCenterChanged "transformCenterChanged"
 #define kParamTransformResetCenter "transformResetCenter"
 #define kParamTransformResetCenterLabel "Reset Center"
@@ -91,7 +101,7 @@ ofxsTransformGetScale(const OfxPointD &scaleParam,
 }
 
 /// add Transform params. page and group are optional
-void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams, bool noTranslate = false);
+void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams, bool hasAmount, bool noTranslate);
 
 class TransformInteractHelper
     : private OFX::InteractAbstract

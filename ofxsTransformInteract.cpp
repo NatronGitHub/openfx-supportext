@@ -54,12 +54,14 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
                             GroupParamDescriptor *group,
                             bool isOpen,
                             bool oldParams,
+                            bool hasAmount,
                             bool noTranslate)
 {
     // translate
     if (!noTranslate) {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformTranslateOld : kParamTransformTranslate);
         param->setLabel(kParamTransformTranslateLabel);
+        param->setHint(kParamTransformTranslateHint);
         //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
         param->setDoubleType(eDoubleTypeXYAbsolute);
         param->setDefaultCoordinateSystem(eCoordinatesNormalised);
@@ -80,6 +82,7 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformRotateOld : kParamTransformRotate);
         param->setLabel(kParamTransformRotateLabel);
+        param->setHint(kParamTransformRotateHint);
         param->setDoubleType(eDoubleTypeAngle);
         param->setDefault(0);
         param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
@@ -97,6 +100,7 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformScaleOld : kParamTransformScale);
         param->setLabel(kParamTransformScaleLabel);
+        param->setHint(kParamTransformScaleHint);
         param->setDoubleType(eDoubleTypeScale);
         //param->setDimensionLabels("w","h");
         param->setDefault(1, 1);
@@ -132,6 +136,7 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewXOld : kParamTransformSkewX);
         param->setLabel(kParamTransformSkewXLabel);
+        param->setHint(kParamTransformSkewXHint);
         param->setDefault(0);
         param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-1., 1.);
@@ -148,6 +153,7 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
     {
         DoubleParamDescriptor* param = desc.defineDoubleParam(oldParams ? kParamTransformSkewYOld : kParamTransformSkewY);
         param->setLabel(kParamTransformSkewYLabel);
+        param->setHint(kParamTransformSkewYHint);
         param->setDefault(0);
         param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-1., 1.);
@@ -164,6 +170,7 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(oldParams ? kParamTransformSkewOrderOld : kParamTransformSkewOrder);
         param->setLabel(kParamTransformSkewOrderLabel);
+        param->setHint(kParamTransformSkewOrderHint);
         param->setDefault(0);
         param->appendOption("XY");
         param->appendOption("YX");
@@ -176,10 +183,29 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         }
     }
 
+    // amount
+    if (hasAmount) {
+        DoubleParamDescriptor* param = desc.defineDoubleParam(kParamTransformAmount);
+        param->setLabel(kParamTransformAmountLabel);
+        param->setHint(kParamTransformAmountHint);
+        param->setDoubleType(eDoubleTypeScale);
+        param->setDefault(1.);
+        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
+        param->setDisplayRange(0., 1.);
+        param->setIncrement(0.01);
+        if (group) {
+            param->setParent(*group);
+        }
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+
     // center
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamTransformCenterOld : kParamTransformCenter);
         param->setLabel(kParamTransformCenterLabel);
+        param->setHint(kParamTransformCenterHint);
         //param->setDoubleType(eDoubleTypeNormalisedXY); // deprecated in OpenFX 1.2
         //param->setDimensionLabels("x","y");
         param->setDoubleType(eDoubleTypeXYAbsolute);
