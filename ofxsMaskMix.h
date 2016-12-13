@@ -300,7 +300,10 @@ ofxsPremult(const float unpPix[4],
         return;
     }
 
-    if (!premult) {
+    float alpha = unpPix[3];
+
+    // compare alpha to FLT_EPSILON to make sure that premult(unpremult) = identity
+    if ( !premult || (alpha <= FLT_EPSILON) ) {
         tmpPix[0] = unpPix[0] * maxValue;
         if (nComponents >= 2) {
             tmpPix[1] = unpPix[1] * maxValue;
@@ -309,21 +312,21 @@ ofxsPremult(const float unpPix[4],
             tmpPix[2] = unpPix[2] * maxValue;
         }
         if (nComponents >= 4) {
-            tmpPix[3] = unpPix[3] * maxValue;
+            tmpPix[3] = alpha * maxValue;
         }
 
         return;
     }
 
-    tmpPix[0] = unpPix[0] * unpPix[3] * maxValue;
+    tmpPix[0] = unpPix[0] * alpha * maxValue;
     if (nComponents >= 2) {
-        tmpPix[1] = unpPix[1] * unpPix[3] * maxValue;
+        tmpPix[1] = unpPix[1] * alpha * maxValue;
     }
     if (nComponents >= 3) {
-        tmpPix[2] = unpPix[2] * unpPix[3] * maxValue;
+        tmpPix[2] = unpPix[2] * alpha * maxValue;
     }
     if (nComponents >= 4) {
-        tmpPix[3] = unpPix[3] * maxValue;
+        tmpPix[3] = alpha * maxValue;
     }
 }
 
