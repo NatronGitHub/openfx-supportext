@@ -862,8 +862,13 @@ ofxsFilterInterpolate2DSuper(double fx,
 #else
     // always use the supersampled data
     // produces less artifacts, costs less
-    int isx = std::ceil(sx);
-    int isy = std::ceil(sy);
+    // the problem is that sx = 1.0001 is supersampled, which gives a result very different from sx=1
+    //int isx = std::ceil(sx);
+    //int isy = std::ceil(sy);
+    // This is why we prefer rounding. The jump will be at sx=sqrt(3)=1.732.
+    // This produces quicker renders too, since we supersample less.
+    int isx = std::ceil(sx-0.5);
+    int isy = std::ceil(sy-0.5);
 
     return ofxsFilterInterpolate2DSuperInternal<PIX, nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, isx, isy, isx, isy, srcImg, blackOutside, tmpPix);
 #endif
