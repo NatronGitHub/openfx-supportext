@@ -266,6 +266,24 @@ toCanonical(const OfxRectI & rect,
     regionOfInterest->y2 = rect.y2 / renderScale.y;
 }
 
+inline void
+toCanonical(const OfxRectD & rect,
+            const OfxPointD & renderScale,
+            double par,
+            OfxRectD *regionOfInterest)
+{
+    assert(par);
+    if ( rectIsEmpty(rect) ) {
+        regionOfInterest->x1 = regionOfInterest->y1 = regionOfInterest->x2 = regionOfInterest->y2 = 0;
+
+        return;
+    }
+    regionOfInterest->x1 = rect.x1 * par / renderScale.x;
+    regionOfInterest->y1 = rect.y1 / renderScale.y;
+    regionOfInterest->x2 = rect.x2 * par / renderScale.x;
+    regionOfInterest->y2 = rect.y2 / renderScale.y;
+}
+
 inline
 unsigned int
 mipmapLevelFromScale(double s)
