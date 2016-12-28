@@ -25,6 +25,9 @@
 
 /* *INDENT-OFF* */
 
+#define OFXS_NAMESPACE_OFX_ENTER namespace OFX {
+#define OFXS_NAMESPACE_OFX_EXIT }
+
 // anonymous namespace macros, mainly to avoid crazy intentation by some IDEs (e.g. Xcode)
 #define OFXS_NAMESPACE_ANONYMOUS_ENTER namespace {
 #define OFXS_NAMESPACE_ANONYMOUS_EXIT }
