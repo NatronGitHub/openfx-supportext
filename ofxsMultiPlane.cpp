@@ -1254,7 +1254,7 @@ MultiPlaneEffect::getPlaneNeededInOutput(string* ofxPlane,
 
         return true;
 #ifdef OFX_EXTENSIONS_NATRON
-    } else {
+    } else if ( found != _imp->params.end() ) {
         vector<string> components;
         components = getCachedComponentsPresent(found->second.clips[0]);
 
