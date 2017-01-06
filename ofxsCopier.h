@@ -1321,7 +1321,7 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
         // the unsigned short representation of 1.h is 15360
         // #include <OpenEXR/half.h>
         // half one(1.);
-        // cout << "the unsigned short representation of 1.h is " << one.bits() << endl;
+        // cout << "the unsigned short representation of 1.h is " << one.bits() << endl;
         copyPixelsOpaqueForDepth<unsigned short, 15360>(instance, renderWindow,
                                                         srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes,
                                                         dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
