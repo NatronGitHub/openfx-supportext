@@ -505,9 +505,47 @@ getOperationDescription(MergingFunctionEnum operation)
 } // getOperationString
 
 inline std::string
-getOperationHelp(MergingFunctionEnum operation)
+getOperationHelp(MergingFunctionEnum operation, bool markdown)
 {
-    return getOperationString(operation) + ": " + getOperationDescription(operation);
+    if (!markdown) {
+        return getOperationString(operation) + ": " + getOperationDescription(operation);
+    }
+    std::string escaped = getOperationString(operation) + ": ";
+    std::string plain = getOperationDescription(operation);
+    // the following chars must be backslash-escaped in markdown:
+    // \    backslash
+    // `    backtick
+    // *    asterisk
+    // _    underscore
+    // {}   curly braces
+    // []   square brackets
+    // ()   parentheses
+    // #    hash mark
+    // +    plus sign
+    // -    minus sign (hyphen)
+    // .    dot
+    // !    exclamation mark
+    for (unsigned i = 0; i < plain.size(); ++i) {
+        if (plain[i] == '\\' ||
+            plain[i] == '`' ||
+            plain[i] == '*' ||
+            plain[i] == '_' ||
+            plain[i] == '{' ||
+            plain[i] == '}' ||
+            plain[i] == '[' ||
+            plain[i] == ']' ||
+            plain[i] == '(' ||
+            plain[i] == ')' ||
+            plain[i] == '#' ||
+            plain[i] == '+' ||
+            plain[i] == '-' ||
+            plain[i] == '.' ||
+            plain[i] == '!') {
+            escaped += '\\';
+        }
+        escaped += plain[i];
+    }
+
 }
 
 inline std::string
