@@ -1,6 +1,6 @@
 /* ***** BEGIN LICENSE BLOCK *****
  * This file is part of openfx-supportext <https://github.com/devernay/openfx-supportext>,
- * Copyright (C) 2013-2016 INRIA
+ * Copyright (C) 2013-2017 INRIA
  *
  * openfx-supportext is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
