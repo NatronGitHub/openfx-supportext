@@ -545,7 +545,7 @@ getOperationHelp(MergingFunctionEnum operation, bool markdown)
         }
         escaped += plain[i];
     }
-
+    return escaped;
 }
 
 inline std::string
