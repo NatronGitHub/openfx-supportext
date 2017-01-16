@@ -1347,12 +1347,12 @@ template <MergingFunctionEnum f, typename PIX, int nComponents, int maxValue>
 void
 mergePixel(bool doAlphaMasking,
            const PIX A[4],
+           PIX a,
            const PIX B[4],
+           PIX b,
            PIX* dst)
 {
     doAlphaMasking = (f == eMergeMatte) || (doAlphaMasking && isMaskable(f));
-    PIX a = A[3];
-    PIX b = B[3];
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphaA*alphaB
     int maxComp = nComponents;
