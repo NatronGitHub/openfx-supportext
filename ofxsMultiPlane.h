@@ -472,13 +472,7 @@ public:
      **/
     void buildChannelMenus(const std::string& paramName = std::string());
 
-    /**
-     * @brief Returns the clip component presents that were used for this clip in the previous call to buildChannelMenus.
-     * This is only valid after a call to buildChannelMenus on a choice parameter that had this clip as dependency and
-     * during the same action.
-     * This is a faster way than to call clip->getComponentsPresent() since the data have already been computed.
-     **/
-    const std::vector<std::string>& getCachedComponentsPresent(OFX::Clip* clip) const;
+
     enum ChangedParamRetCode
     {
         eChangedParamRetCodeNoChange,
