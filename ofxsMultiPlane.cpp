@@ -657,8 +657,10 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
         _imp->allPlanesCheckbox = fetchBooleanParam(kMultiPlaneProcessAllPlanesParam);
     }
 
-    bool allPlanesSelected = _imp->allPlanesCheckbox->getValue();
-    paramData.param->setIsSecretAndDisabled(allPlanesSelected);
+    if (_imp->allPlanesCheckbox) {
+        bool allPlanesSelected = _imp->allPlanesCheckbox->getValue();
+        paramData.param->setIsSecretAndDisabled(allPlanesSelected);
+    }
 
     _imp->setChannelsFromStringParams();
 }
