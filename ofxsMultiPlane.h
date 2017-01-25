@@ -415,6 +415,7 @@ public:
     void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
                                                bool splitPlanesIntoChannelOptions,
                                                bool canAddNoneOption,
+                                               bool isOutputPlaneChoice,
                                                const std::vector<OFX::Clip*>& dependsClips);
 
     /**
@@ -423,12 +424,13 @@ public:
     void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
                                                bool splitPlanesIntoChannelOptions,
                                                bool canAddNoneOption,
+                                               bool isOutputPlaneChoice,
                                                OFX::Clip* dependsClip)
     {
         std::vector<OFX::Clip*> vec(1);
 
         vec[0] = dependsClip;
-        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, vec);
+        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, isOutputPlaneChoice, vec);
     }
 
     enum GetPlaneNeededRetCodeEnum
@@ -437,7 +439,8 @@ public:
         eGetPlaneNeededRetCodeReturnedPlane,
         eGetPlaneNeededRetCodeReturnedChannelInPlane,
         eGetPlaneNeededRetCodeReturnedConstant0,
-        eGetPlaneNeededRetCodeReturnedConstant1
+        eGetPlaneNeededRetCodeReturnedConstant1,
+        eGetPlaneNeededRetCodeReturnedAllPlanes
     };
     
     /**
@@ -454,6 +457,8 @@ public:
      * If the result is eGetPlaneNeededRetCodeReturnedPlane, the plane in output will be set to the user selected plane.
      * If the result is eGetPlaneNeededRetCodeReturnedChannelInPlane, the plane and the channelIndexInPlane in output will be set to the user
      * selected channel.
+     * If the result is eGetPlaneNeededRetCodeReturnedAllPlanes, the plug-in is expected to render what is requested and should act as 
+     * plane agnostic.
      **/
     GetPlaneNeededRetCodeEnum getPlaneNeeded(const std::string& paramName,
                                              OFX::Clip** clip,

@@ -525,44 +525,6 @@ addInputChannelOptionsRGBAInternal(T* param,
     }
 } // addInputChannelOptionsRGBAInternal
 
-
-/**
- * @brief Add the layers from the inputList to the toList if they do not already exist in the list.
- * For the color plane, if it already existed in toList it is replaced by the value in inputList
- **/
-static void mergeLayersList(const std::list<MultiPlane::ImagePlaneDesc>& inputList,
-                            std::list<MultiPlane::ImagePlaneDesc>* toList)
-{
-    for (std::list<MultiPlane::ImagePlaneDesc>::const_iterator it = inputList.begin(); it != inputList.end(); ++it) {
-
-        std::list<MultiPlane::ImagePlaneDesc>::iterator foundMatch = MultiPlane::ImagePlaneDesc::findEquivalentLayer(*it, toList->begin(), toList->end());
-
-        // If we found the color plane, replace it by this color plane which may have changed (e.g: input was Color.RGB but this node Color.RGBA)
-        if (foundMatch != toList->end()) {
-            toList->erase(foundMatch);
-        }
-        toList->push_back(*it);
-
-    } // for each input components
-} // mergeLayersList
-
-/**
- * @brief Remove any layer from the toRemove list from toList.
- **/
-static void removeFromLayersList(const std::list<MultiPlane::ImagePlaneDesc>& toRemove,
-                                 std::list<MultiPlane::ImagePlaneDesc>* toList)
-{
-    for (std::list<MultiPlane::ImagePlaneDesc>::const_iterator it = toRemove.begin(); it != toRemove.end(); ++it) {
-        std::list<MultiPlane::ImagePlaneDesc>::iterator foundMatch = MultiPlane::ImagePlaneDesc::findEquivalentLayer<std::list<MultiPlane::ImagePlaneDesc>::iterator>(*it, toList->begin(), toList->end());
-        if (foundMatch != toList->end()) {
-            toList->erase(foundMatch);
-        }
-    } // for each input components
-
-} // removeFromLayersList
-
-
-
 } // anonymous namespace
 
 namespace OFX {
@@ -606,6 +568,8 @@ struct ChoiceParamClips
     // True if we should add a "None" option
     bool addNoneOption;
 
+    bool isOutput;
+
     vector<Clip*> clips;
     vector<string> clipsName;
 
@@ -614,6 +578,7 @@ struct ChoiceParamClips
     , stringparam(0)
     , splitPlanesIntoChannels(false)
     , addNoneOption(false)
+    , isOutput(false)
     , clips()
     , clipsName()
     {
@@ -670,6 +635,7 @@ void
 MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
                                                         bool splitPlanesIntoChannelOptions,
                                                         bool canAddNoneOption,
+                                                        bool isOutputPlaneChoice,
                                                         const vector<Clip*>& dependsClips)
 {
     ChoiceParamClips& paramData = _imp->params[paramName];
@@ -685,7 +651,9 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
         paramData.clipsName.push_back( dependsClips[i]->name() );
     }
 
-    if (!_imp->allPlanesCheckbox && paramExists(kMultiPlaneProcessAllPlanesParam)) {
+    paramData.isOutput = isOutputPlaneChoice;
+
+    if (isOutputPlaneChoice && !_imp->allPlanesCheckbox && paramExists(kMultiPlaneProcessAllPlanesParam)) {
         _imp->allPlanesCheckbox = fetchBooleanParam(kMultiPlaneProcessAllPlanesParam);
     }
 
@@ -886,10 +854,19 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
                                  int* channelIndexInPlane)
 {
 
+
     map<string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
     assert( found != _imp->params.end() );
     if ( found == _imp->params.end() ) {
         return eGetPlaneNeededRetCodeFailed;
+    }
+
+
+    if (found->second.isOutput && _imp->allPlanesCheckbox) {
+        bool processAll = _imp->allPlanesCheckbox->getValue();
+        if (processAll) {
+            return eGetPlaneNeededRetCodeReturnedAllPlanes;
+        }
     }
 
 
