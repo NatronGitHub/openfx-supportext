@@ -441,7 +441,8 @@ addInputChannelOptionsRGBAInternal(T* param,
                                    bool addConstants,
                                    bool onlyColorPlane,
                                    vector<string>* options,
-                                   vector<string>* optionLabels)
+                                   vector<string>* optionsLabels,
+                                   vector<string>* optionHints)
 {
 
     const MultiPlane::ImagePlaneDesc& rgbaPlane = MultiPlane::ImagePlaneDesc::getRGBAComponents();
@@ -471,7 +472,7 @@ addInputChannelOptionsRGBAInternal(T* param,
                 string opt, hint;
                 opt.append(clipName);
                 opt.push_back('.');
-                if (planesToAdd[i] != &rgbaPlane) {
+                if (planesToAdd[p] != &rgbaPlane) {
                     opt.append(planeLabel);
                     opt.push_back('.');
                 }
@@ -485,8 +486,11 @@ addInputChannelOptionsRGBAInternal(T* param,
                 if (options) {
                     options->push_back(opt);
                 }
-                if (optionLabels) {
-                    optionLabels->push_back(hint);
+                if (optionsLabels) {
+                    optionsLabels->push_back(opt);
+                }
+                if (optionHints) {
+                    optionHints->push_back(hint);
                 }
 
             }
@@ -503,8 +507,11 @@ addInputChannelOptionsRGBAInternal(T* param,
                 if (options) {
                     options->push_back(opt);
                 }
-                if (optionLabels) {
-                    optionLabels->push_back(hint);
+                if (optionsLabels) {
+                    optionsLabels->push_back(opt);
+                }
+                if (optionHints) {
+                    optionHints->push_back(hint);
                 }
             }
             {
@@ -517,8 +524,11 @@ addInputChannelOptionsRGBAInternal(T* param,
                 if (options) {
                     options->push_back(opt);
                 }
-                if (optionLabels) {
-                    optionLabels->push_back(hint);
+                if (optionsLabels) {
+                    optionsLabels->push_back(opt);
+                }
+                if (optionHints) {
+                    optionHints->push_back(hint);
                 }
             }
         }
@@ -537,7 +547,7 @@ addInputChannelOptionsRGBA(ChoiceParamDescriptor* param,
                            bool addConstants,
                            bool onlyColorPlane)
 {
-    addInputChannelOptionsRGBAInternal<ChoiceParamDescriptor>(param, clips, addConstants, onlyColorPlane, 0, 0);
+    addInputChannelOptionsRGBAInternal<ChoiceParamDescriptor>(param, clips, addConstants, onlyColorPlane, 0, 0, 0);
 }
 
 void
@@ -545,9 +555,10 @@ addInputChannelOptionsRGBA(const vector<string>& clips,
                            bool addConstants,
                            bool onlyColorPlane,
                            vector<string>* options,
-                           vector<string>* optionsLabel)
+                           vector<string>* optionsLabels,
+                           vector<string>* optionsHints)
 {
-    addInputChannelOptionsRGBAInternal<ChoiceParam>(0, clips, addConstants, onlyColorPlane, options, optionsLabel);
+    addInputChannelOptionsRGBAInternal<ChoiceParam>(0, clips, addConstants, onlyColorPlane, options, optionsLabels, optionsHints);
 }
 }         // factory
 
@@ -750,7 +761,7 @@ MultiPlaneEffect::buildChannelMenus(const string& paramName)
         vector<string> optionIDs, optionLabels, optionHints;
 
         if (it->second.splitPlanesIntoChannels) {
-            Factory::addInputChannelOptionsRGBA(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &optionIDs, &optionHints);
+            Factory::addInputChannelOptionsRGBA(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &optionIDs, &optionLabels, &optionHints);
         } else {
             if (it->second.addNoneOption) {
                 optionIDs.push_back(kMultiPlanePlaneParamOptionNone);

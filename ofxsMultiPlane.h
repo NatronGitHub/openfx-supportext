@@ -177,7 +177,7 @@
 
 - Planes defined in the Nuke multi-plane suite have hard-coded components type (see Support for Nuke above)
 
-
+- The getClipComponents action must return a list of string corresponding to planes and not components type.
 
  MultiPlaneEffect:
  ----------------
@@ -543,7 +543,8 @@ void addInputChannelOptionsRGBA(const std::vector<std::string>& clips,
                                 bool addConstants,
                                 bool onlyColorPlane,
                                 std::vector<std::string>* options,
-                                std::vector<std::string>* optionsLabel);
+                                std::vector<std::string>* optionsLabels,
+                                std::vector<std::string>* optionsLabelHints);
 }         // Factory
 }     // namespace MultiPlane
 } // namespace OFX
