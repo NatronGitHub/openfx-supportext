@@ -434,31 +434,37 @@ ImagePlaneDesc::mapPlaneToOFXComponentsTypeString(const ImagePlaneDesc& plane)
 } // namespace OFX
 
 namespace  {
-template <typename T>
-void
-addInputChannelOptionsRGBAInternal(T* param,
-                                   const vector<string>& clips,
-                                   bool addConstants,
-                                   bool onlyColorPlane,
-                                   vector<string>* options,
-                                   vector<string>* optionsLabels,
-                                   vector<string>* optionHints)
-{
 
+void
+getHardCodedPlanes(bool onlyColorPlane, std::vector<const MultiPlane::ImagePlaneDesc*>* planesToAdd)
+{
     const MultiPlane::ImagePlaneDesc& rgbaPlane = MultiPlane::ImagePlaneDesc::getRGBAComponents();
     const MultiPlane::ImagePlaneDesc& disparityLeftPlane = MultiPlane::ImagePlaneDesc::getDisparityLeftComponents();
     const MultiPlane::ImagePlaneDesc& disparityRightPlane = MultiPlane::ImagePlaneDesc::getDisparityRightComponents();
     const MultiPlane::ImagePlaneDesc& motionBwPlane = MultiPlane::ImagePlaneDesc::getBackwardMotionComponents();
     const MultiPlane::ImagePlaneDesc& motionFwPlane = MultiPlane::ImagePlaneDesc::getForwardMotionComponents();
 
-    std::vector<const MultiPlane::ImagePlaneDesc*> planesToAdd;
-    planesToAdd.push_back(&rgbaPlane);
+    planesToAdd->push_back(&rgbaPlane);
     if (!onlyColorPlane) {
-        planesToAdd.push_back(&disparityLeftPlane);
-        planesToAdd.push_back(&disparityRightPlane);
-        planesToAdd.push_back(&motionBwPlane);
-        planesToAdd.push_back(&motionFwPlane);
+        planesToAdd->push_back(&disparityLeftPlane);
+        planesToAdd->push_back(&disparityRightPlane);
+        planesToAdd->push_back(&motionBwPlane);
+        planesToAdd->push_back(&motionFwPlane);
     }
+
+}
+void
+getHardCodedPlaneOptions(const vector<string>& clips,
+                         bool addConstants,
+                         bool onlyColorPlane,
+                         vector<string>* options,
+                         vector<string>* optionsLabels,
+                         vector<string>* optionHints)
+{
+
+
+    std::vector<const MultiPlane::ImagePlaneDesc*> planesToAdd;
+    getHardCodedPlanes(onlyColorPlane, &planesToAdd);
 
     for (std::size_t c = 0; c < clips.size(); ++c) {
         const string& clipName = clips[c];
@@ -470,19 +476,27 @@ addInputChannelOptionsRGBAInternal(T* param,
 
             for (std::size_t i = 0; i < planeChannels.size(); ++i) {
                 string opt, hint;
-                opt.append(clipName);
-                opt.push_back('.');
-                if (planesToAdd[p] != &rgbaPlane) {
+
+                // Prefix the clip name if there are multiple clip channels to read from
+                if (clips.size() > 1) {
+                    opt.append(clipName);
+                    opt.push_back('.');
+                }
+
+                // Prefix the plane name if the plane is not the color plane
+                if (planesToAdd[p] != &MultiPlane::ImagePlaneDesc::getRGBAComponents()) {
                     opt.append(planeLabel);
                     opt.push_back('.');
                 }
+
                 opt.append(planeChannels[i]);
+
+
+                // Make up some tooltip
                 hint.append(planeChannels[i]);
                 hint.append(" channel from input ");
                 hint.append(clipName);
-                if (param) {
-                    param->appendOption(opt, hint);
-                }
+
                 if (options) {
                     options->push_back(opt);
                 }
@@ -501,9 +515,7 @@ addInputChannelOptionsRGBAInternal(T* param,
                 string opt, hint;
                 opt.append(kMultiPlaneChannelParamOption0);
                 hint.append(kMultiPlaneChannelParamOption0Hint);
-                if (param) {
-                    param->appendOption(opt, hint);
-                }
+
                 if (options) {
                     options->push_back(opt);
                 }
@@ -518,9 +530,7 @@ addInputChannelOptionsRGBAInternal(T* param,
                 string opt, hint;
                 opt.append(kMultiPlaneChannelParamOption1);
                 hint.append(kMultiPlaneChannelParamOption1Hint);
-                if (param) {
-                    param->appendOption(opt, hint);
-                }
+
                 if (options) {
                     options->push_back(opt);
                 }
@@ -531,6 +541,35 @@ addInputChannelOptionsRGBAInternal(T* param,
                     optionHints->push_back(hint);
                 }
             }
+        }
+    }
+
+} // getHardCodedPlanes
+
+template <typename T>
+void
+addInputChannelOptionsRGBAInternal(T* param,
+                                   const vector<string>& clips,
+                                   bool addConstants,
+                                   bool onlyColorPlane,
+                                   vector<string>* optionsParam,
+                                   vector<string>* optionsLabelsParam,
+                                   vector<string>* optionHintsParam)
+{
+    vector<string> options, labels, hints;
+    getHardCodedPlaneOptions(clips, addConstants, onlyColorPlane, &options, &labels, &hints);
+    if (optionsParam) {
+        *optionsParam = options;
+    }
+    if (optionsLabelsParam) {
+        *optionsLabelsParam = labels;
+    }
+    if (optionHintsParam) {
+        *optionHintsParam = hints;
+    }
+    if (param) {
+        for (std::size_t i = 0; i < labels.size(); ++i) {
+            param->appendOption(labels[i], hints[i], options[i]);
         }
     }
 } // addInputChannelOptionsRGBAInternal
@@ -612,12 +651,17 @@ struct MultiPlaneEffectPrivate
     // If true, all planes have to be processed
     BooleanParam* allPlanesCheckbox;
 
+    // Stores for each clip its available planes
+    // This is to avoid a recursion when calling getComponentsPresent
+    // on the output clip.
+    std::map<Clip*, std::list<ImagePlaneDesc> > perClipPlanesAvailable;
 
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
     : _publicInterface(publicInterface)
     , params()
     , dstClip( publicInterface->fetchClip(kOfxImageEffectOutputClipName) )
     , allPlanesCheckbox(0)
+    , perClipPlanesAvailable()
     {
     }
 
@@ -720,49 +764,28 @@ MultiPlaneEffectPrivate::setChannelsFromStringParamInternal(ChoiceParam* param,
     }
 }
 
-static void getPlanesAvailableForParam(ChoiceParamClips* param, std::vector<ImagePlaneDesc>* planes, map<Clip*, vector<string> >* clipAvailablePlanes)
-{
-    for (std::size_t c = 0; c < param->clips.size(); ++c) {
-
-        // Did we fetch the clip available planes already ?
-        vector<string>* availableClipPlanes = 0;
-        map<Clip*, vector<string> >::iterator foundClip = clipAvailablePlanes->find(param->clips[c]);
-        if (foundClip != clipAvailablePlanes->end()) {
-            availableClipPlanes = &foundClip->second;
-        } else {
-            availableClipPlanes = &(*clipAvailablePlanes)[param->clips[c]];
-            param->clips[c]->getComponentsPresent(availableClipPlanes);
-        }
-
-        for (std::size_t i = 0; i < availableClipPlanes->size(); ++i) {
-
-            ImagePlaneDesc plane = ImagePlaneDesc::mapOFXPlaneStringToPlane((*availableClipPlanes)[i]);
-            planes->push_back(plane);
-        }
-    }
-} // getPlanesAvailableForParam
-
 void
-MultiPlaneEffect::buildChannelMenus(const string& paramName)
+MultiPlaneEffect::buildChannelMenus()
 {
+    // This code requires dynamic choice parameters support.
     if (!gHostSupportsDynamicChoices) {
         return;
     }
-    // Store for each clip used the available planes, to avoid inspecting the clip available planes
-    // multiple times.
-    map<Clip*, vector<string> > perClipAvailablePlanes;
 
+    // Clear the clip planes available cache
+    _imp->perClipPlanesAvailable.clear();
+
+    // For each parameter to refresh
     for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
-        if (!paramName.empty() && paramName != it->first) {
-            continue;
-        }
-
 
         vector<string> optionIDs, optionLabels, optionHints;
 
+
         if (it->second.splitPlanesIntoChannels) {
+            // Add built-in hard-coded options A.R, A.G, ... 0, 1, B.R, B.G ...
             Factory::addInputChannelOptionsRGBA(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &optionIDs, &optionLabels, &optionHints);
         } else {
+            // For plane selectors, we might want a "None" option to select an input plane.
             if (it->second.addNoneOption) {
                 optionIDs.push_back(kMultiPlanePlaneParamOptionNone);
                 optionLabels.push_back(kMultiPlanePlaneParamOptionNoneLabel);
@@ -770,29 +793,78 @@ MultiPlaneEffect::buildChannelMenus(const string& paramName)
             }
         }
 
-        std::vector<ImagePlaneDesc> planes;
-        getPlanesAvailableForParam(&it->second, &planes, &perClipAvailablePlanes);
+        // We don't use a map here to keep the clips in the order of what the user passed them in fetchDynamicMultiplaneChoiceParameter
+        std::list<std::pair<Clip*, std::list<ImagePlaneDesc>* > > perClipPlanes;
+        for (std::size_t c = 0; c < it->second.clips.size(); ++c) {
 
-        for (std::size_t i = 0; i < planes.size(); ++i) {
+            Clip* clip = it->second.clips[c];
 
-            if (it->second.splitPlanesIntoChannels) {
-                // User wants per-channel options
-                int nChannels = planes[i].getNumComponents();
-                for (int k = 0; k < nChannels; ++k) {
-                    optionIDs.resize(optionIDs.size() + 1);
-                    optionLabels.resize(optionLabels.size() + 1);
-                    optionHints.push_back("");
-                    planes[i].getChannelOption(k, &optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
-                }
+            // Did we fetch the clip available planes already ? This speeds it up in the case where we have multiple choice parameters
+            // accessing the same clip.
+            std::list<ImagePlaneDesc>* availableClipPlanes = 0;
+            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = _imp->perClipPlanesAvailable.find(clip);
+            if (foundClip != _imp->perClipPlanesAvailable.end()) {
+                availableClipPlanes = &foundClip->second;
             } else {
+
+                availableClipPlanes = &(_imp->perClipPlanesAvailable)[clip];
+
+                // Fetch planes presents from the clip and map them to ImagePlaneDesc
+                vector<string> clipPlaneStrings;
+                clip->getComponentsPresent(&clipPlaneStrings);
+
+                for (std::size_t i = 0; i < clipPlaneStrings.size(); ++i) {
+                    ImagePlaneDesc plane;
+                    if (clipPlaneStrings[i] == kOfxMultiplaneColorPlaneID) {
+                        plane = ImagePlaneDesc::mapNCompsToColorPlane(clip->getPixelComponentCount());
+                    } else {
+                        plane = ImagePlaneDesc::mapOFXPlaneStringToPlane(clipPlaneStrings[i]);
+                    }
+                    availableClipPlanes->push_back(plane);
+                }
+
+            }
+
+            perClipPlanes.push_back(std::make_pair(clip, availableClipPlanes));
+        } // for each clip
+
+        for (std::list<std::pair<Clip*, std::list<ImagePlaneDesc>* > >::const_iterator it2 = perClipPlanes.begin(); it2 != perClipPlanes.end(); ++it2) {
+
+            const std::list<ImagePlaneDesc>* planes = it2->second;
+
+            for (std::list<ImagePlaneDesc>::const_iterator it3 = planes->begin(); it3 != planes->end(); ++it3) {
+                if (it->second.splitPlanesIntoChannels) {
+                    // User wants per-channel options
+                    int nChannels = it3->getNumComponents();
+                    for (int k = 0; k < nChannels; ++k) {
+                        optionIDs.resize(optionIDs.size() + 1);
+                        optionLabels.resize(optionLabels.size() + 1);
+                        optionHints.push_back("");
+                        it3->getChannelOption(k, &optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
+
+                        // Prefix the clip name if there are multiple clip channels to read from
+                        if (it->second.clips.size() > 1) {
+                            optionIDs[optionIDs.size() - 1] = it2->first->name() + '.' + optionIDs[optionIDs.size() - 1];
+                            optionLabels[optionLabels.size() - 1] = it2->first->name() + '.' + optionLabels[optionLabels.size() - 1];
+                        }
+
+                    }
+                } else {
                     // User wants planes in options
                     optionIDs.resize(optionIDs.size() + 1);
                     optionLabels.resize(optionLabels.size() + 1);
                     optionHints.push_back("");
-                    planes[i].getPlaneOption(&optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
-            }
+                    it3->getPlaneOption(&optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
 
-        } //for each plane
+                    // Prefix the clip name if there are multiple clip channels to read from
+                    if (it->second.clips.size() > 1) {
+                        optionIDs[optionIDs.size() - 1] = it2->first->name() + '.' + optionIDs[optionIDs.size() - 1];
+                        optionLabels[optionLabels.size() - 1] = it2->first->name() + '.' + optionLabels[optionLabels.size() - 1];
+                    }
+                }
+            } // for each plane
+
+        } // for each clip planes available
 
         // Set the new choice menu
         it->second.param->resetOptions(optionLabels, optionHints, optionIDs);
@@ -860,6 +932,84 @@ MultiPlaneEffect::handleChangedParamForAllDynamicChoices(const string& paramName
     return false;
 }
 
+
+static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
+                                           const ChoiceParamClips& param,
+                                           MultiPlaneEffect::GetPlaneNeededRetCodeEnum* retCode,
+                                           OFX::Clip** clip,
+                                           ImagePlaneDesc* plane,
+                                           int* channelIndexInPlane)
+{
+    if (selectedOptionID == kMultiPlaneChannelParamOption0) {
+        *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0;
+        return true;
+    }
+
+    if (selectedOptionID == kMultiPlaneChannelParamOption1) {
+        *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1;
+        return true;
+    }
+
+    if (param.addNoneOption && selectedOptionID == kMultiPlanePlaneParamOptionNone) {
+        *plane = ImagePlaneDesc::getNoneComponents();
+        *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedPlane;
+        return true;
+    }
+
+    // The option must have a clip name prepended if there are multiple clips, find the clip
+    std::string optionWithoutClipPrefix;
+
+    if (param.clips.size() == 1) {
+        *clip = param.clips[0];
+        optionWithoutClipPrefix = selectedOptionID;
+    } else {
+        for (std::size_t c = 0; c < param.clipsName.size(); ++c) {
+            const std::string& clipName = param.clipsName[c];
+            if (selectedOptionID.substr(0, clipName.size()) == clipName) {
+                *clip = param.clips[c];
+                optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
+                break;
+            }
+        }
+    }
+
+    if (!*clip) {
+        // We did not find the corresponding clip.
+        *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
+        return false;
+    }
+
+
+    // Find a hard-coded option
+
+    std::vector<const MultiPlane::ImagePlaneDesc*> planesToAdd;
+    getHardCodedPlanes(false /*onlyColorPlane*/, &planesToAdd);
+    for (std::size_t p = 0; p < planesToAdd.size(); ++p) {
+
+        const vector<string>& planeChannels = planesToAdd[p]->getChannels();
+        for (std::size_t c = 0; c < planeChannels.size(); ++c) {
+            std::string channelOptionID;
+            // For the color plane, we did not add the plane label, see @getHardCodedPlaneOptions
+            if (planesToAdd[p] == &MultiPlane::ImagePlaneDesc::getRGBAComponents()) {
+                channelOptionID = planeChannels[c];
+            } else {
+                channelOptionID = planesToAdd[p]->getPlaneLabel() + '.' + planeChannels[c];
+            }
+            if (channelOptionID == optionWithoutClipPrefix) {
+                *plane = *planesToAdd[p];
+                *channelIndexInPlane = c;
+                *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedChannelInPlane;
+                return true;
+            }
+        }
+
+    } // for each built-in plane
+
+
+
+    return false;
+} // findBuiltInSelectedChannel
+
 MultiPlaneEffect::GetPlaneNeededRetCodeEnum
 MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
                                  OFX::Clip** clip,
@@ -885,49 +1035,74 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
 
     *clip = 0;
 
-    int choice_i;
-    found->second.param->getValue(choice_i);
-    
+    // Get the selected option
     string selectedOptionID;
-    if ( (0 <= choice_i) && ( choice_i < found->second.param->getNOptions() ) ) {
-        found->second.param->getOptionName(choice_i, selectedOptionID);
+    {
+        int choice_i;
+        found->second.param->getValue(choice_i);
+
+        if ( (0 <= choice_i) && ( choice_i < found->second.param->getNOptions() ) ) {
+            found->second.param->getOptionName(choice_i, selectedOptionID);
+        } else {
+            return eGetPlaneNeededRetCodeFailed;
+        }
+        if ( selectedOptionID.empty() ) {
+            return eGetPlaneNeededRetCodeFailed;
+        }
+
+    }
+
+
+    // If the choice is split by channels, check for hard coded options
+    if (found->second.splitPlanesIntoChannels) {
+        MultiPlaneEffect::GetPlaneNeededRetCodeEnum retCode;
+        if (findBuiltInSelectedChannel(selectedOptionID, found->second, &retCode, clip, plane, channelIndexInPlane)) {
+            return retCode;
+        }
     } else {
-        return eGetPlaneNeededRetCodeFailed;
+        if (found->second.addNoneOption && selectedOptionID == kMultiPlanePlaneParamOptionNone) {
+            *plane = ImagePlaneDesc::getNoneComponents();
+            return  MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedPlane;
+        }
+    } // found->second.splitPlanesIntoChannels
+
+
+    // This is not a hard-coded option, check for dynamic planes
+    // The option must have a clip name prepended if there are multiple clips, find the clip
+    std::string optionWithoutClipPrefix;
+    if (found->second.clips.size() == 1) {
+        *clip = found->second.clips[0];
+        optionWithoutClipPrefix = selectedOptionID;
+    } else {
+        for (std::size_t c = 0; c < found->second.clipsName.size(); ++c) {
+            const std::string& clipName = found->second.clipsName[c];
+            if (selectedOptionID.substr(0, clipName.size()) == clipName) {
+                *clip = found->second.clips[c];
+                optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
+                break;
+            }
+        }
     }
 
-    if ( selectedOptionID.empty() ) {
-        return eGetPlaneNeededRetCodeFailed;
+    if (!*clip) {
+        // We did not find the corresponding clip.
+        return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
+    }
+    std::map<Clip*, std::list<ImagePlaneDesc> >::iterator foundPlanesPresentForClip = _imp->perClipPlanesAvailable.find(*clip);
+    if (foundPlanesPresentForClip == _imp->perClipPlanesAvailable.end()) {
+        // No components available for this clip...
+        return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
     }
 
-    if (selectedOptionID == kMultiPlaneChannelParamOption0) {
-        return eGetPlaneNeededRetCodeReturnedConstant0;
-    }
-
-    if (selectedOptionID == kMultiPlaneChannelParamOption1) {
-        return eGetPlaneNeededRetCodeReturnedConstant1;
-    }
-
-    if (selectedOptionID == kMultiPlanePlaneParamOptionNone) {
-        *plane = ImagePlaneDesc::getNoneComponents();
-        return eGetPlaneNeededRetCodeReturnedPlane;
-    }
-
-    // Find in the clip available components a matching optionID
-    map<Clip*, vector<string> > perClipAvailablePlanes;
-
-    std::vector<ImagePlaneDesc> planes;
-    getPlanesAvailableForParam(&found->second, &planes, &perClipAvailablePlanes);
-
-    for (std::size_t i = 0; i < planes.size(); ++i) {
-
+    for (std::list<ImagePlaneDesc>::const_iterator it = foundPlanesPresentForClip->second.begin(); it != foundPlanesPresentForClip->second.end(); ++it) {
         if (found->second.splitPlanesIntoChannels) {
             // User wants per-channel options
-            int nChannels = planes[i].getNumComponents();
+            int nChannels = it->getNumComponents();
             for (int k = 0; k < nChannels; ++k) {
                 std::string optionID, optionLabel;
-                planes[i].getChannelOption(k, &optionID, &optionLabel);
-                if (selectedOptionID == optionID) {
-                    *plane = planes[i];
+                it->getChannelOption(k, &optionID, &optionLabel);
+                if (optionWithoutClipPrefix == optionID) {
+                    *plane = *it;
                     *channelIndexInPlane = k;
                     return eGetPlaneNeededRetCodeReturnedChannelInPlane;
                 }
@@ -935,14 +1110,17 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
         } else {
             // User wants planes in options
             std::string optionID, optionLabel;
-            planes[i].getPlaneOption(&optionID, &optionLabel);
-            if (selectedOptionID == optionID) {
-                *plane = planes[i];
+            it->getPlaneOption(&optionID, &optionLabel);
+            if (optionWithoutClipPrefix == optionID) {
+                *plane = *it;
                 return eGetPlaneNeededRetCodeReturnedPlane;
             }
         }
 
-    } //for each plane
+
+    } // for each plane available on this clip
+
+
     return eGetPlaneNeededRetCodeFailed;
 } // MultiPlaneEffect::getPlaneNeededForParam
 

@@ -466,11 +466,10 @@ public:
                                              int* channelIndexInPlane);
 
     /**
-     * @brief Rebuild the given choice parameter depending on the clips planes present.
+     * @brief Rebuild all choice parameters depending on the clips planes present.
      * This function is supposed to be called in the clipChanged action on the output clip.
-     * If paramName is empty, all channel menus will be refreshed.
      **/
-    void buildChannelMenus(const std::string& paramName = std::string());
+    void buildChannelMenus();
 
 
     enum ChangedParamRetCode
