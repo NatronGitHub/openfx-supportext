@@ -38,10 +38,10 @@ using std::vector;
 using std::string;
 using std::map;
 
-static bool gHostRequiresStringParamForDynamicChoice = false;
 static bool gHostSupportsMultiPlaneV1 = false;
 static bool gHostSupportsMultiPlaneV2 = false;
 static bool gHostSupportsDynamicChoices = false;
+static bool gHostIsNatron3OrGreater = false;
 
 static const char* rgbaComps[4] = {"R", "G", "B", "A"};
 static const char* rgbComps[3] = {"R", "G", "B"};
@@ -609,9 +609,6 @@ struct ChoiceParamClips
     // The choice parameter containing the planes or channels.
     ChoiceParam* param;
 
-    // A string parameter used to serialize the channel choice string. Note that this is only needed for Natron 2, other hosts should not need it.
-    StringParam* stringparam;
-
     // True if the menu should contain any entry for each channel of each plane
     bool splitPlanesIntoChannels;
 
@@ -620,17 +617,20 @@ struct ChoiceParamClips
 
     bool isOutput;
 
+    bool hideIfClipDisconnected;
+
     vector<Clip*> clips;
     vector<string> clipsName;
 
     ChoiceParamClips()
     : param(0)
-    , stringparam(0)
     , splitPlanesIntoChannels(false)
     , addNoneOption(false)
     , isOutput(false)
+    , hideIfClipDisconnected(false)
     , clips()
     , clipsName()
+
     {
     }
 };
@@ -666,14 +666,21 @@ struct MultiPlaneEffectPrivate
     }
 
     /**
-     * @brief This is called inside buildChannelMenus, but needs to be called in the constructor of the plug-in (in createInstanceAction)
-     * because getClipPreferences may not be called at that time if not all mandatory inputs are connected.
+     * @brief The instanceChanged handler for the "All Planes" checkbox if the parameter was defined with
      **/
-    void setChannelsFromStringParams();
+    void handleAllPlanesCheckboxParamChanged();
 
-    void setChannelsFromStringParamInternal(ChoiceParam* param, StringParam* stringParam, const vector<string>& options);
+    /**
+     * @brief To be called in createInstance and clipChanged to refresh visibility of input channel/plane selectors.
+     **/
+    void refreshSelectorsVisibility();
 
-    MultiPlaneEffect::ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoiceInternal(const string& paramName, const ChoiceParamClips& param, InstanceChangeReason reason);
+
+    /**
+     * @brief Rebuild all choice parameters depending on the clips planes present.
+     * This function is supposed to be called in the clipChanged action on the output clip.
+     **/
+    void buildChannelMenus();
 };
 
 MultiPlaneEffect::MultiPlaneEffect(OfxImageEffectHandle handle)
@@ -691,13 +698,12 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
                                                         bool splitPlanesIntoChannelOptions,
                                                         bool canAddNoneOption,
                                                         bool isOutputPlaneChoice,
+                                                        bool hideIfClipsDisconnected,
                                                         const vector<Clip*>& dependsClips)
 {
     ChoiceParamClips& paramData = _imp->params[paramName];
 
     paramData.param = fetchChoiceParam(paramName);
-    paramData.stringparam = fetchStringParam(paramName + "Choice");
-    assert(paramData.param && paramData.stringparam);
     paramData.splitPlanesIntoChannels = splitPlanesIntoChannelOptions;
     paramData.addNoneOption = canAddNoneOption;
     paramData.clips = dependsClips;
@@ -707,6 +713,7 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
     }
 
     paramData.isOutput = isOutputPlaneChoice;
+    paramData.hideIfClipDisconnected = hideIfClipsDisconnected;
 
     if (isOutputPlaneChoice && !_imp->allPlanesCheckbox && paramExists(kMultiPlaneProcessAllPlanesParam)) {
         _imp->allPlanesCheckbox = fetchBooleanParam(kMultiPlaneProcessAllPlanesParam);
@@ -717,55 +724,12 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
         paramData.param->setIsSecretAndDisabled(allPlanesSelected);
     }
 
-    _imp->setChannelsFromStringParams();
 }
 
-void
-MultiPlaneEffectPrivate::setChannelsFromStringParams()
-{
-    if (gHostRequiresStringParamForDynamicChoice) {
-        return;
-    }
-    for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
-        vector<string> options;
-        it->second.param->getOptions(&options);
-        setChannelsFromStringParamInternal(it->second.param, it->second.stringparam, options);
-    }
-}
+
 
 void
-MultiPlaneEffectPrivate::setChannelsFromStringParamInternal(ChoiceParam* param,
-                                                            StringParam* stringParam,
-                                                            const vector<string>& options)
-{
-    string valueStr;
-
-    stringParam->getValue(valueStr);
-
-    if ( valueStr.empty() ) {
-        int cur_i;
-        param->getValue(cur_i);
-        if ( ( cur_i >= 0) && ( cur_i < (int)options.size() ) ) {
-            valueStr = options[cur_i];
-        }
-        param->getOption(cur_i, valueStr);
-        stringParam->setValue(valueStr);
-    } else {
-        int foundOption = -1;
-        for (int i = 0; i < (int)options.size(); ++i) {
-            if (options[i] == valueStr) {
-                foundOption = i;
-                break;
-            }
-        }
-        if (foundOption != -1) {
-            param->setValue(foundOption);
-        }
-    }
-}
-
-void
-MultiPlaneEffect::buildChannelMenus()
+MultiPlaneEffectPrivate::buildChannelMenus()
 {
     // This code requires dynamic choice parameters support.
     if (!gHostSupportsDynamicChoices) {
@@ -773,10 +737,10 @@ MultiPlaneEffect::buildChannelMenus()
     }
 
     // Clear the clip planes available cache
-    _imp->perClipPlanesAvailable.clear();
+    perClipPlanesAvailable.clear();
 
     // For each parameter to refresh
-    for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+    for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
 
         vector<string> optionIDs, optionLabels, optionHints;
 
@@ -802,12 +766,12 @@ MultiPlaneEffect::buildChannelMenus()
             // Did we fetch the clip available planes already ? This speeds it up in the case where we have multiple choice parameters
             // accessing the same clip.
             std::list<ImagePlaneDesc>* availableClipPlanes = 0;
-            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = _imp->perClipPlanesAvailable.find(clip);
-            if (foundClip != _imp->perClipPlanesAvailable.end()) {
+            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clip);
+            if (foundClip != perClipPlanesAvailable.end()) {
                 availableClipPlanes = &foundClip->second;
             } else {
 
-                availableClipPlanes = &(_imp->perClipPlanesAvailable)[clip];
+                availableClipPlanes = &(perClipPlanesAvailable)[clip];
 
                 // Fetch planes presents from the clip and map them to ImagePlaneDesc
                 vector<string> clipPlaneStrings;
@@ -872,66 +836,65 @@ MultiPlaneEffect::buildChannelMenus()
     } // for all choice parameters
 } // buildChannelMenus
 
-
-MultiPlaneEffect::ChangedParamRetCode
-MultiPlaneEffectPrivate::checkIfChangedParamCalledOnDynamicChoiceInternal(const string& paramName,
-                                                                          const ChoiceParamClips& param,
-                                                                          InstanceChangeReason reason)
+void
+MultiPlaneEffectPrivate::handleAllPlanesCheckboxParamChanged()
 {
+    bool allPlanesSelected = allPlanesCheckbox->getValue();
+    for (map<string, ChoiceParamClips>::const_iterator it = params.begin(); it != params.end(); ++it) {
+        it->second.param->setIsSecretAndDisabled(allPlanesSelected);
+    }
+}
 
-    if ( param.param && ( paramName == param.param->getName() ) && (reason == eChangeUserEdit) ) {
-        // The choice parameter changed
-        int choice_i;
-        param.param->getValue(choice_i);
-        string optionName;
-        param.param->getOption(choice_i, optionName);
-        param.stringparam->setValue(optionName);
-
-        return MultiPlaneEffect::eChangedParamRetCodeChoiceParamChanged;
-    } else if ( param.stringparam && paramName == param.stringparam->getName() ) {
-        // The string parameter changed
-        vector<string> options;
-        param.param->getOptions(&options);
-        setChannelsFromStringParamInternal(param.param, param.stringparam, options);
-
-        return MultiPlaneEffect::eChangedParamRetCodeStringParamChanged;
-    } else if ( allPlanesCheckbox && paramName == allPlanesCheckbox->getName() ) {
-        bool allPlanesSelected = allPlanesCheckbox->getValue();
-        for (map<string, ChoiceParamClips>::const_iterator it = params.begin(); it != params.end(); ++it) {
-            it->second.param->setIsSecretAndDisabled(allPlanesSelected);
+void
+MultiPlaneEffectPrivate::refreshSelectorsVisibility()
+{
+    for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
+        if ( it->second.isOutput || !it->second.hideIfClipDisconnected) {
+            continue;
         }
-        return MultiPlaneEffect::eChangedParamRetCodeAllPlanesParamChanged;
-    }
-    return MultiPlaneEffect::eChangedParamRetCodeNoChange;
-}
-
-MultiPlaneEffect::ChangedParamRetCode
-MultiPlaneEffect::checkIfChangedParamCalledOnDynamicChoice(const string& paramName,
-                                                           const string& paramToCheck,
-                                                           InstanceChangeReason reason)
-{
-    map<string, ChoiceParamClips>::iterator found = _imp->params.find(paramToCheck);
-
-    if ( found == _imp->params.end() ) {
-        return eChangedParamRetCodeNoChange;
-    }
-
-    return _imp->checkIfChangedParamCalledOnDynamicChoiceInternal(paramName, found->second, reason);
-}
-
-bool
-MultiPlaneEffect::handleChangedParamForAllDynamicChoices(const string& paramName,
-                                                         InstanceChangeReason reason)
-{
-    for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
-        if ( _imp->checkIfChangedParamCalledOnDynamicChoiceInternal(paramName, it->second, reason) ) {
-            return true;
+        bool hasClipVisible = false;
+        for (std::size_t i = 0; i < it->second.clips.size(); ++i) {
+            if (it->second.clips[i]->isConnected()) {
+                hasClipVisible = true;
+                break;
+            }
         }
+        it->second.param->setIsSecretAndDisabled(!hasClipVisible);
     }
-
-    return false;
 }
 
+void
+MultiPlaneEffect::onAllParametersFetched()
+{
+    _imp->refreshSelectorsVisibility();
+}
+
+void
+MultiPlaneEffect::changedParam(const InstanceChangedArgs & /*args*/, const std::string &paramName)
+{
+    if (_imp->allPlanesCheckbox && paramName == _imp->allPlanesCheckbox->getName()) {
+        _imp->handleAllPlanesCheckboxParamChanged();
+    }
+}
+
+void
+MultiPlaneEffect::changedClip(const InstanceChangedArgs & /*args*/, const std::string &clipName)
+{
+    _imp->refreshSelectorsVisibility();
+
+    if (gHostIsNatron3OrGreater && clipName == kOfxImageEffectOutputClipName) {
+        _imp->buildChannelMenus();
+    }
+}
+
+void
+MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &/*clipPreferences*/)
+{
+    // Refresh the channel menus on Natron < 3, otherwise this is done in clipChanged in Natron >= 3
+    if (!gHostIsNatron3OrGreater) {
+        _imp->buildChannelMenus();
+    }
+}
 
 static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
                                            const ChoiceParamClips& param,
@@ -1131,9 +1094,10 @@ static void refreshHostFlags()
     if (getImageEffectHostDescription()->supportsDynamicChoices) {
         gHostSupportsDynamicChoices = true;
     }
-    if (getImageEffectHostDescription()->isNatron && getImageEffectHostDescription()->versionMajor < 3) {
-        gHostRequiresStringParamForDynamicChoice = true;
+    if (getImageEffectHostDescription()->isNatron && getImageEffectHostDescription()->versionMajor >= 3) {
+        gHostIsNatron3OrGreater = true;
     }
+
 #endif
 #ifdef OFX_EXTENSIONS_NUKE
     if (fetchSuite(kFnOfxImageEffectPlaneSuite, 1)) {
@@ -1188,10 +1152,6 @@ describeInContextAddPlaneChoice(ImageEffectDescriptor &desc,
             }
 
         }
-        if (gHostRequiresStringParamForDynamicChoice) {
-            param->setEvaluateOnChange(false);
-            param->setIsPersistent(true);
-        }
         param->setDefault(0);
         param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);             // < the menu is built in getClipPreferences
@@ -1199,15 +1159,6 @@ describeInContextAddPlaneChoice(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
         ret = param;
-    }
-    if (gHostRequiresStringParamForDynamicChoice) {
-        //Add a hidden string param that will remember the value of the choice
-        StringParamDescriptor* param = desc.defineStringParam(name + "Choice");
-        param->setLabel(label + "Choice");
-        param->setIsSecretAndDisabled(true);
-        if (page) {
-            page->addChild(*param);
-        }
     }
 
     return ret;
@@ -1252,24 +1203,11 @@ describeInContextAddPlaneChannelChoice(ImageEffectDescriptor &desc,
         param->setHint(hint);
         param->setAnimates(false);
         addInputChannelOptionsRGBA(param, clips, true /*addContants*/, gHostSupportsMultiPlaneV2 /*onlyColorPlane*/);
-        if (gHostRequiresStringParamForDynamicChoice) {
-            param->setEvaluateOnChange(false);
-            param->setIsPersistent(false);
-        }
+
         if (page) {
             page->addChild(*param);
         }
         ret = param;
-    }
-    if (gHostRequiresStringParamForDynamicChoice && gHostSupportsDynamicChoices && gHostSupportsMultiPlaneV2) {
-        string strName = name + "Choice";
-        //Add a hidden string param that will remember the value of the choice
-        StringParamDescriptor* param = desc.defineStringParam(strName);
-        param->setLabel(label + "Choice");
-        param->setIsSecretAndDisabled(true);
-        if (page) {
-            page->addChild(*param);
-        }
     }
 
     return ret;

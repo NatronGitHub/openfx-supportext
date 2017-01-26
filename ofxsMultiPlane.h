@@ -416,6 +416,7 @@ public:
                                                bool splitPlanesIntoChannelOptions,
                                                bool canAddNoneOption,
                                                bool isOutputPlaneChoice,
+                                               bool hideIfClipDisconnected,
                                                const std::vector<OFX::Clip*>& dependsClips);
 
     /**
@@ -425,13 +426,19 @@ public:
                                                bool splitPlanesIntoChannelOptions,
                                                bool canAddNoneOption,
                                                bool isOutputPlaneChoice,
+                                               bool hideIfClipDisconnected,
                                                OFX::Clip* dependsClip)
     {
         std::vector<OFX::Clip*> vec(1);
 
         vec[0] = dependsClip;
-        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, isOutputPlaneChoice, vec);
+        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, isOutputPlaneChoice, hideIfClipDisconnected, vec);
     }
+
+    /**
+     * @brief Should be called by the implementation to refresh the visibility of parameters once they have all been fetched.
+     **/
+    void onAllParametersFetched();
 
     enum GetPlaneNeededRetCodeEnum
     {
@@ -465,34 +472,23 @@ public:
                                              ImagePlaneDesc* plane,
                                              int* channelIndexInPlane);
 
-    /**
-     * @brief Rebuild all choice parameters depending on the clips planes present.
-     * This function is supposed to be called in the clipChanged action on the output clip.
-     **/
-    void buildChannelMenus();
-
-
-    enum ChangedParamRetCode
-    {
-        eChangedParamRetCodeNoChange,
-        eChangedParamRetCodeChoiceParamChanged,
-        eChangedParamRetCodeStringParamChanged,
-        eChangedParamRetCodeAllPlanesParamChanged
-    };
 
     /**
-     * @brief To be called in the changedParam action for each dynamic choice holding channels/layers info. This will synchronize the hidden string
-     * parameter to reflect the value of the choice parameter (only if the reason is a user change).
-     * @return Returns true if the param change was caught, false otherwise
+     * @brief Must be called by derived class before anything else: it refreshes the channel menus.
      **/
-    ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, const std::string& paramToCheck, OFX::InstanceChangeReason reason);
+    virtual void getClipPreferences(ClipPreferencesSetter &clipPreferences) OVERRIDE;
 
     /**
-     * @brief Calls checkIfChangedParamCalledOnDynamicChoice for all choice parameters declared. This function is just here for convenience, this is the same as calling
-     * checkIfChangedParamCalledOnDynamicChoice for all parameters successively.
-     * @returns True if a param change was caught, false otherwise.
+     * @brief Overriden to handle parameter changes. Derived class must call this class implementation.
      **/
-    bool handleChangedParamForAllDynamicChoices(const std::string& paramName, OFX::InstanceChangeReason reason);
+    virtual void changedParam(const InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
+
+    /**
+     * @brief Overriden to handle clip changes. Derived class must call this class implementation.
+     **/
+    virtual void changedClip(const InstanceChangedArgs &args, const std::string &clipName) OVERRIDE;
+
+    
 };
 
 namespace Factory {
