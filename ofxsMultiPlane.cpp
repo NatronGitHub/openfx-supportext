@@ -731,13 +731,34 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
 void
 MultiPlaneEffectPrivate::buildChannelMenus()
 {
-    // This code requires dynamic choice parameters support.
-    if (!gHostSupportsDynamicChoices) {
-        return;
-    }
 
     // Clear the clip planes available cache
     perClipPlanesAvailable.clear();
+
+
+
+    // If no dynamic choices support, only add built-in planes.
+    if (!gHostSupportsDynamicChoices) {
+        vector<const MultiPlane::ImagePlaneDesc*> planesToAdd;
+        getHardCodedPlanes(!gHostSupportsMultiPlaneV1, &planesToAdd);
+
+        for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
+            for (std::size_t c = 0; c < it->second.clips.size(); ++c) {
+                map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(it->second.clips[c]);
+                if (foundClip != perClipPlanesAvailable.end()) {
+                    continue;
+                } else {
+                    std::list<ImagePlaneDesc>& clipPlanes = perClipPlanesAvailable[it->second.clips[c]];
+                    for (vector<const MultiPlane::ImagePlaneDesc*>::const_iterator it2 = planesToAdd.begin(); it2 != planesToAdd.end(); ++it2) {
+                        clipPlanes.push_back(**it2);
+                    }
+                }
+            }
+        }
+        return;
+    }
+    
+    // This code requires dynamic choice parameters support.
 
     // For each parameter to refresh
     for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
@@ -897,11 +918,12 @@ MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &/*clipPreferences*/)
 }
 
 static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
-                                           const ChoiceParamClips& param,
-                                           MultiPlaneEffect::GetPlaneNeededRetCodeEnum* retCode,
-                                           OFX::Clip** clip,
-                                           ImagePlaneDesc* plane,
-                                           int* channelIndexInPlane)
+                                       bool compareWithID,
+                                       const ChoiceParamClips& param,
+                                       MultiPlaneEffect::GetPlaneNeededRetCodeEnum* retCode,
+                                       OFX::Clip** clip,
+                                       ImagePlaneDesc* plane,
+                                       int* channelIndexInPlane)
 {
     if (selectedOptionID == kMultiPlaneChannelParamOption0) {
         *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0;
@@ -956,7 +978,11 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
             if (planesToAdd[p] == &MultiPlane::ImagePlaneDesc::getRGBAComponents()) {
                 channelOptionID = planeChannels[c];
             } else {
-                channelOptionID = planesToAdd[p]->getPlaneLabel() + '.' + planeChannels[c];
+                if (compareWithID) {
+                    channelOptionID = planesToAdd[p]->getPlaneID() + '.' + planeChannels[c];
+                } else {
+                    channelOptionID = planesToAdd[p]->getPlaneLabel() + '.' + planeChannels[c];
+                }
             }
             if (channelOptionID == optionWithoutClipPrefix) {
                 *plane = *planesToAdd[p];
@@ -1000,12 +1026,23 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
 
     // Get the selected option
     string selectedOptionID;
+
+    // By default compare option IDs, except if the host does not support it.
+    bool compareWithID = true;
     {
         int choice_i;
         found->second.param->getValue(choice_i);
 
         if ( (0 <= choice_i) && ( choice_i < found->second.param->getNOptions() ) ) {
+#ifdef OFX_EXTENSIONS_NATRON
             found->second.param->getOptionName(choice_i, selectedOptionID);
+            if (selectedOptionID.empty()) {
+#endif
+                found->second.param->getOption(choice_i, selectedOptionID);
+                compareWithID = false;
+#ifdef OFX_EXTENSIONS_NATRON
+            }
+#endif
         } else {
             return eGetPlaneNeededRetCodeFailed;
         }
@@ -1019,7 +1056,7 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
     // If the choice is split by channels, check for hard coded options
     if (found->second.splitPlanesIntoChannels) {
         MultiPlaneEffect::GetPlaneNeededRetCodeEnum retCode;
-        if (findBuiltInSelectedChannel(selectedOptionID, found->second, &retCode, clip, plane, channelIndexInPlane)) {
+        if (findBuiltInSelectedChannel(selectedOptionID, compareWithID, found->second, &retCode, clip, plane, channelIndexInPlane)) {
             return retCode;
         }
     } else {
@@ -1064,7 +1101,14 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
             for (int k = 0; k < nChannels; ++k) {
                 std::string optionID, optionLabel;
                 it->getChannelOption(k, &optionID, &optionLabel);
-                if (optionWithoutClipPrefix == optionID) {
+
+                bool foundPlane;
+                if (compareWithID) {
+                    foundPlane = optionWithoutClipPrefix == optionID;
+                } else {
+                    foundPlane = optionWithoutClipPrefix == optionLabel;
+                }
+                if (foundPlane) {
                     *plane = *it;
                     *channelIndexInPlane = k;
                     return eGetPlaneNeededRetCodeReturnedChannelInPlane;
@@ -1074,7 +1118,13 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
             // User wants planes in options
             std::string optionID, optionLabel;
             it->getPlaneOption(&optionID, &optionLabel);
-            if (optionWithoutClipPrefix == optionID) {
+            bool foundPlane;
+            if (compareWithID) {
+                foundPlane = optionWithoutClipPrefix == optionID;
+            } else {
+                foundPlane = optionWithoutClipPrefix == optionLabel;
+            }
+            if (foundPlane) {
                 *plane = *it;
                 return eGetPlaneNeededRetCodeReturnedPlane;
             }
@@ -1090,6 +1140,11 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
 
 static void refreshHostFlags()
 {
+    gHostSupportsDynamicChoices = false;
+    gHostIsNatron3OrGreater = false;
+    gHostSupportsMultiPlaneV1 = false;
+    gHostSupportsMultiPlaneV2 = false;
+
 #ifdef OFX_EXTENSIONS_NATRON
     if (getImageEffectHostDescription()->supportsDynamicChoices) {
         gHostSupportsDynamicChoices = true;
@@ -1100,10 +1155,10 @@ static void refreshHostFlags()
 
 #endif
 #ifdef OFX_EXTENSIONS_NUKE
-    if (fetchSuite(kFnOfxImageEffectPlaneSuite, 1)) {
+    if (getImageEffectHostDescription()->isMultiPlanar && fetchSuite(kFnOfxImageEffectPlaneSuite, 1)) {
         gHostSupportsMultiPlaneV1 = true;
     }
-    if (fetchSuite(kFnOfxImageEffectPlaneSuite, 2)) {
+    if (getImageEffectHostDescription()->isMultiPlanar && gHostSupportsDynamicChoices && fetchSuite(kFnOfxImageEffectPlaneSuite, 2)) {
         gHostSupportsMultiPlaneV2 = true;
     }
 #endif
