@@ -43,355 +43,28 @@
 #include "ofxNatron.h"
 #endif
 
+#define kPlaneLabelAll "All"
+#define kPlaneLabelColorAlpha "Color.Alpha"
+#define kPlaneLabelColorRGB "Color.RGB"
+#define kPlaneLabelColorRGBA "Color.RGBA"
+#define kPlaneLabelMotionBackwardPlaneName "Backward.Motion"
+#define kPlaneLabelMotionForwardPlaneName "Forward.Motion"
+#define kPlaneLabelDisparityLeftPlaneName "DisparityLeft.Disparity"
+#define kPlaneLabelDisparityRightPlaneName "DisparityRight.Disparity"
 
-#define kOfxMultiplaneColorPlaneID kFnOfxImagePlaneColour
-#define kOfxMultiplaneColorPlaneLabel "Color"
+#define kMultiPlaneParamOutputChannels kNatronOfxParamOutputChannels
+#define kMultiPlaneParamOutputChannelsChoice kMultiPlaneParamOutputChannels "Choice"
+#define kMultiPlaneParamOutputChannelsRefreshButton kMultiPlaneParamOutputChannels "RefreshButton"
+#define kMultiPlaneParamOutputChannelsLabel "Output Layer"
+#define kMultiPlaneParamOutputChannelsHint "The layer that will be written to in output"
 
-#define kOfxMultiplaneBackwardMotionVectorsPlaneID kFnOfxImagePlaneBackwardMotionVector
-#define kOfxMultiplaneBackwardMotionVectorsPlaneLabel "Backward"
+#define kMultiPlaneParamOutputOption0 "0"
+#define kMultiPlaneParamOutputOption0Hint "0 constant channel"
+#define kMultiPlaneParamOutputOption1 "1"
+#define kMultiPlaneParamOutputOption1Hint "1 constant channel"
 
-#define kOfxMultiplaneForwardMotionVectorsPlaneID kFnOfxImagePlaneForwardMotionVector
-#define kOfxMultiplaneForwardMotionVectorsPlaneLabel "Forward"
-
-#define kOfxMultiplaneDisparityLeftPlaneID kFnOfxImagePlaneStereoDisparityLeft
-#define kOfxMultiplaneDisparityLeftPlaneLabel "DisparityLeft"
-
-#define kOfxMultiplaneDisparityRightPlaneID kFnOfxImagePlaneStereoDisparityRight
-#define kOfxMultiplaneDisparityRightPlaneLabel "DisparityRight"
-
-#define kOfxMultiplaneDisparityComponentsLabel "Disparity"
-#define kOfxMultiplaneMotionComponentsLabel "Motion"
-
-
-#define kMultiPlaneChannelParamOption0 "0"
-#define kMultiPlaneChannelParamOption0Hint "0 constant channel"
-#define kMultiPlaneChannelParamOption1 "1"
-#define kMultiPlaneChannelParamOption1Hint "1 constant channel"
-
-#define kMultiPlanePlaneParamOptionNone "none"
-#define kMultiPlanePlaneParamOptionNoneLabel "None"
-
-#define kMultiPlaneProcessAllPlanesParam "processAllPlanes"
-#define kMultiPlaneProcessAllPlanesParamLabel "All Planes"
-#define kMultiPlaneProcessAllPlanesParamHint "When checked all planes in input will be processed and output to the same plane as in input. It is useful for example to apply a Transform effect on all planes."
-
-
-
-/*
- A Multi-planar effect is a plane that can process arbitrary (other than color) image planes.
- The planes described further can be seen as a layer in the OpenEXR specification.
- 
- A plane consists of an arbitrary number of channels, ranging from 1 to 4 (included) and is 
- labeled with a unique name and a label
- For example...
-    The Color.RGBA plane, corresponds to the Color plane with 4 channels: RGBA
-    
- This extension also allow to alias the channel names in a more meaningful way, 
- For example...
- 
-    The DisparityLeft.Disparity plane corresponds to the DisparityLeft plane with
-    channels of type "Disparity", being 2 channels: XY.
- 
- The generic way of describing a layer is done as such:
- 
-
- kNatronOfxImageComponentsPlaneName +
- planeName +
- <optional> kNatronOfxImageComponentsPlaneLabel + planeLabel +
- <optional> kNatronOfxImageComponentsPlaneChannelsLabel + channelsLabel +
- kNatronOfxImageComponentsPlaneChannel + channel1Name +
- kNatronOfxImageComponentsPlaneChannel + channel2Name +
- kNatronOfxImageComponentsPlaneChannel + channel3Name
-
- Examples:
-
- kNatronOfxImageComponentsPlaneName + "fr.unique.id.position" + kNatronOfxImageComponentsPlaneLabel + "Position" + kNatronOfxImageComponentsPlaneChannel + "X" + kNatronOfxImageComponentsPlaneChannel + "Y" + kNatronOfxImageComponentsPlaneChannel + "Z"
-
-
- kNatronOfxImageComponentsPlaneName + "DisparityLeft" + kNatronOfxImageComponentsPlaneChannelsLabel + "Disparity" + kNatronOfxImageComponentsPlaneChannel + "X" + kNatronOfxImageComponentsPlaneChannel + "Y"
-
- 
- A multi-planar effect is expected to set the kFnOfxImageEffectPropMultiPlanar property to 1 on the image effect descritpor.
- 
- A multi-planar effect is expected to support images of any number of channels: 
-
- - The planes fetched from clipGetImagePlane are returned "as is" and will not be remapped by the host to another components type
-
- - The exception is for the kFnOfxImagePlaneColour plane: the components of the plane will be remapped to those specified in the getClipPreferences action
-
- A multi-planar effect is expected to specify the planes it produces in output and the planes it needs in input via the getClipComponents action.
- 
- OpenFX only defines kOfxImageComponentRGBA, kOfxImageComponentRGB, kOfxImageComponentAlpha for default components type.
- However, an effect may still be able to process 2-channel image and be non multi-planar aware.
- To enable this, we also define kNatronOfxImageComponentXY as a components type that can be used in the getClipPreferences action and can be indicated
- on a 2-channel image.
- 
- Support for Nuke:
- ----------------
- 
- Nuke only supports the MultiPlane suite V1 and does not uses the getClipComponents action and does not support abitrary planes as defined above.
- 
- Nuke only supports the following hard-coded planes:
- 
- kFnOfxImagePlaneColour --> This plane can only have the following components types: kOfxImageComponentRGBA, kOfxImageComponentRGB, kOfxImageComponentAlpha
-
- kFnOfxImagePlaneBackwardMotionVector --> This plane has the following components type: kFnOfxImageComponentMotionVectors
- kFnOfxImagePlaneForwardMotionVector --> This plane has the following components type: kFnOfxImageComponentMotionVectors
-
- kFnOfxImagePlaneStereoDisparityLeft --> This plane has the following components type: kFnOfxImageComponentStereoDisparity
- kFnOfxImagePlaneStereoDisparityRight --> This plane has the following components type: kFnOfxImageComponentStereoDisparity
-
- Flagging kFnOfxImageEffectPropMultiPlanar=1 in Nuke only means that besides the regular clipGetImage call to get the color plane,
- you can fetch the motion vectors (BW/FW) and disparity planes (Left, Right) with the clipGetImagePlane call.
- 
- To indicate which plane you want on a clip, you do so from the getClipPreferences action by indicating the components TYPE,
- that is kFnOfxImageComponentMotionVectors, kFnOfxImageComponentStereoDisparity or kOfxImageComponentRGBA, kOfxImageComponentRGB, kOfxImageComponentAlpha
-
- If a clip is set to the kFnOfxImageComponentMotionVectors components type, the host expects the plug-in to call clipGetImagePlane on both the
- kFnOfxImagePlaneBackwardMotionVector plane and the kFnOfxImagePlaneForwardMotionVector plane.
- These planes are "paired": a plug-in that renders kFnOfxImageComponentMotionVectors is expected to render both planes at once.
- 
- Similarly, if the clip components are set to kFnOfxImageComponentStereoDisparity, the host expects that the plug-in calls clipGetImagePlane on both
- the kFnOfxImagePlaneStereoDisparityLeft and kFnOfxImagePlaneStereoDisparityRight planes.
- 
- 
- Planes vs. components:
- ----------------------
- 
- Planes and components are different things. A plane is a unique image label of a certain components type. 
- The components define how many channels are present in an image plane.
- 
- With the Natron extension, planes encoded directly their components type along them. This is not the case with the
- Nuke multi-plane suite V1 where components types and planes are hard-coded.
- 
- To sum-up:
- 
- - Planes defined in the Natron extension form indicate directly their components type, in the form
-
- kNatronOfxImageComponentsPlaneName + planeName +
- <optional> kNatronOfxImageComponentsPlaneLabel + planeLabel +
- <optional> kNatronOfxImageComponentsPlaneChannelsLabel + channelsLabel +
- kNatronOfxImageComponentsPlaneChannel + channel1Name +
- kNatronOfxImageComponentsPlaneChannel + channel2Name +
- kNatronOfxImageComponentsPlaneChannel + channel3Name
-
-- Planes defined in the Nuke multi-plane suite have hard-coded components type (see Support for Nuke above)
-
-- The getClipComponents action must return a list of string corresponding to planes and not components type.
-
- MultiPlaneEffect:
- ----------------
- 
- To support abitrary planes, this suite needs to deal with dynamic choice parameter menus. This is known not to be supported in Nuke.
-
- The MultiPlaneEffect class below is mainly a helper class inheriting ImageEffect to conveniently create and manage choice parameters
- that allow the user to select planes or a specific channel in a plane.
- 
- The host notifies that the planes have changed for a plug-in by calling the instanceChanged action on the output clip.
- 
- This is where the buildChannelMenus() function should be called to refresh choice parameters menus.
- 
- Note that this class also supports multi-planar effects in the sense of the the Nuke multi-plane suite (i.e: only motion vectors and disparity planes)
- 
- Note that the derived plug-in still needs to set the kFnOfxImageEffectPropMultiPlanar property to 1, otherwise this class will not do much.
-
- */
 namespace OFX {
 namespace MultiPlane {
-
-
-/**
- * @brief An ImagePlaneDesc represents an image plane and its components type.
- * The plane is uniquely identified by its planeID, it is used internally to compare planes.
- * The plane label is used for any UI related display: this is what the user sees.
- * If empty, the plane label is the same as the planeID.
- * The channels label is an optional string indicating in a more convenient way the types
- * of components expressed by the channels e.g: Instead of having "XY" for motion vectors,
- * they could be labeled with "Motion".
- * If empty, the channels label is set to the concatenation of all channels.
- * The channels are the unique identifier for each channel composing the plane.
- * The plane can only be composed from 1 to 4 (included) channels.
-    **/
-class ImagePlaneDesc
-{
-    public:
-
-
-    ImagePlaneDesc();
-
-    ImagePlaneDesc(const std::string& planeID,
-                   const std::string& planeLabel,
-                   const std::string& channelsLabel,
-                   const std::vector<std::string>& channels);
-
-    ImagePlaneDesc(const std::string& planeID,
-                   const std::string& planeLabel,
-                   const std::string& channelsLabel,
-                   const char** channels,
-                   int count);
-
-
-    ImagePlaneDesc(const ImagePlaneDesc& other);
-
-    ImagePlaneDesc& operator=(const ImagePlaneDesc& other);
-
-    ~ImagePlaneDesc();
-
-    // Is it Alpha, RGB or RGBA
-    bool isColorPlane() const;
-
-    static bool isColorPlane(const std::string& layerID);
-
-    /**
-     * @brief Returns the number of channels in this plane.
-     **/
-    int getNumComponents() const;
-
-    /**
-     * @brief Returns the plane unique identifier. This should be used to compare ImagePlaneDesc together.
-     * This is not supposed to be used for display purpose, use getPlaneLabel() instead.
-     **/
-    const std::string& getPlaneID() const;
-
-    /**
-     * @brief Returns the plane label.
-     * This is what is used to display to the user.
-     **/
-    const std::string& getPlaneLabel() const;
-
-    /**
-     * @brief Returns the channels composing this plane.
-     **/
-    const std::vector<std::string>& getChannels() const;
-
-    /**
-     * @brief Returns a label used to better represent the type of components used by this plane.
-     * e.g: "Motion" can be used to better label "XY" component types.
-     **/
-    const std::string& getChannelsLabel() const;
-
-
-    bool operator==(const ImagePlaneDesc& other) const;
-
-    bool operator!=(const ImagePlaneDesc& other) const
-    {
-        return !(*this == other);
-    }
-
-    // For std::map
-    bool operator<(const ImagePlaneDesc& other) const;
-
-    operator bool() const
-    {
-        return getNumComponents() > 0;
-    }
-
-    bool operator!() const
-    {
-        return getNumComponents() == 0;
-    }
-
-
-    void getPlaneOption(std::string* optionID, std::string* optionLabel) const;
-    void getChannelOption(int channelIndex, std::string* optionID, std::string* optionLabel) const;
-
-    /**
-     * @brief Maps the given nComps to the color plane
-     **/
-    static const ImagePlaneDesc& mapNCompsToColorPlane(int nComps);
-
-    /**
-     * @brief Maps the given OpenFX plane to a ImagePlaneDesc.
-     * @param ofxPlane Can be
-
-     *  kFnOfxImagePlaneBackwardMotionVector
-     *  kFnOfxImagePlaneForwardMotionVector
-     *  kFnOfxImagePlaneStereoDisparityLeft
-     *  kFnOfxImagePlaneStereoDisparityRight
-     *  Or any plane encoded in the format specified by the Natron multi-plane extension.
-     * This function CANNOT be used to map the color plane, instead use mapNCompsToColorPlane.
-     *
-     * This function returns an empty plane desc upon failure.
-     **/
-    static ImagePlaneDesc mapOFXPlaneStringToPlane(const std::string& ofxPlane);
-
-    /**
-     * @brief Maps OpenFX components string to a plane, optionnally also to a paired plane in the case of disparity/motion vectors.
-     * @param ofxComponents Must be a string between
-     * kOfxImageComponentRGBA, kOfxImageComponentRGB, kOfxImageComponentAlpha, kNatronOfxImageComponentXY, kOfxImageComponentNone
-     * or kFnOfxImageComponentStereoDisparity or kFnOfxImageComponentMotionVectors
-     * Or any plane encoded in the format specified by the Natron multi-plane extension.
-     **/
-    static void mapOFXComponentsTypeStringToPlanes(const std::string& ofxComponents, ImagePlaneDesc* plane, ImagePlaneDesc* pairedPlane);
-
-    /**
-     * @brief Does the inverse of mapOFXPlaneStringToPlane, except that it can also be used for
-     * the color plane.
-     **/
-    static std::string mapPlaneToOFXPlaneString(const ImagePlaneDesc& plane);
-
-    /**
-     * @brief Returns an OpenFX encoded string representing the components type of the plane.
-     * @returns One of the following strings:
-     * kOfxImageComponentRGBA, kOfxImageComponentRGB, kOfxImageComponentAlpha, kNatronOfxImageComponentXY, kOfxImageComponentNone
-     * or kFnOfxImageComponentStereoDisparity or kFnOfxImageComponentMotionVectors
-     * Or any plane encoded in the format specified by the Natron multi-plane extension.
-     **/
-    static std::string mapPlaneToOFXComponentsTypeString(const ImagePlaneDesc& plane);
-
-    /**
-     * @brief Find a layer equivalent to this layer in the other layers container.
-     * ITERATOR must be either a std::vector<ImagePlaneDesc>::iterator or std::list<ImagePlaneDesc>::iterator
-     **/
-    template <typename ITERATOR>
-    static ITERATOR findEquivalentLayer(const ImagePlaneDesc& layer, ITERATOR begin, ITERATOR end)
-    {
-        bool isColor = layer.isColorPlane();
-
-        ITERATOR foundExistingColorMatch = end;
-        ITERATOR foundExistingComponents = end;
-
-        for (ITERATOR it = begin; it != end; ++it) {
-            if (it->isColorPlane() && isColor) {
-                foundExistingColorMatch = it;
-            } else {
-                if (*it == layer) {
-                    foundExistingComponents = it;
-                    break;
-                }
-            }
-        } // for each output components
-
-        if (foundExistingComponents != end) {
-            return foundExistingComponents;
-        } else if (foundExistingColorMatch != end) {
-            return foundExistingColorMatch;
-        } else {
-            return end;
-        }
-    } // findEquivalentLayer
-
-    /*
-     * These are default presets image components
-     */
-    static const ImagePlaneDesc& getNoneComponents();
-    static const ImagePlaneDesc& getRGBAComponents();
-    static const ImagePlaneDesc& getRGBComponents();
-    static const ImagePlaneDesc& getAlphaComponents();
-    static const ImagePlaneDesc& getBackwardMotionComponents();
-    static const ImagePlaneDesc& getForwardMotionComponents();
-    static const ImagePlaneDesc& getDisparityLeftComponents();
-    static const ImagePlaneDesc& getDisparityRightComponents();
-    static const ImagePlaneDesc& getXYComponents();
-
-
-private:
-    std::string _planeID, _planeLabel;
-    std::vector<std::string> _channels;
-    std::string _channelsLabel;
-};
-
-
 struct MultiPlaneEffectPrivate;
 class MultiPlaneEffect
     : public OFX::ImageEffect
@@ -406,120 +79,133 @@ public:
     virtual ~MultiPlaneEffect();
 
     /**
-     * @brief Fetch a dynamic choice parameter that was declared to the factory with
-     * describeInContextAddOutputLayerChoice() or describeInContextAddChannelChoice().
-     * @param splitPlanesIntoChannelOptions If true, each option will be a channel of a plane
-     * @param dependsClips The planes available from the given clips will be used to populate the choice options.
-     * @param isOutputPlaneChoice If this
+     * @brief Fetch a dynamic choice parameter that was declared to the factory with describeInContextAddOutputLayerChoice() or describeInContextAddChannelChoice() and associates the given clips as dependencies of the layers in the menu.
      **/
-    void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
-                                               bool splitPlanesIntoChannelOptions,
-                                               bool canAddNoneOption,
-                                               bool isOutputPlaneChoice,
-                                               bool hideIfClipDisconnected,
-                                               const std::vector<OFX::Clip*>& dependsClips);
+    void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName, const std::vector<OFX::Clip*>& dependsClips);
 
     /**
      * @brief Convenience func for param depending only on a single clip
      **/
     void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
-                                               bool splitPlanesIntoChannelOptions,
-                                               bool canAddNoneOption,
-                                               bool isOutputPlaneChoice,
-                                               bool hideIfClipDisconnected,
                                                OFX::Clip* dependsClip)
     {
         std::vector<OFX::Clip*> vec(1);
 
         vec[0] = dependsClip;
-        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, isOutputPlaneChoice, hideIfClipDisconnected, vec);
+        fetchDynamicMultiplaneChoiceParameter(paramName, vec);
     }
 
     /**
-     * @brief Should be called by the implementation to refresh the visibility of parameters once they have all been fetched.
-     **/
-    void onAllParametersFetched();
-
-    enum GetPlaneNeededRetCodeEnum
-    {
-        eGetPlaneNeededRetCodeFailed,
-        eGetPlaneNeededRetCodeReturnedPlane,
-        eGetPlaneNeededRetCodeReturnedChannelInPlane,
-        eGetPlaneNeededRetCodeReturnedConstant0,
-        eGetPlaneNeededRetCodeReturnedConstant1,
-        eGetPlaneNeededRetCodeReturnedAllPlanes
-    };
-    
-    /**
-     * @brief Returns the plane and channel index selected by the user in the given dynamic choice parameter "paramName".
-     * @param plane Contains in output the plane selected by the user
+     * @brief Returns the layer and channel index selected by the user in the dynamic choice param.
+     * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
+     * @param ofxComponents Generally the same as ofxPlane except in the following cases:
+       - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector)
+       where the compoonents are in that case kFnOfxImageComponentMotionVectors.
+       - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or
+       kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
+     *
      * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
      * ofxComponents will have been set correctly to one of these values.
      *
-     * @param channelIndexInPlane Contains in output the selected channel index in the plane set to ofxPlane
+     * @param channelIndexInPlane Contains the selected channel index in the layer set to ofxPlane
+     * @param isCreatingAlpha If Selected layer is the colour plane (i.e: kPlaneLabelColorAlpha or kPlaneLabelColorRGB or kPlaneLabelColorRGBA)
+     * and if the user selected the alpha channel (e.g: RGBA.a), but the clip pixel components are RGB, then this value will be set to true.
+     **/
+
+    bool getPlaneNeededForParam(double time,
+                                const std::string& paramName,
+                                OFX::Clip** clip,
+                                std::string* ofxPlane,
+                                std::string* ofxComponents,
+                                int* channelIndexInPlane,
+                                bool* isCreatingAlpha);
+
+    /**
+     * @brief Returns the layer selected by the user in the dynamic output choice.
+     * @param canUseCachedComponents If true, the output clip components will be retrieved with getCachedComponentsPresent()
+     * @param ofxPlane Contains the plane name defined in nuke/fnOfxExtensions.h or the custom plane name defined in ofxNatron.h
+     * @param ofxComponents Generally the same as ofxPlane except in the following cases:
+       - for the motion vectors planes (e.g: kFnOfxImagePlaneBackwardMotionVector)
+       where the compoonents are in that case kFnOfxImageComponentMotionVectors.
+       - for the color plane (i.e: kFnOfxImagePlaneColour) where in that case the ofxComponents may be kOfxImageComponentAlpha or
+       kOfxImageComponentRGBA or kOfxImageComponentRGB or any other "default" ofx components supported on the clip.
      *
-     * @returns eGetPlaneNeededRetCodeFailed if this function failed.
-     * If the result is eGetPlaneNeededRetCodeReturnedConstant0 or eGetPlaneNeededRetCodeReturnedConstant1 is returned, the plug-in should use
-     * a corresponding constant (0 or 1) instead of a channel from the clip.
-     * If the result is eGetPlaneNeededRetCodeReturnedPlane, the plane in output will be set to the user selected plane.
-     * If the result is eGetPlaneNeededRetCodeReturnedChannelInPlane, the plane and the channelIndexInPlane in output will be set to the user
-     * selected channel.
-     * If the result is eGetPlaneNeededRetCodeReturnedAllPlanes, the plug-in is expected to render what is requested and should act as 
-     * plane agnostic.
+     * If ofxPlane is empty but the function returned true that is because the choice is either kMultiPlaneParamOutputOption0 or kMultiPlaneParamOutputOption1
+     * ofxComponents will have been set correctly to one of these values.
      **/
-    GetPlaneNeededRetCodeEnum getPlaneNeeded(const std::string& paramName,
-                                             OFX::Clip** clip,
-                                             ImagePlaneDesc* plane,
-                                             int* channelIndexInPlane);
+    bool getPlaneNeededInOutput(std::string* ofxPlane,
+                                std::string* ofxComponents);
 
 
     /**
-     * @brief Must be called by derived class before anything else: it refreshes the channel menus.
+     * @brief Rebuild the given choice parameter depending on the clips components present.
+     * The only way to properly refresh the dynamic choice is when getClipPreferences is called.
+     * If paramName is empty, all channel menus will be refreshed.
      **/
-    virtual void getClipPreferences(ClipPreferencesSetter &clipPreferences) OVERRIDE;
+    void buildChannelMenus(const std::string& paramName = std::string(), bool mergeEntries = true, bool addChoiceAllToOutput = false);
 
     /**
-     * @brief Overriden to handle parameter changes. Derived class must call this class implementation.
+     * @brief Returns the clip component presents that were used for this clip in the previous call to buildChannelMenus.
+     * This is only valid after a call to buildChannelMenus on a choice parameter that had this clip as dependency and
+     * during the same action.
+     * This is a faster way than to call clip->getComponentsPresent() since the data have already been computed.
      **/
-    virtual void changedParam(const InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
+    const std::vector<std::string>& getCachedComponentsPresent(OFX::Clip* clip) const;
+    enum ChangedParamRetCode
+    {
+        eChangedParamRetCodeNoChange,
+        eChangedParamRetCodeChoiceParamChanged,
+        eChangedParamRetCodeStringParamChanged,
+        eChangedParamRetCodeButtonParamChanged
+    };
 
     /**
-     * @brief Overriden to handle clip changes. Derived class must call this class implementation.
+     * @brief To be called in the changedParam action for each dynamic choice holding channels/layers info. This will synchronize the hidden string
+     * parameter to reflect the value of the choice parameter (only if the reason is a user change).
+     * @return Returns true if the param change was caught, false otherwise
      **/
-    virtual void changedClip(const InstanceChangedArgs &args, const std::string &clipName) OVERRIDE;
+    ChangedParamRetCode checkIfChangedParamCalledOnDynamicChoice(const std::string& paramName, const std::string& paramToCheck, OFX::InstanceChangeReason reason);
 
-    
+    /**
+     * @brief Calls checkIfChangedParamCalledOnDynamicChoice for all choice parameters declared. This function is just here for convenience, this is the same as calling
+     * checkIfChangedParamCalledOnDynamicChoice for all parameters successively.
+     * @returns True if a param change was caught, false otherwise.
+     **/
+    bool handleChangedParamForAllDynamicChoices(const std::string& paramName, OFX::InstanceChangeReason reason);
 };
 
+namespace Utils {
+/**
+ * @brief Encode the given layer and channel names into a string following the specification in ofxNatron.h
+ **/
+std::string makeNatronCustomChannel(const std::string& layer, const std::vector<std::string>& channels);
+
+/**
+ * @brief Given the string "comp" in the format described in ofxNatron.h, extract the layer name, the paired layer (if any)
+ * and the channels
+ **/
+void extractChannelsFromComponentString(const std::string& comp,
+                                        std::string* layer,
+                                        std::string* pairedLayer,         //< if disparity or motion vectors
+                                        std::vector<std::string>* channels);
+}         // Utils
+
+
 namespace Factory {
+/**
+ * @brief Add a dynamic choice parameter to select the output layer (in which the plug-in will render)
+ **/
+OFX::ChoiceParamDescriptor* describeInContextAddOutputLayerChoice(bool addAllChoice, OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page);
 
 /**
- * @brief Add a dynamic choice parameter to select a plane.
- * This should only be called for effects that flag kFnOfxImageEffectPropMultiPlanar=1 and
- * if the host supports multi-plane suite v2 and dynamic choice parameters.
+ * @brief Add a dynamic choice parameter to select a channel among possibly different source clips
  **/
-OFX::ChoiceParamDescriptor* describeInContextAddPlaneChoice(OFX::ImageEffectDescriptor &desc,
-                                                            OFX::PageParamDescriptor* page,
-                                                            const std::string& name,
-                                                            const std::string& label,
-                                                            const std::string& hint);
-
-
-/**
- * @brief Add a boolean parameter indicating if true that the plug-in is plane agnostic and will fetch in input the plane requested to render
- * in output. Note that in this case any other plane choice parameter will be made secret.
- **/
-OFX::BooleanParamDescriptor* describeInContextAddAllPlanesOutputCheckbox(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor* page);
-
-/**
- * @brief Add a dynamic choice parameter to select a channel among planes available in one or multiple source clips.
- **/
-OFX::ChoiceParamDescriptor* describeInContextAddPlaneChannelChoice(OFX::ImageEffectDescriptor &desc,
-                                                                   OFX::PageParamDescriptor* page,
-                                                                   const std::vector<std::string>& clips,
-                                                                   const std::string& name,
-                                                                   const std::string& label,
-                                                                   const std::string& hint);
+OFX::ChoiceParamDescriptor* describeInContextAddChannelChoice(OFX::ImageEffectDescriptor &desc,
+                                                              OFX::PageParamDescriptor* page,
+                                                              const std::vector<std::string>& clips,
+                                                              const std::string& name,
+                                                              const std::string& label,
+                                                              const std::string& hint);
 
 /**
  * @brief Add the standard R,G,B,A choices for the given clips.
@@ -527,8 +213,7 @@ OFX::ChoiceParamDescriptor* describeInContextAddPlaneChannelChoice(OFX::ImageEff
  **/
 void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
                                 const std::vector<std::string>& clips,
-                                bool addConstants,
-                                bool onlyColorPlane);
+                                bool addConstants);
 
 
 /**
@@ -536,10 +221,8 @@ void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
  **/
 void addInputChannelOptionsRGBA(const std::vector<std::string>& clips,
                                 bool addConstants,
-                                bool onlyColorPlane,
                                 std::vector<std::string>* options,
-                                std::vector<std::string>* optionsLabels,
-                                std::vector<std::string>* optionsLabelHints);
+                                std::vector<std::string>* optionsLabel);
 }         // Factory
 }     // namespace MultiPlane
 } // namespace OFX
