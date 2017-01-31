@@ -227,6 +227,8 @@ ofxsToRGBA(const PIX *srcPix,
 
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
+// unpremult by alpha <= 0 gives identity
+// premult(unpremult(p)) or premult(unpremult(p)) is thus not identity for alpha <= 0
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsUnPremult(const PIX *srcPix,
@@ -261,7 +263,8 @@ ofxsUnPremult(const PIX *srcPix,
         return;
     }
 
-    if ( !premult || (nComponents == 3) || (srcPix[3] <= 0.) ) {
+    // unpremult by alpha <= 0 gives identity
+    if ( !premult || (nComponents == 3) || (srcPix[3] <= 0) ) {
         unpPix[0] = srcPix[0] / (float)maxValue;
         unpPix[1] = srcPix[1] / (float)maxValue;
         unpPix[2] = srcPix[2] / (float)maxValue;
@@ -287,6 +290,8 @@ ofxsUnPremult(const PIX *srcPix,
 // unpPix is in [0, 1]
 // premultiply and denormalize in [0, maxValue]
 // if premult is false, just denormalize
+// premult by alpha <= 0 gives 0
+// premult(unpremult(p)) or premult(unpremult(p)) is thus not identity for alpha <= 0
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsPremult(const float unpPix[4],
@@ -300,10 +305,10 @@ ofxsPremult(const float unpPix[4],
         return;
     }
 
-    float alpha = unpPix[3];
+    // premult by alpha <= 0 gives 0
+    float alpha = std::max(0.f, unpPix[3]);
 
-    // compare alpha to FLT_EPSILON to make sure that premult(unpremult) = identity
-    if ( !premult || (alpha <= FLT_EPSILON) ) {
+    if ( !premult ) {
         tmpPix[0] = unpPix[0] * maxValue;
         if (nComponents >= 2) {
             tmpPix[1] = unpPix[1] * maxValue;
