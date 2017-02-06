@@ -1035,7 +1035,7 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
 
         if ( (0 <= choice_i) && ( choice_i < found->second.param->getNOptions() ) ) {
 #ifdef OFX_EXTENSIONS_NATRON
-            found->second.param->getOptionName(choice_i, selectedOptionID);
+            found->second.param->getEnum(choice_i, selectedOptionID);
             if (selectedOptionID.empty()) {
 #endif
                 found->second.param->getOption(choice_i, selectedOptionID);
