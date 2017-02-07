@@ -175,11 +175,13 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
             OfxPointD origin = getProjectOffset();
             OfxPointD p;
             // we must denormalise all parameters for which setDefaultCoordinateSystem(eCoordinatesNormalised) couldn't be done
+            beginEditBlock(kParamDefaultsNormalised);
             p = _btmLeft->getValue();
             _btmLeft->setValue(p.x * size.x + origin.x, p.y * size.y + origin.y);
             p = _size->getValue();
             _size->setValue(p.x * size.x, p.y * size.y);
             param->setValue(false);
+            endEditBlock();
         }
     }
 }
