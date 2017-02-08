@@ -36,6 +36,7 @@
 #include "ofxsMacros.h"
 #include "ofxsPixelProcessor.h"
 #include "ofxsMultiThread.h"
+#include "ofxsThreadSuite.h"
 
 #define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
 //#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
