@@ -549,21 +549,23 @@ void ofxsThreadSuiteCheck()
         DBG(cout << "ofxsThreadSuiteCheck(): mutexTryLock is NULL.\n");
     }
     // do it even if gLoadCount > 1. the load action is never multithreaded anyway
-    if (Private::gThreadSuite == NULL ||
-        Private::gThreadSuite->multiThread == NULL ||
-        Private::gThreadSuite->multiThreadNumCPUs == NULL ||
-        Private::gThreadSuite->multiThreadIndex == NULL ||
-        Private::gThreadSuite->multiThreadIsSpawnedThread == NULL ||
-        gHostDescription.hostName.compare(0, 14, "DaVinciResolve") == 0) { // Resolve has a dummy MT Suite, use our own
+    if (Private::gThreadSuite != &threadSuite &&
+        (Private::gThreadSuite == NULL ||
+         Private::gThreadSuite->multiThread == NULL ||
+         Private::gThreadSuite->multiThreadNumCPUs == NULL ||
+         Private::gThreadSuite->multiThreadIndex == NULL ||
+         Private::gThreadSuite->multiThreadIsSpawnedThread == NULL ||
+         gHostDescription.hostName.compare(0, 14, "DaVinciResolve") == 0)) { // Resolve has a dummy MT Suite, use our own
         DBG(cout << "ofxsThreadSuiteCheck(): replacing host suite.\n");
         Private::gThreadSuite = &threadSuite;
     }
-    if (Private::gThreadSuite->mutexCreate == NULL ||
-        Private::gThreadSuite->mutexDestroy == NULL ||
-        Private::gThreadSuite->mutexLock == NULL ||
-        Private::gThreadSuite->mutexUnLock == NULL ||
-        Private::gThreadSuite->mutexTryLock == NULL ||
-        gHostDescription.hostName.compare(0, 22, "com.sony.Catalyst.Edit") == 0) { // Sony Catalyst Edit (as of version  2015.15) misses the mutex functions
+    if (Private::gThreadSuite != &mutexSuite &&
+        (Private::gThreadSuite->mutexCreate == NULL ||
+         Private::gThreadSuite->mutexDestroy == NULL ||
+         Private::gThreadSuite->mutexLock == NULL ||
+         Private::gThreadSuite->mutexUnLock == NULL ||
+         Private::gThreadSuite->mutexTryLock == NULL ||
+         gHostDescription.hostName.compare(0, 22, "com.sony.Catalyst.Edit") == 0)) { // Sony Catalyst Edit (as of version  2015.15) misses the mutex functions
         DBG(cout << "ofxsThreadSuiteCheck(): replacing host mutex suite.\n");
         mutexSuite.multiThread = Private::gThreadSuite->multiThread;
         mutexSuite.multiThreadNumCPUs = Private::gThreadSuite->multiThreadNumCPUs;
