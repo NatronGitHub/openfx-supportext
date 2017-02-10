@@ -1312,7 +1312,10 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-        _effect->beginEditBlock("Set Transform");
+        bool editBlock = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
+        if (editBlock) {
+            _effect->beginEditBlock("Set Transform");
+        }
         if (centerChanged) {
             _center->setValue(center.x, center.y);
         }
@@ -1331,7 +1334,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if (skewYChanged) {
             _skewY->setValue(skewY);
         }
-        _effect->endEditBlock();
+        if (editBlock) {
+            _effect->endEditBlock();
+        }
     } else if (didSomething || valuesChanged) {
         _interact->requestRedraw();
     }

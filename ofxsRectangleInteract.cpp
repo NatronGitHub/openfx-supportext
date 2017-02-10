@@ -631,6 +631,8 @@ RectangleInteract::setValue(OfxPointD btmLeft,
                             OfxPointD size,
                             const OfxPointD &pscale)
 {
+    bool setBtmLeft = false;
+    bool setSize = false;
     // round newx/y to the closest int, 1/10 int, etc
     // this make parameter editing easier
     switch (_mouseState) {
@@ -640,41 +642,55 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         btmLeft.x = fround(btmLeft.x, pscale.x);
         size.x = fround(size.x, pscale.x);
         size.y = fround(size.y, pscale.y);
+        setBtmLeft = setSize = true;
         break;
     case eMouseStateDraggingTopRight:
         size.x = fround(size.x, pscale.x);
         size.y = fround(size.y, pscale.y);
+        setSize = true;
         break;
     case eMouseStateDraggingBtmLeft:
         btmLeft.x = fround(btmLeft.x, pscale.x);
         btmLeft.y = fround(btmLeft.y, pscale.y);
         size.x = fround(size.x, pscale.x);
         size.y = fround(size.y, pscale.y);
+        setBtmLeft = setSize = true;
         break;
     case eMouseStateDraggingBtmRight:
         size.x = fround(size.x, pscale.x);
         size.y = fround(size.y, pscale.y);
         btmLeft.y = fround(btmLeft.y, pscale.y);
+        setBtmLeft = setSize = true;
         break;
     case eMouseStateDraggingCenter:
         btmLeft.x = fround(btmLeft.x, pscale.x);
         btmLeft.y = fround(btmLeft.y, pscale.y);
+        setBtmLeft = true;
         break;
     case eMouseStateDraggingTopMid:
         size.y = fround(size.y, pscale.y);
+        setSize = true;
         break;
     case eMouseStateDraggingMidRight:
         size.x = fround(size.x, pscale.x);
+        setSize = true;
         break;
     case eMouseStateDraggingBtmMid:
         btmLeft.y = fround(btmLeft.y, pscale.y);
+        setBtmLeft = true;
         break;
     case eMouseStateDraggingMidLeft:
         btmLeft.x = fround(btmLeft.x, pscale.x);
+        setBtmLeft = true;
         break;
     }
-    _effect->beginEditBlock("setRectangle");
+    bool editBlock =  setBtmLeft + setSize > 1;
+    if (editBlock) {
+        _effect->beginEditBlock("setRectangle");
+    }
     _btmLeft->setValue(btmLeft.x, btmLeft.y);
     _size->setValue(size.x, size.y);
-    _effect->endEditBlock();
+    if (editBlock) {
+        _effect->endEditBlock();
+    }
 } // penDown
