@@ -943,9 +943,6 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                Clip * &identityClip,
                                double & /*identityTime*/)
 {
-    // must clear persistent message in isIdentity, or render() is not called by Nuke after an error
-    clearPersistentMessage();
-
     const double time = args.time;
 
     if (_dirBlurAmount) {
@@ -1216,6 +1213,8 @@ void
 Transform3x3Plugin::changedParam(const InstanceChangedArgs &args,
                                  const string &paramName)
 {
+    // must clear persistent message, or render() is not called by Nuke after an error
+    clearPersistentMessage();
     if ( (paramName == kParamTransform3x3Invert) ||
          ( paramName == kParamShutter) ||
          ( paramName == kParamShutterOffset) ||
