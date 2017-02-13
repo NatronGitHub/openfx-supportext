@@ -364,10 +364,11 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         /// the line:
         /// double inputPar = getProjectPixelAspectRatio();
 
-        //par = getProjectPixelAspectRatio();
+        par = getProjectPixelAspectRatio();
         break;
     }
     case eGeneratorExtentSize:
+        par = 1;
         break;
     }
 
@@ -382,7 +383,7 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
             clipPreferences.setClipBitDepth(*_dstClip, outputBitDepth);
         }
     }
-    if (extent == eGeneratorExtentFormat) {
+    if (par != 0.) {
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
 #ifdef OFX_EXTENSIONS_NATRON
         OfxRectD rod;
@@ -639,6 +640,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setHint(kParamGeneratorSizeHint);
             param->setIsSecretAndDisabled(true);
             param->setDefault(w, h);
+            desc.addClipPreferencesSlaveParam(*param);
+            param->setAnimates(false); // does not animate, because we set format
             if (page) {
                 page->addChild(*param);
             }
@@ -652,6 +655,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setRange(0., DBL_MAX);
             param->setDisplayRange(0.5, 2.);
             param->setDefault(par);
+            desc.addClipPreferencesSlaveParam(*param);
+            param->setAnimates(false); // does not animate, because we set format
             if (page) {
                 page->addChild(*param);
             }
@@ -675,6 +680,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setLayoutHint(eLayoutHintNoNewLine);
         param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
+        desc.addClipPreferencesSlaveParam(*param);
+        param->setAnimates(false); // does not animate, because we set format
         if (page) {
             page->addChild(*param);
         }
@@ -698,6 +705,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
+        desc.addClipPreferencesSlaveParam(*param);
+        param->setAnimates(false); // does not animate, because we set format
         if (page) {
             page->addChild(*param);
         }
