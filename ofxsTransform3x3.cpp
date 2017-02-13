@@ -223,15 +223,15 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         invtransformsizealloc = 1;
         invtransform.resize(invtransformsizealloc);
         invtransformsize = 1;
-        invtransform[0].a = 0.;
-        invtransform[0].b = 0.;
-        invtransform[0].c = 0.;
-        invtransform[0].d = 0.;
-        invtransform[0].e = 0.;
-        invtransform[0].f = 0.;
-        invtransform[0].g = 0.;
-        invtransform[0].h = 0.;
-        invtransform[0].i = 1.;
+        invtransform[0](0,0) = 0.;
+        invtransform[0](0,1) = 0.;
+        invtransform[0](0,2) = 0.;
+        invtransform[0](1,0) = 0.;
+        invtransform[0](1,1) = 0.;
+        invtransform[0](1,2) = 0.;
+        invtransform[0](2,0) = 0.;
+        invtransform[0](2,1) = 0.;
+        invtransform[0](2,2) = 1.;
     } else {
         BitDepthEnum dstBitDepth       = dst->getPixelDepth();
         PixelComponentEnum dstComponents  = dst->getPixelComponents();
@@ -303,15 +303,15 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsize = 1;
             bool success = getInverseTransformCanonical(time, args.renderView, 1., invert, &invtransform[0]); // virtual function
             if (!success) {
-                invtransform[0].a = 0.;
-                invtransform[0].b = 0.;
-                invtransform[0].c = 0.;
-                invtransform[0].d = 0.;
-                invtransform[0].e = 0.;
-                invtransform[0].f = 0.;
-                invtransform[0].g = 0.;
-                invtransform[0].h = 0.;
-                invtransform[0].i = 1.;
+                invtransform[0](0,0) = 0.;
+                invtransform[0](0,1) = 0.;
+                invtransform[0](0,2) = 0.;
+                invtransform[0](1,0) = 0.;
+                invtransform[0](1,1) = 0.;
+                invtransform[0](1,2) = 0.;
+                invtransform[0](2,0) = 0.;
+                invtransform[0](2,1) = 0.;
+                invtransform[0](2,2) = 1.;
             } else {
                 Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
                                                                      args.renderScale.y, fielded);
@@ -329,15 +329,15 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             double srcTransform[9]; // transform to apply to the source image, in pixel coordinates, from source to destination
             src->getTransform(srcTransform);
             Matrix3x3 srcTransformMat;
-            srcTransformMat.a = srcTransform[0];
-            srcTransformMat.b = srcTransform[1];
-            srcTransformMat.c = srcTransform[2];
-            srcTransformMat.d = srcTransform[3];
-            srcTransformMat.e = srcTransform[4];
-            srcTransformMat.f = srcTransform[5];
-            srcTransformMat.g = srcTransform[6];
-            srcTransformMat.h = srcTransform[7];
-            srcTransformMat.i = srcTransform[8];
+            srcTransformMat(0,0) = srcTransform[0];
+            srcTransformMat(0,1) = srcTransform[1];
+            srcTransformMat(0,2) = srcTransform[2];
+            srcTransformMat(1,0) = srcTransform[3];
+            srcTransformMat(1,1) = srcTransform[4];
+            srcTransformMat(1,2) = srcTransform[5];
+            srcTransformMat(2,0) = srcTransform[6];
+            srcTransformMat(2,1) = srcTransform[7];
+            srcTransformMat(2,2) = srcTransform[8];
             // invert it
             double det = srcTransformMat.determinant();
             if (det != 0.) {
@@ -1086,15 +1086,15 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
                                  transformCanonical *
                                  ofxsMatPixelToCanonical(srcpixelaspectratio, args.renderScale.x, args.renderScale.y, fielded) );
     transformClip = _srcClip;
-    transformMatrix[0] = transformPixel.a;
-    transformMatrix[1] = transformPixel.b;
-    transformMatrix[2] = transformPixel.c;
-    transformMatrix[3] = transformPixel.d;
-    transformMatrix[4] = transformPixel.e;
-    transformMatrix[5] = transformPixel.f;
-    transformMatrix[6] = transformPixel.g;
-    transformMatrix[7] = transformPixel.h;
-    transformMatrix[8] = transformPixel.i;
+    transformMatrix[0] = transformPixel(0,0);
+    transformMatrix[1] = transformPixel(0,1);
+    transformMatrix[2] = transformPixel(0,2);
+    transformMatrix[3] = transformPixel(1,0);
+    transformMatrix[4] = transformPixel(1,1);
+    transformMatrix[5] = transformPixel(1,2);
+    transformMatrix[6] = transformPixel(2,0);
+    transformMatrix[7] = transformPixel(2,1);
+    transformMatrix[8] = transformPixel(2,2);
 
     return true;
 } // Transform3x3Plugin::getTransform
@@ -1132,25 +1132,25 @@ Transform3x3Plugin::getInverseTransforms(double time,
         if (success) {
             invtransform[i] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
         } else {
-            invtransform[i].a = 0.;
-            invtransform[i].b = 0.;
-            invtransform[i].c = 0.;
-            invtransform[i].d = 0.;
-            invtransform[i].e = 0.;
-            invtransform[i].f = 0.;
-            invtransform[i].g = 0.;
-            invtransform[i].h = 0.;
-            invtransform[i].i = 1.;
+            invtransform[i](0,0) = 0.;
+            invtransform[i](0,1) = 0.;
+            invtransform[i](0,2) = 0.;
+            invtransform[i](1,0) = 0.;
+            invtransform[i](1,1) = 0.;
+            invtransform[i](1,2) = 0.;
+            invtransform[i](2,0) = 0.;
+            invtransform[i](2,1) = 0.;
+            invtransform[i](2,2) = 1.;
         }
-        allequal = allequal && (invtransform[i].a == invtransform[0].a &&
-                                invtransform[i].b == invtransform[0].b &&
-                                invtransform[i].c == invtransform[0].c &&
-                                invtransform[i].d == invtransform[0].d &&
-                                invtransform[i].e == invtransform[0].e &&
-                                invtransform[i].f == invtransform[0].f &&
-                                invtransform[i].g == invtransform[0].g &&
-                                invtransform[i].h == invtransform[0].h &&
-                                invtransform[i].i == invtransform[0].i);
+        allequal = allequal && (invtransform[i](0,0) == invtransform[0](0,0) &&
+                                invtransform[i](0,1) == invtransform[0](0,1) &&
+                                invtransform[i](0,2) == invtransform[0](0,2) &&
+                                invtransform[i](1,0) == invtransform[0](1,0) &&
+                                invtransform[i](1,1) == invtransform[0](1,1) &&
+                                invtransform[i](1,2) == invtransform[0](1,2) &&
+                                invtransform[i](2,0) == invtransform[0](2,0) &&
+                                invtransform[i](2,1) == invtransform[0](2,1) &&
+                                invtransform[i](2,2) == invtransform[0](2,2));
     }
     if (allequal) { // there is only one transform, no need to do motion blur!
         invtransformsize = 1;
@@ -1190,15 +1190,15 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
             }
             invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
             ++invtransformsize;
-            allequal = allequal && (invtransform[i].a == invtransform[0].a &&
-                                    invtransform[i].b == invtransform[0].b &&
-                                    invtransform[i].c == invtransform[0].c &&
-                                    invtransform[i].d == invtransform[0].d &&
-                                    invtransform[i].e == invtransform[0].e &&
-                                    invtransform[i].f == invtransform[0].f &&
-                                    invtransform[i].g == invtransform[0].g &&
-                                    invtransform[i].h == invtransform[0].h &&
-                                    invtransform[i].i == invtransform[0].i);
+            allequal = allequal && (invtransform[i](0,0) == invtransform[0](0,0) &&
+                                    invtransform[i](0,1) == invtransform[0](0,1) &&
+                                    invtransform[i](0,2) == invtransform[0](0,2) &&
+                                    invtransform[i](1,0) == invtransform[0](1,0) &&
+                                    invtransform[i](1,1) == invtransform[0](1,1) &&
+                                    invtransform[i](1,2) == invtransform[0](1,2) &&
+                                    invtransform[i](2,0) == invtransform[0](2,0) &&
+                                    invtransform[i](2,1) == invtransform[0](2,1) &&
+                                    invtransform[i](2,2) == invtransform[0](2,2));
         }
     }
     if ( (invtransformsize != 0) && allequal ) { // there is only one transform, no need to do motion blur!

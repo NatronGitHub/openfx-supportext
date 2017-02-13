@@ -194,10 +194,10 @@ private:
                             xinside = yinside = false;
                         }
 
-                        double Jxx = xinside ? (H.a * transformed.z - transformed.x * H.g) / (transformed.z * transformed.z) : 0.;
-                        double Jxy = xinside ? (H.b * transformed.z - transformed.x * H.h) / (transformed.z * transformed.z) : 0.;
-                        double Jyx = yinside ? (H.d * transformed.z - transformed.y * H.g) / (transformed.z * transformed.z) : 0;
-                        double Jyy = yinside ? (H.e * transformed.z - transformed.y * H.h) / (transformed.z * transformed.z) : 0.;
+                        double Jxx = xinside ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / (transformed.z * transformed.z) : 0.;
+                        double Jxy = xinside ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / (transformed.z * transformed.z) : 0.;
+                        double Jyx = yinside ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / (transformed.z * transformed.z) : 0;
+                        double Jyy = yinside ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / (transformed.z * transformed.z) : 0.;
                         ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                     }
                 }
@@ -283,10 +283,10 @@ private:
                                     xinside = yinside = false;
                                 }
 
-                                double Jxx = xinside ? (H.a * transformed.z - transformed.x * H.g) / (transformed.z * transformed.z) : 0.;
-                                double Jxy = xinside ? (H.b * transformed.z - transformed.x * H.h) / (transformed.z * transformed.z) : 0.;
-                                double Jyx = yinside ? (H.d * transformed.z - transformed.y * H.g) / (transformed.z * transformed.z) : 0;
-                                double Jyy = yinside ? (H.e * transformed.z - transformed.y * H.h) / (transformed.z * transformed.z) : 0.;
+                                double Jxx = xinside ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / (transformed.z * transformed.z) : 0.;
+                                double Jxy = xinside ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / (transformed.z * transformed.z) : 0.;
+                                double Jyx = yinside ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / (transformed.z * transformed.z) : 0;
+                                double Jyy = yinside ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / (transformed.z * transformed.z) : 0.;
                                 ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                             }
                         }

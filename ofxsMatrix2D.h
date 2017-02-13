@@ -176,29 +176,31 @@ struct Point4D
 
 struct Matrix3x3
 {
-    double a, b, c, d, e, f, g, h, i;
+    double data[3*3];
 
     Matrix3x3()
-        : a(1), b(0), c(0), d(1), e(0), f(0), g(0), h(0), i(0)
     {
+        std::fill(data, data + 3*3, 0.);
     }
 
-    Matrix3x3(double a_,
-              double b_,
-              double c_,
-              double d_,
-              double e_,
-              double f_,
-              double g_,
-              double h_,
-              double i_)
-        : a(a_), b(b_), c(c_), d(d_), e(e_), f(f_), g(g_), h(h_), i(i_)
+    Matrix3x3(double a,
+              double b,
+              double c,
+              double d,
+              double e,
+              double f,
+              double g,
+              double h,
+              double i)
     {
+        data[0] = a; data[1] = b; data[2] = c;
+        data[3] = d; data[4] = e; data[5] = f;
+        data[6] = g; data[7] = h; data[8] = i;
     }
 
     Matrix3x3(const Matrix3x3 & mat)
-        : a(mat.a), b(mat.b), c(mat.c), d(mat.d), e(mat.e), f(mat.f), g(mat.g), h(mat.h), i(mat.i)
     {
+        std::copy(mat.data, mat.data + 3*3, data);
     }
 
     /// Contruct from columns
@@ -206,69 +208,85 @@ struct Matrix3x3
               const OFX::Point3D &m1,
               const OFX::Point3D &m2)
     {
-        a = m0.x; b = m1.x; c = m2.x;
-        d = m0.y; e = m1.y; f = m2.y;
-        g = m0.z; h = m1.z; i = m2.z;
+        data[0] = m0.x; data[1] = m1.x; data[2] = m2.x;
+        data[3] = m0.y; data[4] = m1.y; data[5] = m2.y;
+        data[6] = m0.z; data[7] = m1.z; data[8] = m2.z;
     }
 
-    Matrix3x3 & operator=(const Matrix3x3 & m)
+    Matrix3x3 & operator=(const Matrix3x3 & mat)
     {
-        a = m.a; b = m.b; c = m.c; d = m.d; e = m.e; f = m.f; g = m.g; h = m.h; i = m.i; return *this;
+        std::copy(mat.data, mat.data + 3*3, data); return *this;
     }
 
     bool isIdentity() const
     {
-        return a == 1 && b == 0 && c == 0 &&
-               d == 0 && e == 1 && f == 0 &&
-               g == 0 && h == 0 && i == 1;
+        return data[0] == 1 && data[1] == 0 && data[2] == 0 &&
+               data[3] == 0 && data[4] == 1 && data[5] == 0 &&
+               data[6] == 0 && data[7] == 0 && data[8] == 1;
+    }
+
+    double & operator()(int row,
+                        int col)
+    {
+        assert(row >= 0 && row < 3 && col >= 0 && col < 3);
+
+        return data[row * 3 + col];
+    }
+
+    double operator()(int row,
+                      int col) const
+    {
+        assert(row >= 0 && row < 3 && col >= 0 && col < 3);
+
+        return data[row * 3 + col];
     }
 
     Matrix3x3 operator*(const Matrix3x3 & m2) const
     {
-        return Matrix3x3(a * m2.a + b * m2.d + c * m2.g,
-                         a * m2.b + b * m2.e + c * m2.h,
-                         a * m2.c + b * m2.f + c * m2.i,
-                         d * m2.a + e * m2.d + f * m2.g,
-                         d * m2.b + e * m2.e + f * m2.h,
-                         d * m2.c + e * m2.f + f * m2.i,
-                         g * m2.a + h * m2.d + i * m2.g,
-                         g * m2.b + h * m2.e + i * m2.h,
-                         g * m2.c + h * m2.f + i * m2.i);
+        return Matrix3x3(data[0] * m2.data[0] + data[1] * m2.data[3] + data[2] * m2.data[6],
+                         data[0] * m2.data[1] + data[1] * m2.data[4] + data[2] * m2.data[7],
+                         data[0] * m2.data[2] + data[1] * m2.data[5] + data[2] * m2.data[8],
+                         data[3] * m2.data[0] + data[4] * m2.data[3] + data[5] * m2.data[6],
+                         data[3] * m2.data[1] + data[4] * m2.data[4] + data[5] * m2.data[7],
+                         data[3] * m2.data[2] + data[4] * m2.data[5] + data[5] * m2.data[8],
+                         data[6] * m2.data[0] + data[7] * m2.data[3] + data[8] * m2.data[6],
+                         data[6] * m2.data[1] + data[7] * m2.data[4] + data[8] * m2.data[7],
+                         data[6] * m2.data[2] + data[7] * m2.data[5] + data[8] * m2.data[8]);
     }
 
     Point3D operator*(const Point3D & p) const
     {
         Point3D ret;
 
-        ret.x = a * p.x + b * p.y + c * p.z;
-        ret.y = d * p.x + e * p.y + f * p.z;
-        ret.z = g * p.x + h * p.y + i * p.z;
+        ret.x = data[0] * p.x + data[1] * p.y + data[2] * p.z;
+        ret.y = data[3] * p.x + data[4] * p.y + data[5] * p.z;
+        ret.z = data[6] * p.x + data[7] * p.y + data[8] * p.z;
 
         return ret;
     }
 
     double determinant() const
     {
-        return a * (e * i - h * f)
-               - b * (d * i - g * f)
-               + c * (d * h - g * e);
+        return data[0] * (data[4] * data[8] - data[7] * data[5])
+               - data[1] * (data[3] * data[8] - data[6] * data[5])
+               + data[2] * (data[3] * data[7] - data[6] * data[4]);
     }
 
     Matrix3x3 scaledAdjoint(double s) const
     {
         Matrix3x3 ret;
 
-        ret.a = (s) * (e * i - h * f);
-        ret.d = (s) * (f * g - d * i);
-        ret.g = (s) * (d * h - e * g);
+        ret.data[0] = (s) * (data[4] * data[8] - data[7] * data[5]);
+        ret.data[3] = (s) * (data[5] * data[6] - data[3] * data[8]);
+        ret.data[6] = (s) * (data[3] * data[7] - data[4] * data[6]);
 
-        ret.b = (s) * (c * h - b * i);
-        ret.e = (s) * (a * i - c * g);
-        ret.h = (s) * (b * g - a * h);
+        ret.data[1] = (s) * (data[2] * data[7] - data[1] * data[8]);
+        ret.data[4] = (s) * (data[0] * data[8] - data[2] * data[6]);
+        ret.data[7] = (s) * (data[1] * data[6] - data[0] * data[7]);
 
-        ret.c = (s) * (b * f - c * e);
-        ret.f = (s) * (c * d - a * f);
-        ret.i = (s) * (a * e - b * d);
+        ret.data[2] = (s) * (data[1] * data[5] - data[2] * data[4]);
+        ret.data[5] = (s) * (data[2] * data[3] - data[0] * data[5]);
+        ret.data[8] = (s) * (data[0] * data[4] - data[1] * data[3]);
 
         return ret;
     }
@@ -285,9 +303,9 @@ struct Matrix3x3
 
     void setIdentity()
     {
-        a = 1; b = 0; c = 0;
-        d = 0; e = 1; f = 0;
-        g = 0; h = 0; i = 1;
+        data[0] = 1; data[1] = 0; data[2] = 0;
+        data[3] = 0; data[4] = 1; data[5] = 0;
+        data[6] = 0; data[7] = 0; data[8] = 1;
     }
 
     /**
@@ -419,15 +437,15 @@ struct Matrix3x3
     bool setTranslationFromOnePoint(const OFX::Point3D &p1,
                                     const OFX::Point3D &q1)
     {
-        a = 1.;
-        b = 0.;
-        c = q1.x - p1.x;
-        d = 0.;
-        e = 1.;
-        f = q1.y - p1.y;
-        g = 0.;
-        h = 0.;
-        i = 1.;
+        data[0] = 1.;
+        data[1] = 0.;
+        data[2] = q1.x - p1.x;
+        data[3] = 0.;
+        data[4] = 1.;
+        data[5] = q1.y - p1.y;
+        data[6] = 0.;
+        data[7] = 0.;
+        data[8] = 1.;
 
         return true;
     }
@@ -557,9 +575,14 @@ matrix4x4FromMatrix3x3(const Matrix3x3 & m)
 {
     Matrix4x4 ret;
 
-    ret(0, 0) = m.a; ret(0, 1) = m.b; ret(0, 2) = m.c; ret(0, 3) = 0.;
-    ret(1, 0) = m.d; ret(1, 1) = m.e; ret(1, 2) = m.f; ret(1, 3) = 0.;
-    ret(2, 0) = m.g; ret(2, 1) = m.h; ret(2, 2) = m.i; ret(2, 3) = 0.;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            ret(i,j) = m(i,j);
+        }
+    }
+    ret(0, 3) = 0.;
+    ret(1, 3) = 0.;
+    ret(2, 3) = 0.;
     ret(3, 0) = 0.;  ret(3, 1) = 0.;  ret(3, 2) = 0.;  ret(3, 3) = 1.;
 
     return ret;
