@@ -51,6 +51,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _format(0)
     , _formatSize(0)
     , _formatPar(0)
+    , _reformat(0)
     , _btmLeft(0)
     , _size(0)
     , _interactive(0)
@@ -78,6 +79,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     _format = fetchChoiceParam(kParamGeneratorFormat);
     _formatSize = fetchInt2DParam(kParamGeneratorSize);
     _formatPar = fetchDoubleParam(kParamGeneratorPAR);
+    if ( paramExists(kParamGeneratorReformat) ) {
+        _reformat = fetchBooleanParam(kParamGeneratorReformat);
+    }
     _btmLeft = fetchDouble2DParam(kParamRectangleInteractBtmLeft);
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _recenter = fetchPushButtonParam(kParamGeneratorCenter);
@@ -244,6 +248,9 @@ GeneratorPlugin::updateParamsVisibility()
     bool hasSize = (extent == eGeneratorExtentSize);
 
     _format->setIsSecretAndDisabled(!hasFormat);
+    if (_reformat) {
+        _reformat->setIsSecretAndDisabled(!hasSize);
+    }
     _size->setIsSecretAndDisabled(!hasSize);
     _recenter->setIsSecretAndDisabled(!hasSize);
     _btmLeft->setIsSecretAndDisabled(!hasSize);
@@ -368,7 +375,9 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         break;
     }
     case eGeneratorExtentSize:
-        par = 1;
+        if ( _reformat && _reformat->getValue() ) {
+            par = 1;
+        }
         break;
     }
 
@@ -575,6 +584,21 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
+
+#ifdef OFX_EXTENSIONS_NATRON
+    // reformat
+    if (getImageEffectHostDescription()->isNatron) {
+        BooleanParamDescriptor* param = desc.defineBooleanParam(kParamGeneratorReformat);
+        param->setLabel(kParamGeneratorReformatLabel);
+        param->setHint(kParamGeneratorReformatHint);
+        param->setLayoutHint(eLayoutHintNoNewLine);
+        desc.addClipPreferencesSlaveParam(*param);
+        param->setAnimates(false);
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+#endif
 
     // format
     {

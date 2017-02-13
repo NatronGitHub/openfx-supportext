@@ -87,6 +87,10 @@ enum GeneratorExtentEnum
 #define kParamGeneratorCenterHint "Centers the region of definition to the input region of definition. " \
     "If there is no input, then the region of definition is centered to the project window."
 
+#define kParamGeneratorReformat "reformat"
+#define kParamGeneratorReformatLabel "Reformat"
+#define kParamGeneratorReformatHint "Set the output format to the given extent."
+
 
 class GeneratorPlugin
     : public OFX::ImageEffect
@@ -98,6 +102,7 @@ protected:
     OFX::ChoiceParam* _format;
     OFX::Int2DParam* _formatSize;
     OFX::DoubleParam* _formatPar;
+    OFX::BooleanParam* _reformat;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
