@@ -176,29 +176,31 @@ struct Point4D
 
 struct Matrix3x3
 {
-    double a, b, c, d, e, f, g, h, i;
+    double m[3*3];
 
     Matrix3x3()
-        : a(1), b(0), c(0), d(1), e(0), f(0), g(0), h(0), i(0)
     {
+        std::fill(m, m + 3*3, 0.);
     }
 
-    Matrix3x3(double a_,
-              double b_,
-              double c_,
-              double d_,
-              double e_,
-              double f_,
-              double g_,
-              double h_,
-              double i_)
-        : a(a_), b(b_), c(c_), d(d_), e(e_), f(f_), g(g_), h(h_), i(i_)
+    Matrix3x3(double a,
+              double b,
+              double c,
+              double d,
+              double e,
+              double f,
+              double g,
+              double h,
+              double i)
     {
+        m[0] = a; m[1] = b; m[2] = c;
+        m[3] = d; m[4] = e; m[5] = f;
+        m[6] = g; m[7] = h; m[8] = i;
     }
 
     Matrix3x3(const Matrix3x3 & mat)
-        : a(mat.a), b(mat.b), c(mat.c), d(mat.d), e(mat.e), f(mat.f), g(mat.g), h(mat.h), i(mat.i)
     {
+        std::copy(mat.m, mat.m + 3*3, m);
     }
 
     /// Contruct from columns
@@ -206,88 +208,134 @@ struct Matrix3x3
               const OFX::Point3D &m1,
               const OFX::Point3D &m2)
     {
-        a = m0.x; b = m1.x; c = m2.x;
-        d = m0.y; e = m1.y; f = m2.y;
-        g = m0.z; h = m1.z; i = m2.z;
+        m[0] = m0.x; m[1] = m1.x; m[2] = m2.x;
+        m[3] = m0.y; m[4] = m1.y; m[5] = m2.y;
+        m[6] = m0.z; m[7] = m1.z; m[8] = m2.z;
     }
 
-    Matrix3x3 & operator=(const Matrix3x3 & m)
+    Matrix3x3 & operator=(const Matrix3x3 & mat)
     {
-        a = m.a; b = m.b; c = m.c; d = m.d; e = m.e; f = m.f; g = m.g; h = m.h; i = m.i; return *this;
+        std::copy(mat.m, mat.m + 3*3, m); return *this;
     }
 
     bool isIdentity() const
     {
-        return a == 1 && b == 0 && c == 0 &&
-               d == 0 && e == 1 && f == 0 &&
-               g == 0 && h == 0 && i == 1;
+        return m[0] == 1 && m[1] == 0 && m[2] == 0 &&
+               m[3] == 0 && m[4] == 1 && m[5] == 0 &&
+               m[6] == 0 && m[7] == 0 && m[8] == 1;
+    }
+
+    double & operator()(int row,
+                        int col)
+    {
+        assert(row >= 0 && row < 3 && col >= 0 && col < 3);
+
+        return m[row * 3 + col];
+    }
+
+    double operator()(int row,
+                      int col) const
+    {
+        assert(row >= 0 && row < 3 && col >= 0 && col < 3);
+
+        return m[row * 3 + col];
     }
 
     Matrix3x3 operator*(const Matrix3x3 & m2) const
     {
-        return Matrix3x3(a * m2.a + b * m2.d + c * m2.g,
-                         a * m2.b + b * m2.e + c * m2.h,
-                         a * m2.c + b * m2.f + c * m2.i,
-                         d * m2.a + e * m2.d + f * m2.g,
-                         d * m2.b + e * m2.e + f * m2.h,
-                         d * m2.c + e * m2.f + f * m2.i,
-                         g * m2.a + h * m2.d + i * m2.g,
-                         g * m2.b + h * m2.e + i * m2.h,
-                         g * m2.c + h * m2.f + i * m2.i);
+        return Matrix3x3(m[0] * m2.m[0] + m[1] * m2.m[3] + m[2] * m2.m[6],
+                         m[0] * m2.m[1] + m[1] * m2.m[4] + m[2] * m2.m[7],
+                         m[0] * m2.m[2] + m[1] * m2.m[5] + m[2] * m2.m[8],
+                         m[3] * m2.m[0] + m[4] * m2.m[3] + m[5] * m2.m[6],
+                         m[3] * m2.m[1] + m[4] * m2.m[4] + m[5] * m2.m[7],
+                         m[3] * m2.m[2] + m[4] * m2.m[5] + m[5] * m2.m[8],
+                         m[6] * m2.m[0] + m[7] * m2.m[3] + m[8] * m2.m[6],
+                         m[6] * m2.m[1] + m[7] * m2.m[4] + m[8] * m2.m[7],
+                         m[6] * m2.m[2] + m[7] * m2.m[5] + m[8] * m2.m[8]);
     }
 
     Point3D operator*(const Point3D & p) const
     {
         Point3D ret;
 
-        ret.x = a * p.x + b * p.y + c * p.z;
-        ret.y = d * p.x + e * p.y + f * p.z;
-        ret.z = g * p.x + h * p.y + i * p.z;
+        ret.x = m[0] * p.x + m[1] * p.y + m[2] * p.z;
+        ret.y = m[3] * p.x + m[4] * p.y + m[5] * p.z;
+        ret.z = m[6] * p.x + m[7] * p.y + m[8] * p.z;
 
         return ret;
     }
 
     double determinant() const
     {
-        return a * (e * i - h * f)
-               - b * (d * i - g * f)
-               + c * (d * h - g * e);
+        return m[0] * (m[4] * m[8] - m[7] * m[5])
+               - m[1] * (m[3] * m[8] - m[6] * m[5])
+               + m[2] * (m[3] * m[7] - m[6] * m[4]);
     }
 
     Matrix3x3 scaledAdjoint(double s) const
     {
         Matrix3x3 ret;
 
-        ret.a = (s) * (e * i - h * f);
-        ret.d = (s) * (f * g - d * i);
-        ret.g = (s) * (d * h - e * g);
+        ret.m[0] = (s) * (m[4] * m[8] - m[7] * m[5]);
+        ret.m[3] = (s) * (m[5] * m[6] - m[3] * m[8]);
+        ret.m[6] = (s) * (m[3] * m[7] - m[4] * m[6]);
 
-        ret.b = (s) * (c * h - b * i);
-        ret.e = (s) * (a * i - c * g);
-        ret.h = (s) * (b * g - a * h);
+        ret.m[1] = (s) * (m[2] * m[7] - m[1] * m[8]);
+        ret.m[4] = (s) * (m[0] * m[8] - m[2] * m[6]);
+        ret.m[7] = (s) * (m[1] * m[6] - m[0] * m[7]);
 
-        ret.c = (s) * (b * f - c * e);
-        ret.f = (s) * (c * d - a * f);
-        ret.i = (s) * (a * e - b * d);
+        ret.m[2] = (s) * (m[1] * m[5] - m[2] * m[4]);
+        ret.m[5] = (s) * (m[2] * m[3] - m[0] * m[5]);
+        ret.m[8] = (s) * (m[0] * m[4] - m[1] * m[3]);
 
         return ret;
     }
 
-    Matrix3x3 inverse() const
+    bool inverse(Matrix3x3* invOut) const
     {
-        return scaledAdjoint( 1. / determinant() );
-    }
+        double inv[9], det;
+        int i;
 
-    Matrix3x3 inverse(double det) const
-    {
-        return scaledAdjoint(1. / det);
+        inv[0] = (m[4] * m[8] - m[7] * m[5]);
+        inv[3] = (m[5] * m[6] - m[3] * m[8]);
+        inv[6] = (m[3] * m[7] - m[4] * m[6]);
+
+        det = m[0] * inv[0] + m[1] * inv[3] + m[2] * inv[6];
+
+        if (det == 0) {
+            return false;
+        }
+
+        inv[1] = (m[2] * m[7] - m[1] * m[8]);
+        inv[4] = (m[0] * m[8] - m[2] * m[6]);
+        inv[7] = (m[1] * m[6] - m[0] * m[7]);
+
+        inv[2] = (m[1] * m[5] - m[2] * m[4]);
+        inv[5] = (m[2] * m[3] - m[0] * m[5]);
+        inv[8] = (m[0] * m[4] - m[1] * m[3]);
+
+        det = 1.0 / det;
+
+        for (i = 0; i < 9; ++i) {
+            invOut->m[i] = inv[i] * det;
+        }
+        return true;
+
+        /* old version
+        double det = determinant();
+        if (det == 0) {
+            return false;
+        }
+        *invOut = scaledAdjoint( 1. / det );
+        return true;
+         */
     }
 
     void setIdentity()
     {
-        a = 1; b = 0; c = 0;
-        d = 0; e = 1; f = 0;
-        g = 0; h = 0; i = 1;
+        m[0] = 1; m[1] = 0; m[2] = 0;
+        m[3] = 0; m[4] = 1; m[5] = 0;
+        m[6] = 0; m[7] = 0; m[8] = 1;
     }
 
     /**
@@ -327,9 +375,8 @@ struct Matrix3x3
         OFX::Matrix3x3 Hp( crossprod( crossprod(p1, p2), crossprod(p3, p4) ),
                            crossprod( crossprod(p1, p3), crossprod(p2, p4) ),
                            crossprod( crossprod(p1, p4), crossprod(p2, p3) ) );
-        double detHp = Hp.determinant();
 
-        if (detHp == 0.) {
+        if ( !Hp.inverse(&invHp) ) {
             return false;
         }
         OFX::Matrix3x3 Hq( crossprod( crossprod(q1, q2), crossprod(q3, q4) ),
@@ -339,7 +386,6 @@ struct Matrix3x3
         if (detHq == 0.) {
             return false;
         }
-        invHp = Hp.inverse(detHp);
         *this = Hq * invHp;
 
         return true;
@@ -354,9 +400,7 @@ struct Matrix3x3
     {
         OFX::Matrix3x3 invHp;
         OFX::Matrix3x3 Hp(p1, p2, p3);
-        double detHp = Hp.determinant();
-
-        if (detHp == 0.) {
+        if ( !Hp.inverse(&invHp) ) {
             return false;
         }
         OFX::Matrix3x3 Hq(q1, q2, q3);
@@ -364,7 +408,6 @@ struct Matrix3x3
         if (detHq == 0.) {
             return false;
         }
-        invHp = Hp.inverse(detHp);
         *this = Hq * invHp;
 
         return true;
@@ -419,15 +462,15 @@ struct Matrix3x3
     bool setTranslationFromOnePoint(const OFX::Point3D &p1,
                                     const OFX::Point3D &q1)
     {
-        a = 1.;
-        b = 0.;
-        c = q1.x - p1.x;
-        d = 0.;
-        e = 1.;
-        f = q1.y - p1.y;
-        g = 0.;
-        h = 0.;
-        i = 1.;
+        m[0] = 1.;
+        m[1] = 0.;
+        m[2] = q1.x - p1.x;
+        m[3] = 0.;
+        m[4] = 1.;
+        m[5] = q1.y - p1.y;
+        m[6] = 0.;
+        m[7] = 0.;
+        m[8] = 1.;
 
         return true;
     }
@@ -485,21 +528,21 @@ inline Matrix3x3 ofxsMatTransformPixel(double pixelaspectratio, //!< 1.067 for P
                                        double centerX, double centerY);
 struct Matrix4x4
 {
-    double data[16];
+    double m[16];
 
     Matrix4x4()
     {
-        std::fill(data, data + 16, 0.);
+        std::fill(m, m + 16, 0.);
     }
 
     Matrix4x4(const double d[16])
     {
-        std::copy(d, d + 16, data);
+        std::copy(d, d + 16, m);
     }
 
     Matrix4x4(const Matrix4x4 & o)
     {
-        std::copy(o.data, o.data + 16, data);
+        std::copy(o.m, o.m + 16, m);
     }
 
     double & operator()(int row,
@@ -507,7 +550,7 @@ struct Matrix4x4
     {
         assert(row >= 0 && row < 4 && col >= 0 && col < 4);
 
-        return data[row * 4 + col];
+        return m[row * 4 + col];
     }
 
     double operator()(int row,
@@ -515,7 +558,172 @@ struct Matrix4x4
     {
         assert(row >= 0 && row < 4 && col >= 0 && col < 4);
 
-        return data[row * 4 + col];
+        return m[row * 4 + col];
+    }
+
+    double determinant() const
+    {
+        double inv0 = (m[5]  * m[10] * m[15] -
+                       m[5]  * m[11] * m[14] -
+                       m[9]  * m[6]  * m[15] +
+                       m[9]  * m[7]  * m[14] +
+                       m[13] * m[6]  * m[11] -
+                       m[13] * m[7]  * m[10]);
+
+        double inv4 = (-m[4]  * m[10] * m[15] +
+                       m[4]  * m[11] * m[14] +
+                       m[8]  * m[6]  * m[15] -
+                       m[8]  * m[7]  * m[14] -
+                       m[12] * m[6]  * m[11] +
+                       m[12] * m[7]  * m[10]);
+
+        double inv8 = (m[4]  * m[9] * m[15] -
+                       m[4]  * m[11] * m[13] -
+                       m[8]  * m[5] * m[15] +
+                       m[8]  * m[7] * m[13] +
+                       m[12] * m[5] * m[11] -
+                       m[12] * m[7] * m[9]);
+
+        double inv12 = (-m[4]  * m[9] * m[14] +
+                        m[4]  * m[10] * m[13] +
+                        m[8]  * m[5] * m[14] -
+                        m[8]  * m[6] * m[13] -
+                        m[12] * m[5] * m[10] +
+                        m[12] * m[6] * m[9]);
+
+        return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
+    }
+
+    bool inverse(Matrix4x4* invOut) const
+    {
+        double inv[16], det;
+        int i;
+
+        inv[0] = (m[5]  * m[10] * m[15] -
+                  m[5]  * m[11] * m[14] -
+                  m[9]  * m[6]  * m[15] +
+                  m[9]  * m[7]  * m[14] +
+                  m[13] * m[6]  * m[11] -
+                  m[13] * m[7]  * m[10]);
+
+        inv[4] = (-m[4]  * m[10] * m[15] +
+                  m[4]  * m[11] * m[14] +
+                  m[8]  * m[6]  * m[15] -
+                  m[8]  * m[7]  * m[14] -
+                  m[12] * m[6]  * m[11] +
+                  m[12] * m[7]  * m[10]);
+
+        inv[8] = (m[4]  * m[9] * m[15] -
+                  m[4]  * m[11] * m[13] -
+                  m[8]  * m[5] * m[15] +
+                  m[8]  * m[7] * m[13] +
+                  m[12] * m[5] * m[11] -
+                  m[12] * m[7] * m[9]);
+
+        inv[12] = (-m[4]  * m[9] * m[14] +
+                   m[4]  * m[10] * m[13] +
+                   m[8]  * m[5] * m[14] -
+                   m[8]  * m[6] * m[13] -
+                   m[12] * m[5] * m[10] +
+                   m[12] * m[6] * m[9]);
+
+        det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+        if (det == 0) {
+            return false;
+        }
+
+        inv[1] = (-m[1]  * m[10] * m[15] +
+                  m[1]  * m[11] * m[14] +
+                  m[9]  * m[2] * m[15] -
+                  m[9]  * m[3] * m[14] -
+                  m[13] * m[2] * m[11] +
+                  m[13] * m[3] * m[10]);
+
+        inv[5] = (m[0]  * m[10] * m[15] -
+                  m[0]  * m[11] * m[14] -
+                  m[8]  * m[2] * m[15] +
+                  m[8]  * m[3] * m[14] +
+                  m[12] * m[2] * m[11] -
+                  m[12] * m[3] * m[10]);
+
+        inv[9] = (-m[0]  * m[9] * m[15] +
+                  m[0]  * m[11] * m[13] +
+                  m[8]  * m[1] * m[15] -
+                  m[8]  * m[3] * m[13] -
+                  m[12] * m[1] * m[11] +
+                  m[12] * m[3] * m[9]);
+
+        inv[13] = (m[0]  * m[9] * m[14] -
+                   m[0]  * m[10] * m[13] -
+                   m[8]  * m[1] * m[14] +
+                   m[8]  * m[2] * m[13] +
+                   m[12] * m[1] * m[10] -
+                   m[12] * m[2] * m[9]);
+
+        inv[2] = (m[1]  * m[6] * m[15] -
+                  m[1]  * m[7] * m[14] -
+                  m[5]  * m[2] * m[15] +
+                  m[5]  * m[3] * m[14] +
+                  m[13] * m[2] * m[7] -
+                  m[13] * m[3] * m[6]);
+
+        inv[6] = (-m[0]  * m[6] * m[15] +
+                  m[0]  * m[7] * m[14] +
+                  m[4]  * m[2] * m[15] -
+                  m[4]  * m[3] * m[14] -
+                  m[12] * m[2] * m[7] +
+                  m[12] * m[3] * m[6]);
+
+        inv[10] = (m[0]  * m[5] * m[15] -
+                   m[0]  * m[7] * m[13] -
+                   m[4]  * m[1] * m[15] +
+                   m[4]  * m[3] * m[13] +
+                   m[12] * m[1] * m[7] -
+                   m[12] * m[3] * m[5]);
+
+        inv[14] = (-m[0]  * m[5] * m[14] +
+                   m[0]  * m[6] * m[13] +
+                   m[4]  * m[1] * m[14] -
+                   m[4]  * m[2] * m[13] -
+                   m[12] * m[1] * m[6] +
+                   m[12] * m[2] * m[5]);
+
+        inv[3] = (-m[1] * m[6] * m[11] +
+                  m[1] * m[7] * m[10] +
+                  m[5] * m[2] * m[11] -
+                  m[5] * m[3] * m[10] -
+                  m[9] * m[2] * m[7] +
+                  m[9] * m[3] * m[6]);
+
+        inv[7] = (m[0] * m[6] * m[11] -
+                  m[0] * m[7] * m[10] -
+                  m[4] * m[2] * m[11] +
+                  m[4] * m[3] * m[10] +
+                  m[8] * m[2] * m[7] -
+                  m[8] * m[3] * m[6]);
+
+        inv[11] = (-m[0] * m[5] * m[11] +
+                   m[0] * m[7] * m[9] +
+                   m[4] * m[1] * m[11] -
+                   m[4] * m[3] * m[9] -
+                   m[8] * m[1] * m[7] +
+                   m[8] * m[3] * m[5]);
+
+        inv[15] = (m[0] * m[5] * m[10] -
+                   m[0] * m[6] * m[9] -
+                   m[4] * m[1] * m[10] +
+                   m[4] * m[2] * m[9] +
+                   m[8] * m[1] * m[6] -
+                   m[8] * m[2] * m[5]);
+
+        det = 1.0 / det;
+
+        for (i = 0; i < 16; i++) {
+            invOut->m[i] = inv[i] * det;
+        }
+
+        return true;
     }
 };
 
@@ -557,9 +765,14 @@ matrix4x4FromMatrix3x3(const Matrix3x3 & m)
 {
     Matrix4x4 ret;
 
-    ret(0, 0) = m.a; ret(0, 1) = m.b; ret(0, 2) = m.c; ret(0, 3) = 0.;
-    ret(1, 0) = m.d; ret(1, 1) = m.e; ret(1, 2) = m.f; ret(1, 3) = 0.;
-    ret(2, 0) = m.g; ret(2, 1) = m.h; ret(2, 2) = m.i; ret(2, 3) = 0.;
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            ret(i,j) = m(i,j);
+        }
+    }
+    ret(0, 3) = 0.;
+    ret(1, 3) = 0.;
+    ret(2, 3) = 0.;
     ret(3, 0) = 0.;  ret(3, 1) = 0.;  ret(3, 2) = 0.;  ret(3, 3) = 1.;
 
     return ret;
