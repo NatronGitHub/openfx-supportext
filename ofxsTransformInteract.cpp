@@ -1236,10 +1236,8 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         centerChanged = true;
         if (_translate) {
             // recompute dxrot,dyrot after rounding
-            double det = R.determinant();
-            if (det != 0.) {
-                Matrix3x3 Rinv = R.inverse(det);
-
+            Matrix3x3 Rinv;
+            if ( R.inverse(&Rinv) ) {
                 dxrot = newx - currentCenter.x;
                 dyrot = newy - currentCenter.y;
                 Point3D dRot;
