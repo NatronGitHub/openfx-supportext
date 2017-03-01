@@ -382,57 +382,85 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
     processor.process();
 } // setupAndProcess
 
-// compute the bounding box of the transform of four points
+// Compute the bounding box of the transform of four points representing a quadrilateral.
+// - If a point has a negative Z, it is not taken into account (thus, if all points have a negative Z, the region is empty)
+// - If two consecutive points have a chage of Z-sign, find a point close to the point with the negative z with a Z equal to 0.
+// This gives a direction which must be fully included in the rod, and thus a full quadrant must be included, ie an infinite
+// value for one of the x bounds and an infinite value for one of the y bounds.
+#warning TODO
 static void
 ofxsTransformRegionFromPoints(const Point3D p[4],
                               OfxRectD &rod)
 {
     // extract the x/y bounds
     double x1, y1, x2, y2;
+    bool empty = true;
+    
+    int i = 0, j = 1;
+    for (; i < 4; ++i, j = (j + 1) % 4) {
+        if (p[i].z > 0) {
+            double x = p[i].x / p[i].z;
+            double y = p[i].y / p[i].z;
 
-    // if all z's have the same sign, we can compute a reasonable ROI, else we give the whole image (the line at infinity crosses the rectangle)
-    bool allpositive = true;
-    bool allnegative = true;
-
-    for (int i = 0; i < 4; ++i) {
-        allnegative = allnegative && (p[i].z < 0.);
-        allpositive = allpositive && (p[i].z > 0.);
+            if (empty) {
+                empty = false;
+                x1 = x2 = x;
+                y1 = y2 = y;
+            } else {
+                if (x < x1) {
+                    x1 = x;
+                } else if (x > x2) {
+                    x2 = x;
+                }
+                if (y < y1) {
+                    y1 = y;
+                } else if (y > y2) {
+                    y2 = y;
+                }
+            }
+        } else if (p[j].z > 0) {
+            // add next point if set is empty
+            if (empty) {
+                empty = false;
+                x1 = x2 = p[j].x / p[j].z;
+                y1 = y2 = p[j].y / p[j].z;
+            }
+        }
+        if ( (p[i].z > 0 && p[j].z <= 0) ||
+             (p[i].z <= 0 && p[j].z > 0) ) {
+            // find position of the z=0 point on the line
+            double a = -p[i].z / (p[j].z - p[i].z);
+            // compute infinite direction
+            double dx = p[i].x + a * (p[j].x - p[i].x);
+            double dy = p[i].y + a * (p[j].y - p[i].y);
+            // add next point if set is empty
+            if (empty) {
+                empty = false;
+                x1 = x2 = p[j].x / p[j].z;
+                y1 = y2 = p[j].y / p[j].z;
+            }
+            // add the full quadrant
+            if (dx < 0) {
+                x1 = kOfxFlagInfiniteMin;
+            } else if (dx > 0) {
+                x2 = kOfxFlagInfiniteMax;
+            }
+            if (dy < 0) {
+                y1 = kOfxFlagInfiniteMin;
+            } else if (dy > 0) {
+                y2 = kOfxFlagInfiniteMax;
+            }
+        }
     }
 
-    if (!allpositive && !allnegative) {
-        // the line at infinity crosses the source RoD
-        x1 = kOfxFlagInfiniteMin;
-        x2 = kOfxFlagInfiniteMax;
-        y1 = kOfxFlagInfiniteMin;
-        y2 = kOfxFlagInfiniteMax;
+    if (empty) {
+        rod.x1 = rod.x2 = rod.y1 = rod.y2 = 0;
     } else {
-        OfxPointD q[4];
-        for (int i = 0; i < 4; ++i) {
-            q[i].x = p[i].x / p[i].z;
-            q[i].y = p[i].y / p[i].z;
-        }
-
-        x1 = x2 = q[0].x;
-        y1 = y2 = q[0].y;
-        for (int i = 1; i < 4; ++i) {
-            if (q[i].x < x1) {
-                x1 = q[i].x;
-            } else if (q[i].x > x2) {
-                x2 = q[i].x;
-            }
-            if (q[i].y < y1) {
-                y1 = q[i].y;
-            } else if (q[i].y > y2) {
-                y2 = q[i].y;
-            }
-        }
+        rod.x1 = x1;
+        rod.x2 = x2;
+        rod.y1 = y1;
+        rod.y2 = y2;
     }
-
-    // GENERIC
-    rod.x1 = x1;
-    rod.x2 = x2;
-    rod.y1 = y1;
-    rod.y2 = y2;
     assert(rod.x1 <= rod.x2 && rod.y1 <= rod.y2);
 } // ofxsTransformRegionFromPoints
 
