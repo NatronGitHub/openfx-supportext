@@ -265,6 +265,28 @@ struct Matrix3x3
         return ret;
     }
 
+    Matrix3x3 operator *(double s)
+    {
+        return Matrix3x3(m[0] * s,
+                         m[1] * s,
+                         m[2] * s,
+                         m[3] * s,
+                         m[4] * s,
+                         m[5] * s,
+                         m[6] * s,
+                         m[7] * s,
+                         m[8] * s);
+    }
+
+    Matrix3x3& operator *=(double s)
+    {
+        for (int i=0; i < 9; ++i) {
+            m[i] *= s;
+        }
+        return *this;
+    }
+
+
     double determinant() const
     {
         return m[0] * (m[4] * m[8] - m[7] * m[5])
