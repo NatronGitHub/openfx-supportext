@@ -177,8 +177,8 @@ private:
                 // see http://openfx.sourceforge.net/Documentation/1.3/ofxProgrammingReference.html#CanonicalCoordinates
                 canonicalCoords.x = (double)x + 0.5;
                 OFX::Point3D transformed = H * canonicalCoords;
-                if ( !_srcImg || (transformed.z == 0.) ) {
-                    // the back-transformed point is at infinity
+                if ( !_srcImg || (transformed.z <= 0.) ) {
+                    // the back-transformed point is at infinity (==0) or behind the camera (<0)
                     for (int c = 0; c < nComponents; ++c) {
                         tmpPix[c] = 0;
                     }
@@ -266,8 +266,8 @@ private:
                         canonicalCoords.x = (double)x + 0.5;
                         const OFX::Matrix3x3& H = _invtransform[t];
                         OFX::Point3D transformed = H * canonicalCoords;
-                        if ( !_srcImg || (transformed.z == 0.) ) {
-                            // the back-transformed point is at infinity
+                        if ( !_srcImg || (transformed.z <= 0.) ) {
+                            // the back-transformed point is at infinity (==0) or behind the camera (<0)
                             for (int c = 0; c < nComponents; ++c) {
                                 tmpPix[c] = 0;
                             }

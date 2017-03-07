@@ -889,6 +889,12 @@ ofxsFilterExpandRoD(OFX::ImageEffect* /*effect*/,
                     bool blackOutside,
                     OfxRectD *rod)
 {
+    if ( (rod->x2 <= rod->x1) || (rod->y2 <= rod->y1) ) {
+        // empty rod
+        
+        return;
+    }
+
     // No need to round things up here, we must give the *actual* RoD
 
     if (!blackOutside) {
@@ -952,6 +958,12 @@ ofxsFilterExpandRoI(const OfxRectD &roi,
 {
     // No need to round things up here, we must give the *actual* RoI,
     // the host should compute the right image region from it (by rounding it up/down).
+
+    if ( (roi.x2 <= roi.x1) || (roi.y2 <= roi.y1) ) {
+        *srcRoI = roi;
+
+        return;
+    }
 
     double pixelSizeX = pixelAspectRatio / renderScale.x;
     double pixelSizeY = 1. / renderScale.y;

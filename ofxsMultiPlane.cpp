@@ -1208,7 +1208,6 @@ describeInContextAddPlaneChoice(ImageEffectDescriptor &desc,
 
         }
         param->setDefault(0);
-        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);             // < the menu is built in getClipPreferences
         if (page) {
             page->addChild(*param);
