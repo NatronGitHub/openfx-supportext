@@ -30,13 +30,14 @@
 #include "ofxsMultiPlane.h"
 
 #include <algorithm>
-
+#include <set>
 
 using namespace OFX;
 
 using std::vector;
 using std::string;
 using std::map;
+using std::set;
 
 static bool gHostSupportsMultiPlaneV1 = false;
 static bool gHostSupportsMultiPlaneV2 = false;
@@ -453,13 +454,26 @@ getHardCodedPlanes(bool onlyColorPlane, std::vector<const MultiPlane::ImagePlane
     }
 
 }
+
+struct ChoiceOption
+{
+    string name, label, hint;
+
+};
+
+struct ChoiceOption_Compare
+{
+    bool operator() (const ChoiceOption& lhs, const ChoiceOption& rhs)
+    {
+        return lhs.name < rhs.name;
+    }
+};
+
 void
 getHardCodedPlaneOptions(const vector<string>& clips,
                          bool addConstants,
                          bool onlyColorPlane,
-                         vector<string>* options,
-                         vector<string>* optionsLabels,
-                         vector<string>* optionHints)
+                         vector<ChoiceOption>* options)
 {
 
 
@@ -475,37 +489,31 @@ getHardCodedPlaneOptions(const vector<string>& clips,
             const std::vector<std::string>& planeChannels = planesToAdd[p]->getChannels();
 
             for (std::size_t i = 0; i < planeChannels.size(); ++i) {
-                string opt, hint;
+                ChoiceOption option;
 
                 // Prefix the clip name if there are multiple clip channels to read from
                 if (clips.size() > 1) {
-                    opt.append(clipName);
-                    opt.push_back('.');
+                    option.name.append(clipName);
+                    option.name.push_back('.');
+                    option.label.append(clipName);
+                    option.label.push_back('.');
                 }
 
-                // Prefix the plane name if the plane is not the color plane
-                if (planesToAdd[p] != &MultiPlane::ImagePlaneDesc::getRGBAComponents()) {
-                    opt.append(planeLabel);
-                    opt.push_back('.');
-                }
+                // Prefix the plane name
+                option.name.append(planesToAdd[p]->getPlaneID());
+                option.name.push_back('.');
+                option.label.append(planeLabel);
+                option.label.push_back('.');
 
-                opt.append(planeChannels[i]);
 
+                option.name.append(planeChannels[i]);
+                option.label.append(planeChannels[i]);
 
                 // Make up some tooltip
-                hint.append(planeChannels[i]);
-                hint.append(" channel from input ");
-                hint.append(clipName);
-
-                if (options) {
-                    options->push_back(opt);
-                }
-                if (optionsLabels) {
-                    optionsLabels->push_back(opt);
-                }
-                if (optionHints) {
-                    optionHints->push_back(hint);
-                }
+                option.hint.append(planeChannels[i]);
+                option.hint.append(" channel from input ");
+                option.hint.append(clipName);
+                options->push_back(option);
 
             }
         }
@@ -516,30 +524,16 @@ getHardCodedPlaneOptions(const vector<string>& clips,
                 opt.append(kMultiPlaneChannelParamOption0);
                 hint.append(kMultiPlaneChannelParamOption0Hint);
 
-                if (options) {
-                    options->push_back(opt);
-                }
-                if (optionsLabels) {
-                    optionsLabels->push_back(opt);
-                }
-                if (optionHints) {
-                    optionHints->push_back(hint);
-                }
+                ChoiceOption choice = {opt, opt, hint};
+                options->push_back(choice);
             }
             {
                 string opt, hint;
                 opt.append(kMultiPlaneChannelParamOption1);
                 hint.append(kMultiPlaneChannelParamOption1Hint);
 
-                if (options) {
-                    options->push_back(opt);
-                }
-                if (optionsLabels) {
-                    optionsLabels->push_back(opt);
-                }
-                if (optionHints) {
-                    optionHints->push_back(hint);
-                }
+                ChoiceOption choice = {opt, opt, hint};
+                options->push_back(choice);
             }
         }
     }
@@ -552,27 +546,21 @@ addInputChannelOptionsRGBAInternal(T* param,
                                    const vector<string>& clips,
                                    bool addConstants,
                                    bool onlyColorPlane,
-                                   vector<string>* optionsParam,
-                                   vector<string>* optionsLabelsParam,
-                                   vector<string>* optionHintsParam)
+                                   vector<ChoiceOption>* optionsParam)
 {
-    vector<string> options, labels, hints;
-    getHardCodedPlaneOptions(clips, addConstants, onlyColorPlane, &options, &labels, &hints);
+    vector<ChoiceOption> options;
+    getHardCodedPlaneOptions(clips, addConstants, onlyColorPlane, &options);
     if (optionsParam) {
         *optionsParam = options;
     }
-    if (optionsLabelsParam) {
-        *optionsLabelsParam = labels;
-    }
-    if (optionHintsParam) {
-        *optionHintsParam = hints;
-    }
+
     if (param) {
-        for (std::size_t i = 0; i < labels.size(); ++i) {
-            param->appendOption(labels[i], hints[i], options[i]);
+        for (std::size_t i = 0; i < options.size(); ++i) {
+            param->appendOption(options[i].label, options[i].hint, options[i].name);
         }
     }
 } // addInputChannelOptionsRGBAInternal
+
 
 } // anonymous namespace
 
@@ -586,20 +574,18 @@ addInputChannelOptionsRGBA(ChoiceParamDescriptor* param,
                            bool addConstants,
                            bool onlyColorPlane)
 {
-    addInputChannelOptionsRGBAInternal<ChoiceParamDescriptor>(param, clips, addConstants, onlyColorPlane, 0, 0, 0);
+    addInputChannelOptionsRGBAInternal<ChoiceParamDescriptor>(param, clips, addConstants, onlyColorPlane, 0);
 }
 
 void
 addInputChannelOptionsRGBA(const vector<string>& clips,
                            bool addConstants,
-                           bool onlyColorPlane,
-                           vector<string>* options,
-                           vector<string>* optionsLabels,
-                           vector<string>* optionsHints)
+                           bool onlyColorPlane)
 {
-    addInputChannelOptionsRGBAInternal<ChoiceParam>(0, clips, addConstants, onlyColorPlane, options, optionsLabels, optionsHints);
+    addInputChannelOptionsRGBAInternal<ChoiceParam>(0, clips, addConstants, onlyColorPlane, 0);
 }
 }         // factory
+
 
 /**
  * @brief For each choice param, the list of clips it "depends on" (that is the clip available planes that will be visible in the choice)
@@ -763,18 +749,19 @@ MultiPlaneEffectPrivate::buildChannelMenus()
     // For each parameter to refresh
     for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
 
-        vector<string> optionIDs, optionLabels, optionHints;
-
+        vector<ChoiceOption> options;
+        set<ChoiceOption, ChoiceOption_Compare> optionsSorted;
 
         if (it->second.splitPlanesIntoChannels) {
             // Add built-in hard-coded options A.R, A.G, ... 0, 1, B.R, B.G ...
-            Factory::addInputChannelOptionsRGBA(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &optionIDs, &optionLabels, &optionHints);
+            getHardCodedPlaneOptions(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &options);
+            optionsSorted.insert(options.begin(), options.end());
         } else {
             // For plane selectors, we might want a "None" option to select an input plane.
             if (it->second.addNoneOption) {
-                optionIDs.push_back(kMultiPlanePlaneParamOptionNone);
-                optionLabels.push_back(kMultiPlanePlaneParamOptionNoneLabel);
-                optionHints.push_back("");
+                ChoiceOption opt = {kMultiPlanePlaneParamOptionNone, kMultiPlanePlaneParamOptionNoneLabel, ""};
+                options.push_back(opt);
+                optionsSorted.insert(opt);
             }
         }
 
@@ -822,29 +809,35 @@ MultiPlaneEffectPrivate::buildChannelMenus()
                     // User wants per-channel options
                     int nChannels = it3->getNumComponents();
                     for (int k = 0; k < nChannels; ++k) {
-                        optionIDs.resize(optionIDs.size() + 1);
-                        optionLabels.resize(optionLabels.size() + 1);
-                        optionHints.push_back("");
-                        it3->getChannelOption(k, &optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
+
+                        ChoiceOption opt;
+                        it3->getChannelOption(k, &opt.name, &opt.label);
 
                         // Prefix the clip name if there are multiple clip channels to read from
                         if (it->second.clips.size() > 1) {
-                            optionIDs[optionIDs.size() - 1] = it2->first->name() + '.' + optionIDs[optionIDs.size() - 1];
-                            optionLabels[optionLabels.size() - 1] = it2->first->name() + '.' + optionLabels[optionLabels.size() - 1];
+                            opt.name = it2->first->name() + '.' + opt.name;
+                            opt.label = it2->first->name() + '.' + opt.label;
+                        }
+
+                        if (optionsSorted.find(opt) == optionsSorted.end()) {
+                            options.push_back(opt);
+                            optionsSorted.insert(opt);
                         }
 
                     }
                 } else {
                     // User wants planes in options
-                    optionIDs.resize(optionIDs.size() + 1);
-                    optionLabels.resize(optionLabels.size() + 1);
-                    optionHints.push_back("");
-                    it3->getPlaneOption(&optionIDs[optionIDs.size() - 1], &optionLabels[optionLabels.size() - 1]);
+                    ChoiceOption opt;
+                    it3->getPlaneOption(&opt.name, &opt.label);
 
                     // Prefix the clip name if there are multiple clip channels to read from
                     if (it->second.clips.size() > 1) {
-                        optionIDs[optionIDs.size() - 1] = it2->first->name() + '.' + optionIDs[optionIDs.size() - 1];
-                        optionLabels[optionLabels.size() - 1] = it2->first->name() + '.' + optionLabels[optionLabels.size() - 1];
+                        opt.name = it2->first->name() + '.' + opt.name;
+                        opt.label = it2->first->name() + '.' + opt.label;
+                    }
+                    if (optionsSorted.find(opt) == optionsSorted.end()) {
+                        options.push_back(opt);
+                        optionsSorted.insert(opt);
                     }
                 }
             } // for each plane
@@ -852,7 +845,13 @@ MultiPlaneEffectPrivate::buildChannelMenus()
         } // for each clip planes available
 
         // Set the new choice menu
-        it->second.param->resetOptions(optionLabels, optionHints, optionIDs);
+        vector<string> labels(options.size()), hints(options.size()), enums(options.size());
+        for (std::size_t i = 0; i < options.size(); ++i) {
+            labels[i] = options[i].label;
+            hints[i] = options[i].hint;
+            enums[i] = options[i].name;
+        }
+        it->second.param->resetOptions(labels, hints, enums);
 
     } // for all choice parameters
 } // buildChannelMenus

@@ -536,10 +536,7 @@ void addInputChannelOptionsRGBA(OFX::ChoiceParamDescriptor* param,
  **/
 void addInputChannelOptionsRGBA(const std::vector<std::string>& clips,
                                 bool addConstants,
-                                bool onlyColorPlane,
-                                std::vector<std::string>* options,
-                                std::vector<std::string>* optionsLabels,
-                                std::vector<std::string>* optionsLabelHints);
+                                bool onlyColorPlane);
 }         // Factory
 }     // namespace MultiPlane
 } // namespace OFX
