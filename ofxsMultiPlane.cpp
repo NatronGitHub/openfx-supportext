@@ -973,16 +973,13 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
         const vector<string>& planeChannels = planesToAdd[p]->getChannels();
         for (std::size_t c = 0; c < planeChannels.size(); ++c) {
             std::string channelOptionID;
-            // For the color plane, we did not add the plane label, see @getHardCodedPlaneOptions
-            if (planesToAdd[p] == &MultiPlane::ImagePlaneDesc::getRGBAComponents()) {
-                channelOptionID = planeChannels[c];
+
+            if (compareWithID) {
+                channelOptionID = planesToAdd[p]->getPlaneID() + '.' + planeChannels[c];
             } else {
-                if (compareWithID) {
-                    channelOptionID = planesToAdd[p]->getPlaneID() + '.' + planeChannels[c];
-                } else {
-                    channelOptionID = planesToAdd[p]->getPlaneLabel() + '.' + planeChannels[c];
-                }
+                channelOptionID = planesToAdd[p]->getPlaneLabel() + '.' + planeChannels[c];
             }
+
             if (channelOptionID == optionWithoutClipPrefix) {
                 *plane = *planesToAdd[p];
                 *channelIndexInPlane = c;
