@@ -550,7 +550,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
                            GeneratorExtentEnum defaultType,
                            PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
                            bool useOutputComponentsAndDepth,
-                           ContextEnum context)
+                           ContextEnum context,
+                           bool reformat)
 {
     // extent
     {
@@ -586,7 +587,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
 
 #ifdef OFX_EXTENSIONS_NATRON
     // reformat
-    if (getImageEffectHostDescription()->isNatron) {
+    if (reformat && getImageEffectHostDescription()->isNatron) {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamGeneratorReformat);
         param->setLabel(kParamGeneratorReformatLabel);
         param->setHint(kParamGeneratorReformatHint);
