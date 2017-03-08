@@ -981,6 +981,20 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
             }
 
             if (channelOptionID == optionWithoutClipPrefix) {
+
+                // If the hard-coded plane is the color plane, the channel may not exist actually in the available components,
+                // e.g: Alpha may be present in the choice but the components may be RGB
+                // In this case, return 1 instead for Alpha and 0 for any other channel.
+                if (planesToAdd[p]->isColorPlane()) {
+                    if ((int)c >= (*clip)->getPixelComponentCount()) {
+                        if (c == 3) {
+                            *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1;
+                        } else {
+                            *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0;
+                        }
+                        return true;
+                    }
+                }
                 *plane = *planesToAdd[p];
                 *channelIndexInPlane = c;
                 *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedChannelInPlane;
