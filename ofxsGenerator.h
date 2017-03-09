@@ -204,7 +204,8 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 GeneratorExtentEnum defaultType,
                                 PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
                                 bool useOutputComponentsAndDepth,
-                                ContextEnum context);
+                                ContextEnum context,
+                                bool reformat = true);
 } // OFX
 
 #endif // ifndef openfx_supportext_ofxsGenerator_h
