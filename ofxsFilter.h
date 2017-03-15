@@ -389,7 +389,7 @@ ofxsGetPixComp(const PIX* p,
     Ipn, Icn, Inn, Ian, \
     Ipa, Ica, Ina, Iaa
 
-// note that the center of pixel (0,0) has canonical coordinates (0.5,0.5)
+// note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
 bool
 ofxsFilterInterpolate2D(double fx,
