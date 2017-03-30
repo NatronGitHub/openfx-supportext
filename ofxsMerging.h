@@ -1343,12 +1343,17 @@ blend_hsl_luminosity (rgb_t *res,
 // Code from pixman-combine-float.c
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Global wrapper templated by the blending operator.
+ * A and B are respectively the color of the image A and B and is assumed to of size nComponents, 
+ * nComponents being at most 4
+ **/
 template <MergingFunctionEnum f, typename PIX, int nComponents, int maxValue>
 void
 mergePixel(bool doAlphaMasking,
-           const PIX A[4],
+           const PIX *A,
            PIX a,
-           const PIX B[4],
+           const PIX *B,
            PIX b,
            PIX* dst)
 {
@@ -1359,14 +1364,14 @@ mergePixel(bool doAlphaMasking,
     if ( !isSeparable(f) ) {
         // HSL modes
         rgb_t src, dest, res;
-        if (a == 0) {
+        if (a == 0 || nComponents < 3) {
             src.r = src.g = src.b = 0;
         } else {
             src.r = A[0] / (float)a;
             src.g = A[1] / (float)a;
             src.b = A[2] / (float)a;
         }
-        if (b == 0) {
+        if (b == 0 || nComponents < 3) {
             dest.r = dest.g = dest.b = 0;
         } else {
             dest.r = B[0] / (float)b;
