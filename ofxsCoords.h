@@ -44,10 +44,11 @@ rectIsEmpty(const Rect & r)
 
 /// Bounding box of two rectangles
 /// bbox may be aliased to a or b
-inline void
-rectBoundingBox(const OfxRectD & a,
-                const OfxRectD & b,
-                OfxRectD* bbox)
+template <typename Rect>
+void
+rectBoundingBox(const Rect & a,
+                const Rect & b,
+                Rect* bbox)
 {
     if ( rectIsEmpty(a) ) {
         *bbox = b;
