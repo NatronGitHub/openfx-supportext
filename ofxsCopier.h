@@ -46,6 +46,21 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
+
         int rowBytes = sizeof(PIX) * nComponents * (procWindow.x2 - procWindow.x1);
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
@@ -125,8 +140,8 @@ public:
                                 dstPix += nComponents;
                                 ++srcx;
                                 if (_srcBounds.x2 <= srcx) {
-                                    srcx -= (_srcBounds.y2 - _srcBounds.y1);
-                                    srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                                    srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                                    srcPix -= (_srcBounds.x2 - _srcBounds.x1) * nComponents;
                                 }
                             }
                         }
@@ -186,8 +201,8 @@ public:
                                 dstPix += nComponents;
                                 ++srcx;
                                 if (_srcBounds.x2 <= srcx) {
-                                    srcx -= (_srcBounds.y2 - _srcBounds.y1);
-                                    srcPix -= (_srcBounds.y2 - _srcBounds.y1) * nComponents;
+                                    srcx -= (_srcBounds.x2 - _srcBounds.x1);
+                                    srcPix -= (_srcBounds.x2 - _srcBounds.x1) * nComponents;
                                 }
                             }
                         }
@@ -215,6 +230,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         assert(nComponents == 4 || nComponents == 1);
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
@@ -289,6 +318,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         float tmpPix[nComponents];
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
@@ -366,6 +409,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         float unpPix[4];
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
@@ -440,6 +497,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
@@ -535,6 +606,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         float unpPix[4];
 
         if (srcNComponents == 3) {
@@ -613,6 +698,20 @@ public:
     // and do some processing
     void multiThreadProcessImages(OfxRectI procWindow)
     {
+        assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
+        // for more safety, make sure procWindow is within dstBounds (as covered by the above assert)
+        if (_dstBounds.x1 > procWindow.x1) {
+            procWindow.x1 = _dstBounds.x1;
+        }
+        if (_dstBounds.x2 < procWindow.x2) {
+            procWindow.x2 = _dstBounds.x2;
+        }
+        if (_dstBounds.y1 > procWindow.y1) {
+            procWindow.y1 = _dstBounds.y1;
+        }
+        if (_dstBounds.y2 < procWindow.y2) {
+            procWindow.y2 = _dstBounds.y2;
+        }
         int rowSize =  _nComponents * (procWindow.x2 - procWindow.x1);
 
         for (int y = procWindow.y1; y < procWindow.y2; ++y) {
