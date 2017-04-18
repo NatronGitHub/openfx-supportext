@@ -862,7 +862,9 @@ MultiPlaneEffectPrivate::handleAllPlanesCheckboxParamChanged()
 {
     bool allPlanesSelected = allPlanesCheckbox->getValue();
     for (map<string, ChoiceParamClips>::const_iterator it = params.begin(); it != params.end(); ++it) {
-        it->second.param->setIsSecretAndDisabled(allPlanesSelected);
+        if (!it->second.splitPlanesIntoChannels) {
+            it->second.param->setIsSecretAndDisabled(allPlanesSelected);
+        }
     }
 }
 
@@ -911,7 +913,7 @@ MultiPlaneEffect::changedClip(const InstanceChangedArgs & /*args*/, const std::s
 void
 MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 {
-    // Refresh the channel menus on Natron < 3, otherwise this is done in clipChanged in Natron >= 3
+    // Refresh the channel menus on Natron < 3 or if it has never been refreshed, otherwise this is done in clipChanged in Natron >= 3
     if (!gHostIsNatron3OrGreater) {
         _imp->buildChannelMenus();
     }
@@ -962,7 +964,8 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
         MultiPlane::MultiPlaneEffect::GetPlaneNeededRetCodeEnum stat = getPlaneNeeded(it->second.param->getName(), &clip, &plane, &channelIndex);
         if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeFailed ||
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0 ||
-            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1) {
+            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1 ||
+            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedAllPlanes) {
             continue;
         }
         std::set<std::string>& availablePlanes = clipMap[clip];
