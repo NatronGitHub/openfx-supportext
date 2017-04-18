@@ -405,6 +405,38 @@ public:
 
     virtual ~MultiPlaneEffect();
 
+    struct FetchChoiceParamOptions
+    {
+        bool splitPlanesIntoChannelOptions;
+        bool addNoneOption;
+        bool addConstantOptions;
+        bool isOutputPlaneChoice;
+        bool hideIfClipDisconnected;
+        std::vector<OFX::Clip*> dependsClips;
+
+        static FetchChoiceParamOptions createFetchChoiceParamOptionsForInputChannel()
+        {
+            FetchChoiceParamOptions ret;
+            ret.splitPlanesIntoChannelOptions = true;
+            ret.addNoneOption = false;
+            ret.addConstantOptions = true;
+            ret.isOutputPlaneChoice = false;
+            ret.hideIfClipDisconnected = false;
+            return ret;
+        }
+
+        static FetchChoiceParamOptions createFetchChoiceParamOptionsForOutputPlane()
+        {
+            FetchChoiceParamOptions ret;
+            ret.splitPlanesIntoChannelOptions = false;
+            ret.addNoneOption = false;
+            ret.addConstantOptions = false;
+            ret.isOutputPlaneChoice = true;
+            ret.hideIfClipDisconnected = false;
+            return ret;
+        }
+    };
+
     /**
      * @brief Fetch a dynamic choice parameter that was declared to the factory with
      * describeInContextAddOutputLayerChoice() or describeInContextAddChannelChoice().
@@ -413,27 +445,7 @@ public:
      * @param isOutputPlaneChoice If this
      **/
     void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
-                                               bool splitPlanesIntoChannelOptions,
-                                               bool canAddNoneOption,
-                                               bool isOutputPlaneChoice,
-                                               bool hideIfClipDisconnected,
-                                               const std::vector<OFX::Clip*>& dependsClips);
-
-    /**
-     * @brief Convenience func for param depending only on a single clip
-     **/
-    void fetchDynamicMultiplaneChoiceParameter(const std::string& paramName,
-                                               bool splitPlanesIntoChannelOptions,
-                                               bool canAddNoneOption,
-                                               bool isOutputPlaneChoice,
-                                               bool hideIfClipDisconnected,
-                                               OFX::Clip* dependsClip)
-    {
-        std::vector<OFX::Clip*> vec(1);
-
-        vec[0] = dependsClip;
-        fetchDynamicMultiplaneChoiceParameter(paramName, splitPlanesIntoChannelOptions, canAddNoneOption, isOutputPlaneChoice, hideIfClipDisconnected, vec);
-    }
+                                               const FetchChoiceParamOptions& args);
 
     /**
      * @brief Should be called by the implementation to refresh the visibility of parameters once they have all been fetched.
@@ -475,8 +487,15 @@ public:
 
     /**
      * @brief Must be called by derived class before anything else: it refreshes the channel menus.
+     * By default it also set the dst clip pixel components according to the output plane selector if there is any
      **/
     virtual void getClipPreferences(ClipPreferencesSetter &clipPreferences) OVERRIDE;
+
+    /**
+     * @brief Set the requested planes according to the selectors that were registered for each clip.
+     * By default the pass-through clip is set to the first source clip encountered in the registered plane selectors
+     **/
+    virtual void getClipComponents(const ClipComponentsArguments& args, ClipComponentsSetter& clipComponents) OVERRIDE;
 
     /**
      * @brief Overriden to handle parameter changes. Derived class must call this class implementation.
@@ -519,7 +538,8 @@ OFX::ChoiceParamDescriptor* describeInContextAddPlaneChannelChoice(OFX::ImageEff
                                                                    const std::vector<std::string>& clips,
                                                                    const std::string& name,
                                                                    const std::string& label,
-                                                                   const std::string& hint);
+                                                                   const std::string& hint,
+                                                                   bool addConstants = true);
 
 /**
  * @brief Add the standard R,G,B,A choices for the given clips.

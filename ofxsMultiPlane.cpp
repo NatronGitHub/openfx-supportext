@@ -601,6 +601,9 @@ struct ChoiceParamClips
     // True if we should add a "None" option
     bool addNoneOption;
 
+    // True if we should add 0 and 1 options
+    bool addConstantOptions;
+
     bool isOutput;
 
     bool hideIfClipDisconnected;
@@ -612,6 +615,7 @@ struct ChoiceParamClips
     : param(0)
     , splitPlanesIntoChannels(false)
     , addNoneOption(false)
+    , addConstantOptions(false)
     , isOutput(false)
     , hideIfClipDisconnected(false)
     , clips()
@@ -681,27 +685,24 @@ MultiPlaneEffect::~MultiPlaneEffect()
 
 void
 MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
-                                                        bool splitPlanesIntoChannelOptions,
-                                                        bool canAddNoneOption,
-                                                        bool isOutputPlaneChoice,
-                                                        bool hideIfClipsDisconnected,
-                                                        const vector<Clip*>& dependsClips)
+                                                        const FetchChoiceParamOptions& args)
 {
     ChoiceParamClips& paramData = _imp->params[paramName];
 
     paramData.param = fetchChoiceParam(paramName);
-    paramData.splitPlanesIntoChannels = splitPlanesIntoChannelOptions;
-    paramData.addNoneOption = canAddNoneOption;
-    paramData.clips = dependsClips;
+    paramData.splitPlanesIntoChannels = args.splitPlanesIntoChannelOptions;
+    paramData.addNoneOption = args.addNoneOption;
+    paramData.addConstantOptions = args.addConstantOptions;
+    paramData.clips = args.dependsClips;
 
-    for (std::size_t i = 0; i < dependsClips.size(); ++i) {
-        paramData.clipsName.push_back( dependsClips[i]->name() );
+    for (std::size_t i = 0; i < args.dependsClips.size(); ++i) {
+        paramData.clipsName.push_back( args.dependsClips[i]->name() );
     }
 
-    paramData.isOutput = isOutputPlaneChoice;
-    paramData.hideIfClipDisconnected = hideIfClipsDisconnected;
+    paramData.isOutput = args.isOutputPlaneChoice;
+    paramData.hideIfClipDisconnected = args.hideIfClipDisconnected;
 
-    if (isOutputPlaneChoice && !_imp->allPlanesCheckbox && paramExists(kMultiPlaneProcessAllPlanesParam)) {
+    if (args.isOutputPlaneChoice && !_imp->allPlanesCheckbox && paramExists(kMultiPlaneProcessAllPlanesParam)) {
         _imp->allPlanesCheckbox = fetchBooleanParam(kMultiPlaneProcessAllPlanesParam);
     }
 
@@ -754,7 +755,7 @@ MultiPlaneEffectPrivate::buildChannelMenus()
 
         if (it->second.splitPlanesIntoChannels) {
             // Add built-in hard-coded options A.R, A.G, ... 0, 1, B.R, B.G ...
-            getHardCodedPlaneOptions(it->second.clipsName, true /*addConstants*/, true /*onlyColorPlane*/, &options);
+            getHardCodedPlaneOptions(it->second.clipsName, it->second.addConstantOptions, true /*onlyColorPlane*/, &options);
             optionsSorted.insert(options.begin(), options.end());
         } else {
             // For plane selectors, we might want a "None" option to select an input plane.
@@ -908,13 +909,78 @@ MultiPlaneEffect::changedClip(const InstanceChangedArgs & /*args*/, const std::s
 }
 
 void
-MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &/*clipPreferences*/)
+MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 {
     // Refresh the channel menus on Natron < 3, otherwise this is done in clipChanged in Natron >= 3
     if (!gHostIsNatron3OrGreater) {
         _imp->buildChannelMenus();
     }
-}
+
+
+    // By default set the clip preferences according to what is selected with the output plane selector.
+    for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+        if (!it->second.isOutput) {
+            continue;
+        }
+        MultiPlane::ImagePlaneDesc dstPlane;
+        {
+            OFX::Clip* clip = 0;
+            int channelIndex = -1;
+            MultiPlane::MultiPlaneEffect::GetPlaneNeededRetCodeEnum stat = getPlaneNeeded(it->second.param->getName(), &clip, &dstPlane, &channelIndex);
+            if (stat != MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedPlane) {
+                dstPlane = MultiPlane::ImagePlaneDesc::getNoneComponents();
+            }
+        }
+
+        // Get clip preferences expects a hard coded components string but here we may have any kind of plane.
+        // To respect OpenFX, we map our plane number of components to the components of the corresponding color plane
+        // e.g: if our plane is Toto.XYZ and has 3 channels, it becomes RGB
+        MultiPlane::ImagePlaneDesc colorPlaneMapped = MultiPlane::ImagePlaneDesc::mapNCompsToColorPlane(dstPlane.getNumComponents());
+        PixelComponentEnum dstPixelComps = mapStrToPixelComponentEnum(MultiPlane::ImagePlaneDesc::mapPlaneToOFXComponentsTypeString(colorPlaneMapped));
+
+        // For the output plane parameter, the clips must contain a single clip being the output clip
+        assert(it->second.clips.size() == 1 && it->second.clips[0] == _imp->dstClip);
+        clipPreferences.setClipComponents(*it->second.clips[0], dstPixelComps);
+
+    }
+} // getClipPreferences
+
+void
+MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipComponentsSetter& clipComponents)
+{
+
+    assert(gHostSupportsMultiPlaneV2 || gHostSupportsMultiPlaneV1);
+
+
+    // Record clips that have already had their planes set because multipla parameters can reference the same clip
+    std::map<Clip*, std::set<std::string> > clipMap;
+    bool passThroughClipSet = false;
+    for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
+        MultiPlane::ImagePlaneDesc plane;
+        OFX::Clip* clip = 0;
+        int channelIndex = -1;
+        MultiPlane::MultiPlaneEffect::GetPlaneNeededRetCodeEnum stat = getPlaneNeeded(it->second.param->getName(), &clip, &plane, &channelIndex);
+        if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeFailed ||
+            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0 ||
+            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1) {
+            return;
+        }
+        std::set<std::string>& availablePlanes = clipMap[clip];
+
+        std::string ofxComponentsStr = MultiPlane::ImagePlaneDesc::mapPlaneToOFXPlaneString(plane);
+        std::pair<std::set<std::string>::iterator, bool> ret = availablePlanes.insert(ofxComponentsStr);
+        if (ret.second) {
+            clipComponents.addClipPlane(*clip, ofxComponentsStr);
+        }
+
+        // Set the pass-through clip to the first encountered source clip
+        if (!passThroughClipSet && clip->name() != kOfxImageEffectOutputClipName) {
+            passThroughClipSet = true;
+            clipComponents.setPassThroughClip(clip, args.time, args.view);
+        }
+    }
+
+} // getClipComponents
 
 static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
                                        bool compareWithID,
@@ -1258,7 +1324,8 @@ describeInContextAddPlaneChannelChoice(ImageEffectDescriptor &desc,
                                        const vector<string>& clips,
                                        const string& name,
                                        const string& label,
-                                       const string& hint)
+                                       const string& hint,
+                                       bool addConstants)
     
 {
 
@@ -1273,7 +1340,7 @@ describeInContextAddPlaneChannelChoice(ImageEffectDescriptor &desc,
         param->setLabel(label);
         param->setHint(hint);
         param->setAnimates(false);
-        addInputChannelOptionsRGBA(param, clips, true /*addContants*/, gHostSupportsMultiPlaneV2 /*onlyColorPlane*/);
+        addInputChannelOptionsRGBA(param, clips, addConstants /*addContants*/, gHostSupportsMultiPlaneV2 /*onlyColorPlane*/);
 
         if (page) {
             page->addChild(*param);
