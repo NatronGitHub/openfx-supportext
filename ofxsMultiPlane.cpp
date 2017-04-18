@@ -940,8 +940,6 @@ MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         MultiPlane::ImagePlaneDesc colorPlaneMapped = MultiPlane::ImagePlaneDesc::mapNCompsToColorPlane(dstPlane.getNumComponents());
         PixelComponentEnum dstPixelComps = mapStrToPixelComponentEnum(MultiPlane::ImagePlaneDesc::mapPlaneToOFXComponentsTypeString(colorPlaneMapped));
 
-        // For the output plane parameter, the clips must contain a single clip being the output clip
-        assert(it->second.clips.size() == 1 && it->second.clips[0] == _imp->dstClip);
         clipPreferences.setClipComponents(*it->second.clips[0], dstPixelComps);
 
     }
