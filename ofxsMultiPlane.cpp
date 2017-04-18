@@ -963,7 +963,7 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
         if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeFailed ||
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0 ||
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1) {
-            return;
+            continue;
         }
         std::set<std::string>& availablePlanes = clipMap[clip];
 
