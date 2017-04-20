@@ -375,7 +375,10 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         break;
     }
     case eGeneratorExtentSize:
-        if ( _reformat && _reformat->getValue() ) {
+        // only set the format if btmLeft and size are not animated 
+        if ( _reformat && _reformat->getValue() &&
+             _btmLeft->getNumKeys() == 0 &&
+             _size->getNumKeys() == 0 ) {
             par = 1;
         }
         break;
@@ -568,6 +571,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamGeneratorExtentOptionDefault, kParamGeneratorExtentOptionDefaultHint);
         param->setDefault( (int)defaultType );
         param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -592,6 +596,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setLabel(kParamGeneratorReformatLabel);
         param->setHint(kParamGeneratorReformatHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
+        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -645,6 +650,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->appendOption(kParamFormatSquare2kLabel);
         param->setDefault(eParamFormatPCVideo);
         param->setHint(kParamGeneratorFormatHint);
+        param->setAnimates(false);
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -662,6 +668,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setHint(kParamGeneratorSizeHint);
             param->setIsSecretAndDisabled(true);
             param->setDefault(w, h);
+            param->setAnimates(false); // does not animate, because we set format
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);
@@ -676,6 +683,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             param->setRange(0., DBL_MAX);
             param->setDisplayRange(0.5, 2.);
             param->setDefault(par);
+            param->setAnimates(false); // does not animate, because we set format
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);
@@ -700,6 +708,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setLayoutHint(eLayoutHintNoNewLine);
         param->setHint("Coordinates of the bottom left corner of the size rectangle.");
         param->setDigits(0);
+        // This parameter *can* be animated, because it only sets the format if "Reformat" is checked
+        //param->setAnimates(false); // does not animate, because we set format
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -724,6 +734,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setHint("Width and height of the size rectangle.");
         param->setIncrement(1.);
         param->setDigits(0);
+        // This parameter *can* be animated, because it only sets the format if "Reformat" is checked
+        //param->setAnimates(false); // does not animate, because we set format
         desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
@@ -896,6 +908,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
                     ++nOptions;
                 }
                 param->setDefault(defIndex);
+                param->setAnimates(false);
                 desc.addClipPreferencesSlaveParam(*param);
                 if (page) {
                     page->addChild(*param);
@@ -935,6 +948,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             // Disable it for now (in the future, there may be colorspace conversion options)
             param->setIsSecretAndDisabled(true); // always secret
 #endif
+            param->setAnimates(false);
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);
