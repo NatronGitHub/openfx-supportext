@@ -89,7 +89,7 @@ enum GeneratorExtentEnum
 
 #define kParamGeneratorReformat "reformat"
 #define kParamGeneratorReformatLabel "Reformat"
-#define kParamGeneratorReformatHint "Set the output format to the given extent."
+#define kParamGeneratorReformatHint "Set the output format to the given extent, except if the Bottom Left or Size parameters is animated."
 
 
 class GeneratorPlugin
