@@ -593,8 +593,8 @@ generatorDescribeInContext(PageParamDescriptor *page,
         param->setLabel(kParamGeneratorReformatLabel);
         param->setHint(kParamGeneratorReformatHint);
         param->setLayoutHint(eLayoutHintNoNewLine);
-        desc.addClipPreferencesSlaveParam(*param);
         param->setAnimates(false);
+        desc.addClipPreferencesSlaveParam(*param);
         if (page) {
             page->addChild(*param);
         }
