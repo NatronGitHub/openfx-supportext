@@ -1064,25 +1064,27 @@ Transform3x3Plugin::getTransform(const TransformArguments &args,
 
     const double time = args.time;
 
-    // first, check if effect has blur, see Transform3x3Plugin::setupAndProcess()
-    double motionblur = 0.;
-    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
+    if (!args.renderQualityDraft) {
+        // first, check if effect has blur, see Transform3x3Plugin::setupAndProcess()
+        double motionblur = 0.;
+        bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
 
-    if (_motionblur) {
-        _motionblur->getValueAtTime(time, motionblur);
-    }
-    if (_directionalBlur) {
-        _directionalBlur->getValueAtTime(time, directionalBlur);
-    }
-    double shutter = 0.;
-    if (!directionalBlur) {
-        if (_shutter) {
-            _shutter->getValueAtTime(time, shutter);
+        if (_motionblur) {
+            _motionblur->getValueAtTime(time, motionblur);
         }
-    }
-    if ( ( (shutter != 0.) && (motionblur != 0.) ) || directionalBlur ) {
-        // effect has blur
-        return false;
+        if (_directionalBlur) {
+            _directionalBlur->getValueAtTime(time, directionalBlur);
+        }
+        double shutter = 0.;
+        if (!directionalBlur) {
+            if (_shutter) {
+                _shutter->getValueAtTime(time, shutter);
+            }
+        }
+        if ( ( (shutter != 0.) && (motionblur != 0.) ) || directionalBlur ) {
+            // effect has blur
+            return false;
+        }
     }
 
     bool invert = false;

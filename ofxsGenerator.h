@@ -127,17 +127,17 @@ protected:
     virtual OFX::Clip* getSrcClip() const { return 0; }
 
     void checkComponents(OFX::BitDepthEnum dstBitDepth, OFX::PixelComponentEnum dstComponents);
-    bool getRegionOfDefinition(OfxRectD &rod);
+    bool getRegionOfDefinition(double time, OfxRectD &rod);
     virtual void getClipPreferences(OFX::ClipPreferencesSetter &clipPreferences) OVERRIDE;
 
 
 private:
 
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
-    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments & /*args*/,
+    virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments & args,
                                        OfxRectD &rod) OVERRIDE
     {
-        return getRegionOfDefinition(rod);
+        return getRegionOfDefinition(args.time, rod);
     }
 
     /* override the time domain action, only for the general context */
