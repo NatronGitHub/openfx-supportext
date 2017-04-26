@@ -420,7 +420,8 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                bool maskInvert, //<! invert mask behavior
                PIX *dstPix) //!< destination pixel
 {
-    assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
+    // For a multi-planar effect, the mask image may have any components
+    assert(!domask || !maskImg || maskImg->getPixelComponentCount() > 0);
     const PIX *maskPix = NULL;
     float maskScale = 1.f;
 
