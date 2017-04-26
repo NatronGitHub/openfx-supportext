@@ -307,16 +307,16 @@ GeneratorPlugin::changedParam(const InstanceChangedArgs &args,
 }
 
 bool
-GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
+GeneratorPlugin::getRegionOfDefinition(double time, OfxRectD &rod)
 {
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     switch (extent) {
     case eGeneratorExtentFormat: {
         int w, h;
-        _formatSize->getValue(w, h);
+        _formatSize->getValueAtTime(time, w, h);
         double par;
-        _formatPar->getValue(par);
+        _formatPar->getValueAtTime(time, par);
         OfxRectI pixelFormat;
         pixelFormat.x1 = pixelFormat.y1 = 0;
         pixelFormat.x2 = w;
@@ -327,8 +327,8 @@ GeneratorPlugin::getRegionOfDefinition(OfxRectD &rod)
         return true;
     }
     case eGeneratorExtentSize: {
-        _size->getValue(rod.x2, rod.y2);
-        _btmLeft->getValue(rod.x1, rod.y1);
+        _size->getValueAtTime(time, rod.x2, rod.y2);
+        _btmLeft->getValueAtTime(time, rod.x1, rod.y1);
         rod.x2 += rod.x1;
         rod.y2 += rod.y1;
 
@@ -399,7 +399,8 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
         clipPreferences.setPixelAspectRatio(*_dstClip, par);
 #ifdef OFX_EXTENSIONS_NATRON
         OfxRectD rod;
-        if ( getRegionOfDefinition(rod) ) { // don't set format if default
+        // get the format from time = 0
+        if ( getRegionOfDefinition(0, rod) ) { // don't set format if default
             OfxRectI format;
             const OfxPointD rsOne = {1., 1.};
             Coords::toPixelNearest(rod, rsOne, par, &format);
