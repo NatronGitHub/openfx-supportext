@@ -928,7 +928,9 @@ void yuv_to_rgb709( float y, float u, float v, float *r, float *g, float *b );
 template<typename T>
 T rgb709_to_y( T r, T g, T b )
 {
-    return 0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
+    // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+    // from 07 Apr 2017
+    return 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
 }
 
 template<typename T>
@@ -943,13 +945,16 @@ rgb709_to_xyz(T r,
     //*x = 0.412453f * r + 0.357580f * g + 0.180423f * b;
     //*y = 0.212671f * r + 0.715160f * g + 0.072169f * b;
     //*z = 0.019334f * r + 0.119193f * g + 0.950227f * b;
+    // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
     //> with(linalg):
     //> M:=matrix([[3.2409699419, -1.5373831776, -0.4986107603],[-0.9692436363, 1.8759675015, 0.0415550574],[ 0.0556300797, -0.2039769589,  1.0569715142]]);
     //> inverse(M);
 
-    *x = 0.4123907992 * r + 0.3575843394 * g + 0.1804807884 * b;
+    // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+    // from 07 Apr 2017
+    *x = 0.4124564f * r + 0.3575761f * g + 0.1804375f * b;
     *y = rgb709_to_y(r, g, b);
-    *z = 0.0193308187 * r + 0.1191947798 * g + 0.9505321522 * b;
+    *z = 0.0193339f * r + 0.1191920f * g + 0.9503041f * b;
 }
 
 // Convert pixel values from XYZ to linear RGB_709 or sRGB color spaces.
@@ -967,9 +972,15 @@ xyz_to_rgb709(T x,
     //*g = -0.969256f * x + 1.875992f * y + 0.041556f * z;
     //*b =  0.055648f * x - 0.204043f * y + 1.057311f * z;
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *r =  3.2409699419 * x + -1.5373831776 * y + -0.4986107603 * z;
-    *g = -0.9692436363 * x +  1.8759675015 * y +  0.0415550574 * z;
-    *b =  0.0556300797 * x + -0.2039769589 * y +  1.0569715142 * z;
+    //*r =  3.2409699419 * x + -1.5373831776 * y + -0.4986107603 * z;
+    //*g = -0.9692436363 * x +  1.8759675015 * y +  0.0415550574 * z;
+    //*b =  0.0556300797 * x + -0.2039769589 * y +  1.0569715142 * z;
+
+    // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
+    // from 07 Apr 2017
+    *r =  3.2404542f * x + -1.5371385f * y + -0.4985314f * z;
+    *g = -0.9692660f * x +  1.8760108f * y +  0.0415560f * z;
+    *b =  0.0556434f * x + -0.2040259f * y +  1.0572252f * z;
 }
 
 // r,g,b values are from 0 to 1
