@@ -495,7 +495,13 @@ public:
      * @brief Set the requested planes according to the selectors that were registered for each clip.
      * By default the pass-through clip is set to the first source clip encountered in the registered plane selectors
      **/
-    virtual void getClipComponents(const ClipComponentsArguments& args, ClipComponentsSetter& clipComponents) OVERRIDE;
+    virtual OfxStatus getClipComponents(const ClipComponentsArguments& args, ClipComponentsSetter& clipComponents) OVERRIDE;
+
+    /**
+     * @brief Force a refresh of the channel selectors. This should in general not be called as this is done for you in changedClip() in Natron > 3
+     * or getClipPreferences for any other host.
+     **/
+    void refreshPlaneChoiceMenus();
 
     /**
      * @brief Overriden to handle parameter changes. Derived class must call this class implementation.

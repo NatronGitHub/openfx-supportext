@@ -635,21 +635,17 @@ struct MultiPlaneEffectPrivate
     // A map of each dynamic choice parameters containing planes/channels
     map<string, ChoiceParamClips> params;
 
-    // The output clip
-    Clip* dstClip;
-
     // If true, all planes have to be processed
     BooleanParam* allPlanesCheckbox;
 
     // Stores for each clip its available planes
-    // This is to avoid a recursion when calling getComponentsPresent
+    // This is to avoid a recursion when calling getPlanesPresent
     // on the output clip.
     std::map<Clip*, std::list<ImagePlaneDesc> > perClipPlanesAvailable;
 
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
     : _publicInterface(publicInterface)
     , params()
-    , dstClip( publicInterface->fetchClip(kOfxImageEffectOutputClipName) )
     , allPlanesCheckbox(0)
     , perClipPlanesAvailable()
     {
@@ -696,6 +692,9 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
     paramData.clips = args.dependsClips;
 
     for (std::size_t i = 0; i < args.dependsClips.size(); ++i) {
+        // A choice menu cannot depend on the planes present on an output clip, since we actually may need the value
+        // of the choice to return the planes present in output!
+        assert(args.dependsClips[i]->name() != kOfxImageEffectOutputClipName);
         paramData.clipsName.push_back( args.dependsClips[i]->name() );
     }
 
@@ -718,11 +717,6 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
 void
 MultiPlaneEffectPrivate::buildChannelMenus()
 {
-
-    // Clear the clip planes available cache
-    perClipPlanesAvailable.clear();
-
-
 
     // If no dynamic choices support, only add built-in planes.
     if (!gHostSupportsDynamicChoices) {
@@ -747,7 +741,10 @@ MultiPlaneEffectPrivate::buildChannelMenus()
     
     // This code requires dynamic choice parameters support.
 
+    perClipPlanesAvailable.clear();
+
     // For each parameter to refresh
+    std::vector<std::pair<ChoiceParam*,std::vector<ChoiceOption> > > perParamOptions;
     for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
 
         vector<ChoiceOption> options;
@@ -783,8 +780,20 @@ MultiPlaneEffectPrivate::buildChannelMenus()
                 availableClipPlanes = &(perClipPlanesAvailable)[clip];
 
                 // Fetch planes presents from the clip and map them to ImagePlaneDesc
+                // Note that the clip cannot bethe output clip: the host may call recursively the getClipComponents() action during the call to getPlanesPresent()
+                // to find out the components present in output of this effect.
+                //
+                // Instead the plug-in should read planes from the pass-through clip (the same that is set in the implementation of getClipComponents)
+                // to populate the output menu.
                 vector<string> clipPlaneStrings;
-                clip->getComponentsPresent(&clipPlaneStrings);
+                clip->getPlanesPresent(&clipPlaneStrings);
+
+                // If this is the output menu, add user created planes from a user interface
+                if (it->second.isOutput) {
+                    vector<string> extraPlanes;
+                    _publicInterface->getExtraneousPlanesCreated(&extraPlanes);
+                    clipPlaneStrings.insert(clipPlaneStrings.end(), extraPlanes.begin(), extraPlanes.end());
+                }
 
                 for (std::size_t i = 0; i < clipPlaneStrings.size(); ++i) {
                     ImagePlaneDesc plane;
@@ -846,15 +855,23 @@ MultiPlaneEffectPrivate::buildChannelMenus()
         } // for each clip planes available
 
         // Set the new choice menu
-        vector<string> labels(options.size()), hints(options.size()), enums(options.size());
-        for (std::size_t i = 0; i < options.size(); ++i) {
-            labels[i] = options[i].label;
-            hints[i] = options[i].hint;
-            enums[i] = options[i].name;
-        }
-        it->second.param->resetOptions(labels, hints, enums);
+        perParamOptions.push_back(std::make_pair(it->second.param,options));
+
 
     } // for all choice parameters
+
+
+    // Reset all choice options in the same pass, once the perClipPlanesAvailable is full, because the resetOptions call may recursively call
+    // getClipComponents and thus getPlaneNeeded which relies on it.
+    for (std::vector<std::pair<ChoiceParam*,std::vector<ChoiceOption> > >::const_iterator it = perParamOptions.begin(); it != perParamOptions.end(); ++it) {
+        vector<string> labels(it->second.size()), hints(it->second.size()), enums(it->second.size());
+        for (std::size_t i = 0; i < it->second.size(); ++i) {
+            labels[i] = it->second[i].label;
+            hints[i] = it->second[i].hint;
+            enums[i] = it->second[i].name;
+        }
+        it->first->resetOptions(labels, hints, enums);
+    }
 } // buildChannelMenus
 
 void
@@ -890,6 +907,12 @@ void
 MultiPlaneEffect::onAllParametersFetched()
 {
     _imp->refreshSelectorsVisibility();
+}
+
+void
+MultiPlaneEffect::refreshPlaneChoiceMenus()
+{
+    _imp->buildChannelMenus();
 }
 
 void
@@ -945,7 +968,7 @@ MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
     }
 } // getClipPreferences
 
-void
+OfxStatus
 MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipComponentsSetter& clipComponents)
 {
 
@@ -960,8 +983,10 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
         OFX::Clip* clip = 0;
         int channelIndex = -1;
         MultiPlane::MultiPlaneEffect::GetPlaneNeededRetCodeEnum stat = getPlaneNeeded(it->second.param->getName(), &clip, &plane, &channelIndex);
-        if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeFailed ||
-            stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0 ||
+        if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeFailed) {
+            return kOfxStatFailed;
+        }
+        if (stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0 ||
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant1 ||
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedAllPlanes) {
             continue;
@@ -980,7 +1005,7 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
             clipComponents.setPassThroughClip(clip, args.time, args.view);
         }
     }
-
+    return kOfxStatOK;
 } // getClipComponents
 
 static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
@@ -1266,9 +1291,6 @@ describeInContextAddPlaneChoice(ImageEffectDescriptor &desc,
         ChoiceParamDescriptor *param = desc.defineChoiceParam(name);
         param->setLabel(label);
         param->setHint(hint);
-#ifdef OFX_EXTENSIONS_NATRON
-        param->setHostCanAddOptions(true);             //< the host can allow the user to add custom entries
-#endif
         if (!gHostSupportsMultiPlaneV2) {
             // Add hard-coded planes
             const MultiPlane::ImagePlaneDesc& rgbaPlane = MultiPlane::ImagePlaneDesc::getRGBAComponents();
@@ -1313,6 +1335,7 @@ describeInContextAddAllPlanesOutputCheckbox(OFX::ImageEffectDescriptor &desc, OF
     BooleanParamDescriptor* param = desc.defineBooleanParam(kMultiPlaneProcessAllPlanesParam);
     param->setLabel(kMultiPlaneProcessAllPlanesParamLabel);
     param->setHint(kMultiPlaneProcessAllPlanesParamHint);
+    desc.addClipPreferencesSlaveParam(*param);
     param->setAnimates(false);
     if (page) {
         page->addChild(*param);
@@ -1340,6 +1363,7 @@ describeInContextAddPlaneChannelChoice(ImageEffectDescriptor &desc,
     {
         ChoiceParamDescriptor *param = desc.defineChoiceParam(name);
         param->setLabel(label);
+        desc.addClipPreferencesSlaveParam(*param);
         param->setHint(hint);
         param->setAnimates(false);
         addInputChannelOptionsRGBA(param, clips, addConstants /*addContants*/, gHostSupportsMultiPlaneV2 /*onlyColorPlane*/);
