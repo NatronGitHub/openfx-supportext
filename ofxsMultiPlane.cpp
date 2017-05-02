@@ -638,6 +638,8 @@ struct MultiPlaneEffectPrivate
     // If true, all planes have to be processed
     BooleanParam* allPlanesCheckbox;
 
+    Clip* dstClip;
+
     // Stores for each clip its available planes
     // This is to avoid a recursion when calling getPlanesPresent
     // on the output clip.
@@ -647,6 +649,7 @@ struct MultiPlaneEffectPrivate
     : _publicInterface(publicInterface)
     , params()
     , allPlanesCheckbox(0)
+    , dstClip(publicInterface->fetchClip(kOfxImageEffectOutputClipName))
     , perClipPlanesAvailable()
     {
     }
@@ -718,6 +721,9 @@ void
 MultiPlaneEffectPrivate::buildChannelMenus()
 {
 
+
+    perClipPlanesAvailable.clear();
+
     // If no dynamic choices support, only add built-in planes.
     if (!gHostSupportsDynamicChoices) {
         vector<const MultiPlane::ImagePlaneDesc*> planesToAdd;
@@ -725,11 +731,15 @@ MultiPlaneEffectPrivate::buildChannelMenus()
 
         for (map<string, ChoiceParamClips>::iterator it = params.begin(); it != params.end(); ++it) {
             for (std::size_t c = 0; c < it->second.clips.size(); ++c) {
-                map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(it->second.clips[c]);
+
+                // For the output plane selector, map the clip planes against the output clip even though the user provided a
+                // source clip as pass-through clip
+                Clip* clip = it->second.isOutput ? dstClip : it->second.clips[c];
+                map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clip);
                 if (foundClip != perClipPlanesAvailable.end()) {
                     continue;
                 } else {
-                    std::list<ImagePlaneDesc>& clipPlanes = perClipPlanesAvailable[it->second.clips[c]];
+                    std::list<ImagePlaneDesc>& clipPlanes = perClipPlanesAvailable[clip];
                     for (vector<const MultiPlane::ImagePlaneDesc*>::const_iterator it2 = planesToAdd.begin(); it2 != planesToAdd.end(); ++it2) {
                         clipPlanes.push_back(**it2);
                     }
@@ -741,7 +751,6 @@ MultiPlaneEffectPrivate::buildChannelMenus()
     
     // This code requires dynamic choice parameters support.
 
-    perClipPlanesAvailable.clear();
 
     // For each parameter to refresh
     std::vector<std::pair<ChoiceParam*,std::vector<ChoiceOption> > > perParamOptions;
@@ -772,12 +781,18 @@ MultiPlaneEffectPrivate::buildChannelMenus()
             // Did we fetch the clip available planes already ? This speeds it up in the case where we have multiple choice parameters
             // accessing the same clip.
             std::list<ImagePlaneDesc>* availableClipPlanes = 0;
-            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clip);
+
+            // For the output plane selector, map the clip planes against the output clip even though the user provided a
+            // source clip as pass-through clip so the extraneous planes returned by getExtraneousPlanesCreated are not added for
+            // the available planes on the source clip
+            Clip* clipToMap = it->second.isOutput ? dstClip : clip;
+
+            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clipToMap);
             if (foundClip != perClipPlanesAvailable.end()) {
                 availableClipPlanes = &foundClip->second;
             } else {
 
-                availableClipPlanes = &(perClipPlanesAvailable)[clip];
+                availableClipPlanes = &(perClipPlanesAvailable)[clipToMap];
 
                 // Fetch planes presents from the clip and map them to ImagePlaneDesc
                 // Note that the clip cannot bethe output clip: the host may call recursively the getClipComponents() action during the call to getPlanesPresent()
@@ -1197,6 +1212,12 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
         // We did not find the corresponding clip.
         return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
     }
+
+    // For the output plane selector, map the clip planes against the output clip even though the user provided a
+    // source clip as pass-through clip so the extraneous planes returned by getExtraneousPlanesCreated are not added for
+    // the available planes on the source clip
+    *clip = found->second.isOutput ? _imp->dstClip : *clip;
+
     std::map<Clip*, std::list<ImagePlaneDesc> >::iterator foundPlanesPresentForClip = _imp->perClipPlanesAvailable.find(*clip);
     if (foundPlanesPresentForClip == _imp->perClipPlanesAvailable.end()) {
         // No components available for this clip...
