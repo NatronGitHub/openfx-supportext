@@ -305,9 +305,6 @@ ofxsPremult(const float unpPix[4],
         return;
     }
 
-    // premult by alpha <= 0 gives 0
-    float alpha = std::max(0.f, unpPix[3]);
-
     if ( !premult ) {
         tmpPix[0] = unpPix[0] * maxValue;
         if (nComponents >= 2) {
@@ -317,11 +314,14 @@ ofxsPremult(const float unpPix[4],
             tmpPix[2] = unpPix[2] * maxValue;
         }
         if (nComponents >= 4) {
-            tmpPix[3] = alpha * maxValue;
+            tmpPix[3] = unpPix[3] * maxValue;
         }
 
         return;
     }
+
+    // premult by alpha <= 0 gives 0
+    float alpha = std::max(0.f, unpPix[3]);
 
     tmpPix[0] = unpPix[0] * alpha * maxValue;
     if (nComponents >= 2) {
