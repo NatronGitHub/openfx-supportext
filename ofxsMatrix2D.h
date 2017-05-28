@@ -24,6 +24,7 @@
 #define openfx_supportext_ofxsMatrix2D_h
 
 #include <cmath>
+#include <cfloat>
 
 namespace OFX {
 // NEVER define a variable/constant in a header (said it 100 times already)
@@ -885,6 +886,13 @@ ofxsMatInverseTransformCanonical(double translateX,
     ///5) We apply the global translation
     ///5) We translate back to the origin
 
+    // avoid division by zero (use FLT_MIN instead of DBL_MIN in case there are further casts to float)
+    if (std::fabs(scaleX) < FLT_MIN ) {
+      scaleX = scaleX > 0 ? FLT_MIN : -FLT_MIN;
+    }
+    if (std::fabs(scaleY) < FLT_MIN ) {
+      scaleY = scaleY > 0 ? FLT_MIN : -FLT_MIN;
+    }
     // since this is the inverse, oerations are in reverse order
     return ofxsMatTranslation(centerX, centerY) *
            ofxsMatScale(1. / scaleX, 1. / scaleY) *
