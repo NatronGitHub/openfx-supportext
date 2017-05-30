@@ -841,6 +841,11 @@ Transform3x3Plugin::renderInternalForBitDepth(const RenderArguments &args)
         setupAndProcess(fred, args);
         break;
     }
+    case eFilterBox: {
+        Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterBox, false> fred(*this);
+        setupAndProcess(fred, args);
+        break;
+    }
     case eFilterBilinear: {
         Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterBilinear, false> fred(*this);
         setupAndProcess(fred, args);
