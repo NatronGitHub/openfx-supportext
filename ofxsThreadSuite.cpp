@@ -149,6 +149,7 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
     // the threads will be limitted to the number of CPUs returned by multiThreadNumCPUs."
 
     if ( (nThreads == 1) || (maxConcurrentThread <= 1) ) {
+        int retval;
         {
             lock_guard<mutex> guard(occupancyLock);
             ++occupancy;
@@ -158,14 +159,15 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
                 func(i, nThreads, customArg);
             }
 
-            return kOfxStatOK;
+            retval = kOfxStatOK;
         } catch (...) {
-            return kOfxStatFailed;
+            retval = kOfxStatFailed;
         }
         {
             lock_guard<mutex> guard(occupancyLock);
             --occupancy;
         }
+        return retval;
     }
 
     // at most maxConcurrentThread should be running at the same time
