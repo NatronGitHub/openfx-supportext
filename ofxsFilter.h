@@ -44,6 +44,7 @@ namespace OFX {
 enum FilterEnum
 {
     eFilterImpulse,
+    eFilterBox,
     eFilterBilinear,
     eFilterCubic,
     eFilterKeys,
@@ -56,6 +57,8 @@ enum FilterEnum
 
 #define kFilterImpulse "Impulse"
 #define kFilterImpulseHint "(nearest neighbor / box) Use original values"
+#define kFilterBox "Box"
+#define kFilterBoxHint "Integrate the source image over the bounding box of the back-transformed pixel."
 #define kFilterBilinear "Bilinear"
 #define kFilterBilinearHint "(tent / triangle) Bilinear interpolation between original values"
 #define kFilterCubic "Cubic"
@@ -88,6 +91,8 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setHint(kParamFilterTypeHint);
         assert(param->getNOptions() == eFilterImpulse);
         param->appendOption(kFilterImpulse, kFilterImpulseHint);
+        assert(param->getNOptions() == eFilterBox);
+        param->appendOption(kFilterBox, kFilterBoxHint);
         assert(param->getNOptions() == eFilterBilinear);
         param->appendOption(kFilterBilinear, kFilterBilinearHint);
         assert(param->getNOptions() == eFilterCubic);
@@ -337,6 +342,234 @@ ofxsFilterNotch(double Ip,
     return I;
 }
 
+
+/////////////////////////////////////////////////
+// BOX FILTER START
+/////////////////////////////////////////////////
+
+/// @brief Add to vector v the integral of the signal contained in l, seen as piecewise constant, from x1 to x2.
+/// x = 0 corresponds to the left of the first pixel, x = 1 corresponds to the right of the first pixel / left of the second pixel
+///
+template <class PIX>
+void
+ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
+                      const size_t nsamples,  // number of samples in the line
+                      const size_t stride, // increment from one data point to the next
+                      const size_t depth, // dimension of each sample, also the dimension of result vector v
+                      const double x1,
+                      const double x2,
+                      const bool zeroOutside, // if true, outside of the data is zero. If false, use Neumann boundary conditions (outside is the closest data point)
+                      float *v) // vector of dimension depth containing the result
+{
+    assert(x2 >= x1);
+    assert(stride >= depth);
+    size_t ifirst, ilast; // index of the first/last pixel
+    double fracfirst, fraclast; // fraction to remove from the first/last pixel
+    if (x1 < 0.) {
+        ifirst = 0;
+        fracfirst = 0.;
+    } else if (nsamples <= x1) {
+        ifirst = nsamples - 1;
+        fracfirst = 0.;
+    } else {
+        ifirst = (size_t)floor(x1);
+        fracfirst = x1 - ifirst;
+    }
+    if (x2 < 0.) {
+        ilast = 0;
+        fraclast = 0.;
+    } else if (nsamples <= x2) {
+        ilast = nsamples - 1;
+        fraclast = 0.;
+    } else {
+        ilast =  (size_t)floor(x2);
+        fraclast = ilast + 1 - x2;
+    }
+    // start border condition
+    if (x1 < ifirst && !zeroOutside) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += l[ifirst * stride + j] * (ifirst-x1);
+        }
+    }
+    // pre-subtract partial first pixel
+    if (fracfirst > 0.) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] -= l[ifirst * stride + j] * fracfirst;
+        }
+    }
+    // sum all covered pixels
+    for (size_t i = ifirst; i <= ilast; ++i) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += l[i * stride + j];
+        }
+    }
+    // subtract partial last pixel
+    if (fraclast > 0.) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] -= l[ilast * stride + j] * fraclast;
+        }
+    }
+    // end border condition
+    if (x2 > nsamples && !zeroOutside) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += l[ilast * stride + j] * (x2 - nsamples);
+        }
+    }
+}
+
+/// @brief Compute the mean of the signal contained in l, seen as piecewise constant, in the rectangular area delimited by x1, x2, y1, y2.
+/// x = 0 corresponds to the left of the first pixel, x = 1 corresponds to the right of the first pixel / left of the second pixel
+///
+template <class PIX>
+void
+ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
+                      const size_t awidth,  // width of the array
+                      const size_t aheight,  // height of the array
+                      const size_t axstride, // increment from one data point to the next (must be >= depth)
+                      const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
+                      const size_t depth, // dimension of each sample, also the dimension of result vector v
+                      const double x1,
+                      const double x2,
+                      const double y1,
+                      const double y2,
+                      const bool zeroOutside, // if true, outside of the data is zero. If false, use Neumann boundary conditions (outside is the closest data point)
+                      float *p, // temporary storage of size depth
+                      float *v) // vector of dimension depth containing the result
+{
+    assert(y2 >= y1);
+    size_t ifirst, ilast; // index of the first/last line
+    double fracfirst, fraclast; // fraction to remove from the first/last line
+    if (y1 < 0.) {
+        ifirst = 0;
+        fracfirst = 0.;
+    } else if (aheight <= y1) {
+        ifirst = aheight - 1;
+        fracfirst = 0.;
+    } else {
+        ifirst = (size_t)floor(y1);
+        fracfirst = y1 - ifirst;
+    }
+    if (y2 < 0.) {
+        ilast = 0;
+        fraclast = 0.;
+    } else if (aheight <= y2) {
+        ilast = aheight - 1;
+        fraclast = 0.;
+    } else {
+        ilast =  (size_t)floor(y2);
+        fraclast = ilast + 1 - y2;
+    }
+
+    // compute result for first line
+    for (size_t j = 0; j < depth; ++j) {
+        p[j] = 0.;
+    }
+    ofxsFilterIntegrate1d(&a[ifirst * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
+    // start border condition
+    if (y1 < ifirst && !zeroOutside) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += p[j] * (ifirst - y1);
+        }
+    }
+    // subtract partial first line
+    if (fracfirst > 0.) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] -= p[j] * fracfirst;
+        }
+    }
+    // sum all covered lines
+    // first line
+    for (size_t j = 0; j < depth; ++j) {
+        v[j] += p[j];
+    }
+    // all lines except first and last
+    for (size_t i = ifirst + 1; i < ilast; ++i) {
+        // (results accumulates in v)
+        ofxsFilterIntegrate1d(&a[i * aystride], awidth, axstride, depth, x1, x2, zeroOutside, v);
+    }
+    // last line
+    if (ilast > ifirst) { // (if equal, the result is already in p)
+        for (size_t j = 0; j < depth; ++j) {
+            p[j] = 0.;
+        }
+        ofxsFilterIntegrate1d(&a[ilast * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += p[j];
+        }
+    }
+    // subtract partial last pixel
+    if (fraclast > 0.) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] -= p[j] * fraclast;
+        }
+    }
+    // end border condition
+    if (y2 > aheight && !zeroOutside) {
+        for (size_t j = 0; j < depth; ++j) {
+            v[j] += p[j] * (y2 - aheight);
+        }
+    }
+}
+
+/// @brief resize the area of a between (x1,y1) and (x2,y2), and put it in b
+///
+template <class PIX>
+void
+ofxsFilterResize2d(const PIX* a, // pointer to data start
+                   const size_t awidth,  // number of samples in the line
+                   const size_t aheight,  // number of samples in the line
+                   const size_t axstride, // increment from one data point to the next (must be >= depth)
+                   const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
+                   const size_t depth, // dimension of each sample, also the dimension of result vector v
+                   const double x1,
+                   const double x2,
+                   const double y1,
+                   const double y2,
+                   const bool zeroOutside, // if true, outside of the data is zero (Dirichlet boundary conditions). If false, outside is the closest data point (Neumann boundary conditions).
+                   float* b, // pointer to output start
+                   const size_t bwidth,  // number of samples in the line
+                   const size_t bheight,  // number of samples in the line
+                   const size_t bxstride, // inscrement from one data point to the next (must be >= depth)
+                   const size_t bystride)
+         
+{
+    assert(x2 >= x1);
+    assert(y2 >= y1);
+    float *p = new float[depth];
+    double vwidth = (x2 - x1) / bwidth;
+    double vheight = (y2 - y1) / bheight;
+    // #pragma parallel for
+    for (size_t j = 0; j < bheight; ++j) {
+        double vy1 = y1 + j * vheight;
+        double vy2 = vy1 + vheight;
+        for (size_t i = 0; i < bwidth; ++i) {
+            double vx1 = x1 + i * vwidth;
+            double vx2 = x1 + vwidth;
+            // compute one pixel of the resized image
+            float *v = &b[j * bystride + i * bxstride];
+            // zero the result, since integrate_2d accumulates
+            for (size_t k = 0; k < depth; ++k) {
+                v[k] = 0.;
+            }
+            ofxsFilterIntegrate2d(a, awidth, aheight, axstride, aystride, depth,
+                                  vx1, vx2, vy1, vy2,
+                                  zeroOutside,
+                                  p,
+                                  v);
+            // normalize by the surface of the pixel
+            for (size_t k = 0; k < depth; ++k) {
+                v[k] /= vwidth * vheight;
+            }
+        }
+    }
+    delete [] p;
+}
+
+/////////////////////////////////////////////////
+// BOX FILTER END
+/////////////////////////////////////////////////
+
+
 #define OFXS_APPLY4(f, j) double I ## j = f(Ip ## j, Ic ## j, In ## j, Ia ## j, dx, clamp)
 
 #define OFXS_CUBIC2D(f)                                      \
@@ -410,7 +643,8 @@ ofxsFilterInterpolate2D(double fx,
     // from here on, everything is generic, and should be moved to a generic transform class
     // Important: (0,0) is the *corner*, not the *center* of the first pixel (see OpenFX specs)
     switch (filter) {
-    case eFilterImpulse: {
+    case eFilterImpulse:
+    case eFilterBox: {
         ///nearest neighboor
         // the center of pixel (0,0) has coordinates (0.5,0.5)
         int mx = (int)std::floor(fx);     // don't add 0.5
@@ -805,6 +1039,81 @@ ofxsFilterInterpolate2DSuper(double fx,
                              bool blackOutside,
                              float *tmpPix) //!< destination pixel in float format
 {
+    if ( !srcImg || !srcImg->getPixelData() ) {
+        for (int c = 0; c < nComponents; ++c) {
+            tmpPix[c] = 0.;
+        }
+        return;
+    }
+    if (Jxx == 0. && Jxy == 0. && Jyx == 0. && Jyy == 0.) {
+        ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+
+        return;
+    }
+    if (filter == eFilterBox) {
+        for (int c = 0; c < nComponents; ++c) {
+            tmpPix[c] = 0.;
+        }
+        // Box filter is a special case:
+        // 1- compute the bounding box of the backtransformed pixel
+        // 2- integrate the input image over this bounding box
+        //
+        //
+        double x, y;
+        double x1, x2, y1, y2;
+        x1 = x2 = fx - Jxx * 0.5 - Jxy * 0.5;
+        y1 = y2 = fy - Jyx * 0.5 - Jyy * 0.5;
+        x = fx + Jxx * 0.5 - Jxy * 0.5;
+        y = fy + Jyx * 0.5 - Jyy * 0.5;
+        x1 = std::min(x1, x);
+        y1 = std::min(y1, y);
+        x2 = std::max(x2, x);
+        y2 = std::max(y2, y);
+        x = fx - Jxx * 0.5 + Jxy * 0.5;
+        y = fy - Jyx * 0.5 + Jyy * 0.5;
+        x1 = std::min(x1, x);
+        y1 = std::min(y1, y);
+        x2 = std::max(x2, x);
+        y2 = std::max(y2, y);
+        x = fx + Jxx * 0.5 + Jxy * 0.5;
+        y = fy + Jyx * 0.5 + Jyy * 0.5;
+        x1 = std::min(x1, x);
+        y1 = std::min(y1, y);
+        x2 = std::max(x2, x);
+        y2 = std::max(y2, y);
+        if (x2 <= x1 || y2 <= y1) {
+            // empty pixel
+            ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+
+            return;
+        }
+
+        PIX* a = (PIX*)srcImg->getPixelData();
+        const OfxRectI& srcBounds = srcImg->getBounds();
+        const size_t awidth = srcBounds.x2 - srcBounds.x1;
+        const size_t aheight = srcBounds.y2 - srcBounds.y1;
+        x1 -= srcBounds.x1;
+        y1 -= srcBounds.y1;
+        x2 -= srcBounds.x1;
+        y2 -= srcBounds.y1;
+        const size_t axstride = srcImg->getPixelBytes() / sizeof(PIX);
+        const size_t aystride = srcImg->getRowBytes() / sizeof(PIX);
+        float p[nComponents];
+        ofxsFilterIntegrate2d(a, awidth, aheight, axstride, aystride, nComponents,
+                              x1, x2, y1, y2,
+                              blackOutside,
+                              p,
+                              tmpPix);
+        // normalize by the surface of the pixel
+        double s = (x2 - x1) * (y2 - y1);
+        if (s != 0.) {
+            for (int c = 0; c < nComponents; ++c) {
+                tmpPix[c] /= s;
+            }
+        }
+
+        return;
+    }
     // first, compute the center value
     bool inside = ofxsFilterInterpolate2D<PIX, nComponents, filter, clamp>(fx, fy, srcImg, blackOutside, tmpPix);
 
@@ -971,6 +1280,9 @@ ofxsFilterExpandRoI(const OfxRectD &roi,
     switch (filter) {
     case eFilterImpulse:
         // nearest neighbor, the exact region is OK
+        break;
+    case eFilterBox:
+        // box filter, the exact region is OK
         break;
     case eFilterBilinear:
     case eFilterCubic:
