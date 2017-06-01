@@ -559,7 +559,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         ox1 = 0;
     }
     if (ox2 > (int)bwidth) {
-        x2 -= vwidth * (bwidth - ox2);
+        x2 -= vwidth * ((int)bwidth - ox2);
         ox2 = (int)bwidth;
     }
     assert(x2 >= x1);
@@ -569,7 +569,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         oy1 = 0;
     }
     if (oy2 > (int)bheight) {
-        y2 -= vheight * (bheight - oy2);
+        y2 -= vheight * ((int)bheight - oy2);
         oy2 = (int)bheight;
     }
     assert(y2 >= y1);
