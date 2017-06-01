@@ -428,14 +428,15 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
                       const size_t axstride, // increment from one data point to the next (must be >= depth)
                       const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
                       const size_t depth, // dimension of each sample, also the dimension of result vector v
-                      const double x1,
-                      const double x2,
-                      const double y1,
-                      const double y2,
+                      const OfxRectD& area,
                       const bool zeroOutside, // if true, outside of the data is zero. If false, use Neumann boundary conditions (outside is the closest data point)
                       float *p, // temporary storage of size depth
                       float *v) // vector of dimension depth containing the result
 {
+    double x1 = area.x1;
+    double y1 = area.y1;
+    double x2 = area.x2;
+    double y2 = area.y2;
     assert(y2 >= y1);
     size_t ifirst, ilast; // index of the first/last line
     double fracfirst, fraclast; // fraction to remove from the first/last line
@@ -511,8 +512,10 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
     }
 }
 
-/// @brief resize the area of a between (x1,y1) and (x2,y2), and put it in b
-///
+/// @brief resize the area from image a indicated by from and put it in image b at to.
+/// If @param from is partially outside of a, pixels are considered to be black and transparent if zeroOutside is true,
+/// else they take the value of the closest pixel in a.
+/// The @param to may be partially outside of b.
 template <class PIX>
 void
 ofxsFilterResize2d(const PIX* a, // pointer to data start
@@ -521,30 +524,73 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
                    const size_t axstride, // increment from one data point to the next (must be >= depth)
                    const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
                    const size_t depth, // dimension of each sample, also the dimension of result vector v
-                   const double x1,
-                   const double x2,
-                   const double y1,
-                   const double y2,
+                   const OfxRectD& from,
                    const bool zeroOutside, // if true, outside of the data is zero (Dirichlet boundary conditions). If false, outside is the closest data point (Neumann boundary conditions).
                    float* b, // pointer to output start
                    const size_t bwidth,  // number of samples in the line
                    const size_t bheight,  // number of samples in the line
                    const size_t bxstride, // inscrement from one data point to the next (must be >= depth)
-                   const size_t bystride)
-         
+                   const size_t bystride,
+                   const OfxRectI& to)
+
 {
+    assert(awidth > 0 && aheight > 0 && axstride > 0 && aystride > 0 && depth > 0);
+    assert(bwidth > 0 && bheight > 0 && bxstride > 0 && bystride > 0);
+    double x1 = from.x1;
+    double y1 = from.y1;
+    double x2 = from.x2;
+    double y2 = from.y2;
     assert(x2 >= x1);
     assert(y2 >= y1);
+    int ox1 = to.x1;
+    int oy1 = to.y1;
+    int ox2 = to.x2;
+    int oy2 = to.y2;
+    assert(ox2 > ox1);
+    assert(oy2 > oy1);
     float *p = new float[depth];
-    double vwidth = (x2 - x1) / bwidth;
-    double vheight = (y2 - y1) / bheight;
+    // pixel factor
+    double vwidth = (x2 - x1) / (ox2 - ox1);
+    double vheight = (y2 - y1) / (oy2 - oy1);
+
+    // adjust output to valid areas of b
+    if (ox1 < 0) {
+        x1 -= vwidth * ox1;
+        ox1 = 0;
+    }
+    if (ox2 > (int)bwidth) {
+        x2 -= vwidth * ((int)bwidth - ox2);
+        ox2 = (int)bwidth;
+    }
+    assert(x2 >= x1);
+    assert(ox2 >= ox1);
+    if (ox2 <= ox1) {
+        // nothing to draw
+        return;
+    }
+    if (oy1 < 0) {
+        y1 -= vheight * oy1;
+        oy1 = 0;
+    }
+    if (oy2 > (int)bheight) {
+        y2 -= vheight * ((int)bheight - oy2);
+        oy2 = (int)bheight;
+    }
+    assert(y2 >= y1);
+    assert(oy2 >= oy1);
+    if (oy2 <= oy1) {
+        // nothing to draw
+        return;
+    }
+
     // #pragma parallel for
-    for (size_t j = 0; j < bheight; ++j) {
-        double vy1 = y1 + j * vheight;
-        double vy2 = vy1 + vheight;
-        for (size_t i = 0; i < bwidth; ++i) {
-            double vx1 = x1 + i * vwidth;
-            double vx2 = x1 + vwidth;
+    for (int j = oy1; j < oy2; ++j) {
+        OfxRectD area;
+        area.y1 = y1 + (j - oy1) * vheight;
+        area.y2 = area.y1 + vheight;
+        for (int i = ox1; i < ox2; ++i) {
+            area.x1 = x1 + (i - ox1) * vwidth;
+            area.x2 = area.x1 + vwidth;
             // compute one pixel of the resized image
             float *v = &b[j * bystride + i * bxstride];
             // zero the result, since integrate_2d accumulates
@@ -552,7 +598,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
                 v[k] = 0.;
             }
             ofxsFilterIntegrate2d(a, awidth, aheight, axstride, aystride, depth,
-                                  vx1, vx2, vy1, vy2,
+                                  area,
                                   zeroOutside,
                                   p,
                                   v);
@@ -1099,8 +1145,9 @@ ofxsFilterInterpolate2DSuper(double fx,
         const size_t axstride = srcImg->getPixelBytes() / sizeof(PIX);
         const size_t aystride = srcImg->getRowBytes() / sizeof(PIX);
         float p[nComponents];
+        OfxRectD area = { x1, y1, x2, y2 };
         ofxsFilterIntegrate2d(a, awidth, aheight, axstride, aystride, nComponents,
-                              x1, x2, y1, y2,
+                              area,
                               blackOutside,
                               p,
                               tmpPix);
