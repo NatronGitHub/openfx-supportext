@@ -563,7 +563,11 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         ox2 = (int)bwidth;
     }
     assert(x2 >= x1);
-    assert(ox2 > ox1);
+    assert(ox2 >= ox1);
+    if (ox2 <= ox1) {
+        // nothing to draw
+        return;
+    }
     if (oy1 < 0) {
         y1 -= vheight * oy1;
         oy1 = 0;
@@ -573,7 +577,11 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         oy2 = (int)bheight;
     }
     assert(y2 >= y1);
-    assert(oy2 > oy1);
+    assert(oy2 >= oy1);
+    if (oy2 <= oy1) {
+        // nothing to draw
+        return;
+    }
 
     // #pragma parallel for
     for (int j = oy1; j < oy2; ++j) {
