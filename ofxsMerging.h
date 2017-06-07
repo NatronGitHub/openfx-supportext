@@ -152,6 +152,29 @@ isMaskable(MergingFunctionEnum operation)
     return true;
 } // isMaskable
 
+// if Aa is black and transparent, does the operator give Bb?
+inline bool
+isIdentityForBOnly(MergingFunctionEnum operation)
+{
+    switch (operation) {
+    case eMergeATop: //"Ab + B(1 - a) (a.k.a. src-atop)";
+    case eMergeExclusion: //"A+B-2AB";
+    case eMergeMatte: //"Aa + B(1-a) (unpremultiplied over)";
+    case eMergeOver: //"A+B(1-a) (a.k.a. src-over)";
+    case eMergePlus: //"A+B (a.k.a. add)";
+    case eMergeScreen: //"A+B-AB if A or B <= 1, otherwise max(A, B)";
+    case eMergeStencil: //"B(1-a) (a.k.a. dst-out)";
+    case eMergeUnder: //"A(1-b)+B (a.k.a. dst-over)";
+    case eMergeXOR: //"A(1-b)+B(1-a)";
+
+        return true;
+
+    default:
+
+        return false;
+    } // switch
+} // isIdentityForBOnly
+
 // is the operator separable for R,G,B components, or do they have to be processed simultaneously?
 inline bool
 isSeparable(MergingFunctionEnum operation)
