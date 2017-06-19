@@ -404,20 +404,19 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
     // type
     {
         ChoiceParamDescriptor* param = desc.defineChoiceParam(oldParams ? kParamRampTypeOld : kParamRampType);
-        param->setLabel(kParamRampTypeLabel);
-        param->setHint(kParamRampTypeHint);
+        param->setLabelAndHint(kParamRampTypeLabel);
         assert(param->getNOptions() == eRampTypeLinear);
-        param->appendOption(kParamRampTypeOptionLinear, kParamRampTypeOptionLinearHint);
+        param->appendOption(kParamRampTypeOptionLinear);
         assert(param->getNOptions() == eRampTypePLinear);
-        param->appendOption(kParamRampTypeOptionPLinear, kParamRampTypeOptionPLinearHint);
+        param->appendOption(kParamRampTypeOptionPLinear);
         assert(param->getNOptions() == eRampTypeEaseIn);
-        param->appendOption(kParamRampTypeOptionEaseIn, kParamRampTypeOptionEaseInHint);
+        param->appendOption(kParamRampTypeOptionEaseIn);
         assert(param->getNOptions() == eRampTypeEaseOut);
-        param->appendOption(kParamRampTypeOptionEaseOut, kParamRampTypeOptionEaseOutHint);
+        param->appendOption(kParamRampTypeOptionEaseOut);
         assert(param->getNOptions() == eRampTypeSmooth);
-        param->appendOption(kParamRampTypeOptionSmooth, kParamRampTypeOptionSmoothHint);
+        param->appendOption(kParamRampTypeOptionSmooth);
         assert(param->getNOptions() == eRampTypeNone);
-        param->appendOption(kParamRampTypeOptionNone, kParamRampTypeOptionNoneHint);
+        param->appendOption(kParamRampTypeOptionNone);
         param->setDefault(defaultType);
         param->setAnimates(false);
         if (group) {
@@ -494,8 +493,7 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
     // interactOpen
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRampInteractOpen);
-        param->setLabel(kParamRampInteractOpenLabel);
-        param->setHint(kParamRampInteractOpenHint);
+        param->setLabelAndHint(kParamRampInteractOpenLabel);
         param->setDefault(isOpen); // open by default
         param->setIsSecretAndDisabled(true); // secret by default, but this can be changed for specific hosts
         param->setAnimates(false);
@@ -511,8 +509,7 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
     // interactive
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(oldParams ? kParamRampInteractiveOld : kParamRampInteractive);
-        param->setLabel(kParamRampInteractiveLabel);
-        param->setHint(kParamRampInteractiveHint);
+        param->setLabelAndHint(kParamRampInteractiveLabel);
         param->setEvaluateOnChange(false);
         if (group) {
             param->setParent(*group);
