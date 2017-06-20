@@ -36,14 +36,10 @@
 #define kParamShutterOffset "shutterOffset"
 #define kParamShutterOffsetLabel "Shutter Offset"
 #define kParamShutterOffsetHint "Controls when the shutter should be open/closed. Ignored if there is no motion blur (i.e. shutter=0 or motionBlur=0)."
-#define kParamShutterOffsetOptionCentered "Centered"
-#define kParamShutterOffsetOptionCenteredHint "Centers the shutter around the frame (from t-shutter/2 to t+shutter/2)"
-#define kParamShutterOffsetOptionStart "Start"
-#define kParamShutterOffsetOptionStartHint "Open the shutter at the frame (from t to t+shutter)"
-#define kParamShutterOffsetOptionEnd "End"
-#define kParamShutterOffsetOptionEndHint "Close the shutter at the frame (from t-shutter to t)"
-#define kParamShutterOffsetOptionCustom "Custom"
-#define kParamShutterOffsetOptionCustomHint "Open the shutter at t+shuttercustomoffset (from t+shuttercustomoffset to t+shuttercustomoffset+shutter)"
+#define kParamShutterOffsetOptionCentered "Centered", "Centers the shutter around the frame (from t-shutter/2 to t+shutter/2)", "centered"
+#define kParamShutterOffsetOptionStart "Start", "Open the shutter at the frame (from t to t+shutter)", "start"
+#define kParamShutterOffsetOptionEnd "End", "Close the shutter at the frame (from t-shutter to t)", "end"
+#define kParamShutterOffsetOptionCustom "Custom", "Open the shutter at t+shuttercustomoffset (from t+shuttercustomoffset to t+shuttercustomoffset+shutter)", "custom"
 
 enum ShutterOffsetEnum
 {

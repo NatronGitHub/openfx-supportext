@@ -55,26 +55,16 @@ enum FilterEnum
     eFilterNotch,
 };
 
-#define kFilterImpulse "Impulse"
-#define kFilterImpulseHint "(nearest neighbor / box) Use original values"
-#define kFilterBox "Box"
-#define kFilterBoxHint "Integrate the source image over the bounding box of the back-transformed pixel."
-#define kFilterBilinear "Bilinear"
-#define kFilterBilinearHint "(tent / triangle) Bilinear interpolation between original values"
-#define kFilterCubic "Cubic"
-#define kFilterCubicHint "(cubic spline) Some smoothing"
-#define kFilterKeys "Keys"
-#define kFilterKeysHint "(Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (*)"
-#define kFilterSimon "Simon"
-#define kFilterSimonHint "Some smoothing, plus medium sharpening (*)"
-#define kFilterRifman "Rifman"
-#define kFilterRifmanHint "Some smoothing, plus significant sharpening (*)"
-#define kFilterMitchell "Mitchell"
-#define kFilterMitchellHint "Some smoothing, plus blurring to hide pixelation (*+)"
-#define kFilterParzen "Parzen"
-#define kFilterParzenHint "(cubic B-spline) Greatest smoothing of all filters (+)"
-#define kFilterNotch "Notch"
-#define kFilterNotchHint "Flat smoothing (which tends to hide moire' patterns) (+)"
+#define kFilterImpulse "Impulse", "(nearest neighbor / box) Use original values", "impulse"
+#define kFilterBox "Box", "Integrate the source image over the bounding box of the back-transformed pixel.", "box"
+#define kFilterBilinear "Bilinear", "(tent / triangle) Bilinear interpolation between original values", "bilinear"
+#define kFilterCubic "Cubic", "(cubic spline) Some smoothing", "cubic"
+#define kFilterKeys "Keys", "(Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (*)", "keys"
+#define kFilterSimon "Simon", "Some smoothing, plus medium sharpening (*)", "simon"
+#define kFilterRifman "Rifman", "Some smoothing, plus significant sharpening (*)", "rifman"
+#define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*+)", "mitchell"
+#define kFilterParzen "Parzen", "(cubic B-spline) Greatest smoothing of all filters (+)", "parzen"
+#define kFilterNotch "Notch", "Flat smoothing (which tends to hide moire' patterns) (+)", "notch"
 
 inline
 void
@@ -90,25 +80,25 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->setLabel(kParamFilterTypeLabel);
         param->setHint(kParamFilterTypeHint);
         assert(param->getNOptions() == eFilterImpulse);
-        param->appendOption(kFilterImpulse, kFilterImpulseHint);
+        param->appendOption(kFilterImpulse);
         assert(param->getNOptions() == eFilterBox);
-        param->appendOption(kFilterBox, kFilterBoxHint);
+        param->appendOption(kFilterBox);
         assert(param->getNOptions() == eFilterBilinear);
-        param->appendOption(kFilterBilinear, kFilterBilinearHint);
+        param->appendOption(kFilterBilinear);
         assert(param->getNOptions() == eFilterCubic);
-        param->appendOption(kFilterCubic, kFilterCubicHint);
+        param->appendOption(kFilterCubic);
         assert(param->getNOptions() == eFilterKeys);
-        param->appendOption(kFilterKeys, kFilterKeysHint);
+        param->appendOption(kFilterKeys);
         assert(param->getNOptions() == eFilterSimon);
-        param->appendOption(kFilterSimon, kFilterSimonHint);
+        param->appendOption(kFilterSimon);
         assert(param->getNOptions() == eFilterRifman);
-        param->appendOption(kFilterRifman, kFilterRifmanHint);
+        param->appendOption(kFilterRifman);
         assert(param->getNOptions() == eFilterMitchell);
-        param->appendOption(kFilterMitchell, kFilterMitchellHint);
+        param->appendOption(kFilterMitchell);
         assert(param->getNOptions() == eFilterParzen);
-        param->appendOption(kFilterParzen, kFilterParzenHint);
+        param->appendOption(kFilterParzen);
         assert(param->getNOptions() == eFilterNotch);
-        param->appendOption(kFilterNotch, kFilterNotchHint);
+        param->appendOption(kFilterNotch);
         param->setDefault(eFilterCubic);
         param->setAnimates(true);
 #ifdef OFX_EXTENSIONS_NUKE

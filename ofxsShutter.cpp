@@ -50,13 +50,13 @@ shutterDescribeInContext(ImageEffectDescriptor &desc,
         param->setLabel(kParamShutterOffsetLabel);
         param->setHint(kParamShutterOffsetHint);
         assert(param->getNOptions() == eShutterOffsetCentered);
-        param->appendOption(kParamShutterOffsetOptionCentered, kParamShutterOffsetOptionCenteredHint);
+        param->appendOption(kParamShutterOffsetOptionCentered);
         assert(param->getNOptions() == eShutterOffsetStart);
-        param->appendOption(kParamShutterOffsetOptionStart, kParamShutterOffsetOptionStartHint);
+        param->appendOption(kParamShutterOffsetOptionStart);
         assert(param->getNOptions() == eShutterOffsetEnd);
-        param->appendOption(kParamShutterOffsetOptionEnd, kParamShutterOffsetOptionEndHint);
+        param->appendOption(kParamShutterOffsetOptionEnd);
         assert(param->getNOptions() == eShutterOffsetCustom);
-        param->appendOption(kParamShutterOffsetOptionCustom, kParamShutterOffsetOptionCustomHint);
+        param->appendOption(kParamShutterOffsetOptionCustom);
         param->setAnimates(true);
         param->setDefault(eShutterOffsetStart);
         if (page) {

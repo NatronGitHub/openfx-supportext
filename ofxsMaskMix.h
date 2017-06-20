@@ -37,14 +37,10 @@
 #define kParamPremultChannelLabel "By"
 #define kParamPremultChannelHint \
     "The channel to use for (un)premult."
-#define kParamPremultChannelR "R"
-#define kParamPremultChannelRHint "R channel from input"
-#define kParamPremultChannelG "G"
-#define kParamPremultChannelGHint "G channel from input"
-#define kParamPremultChannelB "B"
-#define kParamPremultChannelBHint "B channel from input"
-#define kParamPremultChannelA "A"
-#define kParamPremultChannelAHint "A channel from input"
+#define kParamPremultChannelR "R", "R channel from input", "r"
+#define kParamPremultChannelG "G", "G channel from input", "g"
+#define kParamPremultChannelB "B", "B channel from input", "b"
+#define kParamPremultChannelA "A", "A channel from input", "a"
 
 #define kParamMix "mix"
 #define kParamMixLabel "Mix"
@@ -78,10 +74,10 @@ ofxsPremultDescribeParams(OFX::ImageEffectDescriptor &desc,
         OFX::ChoiceParamDescriptor* param = desc.defineChoiceParam(kParamPremultChannel);
         param->setLabel(kParamPremultChannelLabel);
         param->setHint(kParamPremultChannelHint);
-        param->appendOption(kParamPremultChannelR, kParamPremultChannelRHint);
-        param->appendOption(kParamPremultChannelG, kParamPremultChannelGHint);
-        param->appendOption(kParamPremultChannelB, kParamPremultChannelBHint);
-        param->appendOption(kParamPremultChannelA, kParamPremultChannelAHint);
+        param->appendOption(kParamPremultChannelR);
+        param->appendOption(kParamPremultChannelG);
+        param->appendOption(kParamPremultChannelB);
+        param->appendOption(kParamPremultChannelA);
         param->setDefault(3); // alpha
         param->setIsSecret(true); // not yet implemented
         if (page) {
