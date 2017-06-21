@@ -59,10 +59,10 @@
 #define kParamFormatSquare256Label "square_256 256x256"
 #define kParamFormatSquare512      "square_512"
 #define kParamFormatSquare512Label "square_512 512x512"
-#define kParamFormatSquare1k       "square_1k"
-#define kParamFormatSquare1kLabel  "square_1k 1024x1024"
-#define kParamFormatSquare2k       "square_2k"
-#define kParamFormatSquare2kLabel  "square_2k 2048x2048"
+#define kParamFormatSquare1k       "square_1K"
+#define kParamFormatSquare1kLabel  "square_1K 1024x1024"
+#define kParamFormatSquare2k       "square_2K"
+#define kParamFormatSquare2kLabel  "square_2K 2048x2048"
 
 namespace OFX {
 enum EParamFormat
