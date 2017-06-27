@@ -55,16 +55,16 @@ enum FilterEnum
     eFilterNotch,
 };
 
-#define kFilterImpulse "Impulse", "(nearest neighbor / box) Use original values", "impulse"
+#define kFilterImpulse "Impulse", "(nearest neighbor / box) Use original values.", "impulse"
 #define kFilterBox "Box", "Integrate the source image over the bounding box of the back-transformed pixel.", "box"
-#define kFilterBilinear "Bilinear", "(tent / triangle) Bilinear interpolation between original values", "bilinear"
-#define kFilterCubic "Cubic", "(cubic spline) Some smoothing", "cubic"
-#define kFilterKeys "Keys", "(Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (*)", "keys"
-#define kFilterSimon "Simon", "Some smoothing, plus medium sharpening (*)", "simon"
-#define kFilterRifman "Rifman", "Some smoothing, plus significant sharpening (*)", "rifman"
-#define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*+)", "mitchell"
-#define kFilterParzen "Parzen", "(cubic B-spline) Greatest smoothing of all filters (+)", "parzen"
-#define kFilterNotch "Notch", "Flat smoothing (which tends to hide moire' patterns) (+)", "notch"
+#define kFilterBilinear "Bilinear", "(tent / triangle) Bilinear interpolation between original values.", "bilinear"
+#define kFilterCubic "Cubic", "(cubic spline) Some smoothing.", "cubic"
+#define kFilterKeys "Keys", "(Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (*).", "keys"
+#define kFilterSimon "Simon", "Some smoothing, plus medium sharpening (*).", "simon"
+#define kFilterRifman "Rifman", "Some smoothing, plus significant sharpening (*).", "rifman"
+#define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*+).", "mitchell"
+#define kFilterParzen "Parzen", "(cubic B-spline) Greatest smoothing of all filters (+).", "parzen"
+#define kFilterNotch "Notch", "Flat smoothing (which tends to hide moire' patterns) (+).", "notch"
 
 inline
 void
