@@ -114,7 +114,7 @@ public:
     /**
      * @brief Returns true always at the same time and for the source clip.
      **/
-    virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime) OVERRIDE;
+    virtual bool isIdentity(const OFX::IsIdentityArguments &args, OFX::Clip * &identityClip, double &identityTime, int& view, std::string& plane) OVERRIDE;
 
     /**
      * @brief Handles the push buttons actions.

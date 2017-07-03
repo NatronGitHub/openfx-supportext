@@ -972,7 +972,7 @@ Transform3x3Plugin::render(const RenderArguments &args)
 bool
 Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                Clip * &identityClip,
-                               double & /*identityTime*/)
+                               double & /*identityTime*/, int& /*view*/, std::string& /*plane*/)
 {
     const double time = args.time;
 

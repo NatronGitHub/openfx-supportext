@@ -217,6 +217,8 @@ GeneratorPlugin::checkComponents(BitDepthEnum dstBitDepth,
             return;
         }
     }
+
+    clearPersistentMessage();
 }
 
 /* override the time domain action, only for the general context */

@@ -76,7 +76,7 @@ GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
 bool
 GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
                                  Clip * &identityClip,
-                                 double &identityTime)
+                                 double &identityTime, int& /*view*/, std::string& /*plane*/)
 {
     if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
         throwSuiteStatusException(kOfxStatFailed);
