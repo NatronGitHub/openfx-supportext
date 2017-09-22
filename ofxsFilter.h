@@ -538,7 +538,6 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
     int oy2 = to.y2;
     assert(ox2 > ox1);
     assert(oy2 > oy1);
-    float *p = new float[depth];
     // pixel factor
     double vwidth = (x2 - x1) / (ox2 - ox1);
     double vheight = (y2 - y1) / (oy2 - oy1);
@@ -573,6 +572,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         return;
     }
 
+    float *p = new float[depth];
     // #pragma parallel for
     for (int j = oy1; j < oy2; ++j) {
         OfxRectD area;
