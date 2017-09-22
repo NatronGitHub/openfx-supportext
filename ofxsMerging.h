@@ -1036,6 +1036,15 @@ xorFunctor(PIX A,
 ///////////////////////////////////////////////////////////////////////////////
 //
 // Code from pixman-combine-float.c
+#define OFX_PIXMAN_USE_DOUBLE
+#ifdef OFX_PIXMAN_USE_DOUBLE
+typedef double pixman_float_t;
+#define PIXMAN_FLT_MIN DBL_MIN
+#else
+typedef float pixman_float_t;
+#define PIXMAN_FLT_MIN FLT_MIN
+#endif
+
 // START
 /*
  * Copyright © 2010, 2012 Soren Sandmann Pedersen
@@ -1138,52 +1147,89 @@ xorFunctor(PIX A,
  */
 typedef struct
 {
-    float r;
-    float g;
-    float b;
-} rgb_t;
-inline bool
-float_is_zero(float f)
-{
-    return (-FLT_MIN < (f) && (f) < FLT_MIN);
-}
+    pixman_float_t r;
+    pixman_float_t g;
+    pixman_float_t b;
+} pixman_rgb_t;
 
-inline float
-channel_min (const rgb_t *c)
+/*
+ https://cgit.freedesktop.org/pixman/commit/pixman/pixman-combine-float.c?id=4dfda2adfe2eb1130fc27b1da35df778284afd91
+ float-combiner.c: Change tests for x == 0.0 tests to - FLT_MIN < x < FLT_MIN
+
+pixman-float-combiner.c currently uses checks like these:
+
+    if (x == 0.0f)
+        ...
+    else
+        ... / x;
+
+to prevent division by 0. In theory this is correct: a division-by-zero
+exception is only supposed to happen when the floating point numerator is
+exactly equal to a positive or negative zero.
+
+However, in practice, the combination of x87 and gcc optimizations
+causes issues. The x87 registers are 80 bits wide, which means the
+initial test:
+
+    if (x == 0.0f)
+
+may be false when x is an 80 bit floating point number, but when x is
+rounded to a 32 bit single precision number, it becomes equal to
+0.0. In principle, gcc should compensate for this quirk of x87, and
+there are some options such as -ffloat-store, -fexcess-precision=standard,
+and -std=c99 that will make it do so, but these all have a performance
+cost. It is also possible to set the FPU to a mode that makes it do
+all computation with single or double precision, but that would
+require pixman to save the existing mode before doing anything with
+floating point and restore it afterwards.
+
+Instead, this patch side-steps the issue by replacing exact checks for
+equality with zero with a new macro that checkes whether the value is
+between -FLT_MIN and FLT_MIN.
+
+There is extensive reading material about this issue linked off the
+infamous gcc bug 323:
+
+    http://gcc.gnu.org/bugzilla/show_bug.cgi?id=323
+*/
+#define PIXMAN_IS_ZERO(f) (-PIXMAN_FLT_MIN < (f) && (f) < PIXMAN_FLT_MIN)
+
+inline pixman_float_t
+channel_min (const pixman_rgb_t *c)
 {
     return std::min(std::min(c->r, c->g), c->b);
 }
 
-inline float
-channel_max (const rgb_t *c)
+inline pixman_float_t
+channel_max (const pixman_rgb_t *c)
 {
     return std::max(std::max(c->r, c->g), c->b);
 }
 
-inline float
-get_lum (const rgb_t *c)
+inline pixman_float_t
+get_lum (const pixman_rgb_t *c)
 {
     return c->r * 0.3f + c->g * 0.59f + c->b * 0.11f;
 }
 
-inline float
-get_sat (const rgb_t *c)
+inline pixman_float_t
+get_sat (const pixman_rgb_t *c)
 {
     return channel_max(c) - channel_min(c);
 }
 
 inline void
-clip_color (rgb_t *color,
-            float a)
+clip_color (pixman_rgb_t *color,
+            pixman_float_t a)
 {
-    float l = get_lum(color);
-    float n = channel_min(color);
-    float x = channel_max(color);
-    float t;
+    pixman_float_t l = get_lum(color);
+    pixman_float_t n = channel_min(color);
+    pixman_float_t x = channel_max(color);
+    pixman_float_t t;
 
     if (n < 0.0f) {
         t = l - n;
-        if ( float_is_zero(t) ) {
+        if ( PIXMAN_IS_ZERO(t) ) {
             color->r = 0.0f;
             color->g = 0.0f;
             color->b = 0.0f;
@@ -1195,7 +1241,7 @@ clip_color (rgb_t *color,
     }
     if (x > a) {
         t = x - l;
-        if ( float_is_zero(t) ) {
+        if ( PIXMAN_IS_ZERO(t) ) {
             color->r = a;
             color->g = a;
             color->b = a;
@@ -1208,11 +1254,11 @@ clip_color (rgb_t *color,
 }
 
 static void
-set_lum (rgb_t *color,
-         float sa,
-         float l)
+set_lum (pixman_rgb_t *color,
+         pixman_float_t sa,
+         pixman_float_t l)
 {
-    float d = l - get_lum(color);
+    pixman_float_t d = l - get_lum(color);
 
     color->r = color->r + d;
     color->g = color->g + d;
@@ -1222,11 +1268,11 @@ set_lum (rgb_t *color,
 }
 
 inline void
-set_sat (rgb_t *src,
-         float sat)
+set_sat (pixman_rgb_t *src,
+         pixman_float_t sat)
 {
-    float *max, *mid, *min;
-    float t;
+    pixman_float_t *max, *mid, *min;
+    pixman_float_t t;
 
     if (src->r > src->g) {
         if (src->r > src->b) {
@@ -1264,7 +1310,7 @@ set_sat (rgb_t *src,
 
     t = *max - *min;
 
-    if ( float_is_zero(t) ) {
+    if ( PIXMAN_IS_ZERO(t) ) {
         *mid = *max = 0.0f;
     } else {
         *mid = ( (*mid - *min) * sat ) / t;
@@ -1282,11 +1328,11 @@ set_sat (rgb_t *src,
  *
  */
 inline void
-blend_hsl_hue (rgb_t *res,
-               const rgb_t *dest,
-               float da,
-               const rgb_t *src,
-               float sa)
+blend_hsl_hue (pixman_rgb_t *res,
+               const pixman_rgb_t *dest,
+               pixman_float_t da,
+               const pixman_rgb_t *src,
+               pixman_float_t sa)
 {
     res->r = src->r * da;
     res->g = src->g * da;
@@ -1306,11 +1352,11 @@ blend_hsl_hue (rgb_t *res,
  *   = set_lum (set_sat (as * d, ad * SAT (s), as * LUM (d), as * ad))
  */
 inline void
-blend_hsl_saturation (rgb_t *res,
-                      const rgb_t *dest,
-                      float da,
-                      const rgb_t *src,
-                      float sa)
+blend_hsl_saturation (pixman_rgb_t *res,
+                      const pixman_rgb_t *dest,
+                      pixman_float_t da,
+                      const pixman_rgb_t *src,
+                      pixman_float_t sa)
 {
     res->r = dest->r * sa;
     res->g = dest->g * sa;
@@ -1328,11 +1374,11 @@ blend_hsl_saturation (rgb_t *res,
  *   = set_lum (s * ad, as * LUM (d), as * ad)
  */
 inline void
-blend_hsl_color (rgb_t *res,
-                 const rgb_t *dest,
-                 float da,
-                 const rgb_t *src,
-                 float sa)
+blend_hsl_color (pixman_rgb_t *res,
+                 const pixman_rgb_t *dest,
+                 pixman_float_t da,
+                 const pixman_rgb_t *src,
+                 pixman_float_t sa)
 {
     res->r = src->r * da;
     res->g = src->g * da;
@@ -1349,11 +1395,11 @@ blend_hsl_color (rgb_t *res,
  *   = set_lum (as * d, ad * LUM (s), as * ad)
  */
 inline void
-blend_hsl_luminosity (rgb_t *res,
-                      const rgb_t *dest,
-                      float da,
-                      const rgb_t *src,
-                      float sa)
+blend_hsl_luminosity (pixman_rgb_t *res,
+                      const pixman_rgb_t *dest,
+                      pixman_float_t da,
+                      const pixman_rgb_t *src,
+                      pixman_float_t sa)
 {
     res->r = dest->r * sa;
     res->g = dest->g * sa;
@@ -1386,23 +1432,23 @@ mergePixel(bool doAlphaMasking,
     int maxComp = nComponents;
     if ( !isSeparable(f) ) {
         // HSL modes
-        rgb_t src, dest, res;
-        if (a == 0 || nComponents < 3) {
+        pixman_rgb_t src, dest, res;
+        if (PIXMAN_IS_ZERO(a) || nComponents < 3) {
             src.r = src.g = src.b = 0;
         } else {
-            src.r = A[0] / (float)a;
-            src.g = A[1] / (float)a;
-            src.b = A[2] / (float)a;
+            src.r = A[0] / (pixman_float_t)a;
+            src.g = A[1] / (pixman_float_t)a;
+            src.b = A[2] / (pixman_float_t)a;
         }
-        if (b == 0 || nComponents < 3) {
+        if (PIXMAN_IS_ZERO(b) || nComponents < 3) {
             dest.r = dest.g = dest.b = 0;
         } else {
-            dest.r = B[0] / (float)b;
-            dest.g = B[1] / (float)b;
-            dest.b = B[2] / (float)b;
+            dest.r = B[0] / (pixman_float_t)b;
+            dest.g = B[1] / (pixman_float_t)b;
+            dest.b = B[2] / (pixman_float_t)b;
         }
-        float sa = a / (float)maxValue;
-        float da = b / (float)maxValue;
+        pixman_float_t sa = a / (pixman_float_t)maxValue;
+        pixman_float_t da = b / (pixman_float_t)maxValue;
 
         switch (f) {
         case eMergeHue:
@@ -1422,11 +1468,11 @@ mergePixel(bool doAlphaMasking,
             break;
 
         default:
-            res.r = res.g = res.b = 0.f;
+            res.r = res.g = res.b = 0;
             assert(false);
             break;
         }
-        float R[3] = { res.r, res.g, res.b };
+        pixman_float_t R[3] = { res.r, res.g, res.b };
         for (int i = 0; i < std::min(nComponents, 3); ++i) {
             dst[i] = PIX( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
         }
