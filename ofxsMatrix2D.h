@@ -79,6 +79,14 @@ struct Point3D
     {
     }
 
+    Point3D& operator=(const Point3D & p)
+    {
+        x = p.x;
+        y = p.y;
+        z = p.z;
+        return *this;
+    }
+
     bool operator==(const Point3D & other)
     {
         return x == other.x && y == other.y && z == other.z;
