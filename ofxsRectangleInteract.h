@@ -94,9 +94,9 @@ public:
         , _drawState(eDrawStateInactive)
         , _modifierStateCtrl(0)
         , _modifierStateShift(0)
-        , _enable(0)
-        , _btmLeft(0)
-        , _size(0)
+        , _enable(NULL)
+        , _btmLeft(NULL)
+        , _size(NULL)
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);

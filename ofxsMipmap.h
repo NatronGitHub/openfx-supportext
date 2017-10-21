@@ -53,7 +53,7 @@ struct MipMap
 
     MipMap()
         : memSize(0)
-        , data(0)
+        , data(NULL)
         , bounds()
     {
     }

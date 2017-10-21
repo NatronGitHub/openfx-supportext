@@ -184,7 +184,7 @@ public:
     /** @brief ctor */
     PixelProcessor(OFX::ImageEffect &effect)
         : _effect(effect)
-        , _dstPixelData(0)
+        , _dstPixelData(NULL)
         , _dstBounds()
         , _dstPixelComponents(OFX::ePixelComponentNone)
         , _dstPixelComponentCount(0)
@@ -329,7 +329,7 @@ public:
     /** @brief no arg ctor */
     PixelProcessorFilterBase(OFX::ImageEffect &instance)
         : OFX::PixelProcessor(instance)
-        , _srcPixelData(0)
+        , _srcPixelData(NULL)
         , _srcBounds()
         , _srcPixelComponents(OFX::ePixelComponentNone)
         , _srcPixelComponentCount(0)
@@ -337,8 +337,8 @@ public:
         , _srcPixelBytes(0)
         , _srcRowBytes(0)
         , _srcBoundary(0)
-        , _origImg(0)
-        , _maskImg(0)
+        , _origImg(NULL)
+        , _maskImg(NULL)
         , _premult(false)
         , _premultChannel(3)
         , _doMasking(false)

@@ -70,8 +70,8 @@ public:
                      OFX::ImageEffect* effect)
         : OFX::OverlayInteract(handle)
         , _state(eMouseStateInactive)
-        , _position(0)
-        , _interactive(0)
+        , _position(NULL)
+        , _interactive(NULL)
         , _interactiveDrag(false)
         , _hasNativeHostPositionHandle(false)
     {

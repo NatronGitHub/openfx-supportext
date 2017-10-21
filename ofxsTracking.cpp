@@ -46,13 +46,13 @@ using std::string;
 namespace OFX {
 GenericTrackerPlugin::GenericTrackerPlugin(OfxImageEffectHandle handle)
     : ImageEffect(handle)
-    , _dstClip(0)
-    , _srcClip(0)
-    , _backwardButton(0)
-    , _prevButton(0)
-    , _nextButton(0)
-    , _forwardButton(0)
-    , _instanceName(0)
+    , _dstClip(NULL)
+    , _srcClip(NULL)
+    , _backwardButton(NULL)
+    , _prevButton(NULL)
+    , _nextButton(NULL)
+    , _forwardButton(NULL)
+    , _instanceName(NULL)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(_dstClip->getPixelComponents() == ePixelComponentAlpha ||

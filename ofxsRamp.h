@@ -104,11 +104,11 @@ public:
     RampInteractHelper(OFX::ImageEffect* effect,
                        OFX::Interact* interact,
                        bool oldParams = false)
-        : _point0(0)
-        , _point1(0)
-        , _type(0)
-        , _interactOpen(0)
-        , _interactive(0)
+        : _point0(NULL)
+        , _point1(NULL)
+        , _type(NULL)
+        , _interactOpen(NULL)
+        , _interactive(NULL)
         , _point0DragPos()
         , _point1DragPos()
         , _interactiveDrag(false)
@@ -116,7 +116,7 @@ public:
         , _state(eInteractStateIdle)
         , _effect(effect)
         , _interact(interact)
-        , _dstClip(0)
+        , _dstClip(NULL)
     {
         if (oldParams) {
             _point0 = effect->fetchDouble2DParam(kParamRampPoint0Old);

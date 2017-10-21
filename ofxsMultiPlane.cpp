@@ -612,7 +612,7 @@ struct ChoiceParamClips
     vector<string> clipsName;
 
     ChoiceParamClips()
-    : param(0)
+    : param(NULL)
     , splitPlanesIntoChannels(false)
     , addNoneOption(false)
     , addConstantOptions(false)
@@ -648,7 +648,7 @@ struct MultiPlaneEffectPrivate
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
     : _publicInterface(publicInterface)
     , params()
-    , allPlanesCheckbox(0)
+    , allPlanesCheckbox(NULL)
     , dstClip(publicInterface->fetchClip(kOfxImageEffectOutputClipName))
     , perClipPlanesAvailable()
     {

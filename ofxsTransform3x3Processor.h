@@ -58,10 +58,10 @@ public:
 
     Transform3x3ProcessorBase(OFX::ImageEffect &instance)
         : OFX::ImageProcessor(instance)
-        , _srcImg(0)
-        , _maskImg(0)
+        , _srcImg(NULL)
+        , _maskImg(NULL)
         , _invtransform()
-        , _invtransformalpha(0)
+        , _invtransformalpha(NULL)
         , _invtransformsize(0)
         , _blackOutside(false)
         , _motionblur(0.)
