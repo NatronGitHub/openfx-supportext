@@ -232,7 +232,7 @@ public:
         , _innerTopRightDragPos()
         , _outerBtmLeftDragPos()
         , _outerTopRightDragPos()
-        , _controlDown(false)
+        , _controlDown(0)
         , _altDown(0)
     {
         _center = effect->fetchDouble2DParam(kParamTrackingCenterPoint);
