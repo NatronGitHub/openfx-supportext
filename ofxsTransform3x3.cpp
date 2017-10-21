@@ -171,7 +171,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 {
     assert(!_invert || _motionblur); // this method should be overridden in GodRays
     const double time = args.time;
-    std::auto_ptr<Image> dst( _dstClip->fetchImage(time) );
+    auto_ptr<Image> dst( _dstClip->fetchImage(time) );
 
     if ( !dst.get() ) {
         throwSuiteStatusException(kOfxStatFailed);
@@ -195,7 +195,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
         return;
     }
-    std::auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
+    auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(args.time) : 0 );
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
@@ -351,7 +351,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
     // auto ptr for the mask.
     bool doMasking = ( _masked && ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-    std::auto_ptr<const Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
+    auto_ptr<const Image> mask(doMasking ? _maskClip->fetchImage(args.time) : 0);
     if (doMasking) {
         bool maskInvert = false;
         if (_maskInvert) {

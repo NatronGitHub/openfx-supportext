@@ -396,7 +396,7 @@ struct MultiPlaneEffectPrivate;
 class MultiPlaneEffect
     : public OFX::ImageEffect
 {
-    std::auto_ptr<MultiPlaneEffectPrivate> _imp;
+    auto_ptr<MultiPlaneEffectPrivate> _imp;
 
 public:
 
