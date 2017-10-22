@@ -348,7 +348,7 @@
 #if COMPILER_SUPPORTS(CXX_OVERRIDE_CONTROL)
 // we want to use override & final, and get no warnings even if not compiling in c++11 mode
 CLANG_DIAG_OFF(c++11-extensions)
-GCC_DIAG_OFF(c++11-extensions)
+//GCC_DIAG_OFF(c++11-extensions) // no corresponding GCC warning option?
 #endif
 
 /* *INDENT-ON* */
