@@ -888,6 +888,24 @@ to_func_SLog3(float v)
          : (v * (171.2102946929 - 95.0)/0.01125000 + 95.0) / 1023.0;
 }
 
+// from V-Log to Linear Electro-Optical Transfer Function (EOTF)
+inline float
+from_func_VLog(float v)
+{
+    // http://pro-av.panasonic.net/en/varicam/common/pdf/VARICAM_V-Log_V-Gamut.pdf
+    const float cut2 = 0.181, b = 0.00873, c = 0.241514, d = 0.598206;
+    return v < cut2 ? ( (v - 0.125) / 5.6 ) : (std::pow(10.0, ( (v - d) / c) ) - b);
+}
+
+/// from Linear to SLog3 Opto-Electronic Transfer Function (OETF)
+inline float
+to_func_VLog(float v)
+{
+    // http://pro-av.panasonic.net/en/varicam/common/pdf/VARICAM_V-Log_V-Gamut.pdf
+    const float cut1 = 0.01, b = 0.00873, c = 0.241514, d = 0.598206;
+    return v < cut1 ? (5.6 * v + 0.125) : (c * std::log10(v + b) + d);
+}
+
 /// convert RGB to HSV
 /// In Nuke's viewer, sRGB values are used (apply to_func_srgb to linear
 /// RGB values before calling this fuunction)
@@ -1240,6 +1258,26 @@ public:
     const Lut* AlexaV3LogCLut()
     {
         return getLut("AlexaV3LogC", from_func_AlexaV3LogC, to_func_AlexaV3LogC);
+    }
+
+    const Lut* SLog1Lut()
+    {
+        return getLut("SLog1", from_func_SLog1, to_func_SLog1);
+    }
+
+    const Lut* SLog2Lut()
+    {
+        return getLut("SLog2", from_func_SLog2, to_func_SLog2);
+    }
+
+    const Lut* SLog3Lut()
+    {
+        return getLut("SLog3", from_func_SLog3, to_func_SLog3);
+    }
+
+    const Lut* VLogLut()
+    {
+        return getLut("V-Log", from_func_VLog, to_func_VLog);
     }
 
 private:
