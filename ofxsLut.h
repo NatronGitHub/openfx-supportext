@@ -897,7 +897,7 @@ from_func_VLog(float v)
     return v < cut2 ? ( (v - 0.125) / 5.6 ) : (std::pow(10.0, ( (v - d) / c) ) - b);
 }
 
-/// from Linear to SLog3 Opto-Electronic Transfer Function (OETF)
+/// from Linear to VLog Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_VLog(float v)
 {
