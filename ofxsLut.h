@@ -893,8 +893,8 @@ inline float
 from_func_VLog(float v)
 {
     // http://pro-av.panasonic.net/en/varicam/common/pdf/VARICAM_V-Log_V-Gamut.pdf
-    const float cut2 = 0.181, b = 0.00873, c = 0.241514, d = 0.598206;
-    return v < cut2 ? ( (v - 0.125) / 5.6 ) : (std::pow(10.0, ( (v - d) / c) ) - b);
+    const float cut2 = 0.181f, b = 0.00873f, c = 0.241514f, d = 0.598206f;
+    return v < cut2 ? ( (v - 0.125f) / 5.6f ) : (std::pow(10.f, ( (v - d) / c) ) - b);
 }
 
 /// from Linear to VLog Opto-Electronic Transfer Function (OETF)
@@ -902,8 +902,8 @@ inline float
 to_func_VLog(float v)
 {
     // http://pro-av.panasonic.net/en/varicam/common/pdf/VARICAM_V-Log_V-Gamut.pdf
-    const float cut1 = 0.01, b = 0.00873, c = 0.241514, d = 0.598206;
-    return v < cut1 ? (5.6 * v + 0.125) : (c * std::log10(v + b) + d);
+    const float cut1 = 0.01f, b = 0.00873f, c = 0.241514f, d = 0.598206f;
+    return v < cut1 ? (5.6f * v + 0.125f) : (c * std::log10(v + b) + d);
 }
 
 /// convert RGB to HSV

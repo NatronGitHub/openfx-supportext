@@ -64,10 +64,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _supportsUShort(supportsBitDepthUShort)
     , _supportsHalf(supportsBitDepthHalf)
     , _supportsFloat(supportsBitDepthFloat)
-    , _supportsRGBA(NULL)
-    , _supportsRGB(NULL)
-    , _supportsXY(NULL)
-    , _supportsAlpha(NULL)
+    , _supportsRGBA(false)
+    , _supportsRGB(false)
+    , _supportsXY(false)
+    , _supportsAlpha(false)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert( _dstClip && (!_dstClip->isConnected() || _dstClip->getPixelComponents() == ePixelComponentRGBA ||
