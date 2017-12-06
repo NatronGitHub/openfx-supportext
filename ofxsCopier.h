@@ -566,12 +566,12 @@ public:
                         unpPix[0] = 0.f;
                         unpPix[1] = 0.f;
                         unpPix[2] = 0.f;
-                        unpPix[3] = srcPix[0] / (float)srcMaxValue;
+                        unpPix[3] = srcPix[0] * (1.f / srcMaxValue);
                     } else {
-                        unpPix[0] = srcPix[0] / (float)srcMaxValue;
-                        unpPix[1] = srcPix[1] / (float)srcMaxValue;
-                        unpPix[2] = srcPix[2] / (float)srcMaxValue;
-                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] / (float)srcMaxValue) : 1.0f;
+                        unpPix[0] = srcPix[0] * (1.f / srcMaxValue);
+                        unpPix[1] = srcPix[1] * (1.f / srcMaxValue);
+                        unpPix[2] = srcPix[2] * (1.f / srcMaxValue);
+                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] * (1.f / srcMaxValue)) : 1.0f;
                     }
                     float pPix[dstNComponents];
                     // unpPix is in [0, 1]
@@ -671,7 +671,7 @@ public:
                 const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(dstx, dsty) : 0);
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
                 for (int c = 0; c < srcNComponents; ++c) {
-                    unpPix[c] = (srcPix ? (srcPix[c] / (float)srcMaxValue) : 0.f);
+                    unpPix[c] = (srcPix ? (srcPix[c] * (1.f / srcMaxValue)) : 0.f);
                 }
                 // dstx,dsty are the mask image coordinates (no boundary conditions)
                 ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);
