@@ -110,7 +110,7 @@ public:
                         } else {
 #                        ifdef DEBUG
                             for (int c = 0; c < nComponents; ++c) {
-                                assert(srcPix[c] == srcPix[c]); // check for NaN
+                                assert( !OFX::IsNaN(srcPix[c]) ); // check for NaN
                             }
 #                        endif
                             for (int x = procWindow.x1; x < x1; ++x) {
@@ -133,7 +133,7 @@ public:
                             for (int x = procWindow.x1; x < x1; ++x) {
 #                             ifdef DEBUG
                                 for (int c = 0; c < nComponents; ++c) {
-                                    assert(srcPix[c] == srcPix[c]); // check for NaN
+                                    assert( !OFX::IsNaN(srcPix[c]) ); // check for NaN
                                 }
 #                             endif
                                 std::copy(srcPix, srcPix + nComponents, dstPix);
@@ -156,7 +156,7 @@ public:
                     } else {
 #                     ifdef DEBUG
                         for (int c = 0; c < nComponents * (x2 - x1); ++c) {
-                            assert(srcPix[c] == srcPix[c]); // check for NaN
+                            assert( !OFX::IsNaN(srcPix[c]) ); // check for NaN
                         }
 #                     endif
                         std::memcpy( dstPix, srcPix, sizeof(PIX) * nComponents * (x2 - x1) );
@@ -194,7 +194,7 @@ public:
                             for (int x = x2; x < procWindow.x2; ++x) {
 #                             ifdef DEBUG
                                 for (int c = 0; c < nComponents; ++c) {
-                                    assert(srcPix[c] == srcPix[c]); // check for NaN
+                                    assert( !OFX::IsNaN(srcPix[c]) ); // check for NaN
                                 }
 #                             endif
                                 std::copy(srcPix, srcPix + nComponents, dstPix);
