@@ -203,6 +203,24 @@ toPixelNearest(const OfxRectD & regionOfInterest,
 }
 
 inline void
+toPixelSub(const OfxRectD & regionOfInterest,
+           const OfxPointD & renderScale,
+           double par,
+           OfxRectD *rect)
+{
+    assert(par);
+    if ( rectIsEmpty(regionOfInterest) ) {
+        rect->x1 = rect->y1 = rect->x2 = rect->y2 = 0;
+
+        return;
+    }
+    rect->x1 = regionOfInterest.x1 * renderScale.x / par;
+    rect->y1 = regionOfInterest.y1 * renderScale.y;
+    rect->x2 = regionOfInterest.x2 * renderScale.x / par;
+    rect->y2 = regionOfInterest.y2 * renderScale.y;
+}
+
+inline void
 toPixel(const OfxPointD & p_canonical,
         const OfxPointD & renderScale,
         double par,
