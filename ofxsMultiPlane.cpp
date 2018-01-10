@@ -463,7 +463,7 @@ struct ChoiceOption
 
 struct ChoiceOption_Compare
 {
-    bool operator() (const ChoiceOption& lhs, const ChoiceOption& rhs)
+    bool operator() (const ChoiceOption& lhs, const ChoiceOption& rhs) const
     {
         return lhs.name < rhs.name;
     }
