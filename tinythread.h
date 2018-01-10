@@ -111,8 +111,10 @@ freely, subject to the following restrictions:
 #endif
 
 // Check if we can support the assembly language atomic operations?
+// Note: on MSVC, inline assembly is not supported on the ARM and x64 processors
+// (see https://docs.microsoft.com/en-us/cpp/assembler/inline/inline-assembler)
 #if (defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))) || \
-    (defined(_MSC_VER) && (defined(_M_IX86) || defined(_M_X64))) || \
+    (defined(_MSC_VER) && (defined(_M_IX86))) || \
     (defined(__GNUC__) && (defined(__ppc__)))
   #define _TTHREAD_HAS_ASM_ATOMICS_
 #endif
