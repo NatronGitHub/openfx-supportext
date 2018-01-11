@@ -33,6 +33,13 @@
 // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
 #define kParamDefaultsNormalised "defaultsNormalisedGenerator"
 
+#ifdef OFX_EXTENSIONS_NATRON
+#define OFX_COMPONENTS_OK(c) ((c)== ePixelComponentAlpha || (c) == ePixelComponentXY || (c) == ePixelComponentRGB || (c) == ePixelComponentRGBA)
+#else
+#define OFX_COMPONENTS_OK(c) ((c)== ePixelComponentAlpha || (c) == ePixelComponentRGB || (c) == ePixelComponentRGBA)
+#endif
+
+
 using namespace OFX;
 
 using std::string;
@@ -70,10 +77,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _supportsAlpha(false)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
-    assert( _dstClip && (!_dstClip->isConnected() || _dstClip->getPixelComponents() == ePixelComponentRGBA ||
-                         _dstClip->getPixelComponents() == ePixelComponentRGB ||
-                         _dstClip->getPixelComponents() == ePixelComponentXY ||
-                         _dstClip->getPixelComponents() == ePixelComponentAlpha) );
+    assert( _dstClip && (!_dstClip->isConnected() || OFX_COMPONENTS_OK(_dstClip->getPixelComponents())) );
 
     _extent = fetchChoiceParam(kParamGeneratorExtent);
     _format = fetchChoiceParam(kParamGeneratorFormat);
@@ -137,9 +141,11 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
         case ePixelComponentRGB:
             _supportsRGB = supported;
             break;
-        case ePixelComponentXY:
+#ifdef OFX_EXTENSIONS_NATRON
+       case ePixelComponentXY:
             _supportsXY = supported;
             break;
+#endif
         case ePixelComponentAlpha:
             _supportsAlpha = supported;
             break;
@@ -838,9 +844,11 @@ generatorDescribeInContext(PageParamDescriptor *page,
                 case ePixelComponentRGB:
                     supportsRGB = supported;
                     break;
+#ifdef OFX_EXTENSIONS_NATRON
                 case ePixelComponentXY:
                     supportsXY = supported;
                     break;
+#endif
                 case ePixelComponentAlpha:
                     supportsAlpha = supported;
                     break;
@@ -895,12 +903,14 @@ generatorDescribeInContext(PageParamDescriptor *page,
                     ++nOptions;
                 }
                 if (supportsXY) {
+#ifdef OFX_EXTENSIONS_NATRON
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentXY);
                     param->appendOption(kParamGeneratorOutputComponentsOptionXY);
                     if (defaultComponents == ePixelComponentXY) {
                         defIndex = nOptions;
                     }
                     ++nOptions;
+#endif
                 }
                 if (supportsAlpha) {
                     assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
