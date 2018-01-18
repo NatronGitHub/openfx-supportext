@@ -387,7 +387,6 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 // - If two consecutive points have a chage of Z-sign, find a point close to the point with the negative z with a Z equal to 0.
 // This gives a direction which must be fully included in the rod, and thus a full quadrant must be included, ie an infinite
 // value for one of the x bounds and an infinite value for one of the y bounds.
-#warning TODO
 static void
 ofxsTransformRegionFromPoints(const Point3D p[4],
                               OfxRectD &rod)
