@@ -32,7 +32,9 @@
 #else
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
+#ifndef NOMINMAX
 #define NOMINMAX
+#endif
 #include <windows.h>
 #endif
 
@@ -593,7 +595,7 @@ drawRotationBar(const OfxRGBColourD& color,
     if (hovered) {
         glColor3f(1.f * l, 0.f * l, 0.f * l);
     } else {
-        glColor3f(color.r * l, color.g * l, color.b * l);
+        glColor3d(color.r * l, color.g * l, color.b * l);
     }
 
     double barExtra = 30. * meanPixelScale;
@@ -803,7 +805,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
-        glColor3f(color.r * l, color.g * l, color.b * l);
+        glColor3d(color.r * l, color.g * l, color.b * l);
 
         glPushMatrix();
         glTranslated(targetCenter.x, targetCenter.y, 0.);

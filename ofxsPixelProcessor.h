@@ -70,7 +70,7 @@ getImageData(const OFX::Image* img,
         *rowBytes = img->getRowBytes();
     } else {
         *pixelData = 0;
-        bounds->x1 = bounds->x2 = bounds->y1 = bounds->y2 = 0.f;
+        bounds->x1 = bounds->x2 = bounds->y1 = bounds->y2 = 0;
         *pixelComponents = ePixelComponentNone;
         *bitDepth = eBitDepthNone;
         *rowBytes = 0;

@@ -378,13 +378,13 @@ ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
     // start border condition
     if (x1 < ifirst && !zeroOutside) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] += l[ifirst * stride + j] * (ifirst-x1);
+            v[j] += l[ifirst * stride + j] * (float)(ifirst-x1);
         }
     }
     // pre-subtract partial first pixel
     if (fracfirst > 0.) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] -= l[ifirst * stride + j] * fracfirst;
+            v[j] -= l[ifirst * stride + j] * (float)fracfirst;
         }
     }
     // sum all covered pixels
@@ -396,13 +396,13 @@ ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
     // subtract partial last pixel
     if (fraclast > 0.) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] -= l[ilast * stride + j] * fraclast;
+            v[j] -= l[ilast * stride + j] * (float)fraclast;
         }
     }
     // end border condition
     if (x2 > nsamples && !zeroOutside) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] += l[ilast * stride + j] * (x2 - nsamples);
+            v[j] += l[ilast * stride + j] * (float)(x2 - nsamples);
         }
     }
 }
@@ -459,13 +459,13 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
     // start border condition
     if (y1 < ifirst && !zeroOutside) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] += p[j] * (ifirst - y1);
+            v[j] += p[j] * (float)(ifirst - y1);
         }
     }
     // subtract partial first line
     if (fracfirst > 0.) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] -= p[j] * fracfirst;
+            v[j] -= p[j] * (float)fracfirst;
         }
     }
     // sum all covered lines
@@ -491,13 +491,13 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
     // subtract partial last pixel
     if (fraclast > 0.) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] -= p[j] * fraclast;
+            v[j] -= p[j] * (float)fraclast;
         }
     }
     // end border condition
     if (y2 > aheight && !zeroOutside) {
         for (size_t j = 0; j < depth; ++j) {
-            v[j] += p[j] * (y2 - aheight);
+            v[j] += p[j] * (float)(y2 - aheight);
         }
     }
 }
@@ -1142,8 +1142,8 @@ ofxsFilterInterpolate2DSuper(double fx,
                               p,
                               tmpPix);
         // normalize by the surface of the pixel
-        double s = (x2 - x1) * (y2 - y1);
-        if (s != 0.) {
+        float s = (x2 - x1) * (y2 - y1);
+        if (s != 0.f) {
             for (int c = 0; c < nComponents; ++c) {
                 tmpPix[c] /= s;
             }
@@ -1210,8 +1210,8 @@ ofxsFilterInterpolate2DSuper(double fx,
     //int isy = std::ceil(sy);
     // This is why we prefer rounding. The jump will be at sx=sqrt(3)=1.732.
     // This produces quicker renders too, since we supersample less.
-    int isx = std::ceil(sx-0.5);
-    int isy = std::ceil(sy-0.5);
+    int isx = (int)std::ceil(sx-0.5);
+    int isy = (int)std::ceil(sy-0.5);
 
     return ofxsFilterInterpolate2DSuperInternal<PIX, nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, isx, isy, isx, isy, srcImg, blackOutside, tmpPix);
 #endif

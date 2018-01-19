@@ -60,6 +60,10 @@ using std::endl;
 
 namespace {
 
+template<typename T>
+static inline void
+unused(const T&) {}
+
 OfxStatus multiThreadNumCPUs(unsigned int *nCPUs);
 
 const unsigned nprocs = thread::hardware_concurrency();
@@ -89,7 +93,7 @@ threadFunction(void *_args)
     args->ret = kOfxStatOK;
     try {
         args->func(args->threadIndex, args->threadMax, args->customArg);
-    } catch (const std::bad_alloc & ba) {
+    } catch (const std::bad_alloc) {
         args->ret = kOfxStatErrMemory;
     } catch (...) {
         args->ret = kOfxStatFailed;
@@ -339,6 +343,7 @@ OfxStatus mutexCreate(OfxMutexHandle *mutex, int lockCount)
         return kOfxStatErrMemory;
     } catch (const std::exception & e) {
         DBG(cout << "mutexCreate(): " << e.what() << endl);
+        unused(e);
 
         return kOfxStatErrUnknown;
     } catch (...) {
@@ -373,6 +378,7 @@ OfxStatus mutexDestroy(const OfxMutexHandle mutex)
         return kOfxStatErrMemory;
     } catch (const std::exception & e) {
         DBG(cout << "mutexDestroy(): " << e.what() << endl);
+        unused(e);
 
         return kOfxStatErrUnknown;
     } catch (...) {
@@ -409,6 +415,7 @@ OfxStatus mutexLock(const OfxMutexHandle mutex)
         return kOfxStatErrMemory;
     } catch (const std::exception & e) {
         DBG(cout << "mutexLock(): " << e.what() << endl);
+        unused(e);
 
         return kOfxStatErrUnknown;
     } catch (...) {
@@ -443,6 +450,7 @@ OfxStatus mutexUnLock(const OfxMutexHandle mutex)
         return kOfxStatErrMemory;
     } catch (const std::exception & e) {
         DBG(cout << "mutexUnLock(): " << e.what() << endl);
+        unused(e);
 
         return kOfxStatErrUnknown;
     } catch (...) {

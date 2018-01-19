@@ -155,7 +155,7 @@ rgb_to_hsv( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= OFXS_HUE_CIRCLE / 6.;
+    *h *= OFXS_HUE_CIRCLE / 6.f;
     if (*h < 0) {
         *h += OFXS_HUE_CIRCLE;
     }
@@ -177,7 +177,7 @@ hsv_to_rgb(float h,
     }
 
     h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    int i = std::floor(h);
+    int i = (int)std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float p = v * ( 1 - s );
@@ -252,7 +252,7 @@ rgb_to_hsl( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= OFXS_HUE_CIRCLE / 6.;
+    *h *= OFXS_HUE_CIRCLE / 6.f;
     if (*h < 0) {
         *h += OFXS_HUE_CIRCLE;
     }
@@ -273,8 +273,8 @@ hsl_to_rgb(float h,
         return;
     }
 
-    h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    int i = std::floor(h);
+    h *= 6.f / OFXS_HUE_CIRCLE;            // sector 0 to 5
+    int i = (int)std::floor(h);
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
@@ -391,9 +391,9 @@ rgb_to_ycbcr601(float r,
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.601)
     /// also http://www.intersil.com/data/an/AN9717.pdf
-    *y  =  0.257 * r + 0.504 * g + 0.098 * b + 16 / 255.;
-    *cb = -0.148 * r - 0.291 * g + 0.439 * b + 128 / 255.;
-    *cr =  0.439 * r - 0.368 * g - 0.071 * b + 128 / 255.;
+    *y  =  0.257f * r + 0.504f * g + 0.098f * b + 16 / 255.f;
+    *cb = -0.148f * r - 0.291f * g + 0.439f * b + 128 / 255.f;
+    *cr =  0.439f * r - 0.368f * g - 0.071f * b + 128 / 255.f;
 }
 
 // Y'CbCr in the video range (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
@@ -416,9 +416,9 @@ ycbcr_to_rgb601(float y,
 
     /// ref: http://www.equasys.de/colorconversion.html (BT.601)
     /// also http://www.intersil.com/data/an/AN9717.pdf
-    *r = 1.164 * (y - 16 / 255.) + 1.596 * (cr - 128 / 255.);
-    *g = 1.164 * (y - 16 / 255.) - 0.813 * (cr - 128 / 255.) - 0.392 * (cb - 128 / 255.);
-    *b = 1.164 * (y - 16 / 255.) + 2.017 * (cb - 128 / 255.);
+    *r = 1.164f * (y - 16 / 255.f) + 1.596f * (cr - 128 / 255.f);
+    *g = 1.164f * (y - 16 / 255.f) - 0.813f * (cr - 128 / 255.f) - 0.392f * (cb - 128 / 255.f);
+    *b = 1.164f * (y - 16 / 255.f) + 2.017f * (cb - 128 / 255.f);
 } // ycbcr_to_rgb
 
 // R'G'B' in the range 0-1 to Y'CbCr in the video range
@@ -437,9 +437,9 @@ rgb_to_ycbcr709(float r,
     //*cr =  0.5016 * r -0.4556 * g -0.0459 * b + 128./255;
 
     // ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *y  =  0.183 * r + 0.614 * g + 0.062 * b + 16 / 255.;
-    *cb = -0.101 * r - 0.339 * g + 0.439 * b + 128 / 255.;
-    *cr =  0.439 * r - 0.399 * g - 0.040 * b + 128 / 255.;
+    *y  =  0.183f * r + 0.614f * g + 0.062f * b + 16 / 255.f;
+    *cb = -0.101f * r - 0.339f * g + 0.439f * b + 128 / 255.f;
+    *cr =  0.439f * r - 0.399f * g - 0.040f * b + 128 / 255.f;
 }
 
 // Y'CbCr in the video range (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
@@ -453,9 +453,9 @@ ycbcr_to_rgb709(float y,
                 float *b)
 {
     // ref: http://www.equasys.de/colorconversion.html (BT.709)
-    *r = 1.164 * (y - 16 / 255.) + 1.793 * (cr - 128 / 255.);
-    *g = 1.164 * (y - 16 / 255.) - 0.533 * (cr - 128 / 255.) - 0.213 * (cb - 128 / 255.);
-    *b = 1.164 * (y - 16 / 255.) + 2.112 * (cb - 128 / 255.);
+    *r = 1.164f * (y - 16 / 255.f) + 1.793f * (cr - 128 / 255.f);
+    *g = 1.164f * (y - 16 / 255.f) - 0.533f * (cr - 128 / 255.f) - 0.213f * (cb - 128 / 255.f);
+    *b = 1.164f * (y - 16 / 255.f) + 2.112f * (cb - 128 / 255.f);
 } // ycbcr_to_rgb
 
 // R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
@@ -474,8 +474,8 @@ rgb_to_ypbpr601(float r,
     //*pb = -0.168736f * r - 0.331264f * g + 0.500f * b;
     //*pr =  0.500f    * r - 0.418688f * g - 0.081312f * b;
 
-#define Kb 0.114
-#define Kr 0.299
+#define Kb 0.114f
+#define Kr 0.299f
     *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
     *pb =  (b - *y) / ( 2 * (1 - Kb) );
     *pr =  (r - *y) / ( 2 * (1 - Kr) );
@@ -526,8 +526,8 @@ rgb_to_ypbpr709(float r,
     //*y  =  0.2126390058 * r + 0.7151686783 * g + 0.07219231534 * b;
     //*pb =  (b - *y) / 1.8556;
     //*pr =  (r - *y) / 1.5748;
-#define Kb 0.07219231534
-#define Kr 0.2126390058
+#define Kb 0.07219231534f
+#define Kr 0.2126390058f
     *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
     *pb =  (b - *y) / ( 2 * (1 - Kb) );
     *pr =  (r - *y) / ( 2 * (1 - Kr) );
@@ -584,8 +584,8 @@ rgb_to_ypbpr2020(float r,
     //*y  =  0.2215f * r + 0.7154f * g + 0.0721f * b;
     //*pb = -0.1145f * r - 0.3855f * g + 0.5000f  * b;
     //*pr =  0.5016f * r - 0.4556f * g - 0.0459f  * b;
-#define Kb 0.0593
-#define Kr 0.2627
+#define Kb 0.0593f
+#define Kr 0.2627f
     *y  =  Kr * r + (1 - Kr - Kb) * g + Kb * b;
     *pb =  (b - *y) / ( 2 * (1 - Kb) );
     *pr =  (r - *y) / ( 2 * (1 - Kr) );
@@ -626,7 +626,7 @@ rgb_to_yuv601(float r,
     /// ref: https://en.wikipedia.org/wiki/YUV#SDTV_with_BT.601
     *y =  0.299f   * r + 0.587f   * g + 0.114f  * b;
     *u = -0.14713f * r - 0.28886f * g + 0.436f  * b;
-    *v =  0.615f   * r - 0.51499f * g - 0.10001 * b;
+    *v =  0.615f   * r - 0.51499f * g - 0.10001f * b;
 }
 
 // Y'UV (Y' in the range 0-1, U in the range -0.436 - 0.436,

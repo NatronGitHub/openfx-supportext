@@ -39,8 +39,8 @@ utf8_to_utf16 (const string& str)
 {
     wstring native;
 
-    native.resize( MultiByteToWideChar (CP_UTF8, 0, str.data(), str.length(), NULL, 0) );
-    MultiByteToWideChar ( CP_UTF8, 0, str.data(), str.length(), &native[0], (int)native.size() );
+    native.resize( MultiByteToWideChar (CP_UTF8, 0, str.data(), (int)str.length(), NULL, 0) );
+    MultiByteToWideChar ( CP_UTF8, 0, str.data(), (int)str.length(), &native[0], (int)native.size() );
 
     return native;
 }
@@ -50,8 +50,8 @@ utf16_to_utf8 (const wstring& str)
 {
     string utf8;
 
-    utf8.resize( WideCharToMultiByte (CP_UTF8, 0, str.data(), str.length(), NULL, 0, NULL, NULL) );
-    WideCharToMultiByte (CP_UTF8, 0, str.data(), str.length(), &utf8[0], (int)utf8.size(), NULL, NULL);
+    utf8.resize( WideCharToMultiByte (CP_UTF8, 0, str.data(), (int)str.length(), NULL, 0, NULL, NULL) );
+    WideCharToMultiByte (CP_UTF8, 0, str.data(), (int)str.length(), &utf8[0], (int)utf8.size(), NULL, NULL);
 
     return utf8;
 }

@@ -38,8 +38,8 @@
 #include "ofxsMultiThread.h"
 #include "ofxsThreadSuite.h"
 
-#define OFXS_HUE_CIRCLE 1. // if hue should be between 0 and 1
-//#define OFXS_HUE_CIRCLE 360. // if hue should be in degrees
+#define OFXS_HUE_CIRCLE 1.f // if hue should be between 0 and 1
+//#define OFXS_HUE_CIRCLE 360.f // if hue should be in degrees
 
 namespace OFX {
 namespace Color {
@@ -274,7 +274,7 @@ public:
         }
 
         // interpolate linearly
-        return (v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5;
+        return (short)((v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5f);
     }
 
     /* @brief Converts a byte ranging in [0 - 255] in the destination color-space using the look-up tables.
@@ -479,7 +479,7 @@ public:
             const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
 
             while (src_pixels != src_end) {
-                float l = 0.2126 * src_pixels[0] + 0.7152 * src_pixels[1] + 0.0722 * src_pixels[2]; // Rec.709 luminance formula
+                float l = 0.2126f * src_pixels[0] + 0.7152f * src_pixels[1] + 0.0722f * src_pixels[2]; // Rec.709 luminance formula
                 dst_pixels[0] = toColorSpaceUint8FromLinearFloatFast(l);
                 ++dst_pixels;
                 src_pixels += srcComponents;
@@ -513,7 +513,7 @@ public:
 
         for (int y = renderWindow.y1; y < renderWindow.y2; ++y) {
             const float *src_pixels = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, 0, y);
-            unsigned char *dst_pixels = (unsigned char*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
+            unsigned short *dst_pixels = (unsigned short*)OFX::getPixelAddress(dstPixelData, dstBounds, dstPixelComponents, dstBitDepth, dstRowBytes, 0, y);
             const float *src_end = (const float*)OFX::getPixelAddress(pixelData, bounds, pixelComponents, bitDepth, rowBytes, renderWindow.x2, y, false);
 
             while (src_pixels != src_end) {
@@ -790,14 +790,14 @@ to_func_Panalog(float v)
 inline float
 from_func_REDLog(float v)
 {
-    return (std::pow(10.f, (1023.f * v - 1023.f) / 511.f) - 0.01) / (1.0f - 0.01f);
+    return (std::pow(10.f, (1023.f * v - 1023.f) / 511.f) - 0.01f) / (1.0f - 0.01f);
 }
 
 /// to REDLog from Linear Opto-Electronic Transfer Function (OETF)
     inline float
 to_func_REDLog(float v)
 {
-    return (511.f * std::log10(0.01f + (1.0f - 0.01f) * v) + 1023.) / 1023.f;
+    return (511.f * std::log10(0.01f + (1.0f - 0.01f) * v) + 1023.f) / 1023.f;
 }
 
 /// from ViperLog to Linear Electro-Optical Transfer Function (EOTF)
@@ -837,8 +837,8 @@ inline float
 from_func_SLog1(float v)
 {
     // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
-    return v >= 90./1023. ? (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)*0.9
-           : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/5.*0.9;
+    return (float)(v >= 90./1023. ? (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)*0.9
+           : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/5.*0.9);
 }
 
 /// from Linear to SLog1 Opto-Electronic Transfer Function (OETF)
@@ -846,8 +846,8 @@ inline float
 to_func_SLog1(float v)
 {
     // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
-    return v >= -0.00008153227156 ? ((std::log10((v / 0.9) + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
-           : (((v / 0.9) * 5. + 0.030001222851889303)*(940.0-64.0) + 64.)/1023;
+    return (float)(v >= -0.00008153227156 ? ((std::log10((v / 0.9) + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
+           : (((v / 0.9) * 5. + 0.030001222851889303)*(940.0-64.0) + 64.)/1023);
 }
 
 /// from SLog2 to Linear Electro-Optical Transfer Function (EOTF)
@@ -857,8 +857,8 @@ from_func_SLog2(float v)
     // http://community.thefoundry.co.uk/discussion/topic.aspx?f=189&t=100372
     // nuke.root().knob('luts').addCurve("SLog2-Ref", "{ (t>=90.0/1023.0)? 219.0*(pow(10.0, (((t*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)/155.0*0.9 : ((t*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/3.53881278538813*0.9 }")
     // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
-    return v >= 90./1023. ? 219.0 * (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)/155.0*0.9
-          : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/3.53881278538813*0.9;
+    return (float)(v >= 90./1023. ? 219.0 * (std::pow( 10., (((v*1023.0-64.0)/(940.0-64.0)-0.616596-0.03)/0.432699))-0.037584)/155.0*0.9
+          : ((v*1023.0-64.0)/(940.0-64.0)-0.030001222851889303)/3.53881278538813*0.9);
 }
 
 /// from Linear to SLog2 Opto-Electronic Transfer Function (OETF)
@@ -866,8 +866,8 @@ inline float
 to_func_SLog2(float v)
 {
     // ref: https://pro.sony.com/bbsccms/assets/files/micro/dmpc/training/S-Log2_Technical_PaperV1_0.pdf
-    return v >= -0.00008153227156 ? ((std::log10((v / 0.9) * 155. / 219. + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
-            : (((v / 0.9) * 3.53881278538813 + 0.030001222851889303)*(940.0-64.0) + 64.)/1023;
+    return (float)(v >= -0.00008153227156 ? ((std::log10((v / 0.9) * 155. / 219. + 0.037584) * 0.432699 +0.616596+0.03)*(940.0-64.0) + 64.)/1023.
+            : (((v / 0.9) * 3.53881278538813 + 0.030001222851889303)*(940.0-64.0) + 64.)/1023);
 }
 
 /// from SLog3 to Linear Electro-Optical Transfer Function (EOTF)
@@ -875,8 +875,8 @@ inline float
 from_func_SLog3(float v)
 {
     // http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
-    return v >= 171.2102946929 / 1023.0 ? std::pow(10.0, ((v * 1023.0 - 420.0) / 261.5)) * (0.18 + 0.01) - 0.01
-          : (v * 1023.0 - 95.0) * 0.01125000 / (171.2102946929 - 95.0);
+    return (float)(v >= 171.2102946929 / 1023.0 ? std::pow(10.0, ((v * 1023.0 - 420.0) / 261.5)) * (0.18 + 0.01) - 0.01
+          : (v * 1023.0 - 95.0) * 0.01125000 / (171.2102946929 - 95.0));
 }
 
 /// from Linear to SLog3 Opto-Electronic Transfer Function (OETF)
@@ -884,8 +884,8 @@ inline float
 to_func_SLog3(float v)
 {
     // http://www.sony.co.uk/pro/support/attachment/1237494271390/1237494271406/technical-summary-for-s-gamut3-cine-s-log3-and-s-gamut3-s-log3.pdf
-    return v >= 0.01125000 ? (420.0 + std::log10((v + 0.01) / (0.18 + 0.01)) * 261.5) / 1023.0
-         : (v * (171.2102946929 - 95.0)/0.01125000 + 95.0) / 1023.0;
+    return (float)(v >= 0.01125000 ? (420.0 + std::log10((v + 0.01) / (0.18 + 0.01)) * 261.5) / 1023.0
+         : (v * (171.2102946929 - 95.0)/0.01125000 + 95.0) / 1023.0);
 }
 
 // from V-Log to Linear Electro-Optical Transfer Function (EOTF)
