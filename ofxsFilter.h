@@ -1142,7 +1142,7 @@ ofxsFilterInterpolate2DSuper(double fx,
                               p,
                               tmpPix);
         // normalize by the surface of the pixel
-        float s = (x2 - x1) * (y2 - y1);
+        float s = (float)((x2 - x1) * (y2 - y1));
         if (s != 0.f) {
             for (int c = 0; c < nComponents; ++c) {
                 tmpPix[c] /= s;

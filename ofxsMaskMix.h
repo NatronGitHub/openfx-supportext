@@ -176,10 +176,10 @@ ofxsClampIfInt(float v,
                int max)
 {
     if (maxValue == 1) {
-        return v;
+        return (PIX)(v);
     }
 
-    return ofxsClamp(v, min, max) * maxValue + 0.5;
+    return (PIX)(ofxsClamp(v, min, max) * maxValue + 0.5);
 }
 
 // normalize in [0,1]

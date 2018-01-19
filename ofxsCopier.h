@@ -294,7 +294,7 @@ public:
                     std::copy(srcPix, srcPix + nComponents - 1, dstPix);
                     dstPix[nComponents - 1] = maxValue;
                 } else {
-                    std::fill(dstPix, dstPix + nComponents, 0); // no src pixel here, be black and transparent
+                  std::fill( dstPix, dstPix + nComponents, PIX() ); // no src pixel here, be black and transparent
                 }
                 // increment the dst pixel
                 dstPix += nComponents;
@@ -383,7 +383,7 @@ public:
                 if (srcPix) {
                     std::copy(srcPix, srcPix + nComponents, tmpPix);
                 } else {
-                    std::fill(tmpPix, tmpPix + nComponents, 0.); // no src pixel here, be black and transparent
+                    std::fill(tmpPix, tmpPix + nComponents, 0.f); // no src pixel here, be black and transparent
                 }
                 // dstx,dsty are the mask image coordinates (no boundary conditions)
                 ofxsMaskMixPix<PIX, nComponents, maxValue, masked>(tmpPix, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);

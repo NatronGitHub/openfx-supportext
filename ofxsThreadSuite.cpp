@@ -490,6 +490,7 @@ OfxStatus mutexTryLock(const OfxMutexHandle mutex)
         return kOfxStatErrMemory;
     } catch (const std::exception & e) {
         DBG(cout << "mutexTryLock(): " << e.what() << endl);
+        unused(e);
 
         return kOfxStatErrUnknown;
     } catch (...) {
