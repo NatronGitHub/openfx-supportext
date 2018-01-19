@@ -156,7 +156,7 @@ rgb_to_hsv( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= OFXS_HUE_CIRCLE / 6.f;
+    *h *= OFXS_HUE_CIRCLE / 6;
     if (*h < 0) {
         *h += OFXS_HUE_CIRCLE;
     }
@@ -253,7 +253,7 @@ rgb_to_hsl( float r,
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
     }
-    *h *= OFXS_HUE_CIRCLE / 6.f;
+    *h *= OFXS_HUE_CIRCLE / 6;
     if (*h < 0) {
         *h += OFXS_HUE_CIRCLE;
     }
