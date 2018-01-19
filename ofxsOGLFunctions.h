@@ -1,3 +1,4 @@
+/* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
 /*
 THIS FILE WAS GENERATED AUTOMATICALLY FROM glad.h, DO NOT EDIT
 */

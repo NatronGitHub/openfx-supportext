@@ -1,3 +1,4 @@
+/* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; -*-
 /* ***** BEGIN LICENSE BLOCK *****
  * This file is part of openfx-supportext <https://github.com/devernay/openfx-supportext>,
  * Copyright (C) 2013-2018 INRIA
@@ -1030,7 +1031,7 @@ ofxsFilterInterpolate2DSuperInternal(double fx,
     }
     if (subx) {
         // interpolate linearly over sx
-        float alpha = sx - isx;
+        float alpha = (float)(sx - isx);
         for (int c = 0; c < nComponents; ++c) {
             pii[c] = pii[c] + alpha * (pni[c] - pii[c]);
         }
@@ -1042,7 +1043,7 @@ ofxsFilterInterpolate2DSuperInternal(double fx,
     }
     if (suby) {
         // interpolate linearly over sy
-        float alpha = sy - isy;
+        float alpha = (float)(sy - isy);
         for (int c = 0; c < nComponents; ++c) {
             pii[c] = pii[c] + alpha * (pin[c] - pii[c]);
         }

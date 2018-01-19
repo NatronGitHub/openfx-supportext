@@ -1,3 +1,4 @@
+/* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * This file is part of openfx-supportext <https://github.com/devernay/openfx-supportext>,
  * Copyright (C) 2013-2018 INRIA

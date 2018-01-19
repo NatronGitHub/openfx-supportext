@@ -1,3 +1,4 @@
+/* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * This file is part of openfx-supportext <https://github.com/devernay/openfx-supportext>,
  * Copyright (C) 2013-2018 INRIA
@@ -950,7 +951,7 @@ T rgb709_to_y( T r, T g, T b )
 {
     // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
     // from 07 Apr 2017
-    return 0.2126729f * r + 0.7151522f * g + 0.0721750f * b;
+    return (T)(0.2126729f * r + 0.7151522f * g + 0.0721750f * b);
 }
 
 template<typename T>
@@ -972,9 +973,9 @@ rgb709_to_xyz(T r,
 
     // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
     // from 07 Apr 2017
-    *x = 0.4124564f * r + 0.3575761f * g + 0.1804375f * b;
-    *y = rgb709_to_y(r, g, b);
-    *z = 0.0193339f * r + 0.1191920f * g + 0.9503041f * b;
+    *x = (T)(0.4124564f * r + 0.3575761f * g + 0.1804375f * b);
+    *y = (T)(rgb709_to_y(r, g, b));
+    *z = (T)(0.0193339f * r + 0.1191920f * g + 0.9503041f * b);
 }
 
 // Convert pixel values from XYZ to linear RGB_709 or sRGB color spaces.
@@ -998,9 +999,9 @@ xyz_to_rgb709(T x,
 
     // coefficients are those of http://www.brucelindbloom.com/index.html?Eqn_RGB_XYZ_Matrix.html
     // from 07 Apr 2017
-    *r =  3.2404542f * x + -1.5371385f * y + -0.4985314f * z;
-    *g = -0.9692660f * x +  1.8760108f * y +  0.0415560f * z;
-    *b =  0.0556434f * x + -0.2040259f * y +  1.0572252f * z;
+    *r = (T)( 3.2404542f * x + -1.5371385f * y + -0.4985314f * z);
+    *g = (T)(-0.9692660f * x +  1.8760108f * y +  0.0415560f * z);
+    *b = (T)( 0.0556434f * x + -0.2040259f * y +  1.0572252f * z);
 }
 
 // r,g,b values are from 0 to 1
@@ -1009,7 +1010,7 @@ xyz_to_rgb709(T x,
 template<typename T>
 T rgb2020_to_y( T r, T g, T b )
 {
-    return 0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b;
+    return (T)(0.2627002119 * r + 0.6779980711 * g + 0.0593017165 * b);
 }
 
 template<typename T>
@@ -1025,9 +1026,9 @@ rgb2020_to_xyz(T r,
     //> P:=matrix([[1.7166511880,-0.3556707838,-0.2533662814],[-0.6666843518,1.6164812366,0.0157685458],[0.0176398574,-0.0427706133,0.9421031212]]);
     //> inverse(P);
 
-    *x = 0.6369580481 * r + 0.1446169036 * g + 0.1688809752 * b;
-    *y = rgb2020_to_y(r, g, b);
-    *z = 0.0000000000 * r + 0.0280726931 * g + 1.060985058  * b;
+    *x = (T)(0.6369580481 * r + 0.1446169036 * g + 0.1688809752 * b);
+    *y = (T)(rgb2020_to_y(r, g, b));
+    *z = (T)(0.0000000000 * r + 0.0280726931 * g + 1.060985058  * b);
 }
 
 // Convert pixel values from XYZ to RGB_2020 color spaces.
@@ -1042,9 +1043,9 @@ xyz_to_rgb2020(T x,
                T *b)
 {
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *r =  1.7166511880 * x + -0.3556707838 * y + -0.2533662814 * z;
-    *g = -0.6666843518 * x +  1.6164812366 * y +  0.0157685458 * z;
-    *b =  0.0176398574 * x + -0.0427706133 * y +  0.9421031212 * z;
+    *r = (T)( 1.7166511880 * x + -0.3556707838 * y + -0.2533662814 * z);
+    *g = (T)(-0.6666843518 * x +  1.6164812366 * y +  0.0157685458 * z);
+    *b = (T)( 0.0176398574 * x + -0.0427706133 * y +  0.9421031212 * z);
 }
 
 // r,g,b values are from 0 to 1
@@ -1053,7 +1054,7 @@ xyz_to_rgb2020(T x,
 template<typename T>
 T rgbACESAP0_to_y( T r, T g, T b )
 {
-    return 0.3439664498 * r + 0.7281660966 * g + -0.0721325464 * b;
+    return (T)(0.3439664498 * r + 0.7281660966 * g + -0.0721325464 * b);
 }
 
 template<typename T>
@@ -1068,9 +1069,9 @@ rgbACESAP0_to_xyz(T r,
     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
     // and
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *x = 0.9525523959 * r + 0.0000000000 * g +  0.0000936786 * b;
-    *y = rgbACESAP0_to_y(r, g, b);
-    *z = 0.0000000000 * r + 0.0000000000 * g +  1.0088251844 * b;
+    *x = (T)(0.9525523959 * r + 0.0000000000 * g +  0.0000936786 * b);
+    *y = (T)(rgbACESAP0_to_y(r, g, b));
+    *z = (T)(0.0000000000 * r + 0.0000000000 * g +  1.0088251844 * b);
 }
 
 // Convert pixel values from XYZ to RGB_ACES_AP0 (with the ACES illuminant) color spaces.
@@ -1087,9 +1088,9 @@ xyz_to_rgbACESAP0(T x,
     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
     // and
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *r =  1.0498110175 * x +  0.0000000000 * y + -0.0000974845 * z;
-    *g = -0.4959030231 * x +  1.3733130458 * y +  0.0982400361 * z;
-    *b =  0.0000000000 * x +  0.0000000000 * y +  0.9912520182 * z;
+    *r = (T)( 1.0498110175 * x +  0.0000000000 * y + -0.0000974845 * z);
+    *g = (T)(-0.4959030231 * x +  1.3733130458 * y +  0.0982400361 * z);
+    *b = (T)( 0.0000000000 * x +  0.0000000000 * y +  0.9912520182 * z);
 }
 
 // r,g,b values are from 0 to 1
@@ -1098,7 +1099,7 @@ xyz_to_rgbACESAP0(T x,
 template<typename T>
 T rgbACESAP1_to_y( T r, T g, T b )
 {
-    return 0.2722287168 * r +  0.6740817658 * g +  0.0536895174 * b;
+    return (T)(0.2722287168 * r +  0.6740817658 * g +  0.0536895174 * b);
 }
 
 template<typename T>
@@ -1113,9 +1114,9 @@ rgbACESAP1_to_xyz(T r,
     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
     // and
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *x =  0.6624541811 * r +  0.1340042065 * g +  0.1561876870 * b;
-    *y =  rgbACESAP1_to_y(r, g, b);
-    *z = -0.0055746495 * r +  0.0040607335 * g +  1.0103391003 * b;
+    *x = (T)( 0.6624541811 * r +  0.1340042065 * g +  0.1561876870 * b);
+    *y = (T)( rgbACESAP1_to_y(r, g, b));
+    *z = (T)(-0.0055746495 * r +  0.0040607335 * g +  1.0103391003 * b);
 }
 
 // Convert pixel values from XYZ to RGB_ACES_AP1 color spaces.
@@ -1132,9 +1133,9 @@ xyz_to_rgbACESAP1(T x,
     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
     // and
     // https://github.com/ampas/aces-dev/blob/master/transforms/ctl/README-MATRIX.md
-    *r =  1.6410233797 * x + -0.3248032942 * y + -0.2364246952 * z;
-    *g = -0.6636628587 * x +  1.6153315917 * y +  0.0167563477 * z;
-    *b =  0.0117218943 * x + -0.0082844420 * y +  0.9883948585 * z;
+    *r = (T)( 1.6410233797 * x + -0.3248032942 * y + -0.2364246952 * z);
+    *g = (T)(-0.6636628587 * x +  1.6153315917 * y +  0.0167563477 * z);
+    *b = (T)( 0.0117218943 * x + -0.0082844420 * y +  0.9883948585 * z);
 }
 
 void xyz_to_lab( float x, float y, float z, float *l, float *a, float *b );
