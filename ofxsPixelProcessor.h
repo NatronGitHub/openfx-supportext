@@ -134,7 +134,7 @@ getPixelAddress(void* pixelData,
     if ( ( x < bounds.x1) || ( x >= bounds.x2) || ( y < bounds.y1) || ( y >= bounds.y2) || ( pixelBytes == 0) ) {
         return 0;
     }
-    char *pix = (char *) ( ( (char *) pixelData ) + (size_t)(y - bounds.y1) * rowBytes );
+    char *pix = (char *) ( ( (char *) pixelData ) + (size_t)((y - bounds.y1) * rowBytes) );
     pix += (x - bounds.x1) * pixelBytes;
 
     return (void *) pix;
@@ -297,7 +297,7 @@ protected:
             return 0;
         }
 
-        char *pix = (char *) ( ( (char *) _dstPixelData ) + (size_t)(y - _dstBounds.y1) * _dstRowBytes );
+        char *pix = (char *) ( ( (char *) _dstPixelData ) + (size_t)((y - _dstBounds.y1) * _dstRowBytes) );
         pix += (x - _dstBounds.x1) * _dstPixelBytes;
 
         return (void *) pix;
@@ -443,7 +443,7 @@ protected:
             }
         }
 
-        char *pix = (char *) ( ( (char *) _srcPixelData ) + (size_t)(y - _srcBounds.y1) * _srcRowBytes );
+        char *pix = (char *) ( ( (char *) _srcPixelData ) + (size_t)((y - _srcBounds.y1) * _srcRowBytes) );
         pix += (x - _srcBounds.x1) * _srcPixelBytes;
 
         return (void *) pix;
