@@ -309,7 +309,7 @@ unsigned int
 mipmapLevelFromScale(double s)
 {
     assert(0. < s && s <= 1.);
-    int retval = -(int)std::floor(std::log(s) / M_LN2 + 0.5);
+    unsigned int retval = (unsigned int)std::max(0., -std::floor(std::log(s) / M_LN2 + 0.5));
     assert(retval >= 0);
 
     return retval;

@@ -991,7 +991,7 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     (void)dstBitDepth;
     (void)instance;
 
-    int srcRowElements = srcRowBytes / sizeof(PIX);
+    unsigned int srcRowElements = srcRowBytes / sizeof(PIX);
     assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
     assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
     int x1 = std::max( renderWindow.x1, std::max(dstBounds.x1, srcBounds.x1) );
@@ -999,9 +999,9 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     int y1 = std::max( renderWindow.y1, std::max(dstBounds.y1, srcBounds.y1) );
     int y2 = std::min( renderWindow.y2, std::min(dstBounds.y2, srcBounds.y2) );
     const PIX* srcPixels = srcPixelData + (size_t)(y1 - srcBounds.y1) * srcRowElements + (x1 - srcBounds.x1) * nComponents;
-    int dstRowElements = dstRowBytes / sizeof(PIX);
+    unsigned int dstRowElements = dstRowBytes / sizeof(PIX);
     PIX* dstPixels = dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * nComponents;
-    int rowBytes = sizeof(PIX) * nComponents * (x2 - x1);
+    unsigned int rowBytes = sizeof(PIX) * nComponents * (x2 - x1);
 
     for (int y = y1; y < y2; ++y, srcPixels += srcRowElements, dstPixels += dstRowElements) {
         std::memcpy(dstPixels, srcPixels, rowBytes);
