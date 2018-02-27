@@ -105,8 +105,6 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
         assert(_range);
     }
 
-    updateParamsVisibility();
-
     // kOfxImageEffectPropSupportedPixelDepths is not a property of the effect instance
     // (only the host and the plugin descriptor)
     {
@@ -195,6 +193,9 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
             endEditBlock();
         }
     }
+
+    // finally
+    GeneratorPlugin::syncPrivateData();
 }
 
 void

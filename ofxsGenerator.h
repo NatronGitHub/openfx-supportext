@@ -131,6 +131,13 @@ protected:
 private:
 
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
+
+    /** @brief The sync private data action, called when the effect needs to sync any private data to persistent parameters */
+    virtual void syncPrivateData(void) OVERRIDE
+    {
+        updateParamsVisibility();
+    }
+
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments & args,
                                        OfxRectD &rod) OVERRIDE
     {
