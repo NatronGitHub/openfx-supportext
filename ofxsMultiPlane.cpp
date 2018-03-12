@@ -610,7 +610,7 @@ struct ChoiceParamClips
     bool hideIfClipDisconnected;
 
     vector<Clip*> clips;
-    vector<string> clipsName;
+    vector<string> clipNames;
 
     ChoiceParamClips()
     : param(NULL)
@@ -620,7 +620,7 @@ struct ChoiceParamClips
     , isOutput(false)
     , hideIfClipDisconnected(false)
     , clips()
-    , clipsName()
+    , clipNames()
 
     {
     }
@@ -699,7 +699,7 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
         // A choice menu cannot depend on the planes present on an output clip, since we actually may need the value
         // of the choice to return the planes present in output!
         assert(args.dependsClips[i]->name() != kOfxImageEffectOutputClipName);
-        paramData.clipsName.push_back( args.dependsClips[i]->name() );
+        paramData.clipNames.push_back( args.dependsClips[i]->name() );
     }
 
     paramData.isOutput = args.isOutputPlaneChoice;
@@ -721,8 +721,6 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
 void
 MultiPlaneEffectPrivate::buildChannelMenus()
 {
-
-
     perClipPlanesAvailable.clear();
 
     // If no dynamic choices support, only add built-in planes.
@@ -762,7 +760,7 @@ MultiPlaneEffectPrivate::buildChannelMenus()
 
         if (it->second.splitPlanesIntoChannels) {
             // Add built-in hard-coded options A.R, A.G, ... 0, 1, B.R, B.G ...
-            getHardCodedPlaneOptions(it->second.clipsName, it->second.addConstantOptions, true /*onlyColorPlane*/, &options);
+            getHardCodedPlaneOptions(it->second.clipNames, it->second.addConstantOptions, true /*onlyColorPlane*/, &options);
             optionsSorted.insert(options.begin(), options.end());
         } else {
             // For plane selectors, we might want a "None" option to select an input plane.
@@ -1055,8 +1053,8 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
         *clip = param.clips[0];
         optionWithoutClipPrefix = selectedOptionID;
     } else {
-        for (std::size_t c = 0; c < param.clipsName.size(); ++c) {
-            const std::string& clipName = param.clipsName[c];
+        for (std::size_t c = 0; c < param.clipNames.size(); ++c) {
+            const std::string& clipName = param.clipNames[c];
             if (selectedOptionID.substr(0, clipName.size()) == clipName) {
                 *clip = param.clips[c];
                 optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
@@ -1199,8 +1197,8 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
         *clip = found->second.clips[0];
         optionWithoutClipPrefix = selectedOptionID;
     } else {
-        for (std::size_t c = 0; c < found->second.clipsName.size(); ++c) {
-            const std::string& clipName = found->second.clipsName[c];
+        for (std::size_t c = 0; c < found->second.clipNames.size(); ++c) {
+            const std::string& clipName = found->second.clipNames[c];
             if (selectedOptionID.substr(0, clipName.size()) == clipName) {
                 *clip = found->second.clips[c];
                 optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
