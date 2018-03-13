@@ -1128,11 +1128,24 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
                                  ImagePlaneDesc* plane,
                                  int* channelIndexInPlane)
 {
-
-
     map<string, ChoiceParamClips>::iterator found = _imp->params.find(paramName);
     assert( found != _imp->params.end() );
+
+    OFX::Clip* retClip = 0;
+    ImagePlaneDesc retPlane;
+    int retChannelIndexInPlane = -1;
+
     if ( found == _imp->params.end() ) {
+        if (clip) {
+            *clip = retClip;
+        }
+        if (plane) {
+            *plane = retPlane;
+        }
+        if (channelIndexInPlane) {
+            *channelIndexInPlane = retChannelIndexInPlane;
+        }
+
         return eGetPlaneNeededRetCodeFailed;
     }
 
@@ -1140,12 +1153,19 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
     if (found->second.isOutput && _imp->allPlanesCheckbox) {
         bool processAll = _imp->allPlanesCheckbox->getValue();
         if (processAll) {
+            if (clip) {
+                *clip = retClip;
+            }
+            if (plane) {
+                *plane = retPlane;
+            }
+            if (channelIndexInPlane) {
+                *channelIndexInPlane = retChannelIndexInPlane;
+            }
+
             return eGetPlaneNeededRetCodeReturnedAllPlanes;
         }
     }
-
-
-    *clip = 0;
 
     // Get the selected option
     string selectedOptionID;
@@ -1167,24 +1187,63 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
             }
 #endif
         } else {
+            if (clip) {
+                *clip = retClip;
+            }
+            if (plane) {
+                *plane = retPlane;
+            }
+            if (channelIndexInPlane) {
+                *channelIndexInPlane = retChannelIndexInPlane;
+            }
+
             return eGetPlaneNeededRetCodeFailed;
         }
         if ( selectedOptionID.empty() ) {
+            if (clip) {
+                *clip = retClip;
+            }
+            if (plane) {
+                *plane = retPlane;
+            }
+            if (channelIndexInPlane) {
+                *channelIndexInPlane = retChannelIndexInPlane;
+            }
+
             return eGetPlaneNeededRetCodeFailed;
         }
-
     }
 
 
     // If the choice is split by channels, check for hard coded options
     if (found->second.splitPlanesIntoChannels) {
         MultiPlaneEffect::GetPlaneNeededRetCodeEnum retCode;
-        if (findBuiltInSelectedChannel(selectedOptionID, compareWithID, found->second, &retCode, clip, plane, channelIndexInPlane)) {
+        if (findBuiltInSelectedChannel(selectedOptionID, compareWithID, found->second, &retCode, &retClip, &retPlane, &retChannelIndexInPlane)) {
+            if (clip) {
+                *clip = retClip;
+            }
+            if (plane) {
+                *plane = retPlane;
+            }
+            if (channelIndexInPlane) {
+                *channelIndexInPlane = retChannelIndexInPlane;
+            }
+
             return retCode;
         }
     } else {
         if (found->second.addNoneOption && selectedOptionID == kMultiPlanePlaneParamOptionNone) {
-            *plane = ImagePlaneDesc::getNoneComponents();
+            retPlane = ImagePlaneDesc::getNoneComponents();
+            if (clip) {
+                *clip = retClip;
+            }
+            if (plane) {
+                *plane = retPlane;
+            }
+            if (channelIndexInPlane) {
+                *channelIndexInPlane = retChannelIndexInPlane;
+            }
+
             return  MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedPlane;
         }
     } // found->second.splitPlanesIntoChannels
@@ -1194,32 +1253,52 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
     // The option must have a clip name prepended if there are multiple clips, find the clip
     std::string optionWithoutClipPrefix;
     if (found->second.clips.size() == 1) {
-        *clip = found->second.clips[0];
+        retClip = found->second.clips[0];
         optionWithoutClipPrefix = selectedOptionID;
     } else {
         for (std::size_t c = 0; c < found->second.clipNames.size(); ++c) {
             const std::string& clipName = found->second.clipNames[c];
             if (selectedOptionID.substr(0, clipName.size()) == clipName) {
-                *clip = found->second.clips[c];
+                retClip = found->second.clips[c];
                 optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
                 break;
             }
         }
     }
 
-    if (!*clip) {
+    if (!retClip) {
         // We did not find the corresponding clip.
+        if (clip) {
+            *clip = retClip;
+        }
+        if (plane) {
+            *plane = retPlane;
+        }
+        if (channelIndexInPlane) {
+            *channelIndexInPlane = retChannelIndexInPlane;
+        }
+
         return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
     }
 
     // For the output plane selector, map the clip planes against the output clip even though the user provided a
     // source clip as pass-through clip so the extraneous planes returned by getExtraneousPlanesCreated are not added for
     // the available planes on the source clip
-    *clip = found->second.isOutput ? _imp->dstClip : *clip;
+    retClip = found->second.isOutput ? _imp->dstClip : retClip;
 
-    std::map<Clip*, std::list<ImagePlaneDesc> >::iterator foundPlanesPresentForClip = _imp->perClipPlanesAvailable.find(*clip);
+    std::map<Clip*, std::list<ImagePlaneDesc> >::iterator foundPlanesPresentForClip = _imp->perClipPlanesAvailable.find(retClip);
     if (foundPlanesPresentForClip == _imp->perClipPlanesAvailable.end()) {
         // No components available for this clip...
+        if (clip) {
+            *clip = retClip;
+        }
+        if (plane) {
+            *plane = retPlane;
+        }
+        if (channelIndexInPlane) {
+            *channelIndexInPlane = retChannelIndexInPlane;
+        }
+
         return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
     }
 
@@ -1238,8 +1317,18 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
                     foundPlane = optionWithoutClipPrefix == optionLabel;
                 }
                 if (foundPlane) {
-                    *plane = *it;
-                    *channelIndexInPlane = k;
+                    retPlane = *it;
+                    retChannelIndexInPlane = k;
+                    if (clip) {
+                        *clip = retClip;
+                    }
+                    if (plane) {
+                        *plane = retPlane;
+                    }
+                    if (channelIndexInPlane) {
+                        *channelIndexInPlane = retChannelIndexInPlane;
+                    }
+
                     return eGetPlaneNeededRetCodeReturnedChannelInPlane;
                 }
             }
@@ -1254,14 +1343,31 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
                 foundPlane = optionWithoutClipPrefix == optionLabel;
             }
             if (foundPlane) {
-                *plane = *it;
-                return eGetPlaneNeededRetCodeReturnedPlane;
+                retPlane = *it;
+                if (clip) {
+                    *clip = retClip;
+                }
+                if (plane) {
+                    *plane = retPlane;
+                }
+                if (channelIndexInPlane) {
+                    *channelIndexInPlane = retChannelIndexInPlane;
+                }
+
+               return eGetPlaneNeededRetCodeReturnedPlane;
             }
         }
-
-
     } // for each plane available on this clip
 
+    if (clip) {
+        *clip = retClip;
+    }
+    if (plane) {
+        *plane = retPlane;
+    }
+    if (channelIndexInPlane) {
+        *channelIndexInPlane = retChannelIndexInPlane;
+    }
 
     return eGetPlaneNeededRetCodeFailed;
 } // MultiPlaneEffect::getPlaneNeededForParam
