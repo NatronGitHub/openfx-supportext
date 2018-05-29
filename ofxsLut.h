@@ -51,7 +51,7 @@ template<int numvals>
 float
 intToFloat(int value)
 {
-    return value / (float)(numvals - 1);
+    return value * ( 1.f / (numvals - 1) );
 }
 
 /// maps °.-1. to 0-(numvals-1)
