@@ -553,14 +553,14 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
             first = false;
         } else {
             // compute the L-infinity distance between consecutive tested points
-            expand = std::max( expand, std::fabs(p_prev[0].x - p[0].x) );
-            expand = std::max( expand, std::fabs(p_prev[0].y - p[0].y) );
-            expand = std::max( expand, std::fabs(p_prev[1].x - p[1].x) );
-            expand = std::max( expand, std::fabs(p_prev[1].y - p[1].y) );
-            expand = std::max( expand, std::fabs(p_prev[2].x - p[2].x) );
-            expand = std::max( expand, std::fabs(p_prev[2].y - p[2].y) );
-            expand = std::max( expand, std::fabs(p_prev[3].x - p[3].x) );
-            expand = std::max( expand, std::fabs(p_prev[3].y - p[3].y) );
+            expand = (std::max)( expand, std::fabs(p_prev[0].x - p[0].x) );
+            expand = (std::max)( expand, std::fabs(p_prev[0].y - p[0].y) );
+            expand = (std::max)( expand, std::fabs(p_prev[1].x - p[1].x) );
+            expand = (std::max)( expand, std::fabs(p_prev[1].y - p[1].y) );
+            expand = (std::max)( expand, std::fabs(p_prev[2].x - p[2].x) );
+            expand = (std::max)( expand, std::fabs(p_prev[2].y - p[2].y) );
+            expand = (std::max)( expand, std::fabs(p_prev[3].x - p[3].x) );
+            expand = (std::max)( expand, std::fabs(p_prev[3].y - p[3].y) );
         }
 
         if (last) {

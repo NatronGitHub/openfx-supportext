@@ -130,8 +130,8 @@ rgb_to_hsv( float r,
             float *s,
             float *v )
 {
-    float min = std::min(std::min(r, g), b);
-    float max = std::max(std::max(r, g), b);
+    float min = (std::min)((std::min)(r, g), b);
+    float max = (std::max)((std::max)(r, g), b);
 
     *v = max;                               // v
 
@@ -227,8 +227,8 @@ rgb_to_hsl( float r,
             float *s,
             float *l )
 {
-    float min = std::min(std::min(r, g), b);
-    float max = std::max(std::max(r, g), b);
+    float min = (std::min)((std::min)(r, g), b);
+    float max = (std::max)((std::max)(r, g), b);
 
     *l = (min + max) / 2;
 
@@ -331,8 +331,8 @@ rgb_to_hsi( float r,
     float nR = r; //(r < 0 ? 0 : (r > 1. ? 1. : r));
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
-    float m = std::min(std::min(nR, nG), nB);
-    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( std::max( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / M_PI);
+    float m = (std::min)((std::min)(nR, nG), nB);
+    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( (std::max)( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / M_PI);
     float sum = nR + nG + nB;
 
     if (theta > 0) {

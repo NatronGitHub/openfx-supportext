@@ -193,12 +193,12 @@ ofxsFilterClampVal(double I,
                    double Ic,
                    double In)
 {
-    double Imin = std::min(Ic, In);
+    double Imin = (std::min)(Ic, In);
 
     if (I < Imin) {
         return Imin;
     }
-    double Imax = std::max(Ic, In);
+    double Imax = (std::max)(Ic, In);
     if (I > Imax) {
         return Imax;
     }
@@ -642,8 +642,8 @@ ofxsGetPixComp(const PIX* p,
 
 // Macros used in ofxsFilterInterpolate2D
 #define OFXS_CLAMPXY(m) \
-    m ## x = std::max( srcImg->getBounds().x1, std::min(m ## x, srcImg->getBounds().x2 - 1) ); \
-    m ## y = std::max( srcImg->getBounds().y1, std::min(m ## y, srcImg->getBounds().y2 - 1) )
+    m ## x = (std::max)( srcImg->getBounds().x1, (std::min)(m ## x, srcImg->getBounds().x2 - 1) ); \
+    m ## y = (std::max)( srcImg->getBounds().y1, (std::min)(m ## y, srcImg->getBounds().y2 - 1) )
 
 #define OFXS_GETPIX(i, j) PIX * P ## i ## j = (PIX *)srcImg->getPixelAddress(i ## x, j ## y)
 
@@ -716,8 +716,8 @@ ofxsFilterInterpolate2D(double fx,
             OFXS_CLAMPXY(n);
         }
 
-        const double dx = std::max( 0., std::min(fx - 0.5 - cx, 1.) );
-        const double dy = std::max( 0., std::min(fy - 0.5 - cy, 1.) );
+        const double dx = (std::max)( 0., (std::min)(fx - 0.5 - cx, 1.) );
+        const double dy = (std::max)( 0., (std::min)(fy - 0.5 - cy, 1.) );
 
         OFXS_GETPIX(c, c); OFXS_GETPIX(n, c); OFXS_GETPIX(c, n); OFXS_GETPIX(n, n);
         if (Pcc || Pnc || Pcn || Pnn) {
@@ -766,8 +766,8 @@ ofxsFilterInterpolate2D(double fx,
             OFXS_CLAMPXY(n);
             OFXS_CLAMPXY(a);
         }
-        const double dx = std::max( 0., std::min(fx - 0.5 - cx, 1.) );
-        const double dy = std::max( 0., std::min(fy - 0.5 - cy, 1.) );
+        const double dx = (std::max)( 0., (std::min)(fx - 0.5 - cx, 1.) );
+        const double dy = (std::max)( 0., (std::min)(fy - 0.5 - cy, 1.) );
 
         OFXS_GETPIX4(p); OFXS_GETPIX4(c); OFXS_GETPIX4(n); OFXS_GETPIX4(a);
         if (Ppp || Pcp || Pnp || Pap || Ppc || Pcc || Pnc || Pac || Ppn || Pcn || Pnn || Pan || Ppa || Pca || Pna || Paa) {
@@ -1102,22 +1102,22 @@ ofxsFilterInterpolate2DSuper(double fx,
         y1 = y2 = fy - Jyx * 0.5 - Jyy * 0.5;
         x = fx + Jxx * 0.5 - Jxy * 0.5;
         y = fy + Jyx * 0.5 - Jyy * 0.5;
-        x1 = std::min(x1, x);
-        y1 = std::min(y1, y);
-        x2 = std::max(x2, x);
-        y2 = std::max(y2, y);
+        x1 = (std::min)(x1, x);
+        y1 = (std::min)(y1, y);
+        x2 = (std::max)(x2, x);
+        y2 = (std::max)(y2, y);
         x = fx - Jxx * 0.5 + Jxy * 0.5;
         y = fy - Jyx * 0.5 + Jyy * 0.5;
-        x1 = std::min(x1, x);
-        y1 = std::min(y1, y);
-        x2 = std::max(x2, x);
-        y2 = std::max(y2, y);
+        x1 = (std::min)(x1, x);
+        y1 = (std::min)(y1, y);
+        x2 = (std::max)(x2, x);
+        y2 = (std::max)(y2, y);
         x = fx + Jxx * 0.5 + Jxy * 0.5;
         y = fy + Jyx * 0.5 + Jyy * 0.5;
-        x1 = std::min(x1, x);
-        y1 = std::min(y1, y);
-        x2 = std::max(x2, x);
-        y2 = std::max(y2, y);
+        x1 = (std::min)(x1, x);
+        y1 = (std::min)(y1, y);
+        x2 = (std::max)(x2, x);
+        y2 = (std::max)(y2, y);
         if (x2 <= x1 || y2 <= y1) {
             // empty pixel
             ofxsFilterInterpolate2D<PIX,nComponents,filter,clamp>(fx, fy, srcImg, blackOutside, tmpPix);
@@ -1179,8 +1179,8 @@ ofxsFilterInterpolate2DSuper(double fx,
 
     // maximum scale is 4, which is 81x81 pixels for a scale factor < 1/81
     // rather than taking sqrt(dx), we divide its log by 2
-    double sx = (dx <= 1.) ? 0. : std::min(std::log(dx) / ( 2 * std::log(3.) ), 4.); // scale over x as a power of 3
-    double sy = (dy <= 1.) ? 0. : std::min(std::log(dy) / ( 2 * std::log(3.) ), 4.); // scale over y as a power of 3
+    double sx = (dx <= 1.) ? 0. : (std::min)(std::log(dx) / ( 2 * std::log(3.) ), 4.); // scale over x as a power of 3
+    double sy = (dy <= 1.) ? 0. : (std::min)(std::log(dy) / ( 2 * std::log(3.) ), 4.); // scale over y as a power of 3
 //#define OFX_FILTER_SUPERSAMPLING_TRILINEAR
 #ifdef OFX_FILTER_SUPERSAMPLING_TRILINEAR
     // produces artifacts
@@ -1248,10 +1248,10 @@ ofxsFilterExpandRoD(OFX::ImageEffect* /*effect*/,
            OfxPointD size = effect->getProjectSize();
            OfxPointD offset = effect->getProjectOffset();
 
-           rod->x1 = std::min(rod->x1, offset.x);
-           rod->x2 = std::max(rod->x2, offset.x + size.x);
-           rod->y1 = std::min(rod->y1, offset.y);
-           rod->y2 = std::max(rod->y2, offset.y + size.y);
+           rod->x1 = (std::min)(rod->x1, offset.x);
+           rod->x2 = (std::max)(rod->x2, offset.x + size.x);
+           rod->y1 = (std::min)(rod->y1, offset.y);
+           rod->y2 = (std::max)(rod->y2, offset.y + size.y);
          */
     } else {
         // expand the RoD to get at least one black pixel
@@ -1359,10 +1359,10 @@ ofxsFilterExpandRoI(const OfxRectD &roi,
     if ( doMasking || (mix != 1.) ) {
         // for masking or mixing, we also need the source image for that same roi.
         // compute the union of both ROIs
-        srcRoI->x1 = std::min(srcRoI->x1, roi.x1);
-        srcRoI->x2 = std::max(srcRoI->x2, roi.x2);
-        srcRoI->y1 = std::min(srcRoI->y1, roi.y1);
-        srcRoI->y2 = std::max(srcRoI->y2, roi.y2);
+        srcRoI->x1 = (std::min)(srcRoI->x1, roi.x1);
+        srcRoI->x2 = (std::max)(srcRoI->x2, roi.x2);
+        srcRoI->y1 = (std::min)(srcRoI->y1, roi.y1);
+        srcRoI->y2 = (std::max)(srcRoI->y2, roi.y2);
     }
 #if 0
     // The following code may be needed for hosts which do not

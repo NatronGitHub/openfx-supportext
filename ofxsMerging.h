@@ -754,7 +754,7 @@ screenFunctor(PIX A,
     if ( (A <= maxValue) || (B <= maxValue) ) {
         return PIX( (double)A + B - (double)A * B );
     } else {
-        return std::max(A, B);
+        return (std::max)(A, B);
     }
 }
 
@@ -808,7 +808,7 @@ PIX
 darkenFunctor(PIX A,
               PIX B)
 {
-    return std::min(A, B);
+    return (std::min)(A, B);
 }
 
 template <typename PIX>
@@ -816,7 +816,7 @@ PIX
 lightenFunctor(PIX A,
                PIX B)
 {
-    return std::max(A, B);
+    return (std::max)(A, B);
 }
 
 template <typename PIX, int maxValue>
@@ -844,7 +844,7 @@ colorDodgeFunctor(PIX A,
     if (A >= maxValue) {
         return A;
     } else {
-        return PIX( maxValue * std::min( 1., B / (maxValue - (double)A) ) );
+        return PIX( maxValue * (std::min)( 1., B / (maxValue - (double)A) ) );
     }
 }
 
@@ -856,7 +856,7 @@ colorBurnFunctor(PIX A,
     if (A <= 0) {
         return A;
     } else {
-        return PIX( maxValue * ( 1. - std::min(1., (maxValue - B) / (double)A) ) );
+        return PIX( maxValue * ( 1. - (std::min)(1., (maxValue - B) / (double)A) ) );
     }
 }
 
@@ -867,7 +867,7 @@ pinLightFunctor(PIX A,
 {
     PIX max2 = PIX( (double)maxValue / 2. );
 
-    return A >= max2 ? std::max(B, (A - max2) * 2) : std::min(B, A * 2);
+    return A >= max2 ? (std::max)(B, (A - max2) * 2) : (std::min)(B, A * 2);
 }
 
 template <typename PIX, int maxValue>
@@ -878,7 +878,7 @@ reflectFunctor(PIX A,
     if (B >= maxValue) {
         return maxValue;
     } else {
-        return PIX( std::min( (double)maxValue, A * A / (double)(maxValue - B) ) );
+        return PIX( (std::min)( (double)maxValue, A * A / (double)(maxValue - B) ) );
     }
 }
 
@@ -893,7 +893,7 @@ freezeFunctor(PIX A,
         double An = A / (double)maxValue;
         double Bn = B / (double)maxValue;
 
-        return PIX( std::max( 0., maxValue * (1 - std::sqrt( std::max(0., 1. - An) ) / Bn) ) );
+        return PIX( (std::max)( 0., maxValue * (1 - std::sqrt( (std::max)(0., 1. - An) ) / Bn) ) );
     }
 }
 
@@ -1198,13 +1198,13 @@ infamous gcc bug 323:
 inline pixman_float_t
 channel_min (const pixman_rgb_t *c)
 {
-    return std::min(std::min(c->r, c->g), c->b);
+    return (std::min)((std::min)(c->r, c->g), c->b);
 }
 
 inline pixman_float_t
 channel_max (const pixman_rgb_t *c)
 {
-    return std::max(std::max(c->r, c->g), c->b);
+    return (std::max)((std::max)(c->r, c->g), c->b);
 }
 
 inline pixman_float_t
@@ -1474,7 +1474,7 @@ mergePixel(bool doAlphaMasking,
             break;
         }
         pixman_float_t R[3] = { res.r, res.g, res.b };
-        for (int i = 0; i < std::min(nComponents, 3); ++i) {
+        for (int i = 0; i < (std::min)(nComponents, 3); ++i) {
             dst[i] = PIX( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
         }
         if (nComponents == 4) {

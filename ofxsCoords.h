@@ -61,10 +61,10 @@ rectBoundingBox(const Rect & a,
 
         return;
     }
-    bbox->x1 = std::min(a.x1, b.x1);
-    bbox->x2 = std::max( bbox->x1, std::max(a.x2, b.x2) );
-    bbox->y1 = std::min(a.y1, b.y1);
-    bbox->y2 = std::max( bbox->y1, std::max(a.y2, b.y2) );
+    bbox->x1 = (std::min)(a.x1, b.x1);
+    bbox->x2 = (std::max)( bbox->x1, (std::max)(a.x2, b.x2) );
+    bbox->y1 = (std::min)(a.y1, b.y1);
+    bbox->y2 = (std::max)( bbox->y1, (std::max)(a.y2, b.y2) );
 }
 
 template <typename Rect>
@@ -106,12 +106,12 @@ rectIntersection(const Rect & r1,
     }
 
     if (intersection) {
-        intersection->x1 = std::max(r1.x1, r2.x1);
+        intersection->x1 = (std::max)(r1.x1, r2.x1);
         // the region must be *at least* empty, thus the maximin.
-        intersection->x2 = std::max( intersection->x1, std::min(r1.x2, r2.x2) );
-        intersection->y1 = std::max(r1.y1, r2.y1);
+        intersection->x2 = (std::max)( intersection->x1, (std::min)(r1.x2, r2.x2) );
+        intersection->y1 = (std::max)(r1.y1, r2.y1);
         // the region must be *at least* empty, thus the maximin.
-        intersection->y2 = std::max( intersection->y1, std::min(r1.y2, r2.y2) );
+        intersection->y2 = (std::max)( intersection->y1, (std::min)(r1.y2, r2.y2) );
     }
 
     return true;
@@ -309,7 +309,7 @@ unsigned int
 mipmapLevelFromScale(double s)
 {
     assert(0. < s && s <= 1.);
-    unsigned int retval = (unsigned int)std::max(0., -std::floor(std::log(s) / M_LN2 + 0.5));
+    unsigned int retval = (unsigned int)(std::max)(0., -std::floor(std::log(s) / M_LN2 + 0.5));
 
     return retval;
 }

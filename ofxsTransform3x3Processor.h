@@ -34,7 +34,7 @@
 
 // constants for the motion blur algorithm (may depend on _motionblur)
 #define kTransform3x3ProcessorMotionBlurMaxError (_motionblur * maxValue / 1000.)
-#define kTransform3x3ProcessorMotionBlurMinIterations ( std::max( 13, (int)(kTransform3x3ProcessorMotionBlurMaxIterations / 3) ) )
+#define kTransform3x3ProcessorMotionBlurMinIterations ( (std::max)( 13, (int)(kTransform3x3ProcessorMotionBlurMaxIterations / 3) ) )
 #define kTransform3x3ProcessorMotionBlurMaxIterations ( (int)(_motionblur * 40) )
 
 namespace OFX {
@@ -320,7 +320,7 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2), maxIt ) );
+                                    maxsamples = (std::max)( maxsamples, (std::min)( (int)(var[c] / maxErr2), maxIt ) );
                                 }
                             }
                         }
@@ -340,7 +340,7 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = std::max( maxsamples, std::min( (int)(var[c] / maxErr2), maxIt ) );
+                                    maxsamples = (std::max)( maxsamples, (std::min)( (int)(var[c] / maxErr2), maxIt ) );
                                 }
                             }
                         }

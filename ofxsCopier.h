@@ -95,8 +95,8 @@ public:
                 assert(_srcBoundary == 0);
                 std::memset(dstPix, 0, rowBytes);
             } else {
-                int x1 = std::max(_srcBounds.x1, procWindow.x1);
-                int x2 = std::min(_srcBounds.x2, procWindow.x2);
+                int x1 = (std::max)(_srcBounds.x1, procWindow.x1);
+                int x2 = (std::min)(_srcBounds.x2, procWindow.x2);
                 // start of line may be black
                 if (procWindow.x1 < x1) {
                     if ( (_srcBoundary != 1) && (_srcBoundary != 2) ) {
@@ -746,10 +746,10 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     assert(dstPixelData);
     // do the rendering
     int dstRowElements = dstRowBytes / sizeof(PIX);
-    int x1 = std::max(renderWindow.x1, dstBounds.x1);
-    int x2 = std::min(renderWindow.x2, dstBounds.x2);
-    int y1 = std::max(renderWindow.y1, dstBounds.y1);
-    int y2 = std::min(renderWindow.y2, dstBounds.y2);
+    int x1 = (std::max)(renderWindow.x1, dstBounds.x1);
+    int x2 = (std::min)(renderWindow.x2, dstBounds.x2);
+    int y1 = (std::max)(renderWindow.y1, dstBounds.y1);
+    int y2 = (std::min)(renderWindow.y2, dstBounds.y2);
     PIX* dstPixels = (PIX*)dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * dstPixelComponentCount;
     int rowElements = dstPixelComponentCount * (x2 - renderWindow.x1);
 
@@ -994,10 +994,10 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     unsigned int srcRowElements = srcRowBytes / sizeof(PIX);
     assert(srcBounds.y1 <= renderWindow.y1 && renderWindow.y1 <= renderWindow.y2 && renderWindow.y2 <= srcBounds.y2);
     assert(srcBounds.x1 <= renderWindow.x1 && renderWindow.x1 <= renderWindow.x2 && renderWindow.x2 <= srcBounds.x2);
-    int x1 = std::max( renderWindow.x1, std::max(dstBounds.x1, srcBounds.x1) );
-    int x2 = std::min( renderWindow.x2, std::min(dstBounds.x2, srcBounds.x2) );
-    int y1 = std::max( renderWindow.y1, std::max(dstBounds.y1, srcBounds.y1) );
-    int y2 = std::min( renderWindow.y2, std::min(dstBounds.y2, srcBounds.y2) );
+    int x1 = (std::max)( renderWindow.x1, (std::max)(dstBounds.x1, srcBounds.x1) );
+    int x2 = (std::min)( renderWindow.x2, (std::min)(dstBounds.x2, srcBounds.x2) );
+    int y1 = (std::max)( renderWindow.y1, (std::max)(dstBounds.y1, srcBounds.y1) );
+    int y2 = (std::min)( renderWindow.y2, (std::min)(dstBounds.y2, srcBounds.y2) );
     const PIX* srcPixels = srcPixelData + (size_t)(y1 - srcBounds.y1) * srcRowElements + (x1 - srcBounds.x1) * nComponents;
     unsigned int dstRowElements = dstRowBytes / sizeof(PIX);
     PIX* dstPixels = dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * nComponents;

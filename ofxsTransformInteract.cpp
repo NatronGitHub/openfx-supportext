@@ -1144,7 +1144,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         double prevDistSq = (targetCenter.x - previousPos.x) * (targetCenter.x - previousPos.x) + (targetCenter.y - previousPos.y) * (targetCenter.y - previousPos.y);
         if (prevDistSq != 0.) {
             const double distSq = (targetCenter.x - currentPos.x) * (targetCenter.x - currentPos.x) + (targetCenter.y - currentPos.y) * (targetCenter.y - currentPos.y);
-            const double distRatio = std::sqrt( std::max(distSq / prevDistSq, 0.) );
+            const double distRatio = std::sqrt( (std::max)(distSq / prevDistSq, 0.) );
             scale.x *= distRatio;
             scale.y *= distRatio;
             //_scale->setValue(scale.x, scale.y);
@@ -1158,7 +1158,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             const double scaleRatio = (targetCenter.x - currentPos.x) / (targetCenter.x - previousPos.x);
             OfxPointD newScale;
             newScale.x = scale.x * scaleRatio;
-            newScale.x = std::max( minX, std::min(newScale.x, maxX) );
+            newScale.x = (std::max)( minX, (std::min)(newScale.x, maxX) );
             newScale.y = scaleUniform ? newScale.x : scale.y;
             scale = newScale;
             //_scale->setValue(scale.x, scale.y);
@@ -1172,7 +1172,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             const double scaleRatio = (targetCenter.y - currentPos.y) / (targetCenter.y - previousPos.y);
             OfxPointD newScale;
             newScale.y = scale.y * scaleRatio;
-            newScale.y = std::max( minY, std::min(newScale.y, maxY) );
+            newScale.y = (std::max)( minY, (std::min)(newScale.y, maxY) );
             newScale.x = scaleUniform ? newScale.y : scale.x;
             scale = newScale;
             //_scale->setValue(scale.x, scale.y);
