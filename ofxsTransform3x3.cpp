@@ -270,7 +270,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         const bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
         const double srcpixelAspectRatio = src->getPixelAspectRatio();
         const double dstpixelAspectRatio = _dstClip->getPixelAspectRatio();
-
+        int view = 0;
+#if defined(OFX_EXTENSIONS_VEGAS) || defined(OFX_EXTENSIONS_NUKE)
+        view = args.renderView;
+#endif
         if ( (shutter != 0.) && (motionblur != 0.) ) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
@@ -280,12 +283,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             assert(_shuttercustomoffset);
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
-            invtransformsize = getInverseTransforms(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransforms(time, view, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
         } else if (directionalBlur) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
             invtransformalpha.resize(invtransformsizealloc);
-            invtransformsize = getInverseTransformsBlur(time, args.renderView, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
+            invtransformsize = getInverseTransformsBlur(time, view, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
             // normalize alpha, and apply gamma
             double fading = 0.;
             if (_dirBlurFading) {
@@ -302,7 +305,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsizealloc = 1;
             invtransform.resize(invtransformsizealloc);
             invtransformsize = 1;
-            bool success = getInverseTransformCanonical(time, args.renderView, 1., invert, &invtransform[0]); // virtual function
+            bool success = getInverseTransformCanonical(time, view, 1., invert, &invtransform[0]); // virtual function
             if (!success) {
                 invtransform[0](0,0) = 0.;
                 invtransform[0](0,1) = 0.;
@@ -972,7 +975,11 @@ Transform3x3Plugin::render(const RenderArguments &args)
 bool
 Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                                Clip * &identityClip,
-                               double & /*identityTime*/, int& /*view*/, std::string& /*plane*/)
+                               double & /*identityTime*/
+#ifdef OFX_EXTENSIONS_NUKE
+                               , int& /*view*/, std::string& /*plane*/
+#endif
+                               )
 {
     const double time = args.time;
 
