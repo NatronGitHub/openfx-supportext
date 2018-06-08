@@ -119,9 +119,13 @@ Lut::index_to_float(const unsigned short i)
     return tmp.f;
 }
 
-// r,g,b values are from 0 to 1
+// r,g,b values are linear values from 0 to 1
 // h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 //		if s == 0, then h = 0 (undefined)
+// Reference:
+// "Color gamut transform pairs", Alvy Ray Smith, Proceeding SIGGRAPH '78
+// https://doi.org/10.1145/800248.807361
+// http://www.icst.pku.edu.cn/F/course/ImageProcessing/2018/resource/Color78.pdf
 void
 rgb_to_hsv( float r,
             float g,
@@ -162,6 +166,13 @@ rgb_to_hsv( float r,
     }
 }
 
+// r,g,b values are linear values from 0 to 1
+// h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
+//		if s == 0, then h = 0 (undefined)
+// Reference:
+// "Color gamut transform pairs", Alvy Ray Smith, Proceeding SIGGRAPH '78
+// https://doi.org/10.1145/800248.807361
+// http://www.icst.pku.edu.cn/F/course/ImageProcessing/2018/resource/Color78.pdf
 void
 hsv_to_rgb(float h,
            float s,
