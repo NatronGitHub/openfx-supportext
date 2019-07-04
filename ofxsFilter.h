@@ -63,7 +63,7 @@ enum FilterEnum
 #define kFilterKeys "Keys", "(Catmull-Rom / Hermite spline) Some smoothing, plus minor sharpening (*).", "keys"
 #define kFilterSimon "Simon", "Some smoothing, plus medium sharpening (*).", "simon"
 #define kFilterRifman "Rifman", "Some smoothing, plus significant sharpening (*).", "rifman"
-#define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*+).", "mitchell"
+#define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*)(+).", "mitchell"
 #define kFilterParzen "Parzen", "(cubic B-spline) Greatest smoothing of all filters (+).", "parzen"
 #define kFilterNotch "Notch", "Flat smoothing (which tends to hide moire' patterns) (+).", "notch"
 
