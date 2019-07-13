@@ -29,8 +29,7 @@ freely, subject to the following restrictions:
 //#warning "tinythread should not be used with C++ >= C++11, consider switching to std::thread"
 #include <thread>
 #include <mutex>
-// use our version of fast_mutex.h, which has bug fixes
-//#include "fast_mutex.h"
+#include <condition_variable>
 
 namespace tthread {
 using std::thread;
@@ -38,9 +37,6 @@ using std::mutex;
 using std::recursive_mutex;
 using std::condition_variable;
 namespace this_thread = std::this_thread;
-
-// TODO: replace with our own implementation using std::atomic_flag
-//using fast_mutex = tthread::fast_mutex;
 
 template<class Mutex>
 using lock_guard = std::unique_lock<Mutex>;
