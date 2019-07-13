@@ -24,6 +24,30 @@ freely, subject to the following restrictions:
 #ifndef _TINYTHREAD_H_
 #define _TINYTHREAD_H_
 
+#if __cplusplus > 199711L           // C++11
+
+//#warning "tinythread should not be used with C++ >= C++11, consider switching to std::thread"
+#include <thread>
+#include <mutex>
+// use our version of fast_mutex.h, which has bug fixes
+//#include "fast_mutex.h"
+
+namespace tthread {
+using std::thread;
+using std::mutex;
+using std::recursive_mutex;
+using std::condition_variable;
+namespace this_thread = std::this_thread;
+
+// TODO: replace with our own implementation using std::atomic_flag
+//using fast_mutex = tthread::fast_mutex;
+
+template<class Mutex>
+using lock_guard = std::unique_lock<Mutex>;
+}
+
+#else // !C++11
+
 /// @file
 /// @mainpage TinyThread++ API Reference
 ///
@@ -394,7 +418,7 @@ class lock_guard {
 /// {
 ///   lock_guard<mutex> guard(m);
 ///   while(count < targetCount)
-///     cond.wait(m);
+///     cond.wait(guard);
 /// }
 ///
 /// // Increment the counter, and notify waiting threads
@@ -433,7 +457,7 @@ class condition_variable {
     /// @param[in] aMutex A mutex that will be unlocked when the wait operation
     ///   starts, an locked again as soon as the wait operation is finished.
     template <class _mutexT>
-    inline void wait(_mutexT &aMutex)
+    inline void wait(lock_guard<_mutexT> &aMutex)
     {
 #if defined(_TTHREAD_WIN32_)
       // Increment number of waiters
@@ -1045,5 +1069,7 @@ namespace this_thread {
 
 // Define/macro cleanup
 #undef _TTHREAD_DISABLE_ASSIGNMENT
+
+#endif // !C++11
 
 #endif // _TINYTHREAD_H_

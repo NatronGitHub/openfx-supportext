@@ -24,6 +24,44 @@ freely, subject to the following restrictions:
 #ifndef _FAST_MUTEX_H_
 #define _FAST_MUTEX_H_
 
+#if __cplusplus > 199711L           // C++11
+//#warning "fast_mutex should not be used with C++ >= C++11, consider switching to std::thread"
+#include <atomic>
+
+namespace tthread {
+
+class fast_mutex
+{
+ private:
+  std::atomic_flag _lockFlag; // = ATOMIC_FLAG_INIT; // VC++ 2012 does not support non-static data initializers
+
+ public:
+  fast_mutex()
+  {
+    _lockFlag.clear(); // circumvent the lack of non-static data initializers in VC++ 2012
+  }
+
+  void lock()
+  {
+    while(_lockFlag.test_and_set(std::memory_order_acquire))
+    { }
+  }
+
+  bool try_lock()
+  {
+    return !_lockFlag.test_and_set(std::memory_order_acquire);
+  }
+
+  void unlock()
+  {
+    _lockFlag.clear();
+  }
+};
+
+}
+
+#else // !C++11
+
 /// @file
 
 // Which platform are we on?
@@ -246,5 +284,6 @@ class fast_mutex {
 
 }
 
-#endif // _FAST_MUTEX_H_
+#endif // !C++11
 
+#endif // _FAST_MUTEX_H_

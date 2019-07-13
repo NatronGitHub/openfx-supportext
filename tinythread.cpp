@@ -21,6 +21,10 @@ freely, subject to the following restrictions:
     distribution.
 */
 
+#if __cplusplus > 199711L           // C++11
+//#warning "tinythread should not be used with C++ >= C++11, consider switching to std::thread"
+#else
+
 #include <exception>
 #include "tinythread.h"
 
@@ -348,3 +352,5 @@ thread::id this_thread::get_id()
 }
 
 }
+
+#endif
