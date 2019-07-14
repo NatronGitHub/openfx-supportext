@@ -46,7 +46,7 @@ protected:
     const OFX::Image *_maskImg;
     // NON-GENERIC PARAMETERS:
     const OFX::Matrix3x3* _invtransform; // the set of transforms to sample from (in PIXEL coords)
-    const double* _invtransformalpha; // blending factor for each transform, or NULL for uniform blending
+    const double* _invtransformalpha; // blending factor for each tranform, or NULL for uniform blending
     size_t _invtransformsize;
     // GENERIC PARAMETERS:
     bool _blackOutside;
