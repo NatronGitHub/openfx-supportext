@@ -27,7 +27,9 @@
 #include <cmath>
 
 #ifdef __APPLE__
+#ifndef GL_SILENCE_DEPRECATION
 #define GL_SILENCE_DEPRECATION // Yes, we are still doing OpenGL 2.1
+#endif
 #include <OpenGL/gl.h>
 #else
 #include <GL/gl.h>
