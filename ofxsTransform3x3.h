@@ -48,7 +48,7 @@
 
 #define kParamTransform3x3DirBlurCentered "centered"
 #define kParamTransform3x3DirBlurCenteredLabel "Centered"
-#define kParamTransform3x3DirBlurCenteredHint "When checked, apply directional blur symmetrically arount the neutral position."
+#define kParamTransform3x3DirBlurCenteredHint "When checked, apply directional blur symmetrically around the neutral position."
 
 #define kParamTransform3x3DirBlurFading "fading"
 #define kParamTransform3x3DirBlurFadingLabel "Fading"
@@ -123,7 +123,7 @@ public:
     virtual bool getTransform(const OFX::TransformArguments & args, OFX::Clip * &transformClip, double transformMatrix[9]) OVERRIDE;
 #endif
 
-    // override changedParam. note that the derived class MUST explicitely call this method after handling its own parameter changes
+    // override changedParam. note that the derived class MUST explicitly call this method after handling its own parameter changes
     virtual void changedParam(const OFX::InstanceChangedArgs &args, const std::string &paramName) OVERRIDE;
 
     // this method must be called by the derived class when the transform was changed

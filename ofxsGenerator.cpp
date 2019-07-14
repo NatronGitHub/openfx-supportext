@@ -931,7 +931,7 @@ generatorDescribeInContext(PageParamDescriptor *page,
             }
         }
 
-        // ouputBitDepth
+        // outputBitDepth
         if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
             ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
             param->setLabel(kParamGeneratorOutputBitDepthLabel);
