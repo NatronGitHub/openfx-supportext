@@ -30,15 +30,23 @@ freely, subject to the following restrictions:
 
 namespace tthread {
 
+// A spinlock based on std::atomic_flag
+// Ref: Antony Williams, "C++ Concurrency in Action" (Listing 5.1)
 class fast_mutex
 {
  private:
-  std::atomic_flag _lockFlag; // = ATOMIC_FLAG_INIT; // VC++ 2012 does not support non-static data initializers
+#if defined(_MSC_VER) && (_MSC_VER <= 1700)
+  std::atomic_flag _lockFlag; // VC++ 2012 does not support non-static data initializers
+#else
+  std::atomic_flag _lockFlag = ATOMIC_FLAG_INIT;
+#endif
 
  public:
   fast_mutex()
   {
+#if defined(_MSC_VER) && (_MSC_VER <= 1700)
     _lockFlag.clear(); // circumvent the lack of non-static data initializers in VC++ 2012
+#endif
   }
 
   void lock()
@@ -54,7 +62,7 @@ class fast_mutex
 
   void unlock()
   {
-    _lockFlag.clear();
+    _lockFlag.clear(std::memory_order_release);
   }
 };
 
