@@ -203,6 +203,7 @@ protected:
     OFX::DoubleParam* _mix;
     OFX::BooleanParam* _maskApply;
     OFX::BooleanParam* _maskInvert;
+    bool _hostIsResolve;
 };
 
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);

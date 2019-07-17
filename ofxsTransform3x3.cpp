@@ -110,6 +110,10 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _maskApply(NULL)
     , _maskInvert(NULL)
 {
+    const ImageEffectHostDescription &hostDescription = *getImageEffectHostDescription();
+    _hostIsResolve = (hostDescription.hostName.substr(0, 14) == "DaVinciResolve");  // Resolve gives bad image properties
+
+
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
     _srcClip = getContext() == eContextGenerator ? NULL : fetchClip(kOfxImageEffectSimpleSourceClipName);
@@ -188,14 +192,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
         return;
     }
-    if ( (dst->getRenderScale().x != args.renderScale.x) ||
-         ( dst->getRenderScale().y != args.renderScale.y) ||
-         ( ( (dst->getField() != eFieldNone) /* for DaVinci Resolve */ && (dst->getField() != args.fieldToRender) ) ) ) {
-        setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong scale or field properties");
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return;
-    }
+    checkBadRenderScaleOrField(_hostIsResolve, dst, args);
     auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(args.time) : 0 );
     size_t invtransformsizealloc = 0;
