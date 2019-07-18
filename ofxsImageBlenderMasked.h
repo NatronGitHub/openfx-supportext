@@ -23,6 +23,7 @@
 #include "ofxsProcessing.H"
 #include "ofxsMaskMix.h"
 #include "ofxsImageBlender.H"
+#include "ofxsMacros.h"
 
 namespace OFX {
 /** @brief  Base class used to blend two images together */
@@ -76,8 +77,9 @@ public:
     }
 
     // and do some processing
-    void multiThreadProcessImages(OfxRectI procWindow)
+    void multiThreadProcessImages(const OfxRectI& procWindow, const OfxPointD& rs) OVERRIDE FINAL
     {
+        unused(rs);
         float tmpPix[nComponents];
         float blend = _blend;
         float blendComp = 1.0f - blend;

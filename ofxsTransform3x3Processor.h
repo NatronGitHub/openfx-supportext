@@ -138,19 +138,20 @@ private:
         return clamp;
     }
 
-    void multiThreadProcessImages(OfxRectI procWindow) OVERRIDE
+    void multiThreadProcessImages(const OfxRectI& procWindow, const OfxPointD& rs) OVERRIDE
     {
         assert(_invtransform);
         if (_motionblur == 0.) { // no motion blur
-            return multiThreadProcessImagesNoBlur(procWindow);
+            return multiThreadProcessImagesNoBlur(procWindow, rs);
         } else { // motion blur
-            return multiThreadProcessImagesMotionBlur(procWindow);
+            return multiThreadProcessImagesMotionBlur(procWindow, rs);
         }
     } // multiThreadProcessImages
 
 private:
-    void multiThreadProcessImagesNoBlur(const OfxRectI &procWindow)
+    void multiThreadProcessImagesNoBlur(const OfxRectI &procWindow, const OfxPointD& rs)
     {
+        unused(rs);
         float tmpPix[nComponents];
         const OFX::Matrix3x3 & H = _invtransform[0];
         const int x1 = _srcImg ? _srcImg->getBounds().x1 : 0;
@@ -208,8 +209,9 @@ private:
         }
     } // multiThreadProcessImagesNoBlur
 
-    void multiThreadProcessImagesMotionBlur(const OfxRectI &procWindow)
+    void multiThreadProcessImagesMotionBlur(const OfxRectI &procWindow, const OfxPointD& rs)
     {
+        unused(rs);
         float tmpPix[nComponents];
         const double maxErr2 = kTransform3x3ProcessorMotionBlurMaxError * kTransform3x3ProcessorMotionBlurMaxError; // maximum expected squared error
         const int maxIt = kTransform3x3ProcessorMotionBlurMaxIterations; // maximum number of iterations

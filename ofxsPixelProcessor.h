@@ -180,6 +180,7 @@ protected:
     int _dstPixelBytes;
     int _dstRowBytes;
     OfxRectI _renderWindow;               /**< @brief render window to use */
+    OfxPointD _renderScale;               /**< @brief render scale to use */
 
 public:
     /** @brief ctor */
@@ -226,9 +227,10 @@ public:
     }
 
     /** @brief reset the render window */
-    void setRenderWindow(OfxRectI rect)
+    void setRenderWindow(const OfxRectI& rect, const OfxPointD& rs)
     {
         _renderWindow = rect;
+        _renderScale = rs;
     }
 
     /** @brief overridden from OFX::MultiThread::Processor. This function is called once on each SMP thread by the base class */
@@ -240,7 +242,7 @@ public:
         MultiThread::getThreadRange(threadId, nThreads, _renderWindow.y1, _renderWindow.y2, &win.y1, &win.y2);
         if ( (win.y2 - win.y1) > 0 ) {
             // and render that thread on each
-            multiThreadProcessImages(win);
+            multiThreadProcessImages(win, _renderScale);
         }
     }
 
@@ -250,7 +252,7 @@ public:
     }
 
     /** @brief this is called by multiThreadFunction to actually process images, override in derived classes */
-    virtual void multiThreadProcessImages(OfxRectI window) = 0;
+    virtual void multiThreadProcessImages(const OfxRectI& window, const OfxPointD& rs) = 0;
 
     /** @brief called before any MP is done */
     virtual void postProcess(void)
