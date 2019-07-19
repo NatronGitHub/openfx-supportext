@@ -789,12 +789,14 @@ fillBlackNT(const OfxRectI & renderWindow,
         // coverity[dead_error_line]
         return;
     }
+# ifndef NDEBUG
     // do the rendering
     if ( (dstBitDepth != OFX::eBitDepthUByte) && (dstBitDepth != OFX::eBitDepthUShort) && (dstBitDepth != OFX::eBitDepthHalf) && (dstBitDepth != OFX::eBitDepthFloat) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
 
         return;
     }
+# endif
     if (dstBitDepth == OFX::eBitDepthUByte) {
         fillBlackNTForDepth<unsigned char>(renderWindow, renderScale,
                                            dstPixelData, dstBounds, dstPixelComponentCount, dstRowBytes);

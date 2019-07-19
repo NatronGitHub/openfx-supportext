@@ -470,6 +470,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        unused(dstPixelComponentCount);
         //validate();
 
         const int srcComponents = pixelComponentCount;
@@ -508,6 +509,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        unused(dstPixelComponentCount);
         //validate();
 
         const int nComponents = pixelComponentCount;
@@ -555,6 +557,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        unused(dstPixelComponentCount);
         //validate();
 
         const int nComponents = pixelComponentCount;
@@ -602,6 +605,7 @@ public:
                bounds.y1 <= renderWindow.y1 && renderWindow.y2 <= bounds.y2 &&
                dstBounds.x1 <= renderWindow.x1 && renderWindow.x2 <= dstBounds.x2 &&
                dstBounds.y1 <= renderWindow.y1 && renderWindow.y2 <= dstBounds.y2);
+        unused(dstPixelComponentCount);
         //validate();
 
         const int nComponents = pixelComponentCount;

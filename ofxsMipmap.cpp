@@ -195,6 +195,7 @@ ofxsScalePixelData(ImageEffect* instance,
         throwSuiteStatusException(kOfxStatFailed);
     }
 
+# ifndef NDEBUG
     // do the rendering
     if ( ( dstPixelDepth != eBitDepthFloat) ||
          ( ( dstPixelComponents != ePixelComponentRGBA) &&
@@ -204,6 +205,7 @@ ofxsScalePixelData(ImageEffect* instance,
          ( dstPixelComponents != srcPixelComponents) ) {
         throwSuiteStatusException(kOfxStatErrFormat);
     }
+# endif
 
     if (dstPixelComponents == ePixelComponentRGBA) {
         buildMipMapLevel<float, 4>(instance, originalRenderWindow, renderWindow, levels, (const float*)srcPixelData,

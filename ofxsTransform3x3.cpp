@@ -179,6 +179,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
         return;
     }
+# ifndef NDEBUG
     BitDepthEnum dstBitDepth    = dst->getPixelDepth();
     PixelComponentEnum dstComponents  = dst->getPixelComponents();
     if ( ( dstBitDepth != _dstClip->getPixelDepth() ) ||
@@ -189,6 +190,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         return;
     }
     checkBadRenderScaleOrField(dst, args);
+# endif
     auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(args.time) : 0 );
     size_t invtransformsizealloc = 0;
@@ -227,6 +229,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         invtransform[0](2,1) = 0.;
         invtransform[0](2,2) = 1.;
     } else {
+#     ifndef NDEBUG
         BitDepthEnum dstBitDepth       = dst->getPixelDepth();
         PixelComponentEnum dstComponents  = dst->getPixelComponents();
         BitDepthEnum srcBitDepth      = src->getPixelDepth();
@@ -236,6 +239,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 
             return;
         }
+#     endif
 
         bool invert = false;
         if (_invert) {

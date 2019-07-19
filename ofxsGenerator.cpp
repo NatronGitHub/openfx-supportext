@@ -202,6 +202,10 @@ void
 GeneratorPlugin::checkComponents(BitDepthEnum dstBitDepth,
                                  PixelComponentEnum dstComponents)
 {
+# ifdef NDEBUG
+    unused(dstBitDepth);
+    unused(dstComponents);
+# else
     if (!_useOutputComponentsAndDepth) {
         return;
     }
@@ -227,6 +231,7 @@ GeneratorPlugin::checkComponents(BitDepthEnum dstBitDepth,
     }
 
     clearPersistentMessage();
+# endif
 }
 
 /* override the time domain action, only for the general context */
