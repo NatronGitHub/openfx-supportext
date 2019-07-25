@@ -119,7 +119,7 @@ threadFunction(void *_args)
     args->ret = kOfxStatOK;
     try {
         args->func(args->threadIndex, args->threadMax, args->customArg);
-    } catch (const std::bad_alloc) {
+    } catch (const std::bad_alloc&) {
         args->ret = kOfxStatErrMemory;
     } catch (...) {
         args->ret = kOfxStatFailed;
@@ -363,7 +363,7 @@ OfxStatus mutexCreate(OfxMutexHandle *mutex, int lockCount)
         *mutex = (OfxMutexHandle)(m);
 
         return kOfxStatOK;
-    } catch (std::bad_alloc) {
+    } catch (std::bad_alloc&) {
         DBG(cout << "mutexCreate(): memory error.\n");
 
         return kOfxStatErrMemory;
@@ -398,7 +398,7 @@ OfxStatus mutexDestroy(const OfxMutexHandle mutex)
         delete reinterpret_cast<recursive_mutex*>(mutex);
 
         return kOfxStatOK;
-    } catch (std::bad_alloc) {
+    } catch (std::bad_alloc&) {
         DBG(cout << "mutexDestroy(): memory error.\n");
 
         return kOfxStatErrMemory;
@@ -435,7 +435,7 @@ OfxStatus mutexLock(const OfxMutexHandle mutex)
         reinterpret_cast<recursive_mutex*>(mutex)->lock();
 
         return kOfxStatOK;
-    } catch (std::bad_alloc) {
+    } catch (std::bad_alloc&) {
         DBG(cout << "mutexLock(): memory error.\n");
 
         return kOfxStatErrMemory;
@@ -470,7 +470,7 @@ OfxStatus mutexUnLock(const OfxMutexHandle mutex)
         reinterpret_cast<recursive_mutex*>(mutex)->unlock();
 
         return kOfxStatOK;
-    } catch (std::bad_alloc) {
+    } catch (std::bad_alloc&) {
         DBG(cout << "mutexUnLock(): memory error.\n");
 
         return kOfxStatErrMemory;
@@ -510,7 +510,7 @@ OfxStatus mutexTryLock(const OfxMutexHandle mutex)
         } else {
             return kOfxStatFailed;
         }
-    } catch (std::bad_alloc) {
+    } catch (std::bad_alloc&) {
         DBG(cout << "mutexTryLock(): memory error.\n");
 
         return kOfxStatErrMemory;
