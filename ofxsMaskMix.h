@@ -169,6 +169,7 @@ ofxsClamp(T v,
     return v;
 }
 
+// v is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <typename PIX, int maxValue>
 inline
 PIX
@@ -180,7 +181,7 @@ ofxsClampIfInt(float v,
         return (PIX)(v);
     }
 
-    return (PIX)(ofxsClamp(v, min, max) * maxValue + 0.5);
+    return (PIX)(ofxsClamp(v, min, max) + 0.5);
 }
 
 // normalize in [0,1]
@@ -332,7 +333,7 @@ ofxsPremult(const float unpPix[4],
     }
 }
 
-// tmpPix is not normalized, it is within [0,maxValue]
+// tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsPix(const float *tmpPix, //!< interpolated pixel
@@ -361,7 +362,7 @@ ofxsPremultPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
 }
 
 
-// tmpPix is not normalized, it is within [0,maxValue]
+// tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsMixPix(const float *tmpPix, //!< interpolated pixel
@@ -404,7 +405,7 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
     }
 } // ofxsMixPix
 
-// tmpPix is not normalized, it is within [0,maxValue]
+// tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
@@ -512,7 +513,7 @@ ofxsPremultMixPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
     ofxsMixPix<PIX, nComponents, maxValue>(tmpPix, srcPix, mix, dstPix);
 }
 
-// tmpPix is not normalized, it is within [0,maxValue]
+// tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <class PIX, int nComponents, int maxValue, bool masked>
 void
 ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
