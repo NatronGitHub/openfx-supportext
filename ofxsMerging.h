@@ -53,6 +53,7 @@ namespace OFX {
 // In SVG 2004, 'Soft_Light' did not work as expected, producing a brightening for any non-gray shade
 // image overlay.
 // It was fixed in the March 2009 SVG specification, which was used for this implementation.
+// The formula in SVG Compositing 2015 (https://www.w3.org/TR/compositing-1/) is unchanged.
 
 namespace MergeImages2D {
 // please keep this long list sorted alphabetically
@@ -431,7 +432,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeHardLight:
 
-        return "multiply if A < 0.5, screen if A > 0.5";
+        return "multiply(2*A, B) if A < 0.5, screen(2*A - 1, B) if A > 0.5";
 
     case eMergeHue:
 
@@ -486,11 +487,11 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeOverlay:
 
-        return "multiply if B < 0.5, screen if B > 0.5";
+        return "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
 
     case eMergePinLight:
 
-        return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2.0 ) else";
+        return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
 
     case eMergePlus:
 
@@ -656,6 +657,7 @@ averageFunctor(PIX A,
     return (A + B) / 2;
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_src
 template <typename PIX>
 PIX
 copyFunctor(PIX A,
@@ -664,6 +666,7 @@ copyFunctor(PIX A,
     return A;
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_plus
 template <typename PIX>
 PIX
 plusFunctor(PIX A,
@@ -688,6 +691,7 @@ grainMergeFunctor(PIX A,
     return (B + A - (PIX)maxValue / 2);
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingdifference
 template <typename PIX>
 PIX
 differenceFunctor(PIX A,
@@ -708,6 +712,7 @@ divideFunctor(PIX A,
     return A / B;
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingexclusion
 template <typename PIX, int maxValue>
 PIX
 exclusionFunctor(PIX A,
@@ -738,6 +743,7 @@ geometricFunctor(PIX A,
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingmultiply
 template <typename PIX, int maxValue>
 PIX
 multiplyFunctor(PIX A,
@@ -750,6 +756,7 @@ multiplyFunctor(PIX A,
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingscreen
 template <typename PIX, int maxValue>
 PIX
 screenFunctor(PIX A,
@@ -762,18 +769,20 @@ screenFunctor(PIX A,
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#valdef-blend-mode-hard-light
 template <typename PIX, int maxValue>
 PIX
 hardLightFunctor(PIX A,
                  PIX B)
 {
     if ( 2 * A < maxValue ) {
-        return multiplyFunctor<PIX,maxValue>(A, B);
+        return multiplyFunctor<PIX,maxValue>(2*A, B);
     } else {
-        return screenFunctor<PIX,maxValue>(A, B);
+        return screenFunctor<PIX,maxValue>(2*A-maxValue, B);
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingsoftlight
 template <typename PIX, int maxValue>
 PIX
 softLightFunctor(PIX A,
@@ -782,10 +791,25 @@ softLightFunctor(PIX A,
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
 
+    // Formula from SVG Compositing (2015): https://www.w3.org/TR/compositing-1/#blendingsoftlight
+    // Formula from SVG Compositing (2009): https://www.w3.org/TR/2009/WD-SVGCompositing-20090430/
+    // Wrong formula, from SVG 1.2 (2004): https://www.w3.org/TR/2004/WD-SVG12-20041027/rendering.html
     if (2 * An <= 1) {
         return PIX( maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ) );
     } else if (4 * Bn <= 1) {
-        return PIX( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
+        // SVG Compositing 2009 version:
+        //return PIX( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
+        // SVG Compositing 2015 version (strictly equal to the SVG 2009 version, less multiplications):
+        return PIX( maxValue * ( Bn + (2 * An - 1) * (((16 * Bn - 12) * Bn + 4) * Bn - Bn) ) );
+        // Proof (enter the following code in https://sagecell.sagemath.org):
+        /*
+          Bn = PolynomialRing(RationalField(), 'Bn').gen()
+          f = 4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn
+          print(f.factor())
+          g = ((16 * Bn - 12) * Bn + 4) * Bn - Bn
+          print(g.factor())
+          print(f-g)
+         */
     } else {
         return PIX( maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ) );
     }
@@ -807,6 +831,7 @@ minusFunctor(PIX A,
     return A - B;
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingdarken
 template <typename PIX>
 PIX
 darkenFunctor(PIX A,
@@ -815,6 +840,7 @@ darkenFunctor(PIX A,
     return (std::min)(A, B);
 }
 
+// https://www.w3.org/TR/compositing-1/#blendinglighten
 template <typename PIX>
 PIX
 lightenFunctor(PIX A,
@@ -823,18 +849,16 @@ lightenFunctor(PIX A,
     return (std::max)(A, B);
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingoverlay
 template <typename PIX, int maxValue>
 PIX
 overlayFunctor(PIX A,
                PIX B)
 {
-    if (2 * B <= maxValue) {
-        return multiplyFunctor<PIX,maxValue>(A, B);
-    } else {
-        return screenFunctor<PIX,maxValue>(A, B);
-    }
+    return hardLight<PIX,maxValue>(B,A);
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingcolordodge
 template <typename PIX, int maxValue>
 PIX
 colorDodgeFunctor(PIX A,
@@ -847,6 +871,7 @@ colorDodgeFunctor(PIX A,
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#blendingcolorburn
 template <typename PIX, int maxValue>
 PIX
 colorBurnFunctor(PIX A,
@@ -909,6 +934,7 @@ interpolatedFunctor(PIX A,
     return PIX( maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) ) );
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcatop
 template <typename PIX, int maxValue>
 PIX
 atopFunctor(PIX A,
@@ -953,6 +979,7 @@ disjointOverFunctor(PIX A,
     }
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcin
 template <typename PIX, int maxValue>
 PIX
 inFunctor(PIX A,
@@ -973,6 +1000,7 @@ matteFunctor(PIX A,
     return PIX( A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstin
 template <typename PIX, int maxValue>
 PIX
 maskFunctor(PIX /*A*/,
@@ -983,6 +1011,7 @@ maskFunctor(PIX /*A*/,
     return PIX(B * alphaA / (double)maxValue);
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout
 template <typename PIX, int maxValue>
 PIX
 outFunctor(PIX A,
@@ -993,6 +1022,7 @@ outFunctor(PIX A,
     return PIX( A * (1. - alphaB / (double)maxValue) );
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover
 template <typename PIX, int maxValue>
 PIX
 overFunctor(PIX A,
@@ -1013,6 +1043,7 @@ stencilFunctor(PIX /*A*/,
     return PIX( B * (1 - alphaA / (double)maxValue) );
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstover
 template <typename PIX, int maxValue>
 PIX
 underFunctor(PIX A,
@@ -1023,6 +1054,7 @@ underFunctor(PIX A,
     return PIX(A * (1 - alphaB / (double)maxValue) + B);
 }
 
+// https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_xor
 template <typename PIX, int maxValue>
 PIX
 xorFunctor(PIX A,
