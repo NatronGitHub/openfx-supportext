@@ -474,7 +474,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeMultiply:
 
-        return "AB, 0 if A < 0 and B < 0";
+        return "AB, A if A < 0 and B < 0";
 
     case eMergeOut:
 
@@ -743,7 +743,11 @@ PIX
 multiplyFunctor(PIX A,
                 PIX B)
 {
-    return PIX(A * B / (double)maxValue);
+    if ( (A < 0) && (B < 0) ) {
+        return A;
+    } else {
+        return PIX(A * B / (double)maxValue);
+    }
 }
 
 template <typename PIX, int maxValue>
@@ -763,10 +767,10 @@ PIX
 hardLightFunctor(PIX A,
                  PIX B)
 {
-    if ( A < ( (double)maxValue / 2. ) ) {
-        return PIX(2 * A * B / (double)maxValue);
+    if ( 2 * A < maxValue ) {
+        return multiplyFunctor<PIX,maxValue>(A, B);
     } else {
-        return PIX( maxValue * ( 1. - 2 * (1. - A / (double)maxValue) * (1. - B / (double)maxValue) ) );
+        return screenFunctor<PIX,maxValue>(A, B);
     }
 }
 
@@ -824,15 +828,10 @@ PIX
 overlayFunctor(PIX A,
                PIX B)
 {
-    double An = A / (double)maxValue;
-    double Bn = B / (double)maxValue;
-
-    if (2 * Bn <= 1.) {
-        // multiply
-        return PIX( maxValue * (2 * An * Bn) );
+    if (2 * B <= maxValue) {
+        return multiplyFunctor<PIX,maxValue>(A, B);
     } else {
-        // screen
-        return PIX( maxValue * ( 1 - 2 * (1 - Bn) * (1 - An) ) );
+        return screenFunctor<PIX,maxValue>(A, B);
     }
 }
 
