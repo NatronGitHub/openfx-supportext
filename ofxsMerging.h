@@ -756,7 +756,7 @@ screenFunctor(PIX A,
               PIX B)
 {
     if ( (A <= maxValue) || (B <= maxValue) ) {
-        return PIX( (double)A + B - (double)A * B );
+        return PIX(A + B - A * B / (double)maxValue);
     } else {
         return (std::max)(A, B);
     }
