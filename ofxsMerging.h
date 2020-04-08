@@ -651,8 +651,8 @@ getOperationGroupString(MergingFunctionEnum operation)
 
 template <typename PIX>
 PIX
-averageFunctor(PIX A,
-               PIX B)
+averageFunc(PIX A,
+            PIX B)
 {
     return (A + B) / 2;
 }
@@ -660,8 +660,8 @@ averageFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_src
 template <typename PIX>
 PIX
-copyFunctor(PIX A,
-            PIX /*B*/)
+copyFunc(PIX A,
+         PIX /*B*/)
 {
     return A;
 }
@@ -669,24 +669,24 @@ copyFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_plus
 template <typename PIX>
 PIX
-plusFunctor(PIX A,
-            PIX B)
+plusFunc(PIX A,
+         PIX B)
 {
     return A + B;
 }
 
 template <typename PIX, int maxValue>
 PIX
-grainExtractFunctor(PIX A,
-                    PIX B)
+grainExtractFunc(PIX A,
+                 PIX B)
 {
     return (B - A + (PIX)maxValue / 2);
 }
 
 template <typename PIX, int maxValue>
 PIX
-grainMergeFunctor(PIX A,
-                  PIX B)
+grainMergeFunc(PIX A,
+               PIX B)
 {
     return (B + A - (PIX)maxValue / 2);
 }
@@ -694,16 +694,16 @@ grainMergeFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingdifference
 template <typename PIX>
 PIX
-differenceFunctor(PIX A,
-                  PIX B)
+differenceFunc(PIX A,
+               PIX B)
 {
     return std::abs(A - B);
 }
 
 template <typename PIX>
 PIX
-divideFunctor(PIX A,
-              PIX B)
+divideFunc(PIX A,
+           PIX B)
 {
     if (B <= 0) {
         return 0;
@@ -715,24 +715,24 @@ divideFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingexclusion
 template <typename PIX, int maxValue>
 PIX
-exclusionFunctor(PIX A,
-                 PIX B)
+exclusionFunc(PIX A,
+              PIX B)
 {
     return PIX(A + B - 2 * A * B / (double)maxValue);
 }
 
 template <typename PIX>
 PIX
-fromFunctor(PIX A,
-            PIX B)
+fromFunc(PIX A,
+         PIX B)
 {
     return B - A;
 }
 
 template <typename PIX>
 PIX
-geometricFunctor(PIX A,
-                 PIX B)
+geometricFunc(PIX A,
+              PIX B)
 {
     double sum = (double)A + (double)B;
 
@@ -746,8 +746,8 @@ geometricFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingmultiply
 template <typename PIX, int maxValue>
 PIX
-multiplyFunctor(PIX A,
-                PIX B)
+multiplyFunc(PIX A,
+             PIX B)
 {
     if ( (A < 0) && (B < 0) ) {
         return A;
@@ -759,8 +759,8 @@ multiplyFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingscreen
 template <typename PIX, int maxValue>
 PIX
-screenFunctor(PIX A,
-              PIX B)
+screenFunc(PIX A,
+           PIX B)
 {
     if ( (A <= maxValue) || (B <= maxValue) ) {
         return PIX(A + B - A * B / (double)maxValue);
@@ -772,21 +772,21 @@ screenFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#valdef-blend-mode-hard-light
 template <typename PIX, int maxValue>
 PIX
-hardLightFunctor(PIX A,
-                 PIX B)
+hardLightFunc(PIX A,
+              PIX B)
 {
     if ( 2 * A < maxValue ) {
-        return multiplyFunctor<PIX,maxValue>(2*A, B);
+        return multiplyFunc<PIX,maxValue>(2*A, B);
     } else {
-        return screenFunctor<PIX,maxValue>(2*A-maxValue, B);
+        return screenFunc<PIX,maxValue>(2*A-maxValue, B);
     }
 }
 
 // https://www.w3.org/TR/compositing-1/#blendingsoftlight
 template <typename PIX, int maxValue>
 PIX
-softLightFunctor(PIX A,
-                 PIX B)
+softLightFunc(PIX A,
+              PIX B)
 {
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
@@ -817,16 +817,16 @@ softLightFunctor(PIX A,
 
 template <typename PIX>
 PIX
-hypotFunctor(PIX A,
-             PIX B)
+hypotFunc(PIX A,
+          PIX B)
 {
     return PIX( std::sqrt( (double)(A * A + B * B) ) );
 }
 
 template <typename PIX>
 PIX
-minusFunctor(PIX A,
-             PIX B)
+minusFunc(PIX A,
+          PIX B)
 {
     return A - B;
 }
@@ -834,8 +834,8 @@ minusFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingdarken
 template <typename PIX>
 PIX
-darkenFunctor(PIX A,
-              PIX B)
+darkenFunc(PIX A,
+           PIX B)
 {
     return (std::min)(A, B);
 }
@@ -843,8 +843,8 @@ darkenFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendinglighten
 template <typename PIX>
 PIX
-lightenFunctor(PIX A,
-               PIX B)
+lightenFunc(PIX A,
+            PIX B)
 {
     return (std::max)(A, B);
 }
@@ -852,17 +852,17 @@ lightenFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingoverlay
 template <typename PIX, int maxValue>
 PIX
-overlayFunctor(PIX A,
-               PIX B)
+overlayFunc(PIX A,
+            PIX B)
 {
-    return hardLight<PIX,maxValue>(B,A);
+    return hardLightFunc<PIX,maxValue>(B,A);
 }
 
 // https://www.w3.org/TR/compositing-1/#blendingcolordodge
 template <typename PIX, int maxValue>
 PIX
-colorDodgeFunctor(PIX A,
-                  PIX B)
+colorDodgeFunc(PIX A,
+               PIX B)
 {
     if (A >= maxValue) {
         return A;
@@ -874,8 +874,8 @@ colorDodgeFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#blendingcolorburn
 template <typename PIX, int maxValue>
 PIX
-colorBurnFunctor(PIX A,
-                 PIX B)
+colorBurnFunc(PIX A,
+              PIX B)
 {
     if (A <= 0) {
         return A;
@@ -886,8 +886,8 @@ colorBurnFunctor(PIX A,
 
 template <typename PIX, int maxValue>
 PIX
-pinLightFunctor(PIX A,
-                PIX B)
+pinLightFunc(PIX A,
+             PIX B)
 {
     PIX max2 = PIX( (double)maxValue / 2. );
 
@@ -896,8 +896,8 @@ pinLightFunctor(PIX A,
 
 template <typename PIX, int maxValue>
 PIX
-reflectFunctor(PIX A,
-               PIX B)
+reflectFunc(PIX A,
+            PIX B)
 {
     if (B >= maxValue) {
         return maxValue;
@@ -908,8 +908,8 @@ reflectFunctor(PIX A,
 
 template <typename PIX, int maxValue>
 PIX
-freezeFunctor(PIX A,
-              PIX B)
+freezeFunc(PIX A,
+           PIX B)
 {
     if (B <= 0) {
         return 0;
@@ -925,8 +925,8 @@ freezeFunctor(PIX A,
 // see http://paulbourke.net/miscellaneous/interpolation/
 template <typename PIX, int maxValue>
 PIX
-interpolatedFunctor(PIX A,
-                    PIX B)
+interpolatedFunc(PIX A,
+                 PIX B)
 {
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
@@ -937,20 +937,20 @@ interpolatedFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcatop
 template <typename PIX, int maxValue>
 PIX
-atopFunctor(PIX A,
-            PIX B,
-            PIX alphaA,
-            PIX alphaB)
+atopFunc(PIX A,
+         PIX B,
+         PIX alphaA,
+         PIX alphaB)
 {
     return PIX( A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
 template <typename PIX, int maxValue>
 PIX
-conjointOverFunctor(PIX A,
-                    PIX B,
-                    PIX alphaA,
-                    PIX alphaB)
+conjointOverFunc(PIX A,
+                 PIX B,
+                 PIX alphaA,
+                 PIX alphaB)
 {
     if (alphaA > alphaB) {
         return A;
@@ -963,10 +963,10 @@ conjointOverFunctor(PIX A,
 
 template <typename PIX, int maxValue>
 PIX
-disjointOverFunctor(PIX A,
-                    PIX B,
-                    PIX alphaA,
-                    PIX alphaB)
+disjointOverFunc(PIX A,
+                 PIX B,
+                 PIX alphaA,
+                 PIX alphaB)
 {
     if (alphaA >= maxValue) {
         return A;
@@ -982,20 +982,20 @@ disjointOverFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcin
 template <typename PIX, int maxValue>
 PIX
-inFunctor(PIX A,
-          PIX /*B*/,
-          PIX /*alphaA*/,
-          PIX alphaB)
+inFunc(PIX A,
+       PIX /*B*/,
+       PIX /*alphaA*/,
+       PIX alphaB)
 {
     return PIX(A * alphaB / (double)maxValue);
 }
 
 template <typename PIX, int maxValue>
 PIX
-matteFunctor(PIX A,
-             PIX B,
-             PIX alphaA,
-             PIX /*alphaB*/)
+matteFunc(PIX A,
+          PIX B,
+          PIX alphaA,
+          PIX /*alphaB*/)
 {
     return PIX( A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
@@ -1003,10 +1003,10 @@ matteFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstin
 template <typename PIX, int maxValue>
 PIX
-maskFunctor(PIX /*A*/,
-            PIX B,
-            PIX alphaA,
-            PIX /*alphaB*/)
+maskFunc(PIX /*A*/,
+         PIX B,
+         PIX alphaA,
+         PIX /*alphaB*/)
 {
     return PIX(B * alphaA / (double)maxValue);
 }
@@ -1014,10 +1014,10 @@ maskFunctor(PIX /*A*/,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout
 template <typename PIX, int maxValue>
 PIX
-outFunctor(PIX A,
-           PIX /*B*/,
-           PIX /*alphaA*/,
-           PIX alphaB)
+outFunc(PIX A,
+        PIX /*B*/,
+        PIX /*alphaA*/,
+        PIX alphaB)
 {
     return PIX( A * (1. - alphaB / (double)maxValue) );
 }
@@ -1025,20 +1025,20 @@ outFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover
 template <typename PIX, int maxValue>
 PIX
-overFunctor(PIX A,
-            PIX B,
-            PIX alphaA,
-            PIX /*alphaB*/)
+overFunc(PIX A,
+         PIX B,
+         PIX alphaA,
+         PIX /*alphaB*/)
 {
     return PIX( A + B * (1 - alphaA / (double)maxValue) );
 }
 
 template <typename PIX, int maxValue>
 PIX
-stencilFunctor(PIX /*A*/,
-               PIX B,
-               PIX alphaA,
-               PIX /*alphaB*/)
+stencilFunc(PIX /*A*/,
+            PIX B,
+            PIX alphaA,
+            PIX /*alphaB*/)
 {
     return PIX( B * (1 - alphaA / (double)maxValue) );
 }
@@ -1046,10 +1046,10 @@ stencilFunctor(PIX /*A*/,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstover
 template <typename PIX, int maxValue>
 PIX
-underFunctor(PIX A,
-             PIX B,
-             PIX /*alphaA*/,
-             PIX alphaB)
+underFunc(PIX A,
+          PIX B,
+          PIX /*alphaA*/,
+          PIX alphaB)
 {
     return PIX(A * (1 - alphaB / (double)maxValue) + B);
 }
@@ -1057,10 +1057,10 @@ underFunctor(PIX A,
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_xor
 template <typename PIX, int maxValue>
 PIX
-xorFunctor(PIX A,
-           PIX B,
-           PIX alphaA,
-           PIX alphaB)
+xorFunc(PIX A,
+        PIX B,
+        PIX alphaA,
+        PIX alphaB)
 {
     return PIX( A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue) );
 }
@@ -1523,112 +1523,112 @@ mergePixel(bool doAlphaMasking,
     for (int i = 0; i < maxComp; ++i) {
         switch (f) {
         case eMergeATop:
-            dst[i] = atopFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = atopFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeAverage:
-            dst[i] = averageFunctor(A[i], B[i]);
+            dst[i] = averageFunc(A[i], B[i]);
             break;
         case eMergeColorBurn:
-            dst[i] = colorBurnFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = colorBurnFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeColorDodge:
-            dst[i] = colorDodgeFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = colorDodgeFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeConjointOver:
-            dst[i] = conjointOverFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = conjointOverFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeCopy:
-            dst[i] = copyFunctor(A[i], B[i]);
+            dst[i] = copyFunc(A[i], B[i]);
             break;
         case eMergeDifference:
-            dst[i] = differenceFunctor(A[i], B[i]);
+            dst[i] = differenceFunc(A[i], B[i]);
             break;
         case eMergeDisjointOver:
-            dst[i] = disjointOverFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = disjointOverFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeDivide:
-            dst[i] = divideFunctor(A[i], B[i]);
+            dst[i] = divideFunc(A[i], B[i]);
             break;
         case eMergeExclusion:
-            dst[i] = exclusionFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = exclusionFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeFreeze:
-            dst[i] = freezeFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = freezeFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeFrom:
-            dst[i] = fromFunctor(A[i], B[i]);
+            dst[i] = fromFunc(A[i], B[i]);
             break;
         case eMergeGeometric:
-            dst[i] = geometricFunctor(A[i], B[i]);
+            dst[i] = geometricFunc(A[i], B[i]);
             break;
         case eMergeGrainExtract:
-            dst[i] = grainExtractFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = grainExtractFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeGrainMerge:
-            dst[i] = grainMergeFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = grainMergeFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeHardLight:
-            dst[i] = hardLightFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = hardLightFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeHypot:
-            dst[i] = hypotFunctor(A[i], B[i]);
+            dst[i] = hypotFunc(A[i], B[i]);
             break;
         case eMergeIn:
-            dst[i] = inFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = inFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         //case eMergeInterpolated:
-        //    dst[i] = interpolatedFunctor<PIX, maxValue>(A[i], B[i]);
-        //    break;
+        //    dst[i] = interpolatedFunc<PIX, maxValue>(A[i], B[i]);
+            //    break;
         case eMergeMask:
-            dst[i] = maskFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = maskFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeMatte:
-            dst[i] = matteFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = matteFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeMax:
-            dst[i] = lightenFunctor(A[i], B[i]);
+            dst[i] = lightenFunc(A[i], B[i]);
             break;
         case eMergeMin:
-            dst[i] = darkenFunctor(A[i], B[i]);
+            dst[i] = darkenFunc(A[i], B[i]);
             break;
         case eMergeMinus:
-            dst[i] = minusFunctor(A[i], B[i]);
+            dst[i] = minusFunc(A[i], B[i]);
             break;
         case eMergeMultiply:
-            dst[i] = multiplyFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = multiplyFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeOut:
-            dst[i] = outFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = outFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeOver:
-            dst[i] = overFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = overFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeOverlay:
-            dst[i] = overlayFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = overlayFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergePinLight:
-            dst[i] = pinLightFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = pinLightFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergePlus:
-            dst[i] = plusFunctor(A[i], B[i]);
+            dst[i] = plusFunc(A[i], B[i]);
             break;
         case eMergeReflect:
-            dst[i] = reflectFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = reflectFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeScreen:
-            dst[i] = screenFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = screenFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeSoftLight:
-            dst[i] = softLightFunctor<PIX, maxValue>(A[i], B[i]);
+            dst[i] = softLightFunc<PIX, maxValue>(A[i], B[i]);
             break;
         case eMergeStencil:
-            dst[i] = stencilFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = stencilFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeUnder:
-            dst[i] = underFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = underFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         case eMergeXOR:
-            dst[i] = xorFunctor<PIX, maxValue>(A[i], B[i], a, b);
+            dst[i] = xorFunc<PIX, maxValue>(A[i], B[i], a, b);
             break;
         default:
             dst[i] = 0;
