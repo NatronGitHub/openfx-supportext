@@ -135,15 +135,15 @@ rgb_to_hsv( float r,
             float *s,
             float *v )
 {
-    float min = (std::min)((std::min)(r, g), b);
-    float max = (std::max)((std::max)(r, g), b);
+    float minv = (std::min)((std::min)(r, g), b);
+    float maxv = (std::max)((std::max)(r, g), b);
 
-    *v = max;                               // v
+    *v = maxv;                               // v
 
-    float delta = max - min;
+    float delta = maxv - minv;
 
-    if (max != 0.) {
-        *s = delta / max;                       // s
+    if (maxv != 0.) {
+        *s = delta / maxv;                       // s
     } else {
         // r = g = b = 0		// s = 0, v is undefined
         *s = 0.f;
@@ -154,9 +154,9 @@ rgb_to_hsv( float r,
 
     if (delta == 0.) {
         *h = 0.f;                 // gray
-    } else if (r == max) {
+    } else if (r == maxv) {
         *h = (g - b) / delta;                       // between yellow & magenta
-    } else if (g == max) {
+    } else if (g == maxv) {
         *h = 2 + (b - r) / delta;                   // between cyan & yellow
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
@@ -239,28 +239,27 @@ rgb_to_hsl( float r,
             float *s,
             float *l )
 {
-    float min = (std::min)((std::min)(r, g), b);
-    float max = (std::max)((std::max)(r, g), b);
+    float minv = (std::min)((std::min)(r, g), b);
+    float maxv = (std::max)((std::max)(r, g), b);
 
-    *l = (min + max) / 2;
+    *l = (minv + maxv) / 2;
 
-    float delta = max - min;
+    minv = (std::max)(0.f, minv);
+    maxv = (std::min)(1.f, maxv);
 
-    if (max != 0.) {
-        *s = (*l <= 0.5) ? ( delta / (max + min) ) : ( delta / (2 - max - min) ); // s = delta/(1-abs(2L-1))
-    } else {
-        // r = g = b = 0		// s = 0
-        *s = 0.f;
-        *h = 0.f;
-
-        return;
-    }
+    float delta = maxv - minv;
 
     if (delta == 0.) {
         *h = 0.f;                 // gray
-    } else if (r == max) {
+        *s = 0.f;
+
+        return;
+    }
+    *s = (*l <= 0.5) ? ( delta / (maxv + minv) ) : ( delta / ( 2 - (maxv + minv) ) ); // s = delta/(1-abs(2L-1))
+
+    if (r == maxv) {
         *h = (g - b) / delta;                       // between yellow & magenta
-    } else if (g == max) {
+    } else if (g == maxv) {
         *h = 2 + (b - r) / delta;                   // between cyan & yellow
     } else {
         *h = 4 + (r - g) / delta;                   // between magenta & cyan
