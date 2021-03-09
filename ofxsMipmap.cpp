@@ -1,7 +1,7 @@
 /* -*- mode: c++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4; -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * This file is part of openfx-supportext <https://github.com/NatronGitHub/openfx-supportext>,
- * (C) 2018-2020 The Natron Developers
+ * (C) 2018-2021 The Natron Developers
  * (C) 2013-2018 INRIA
  *
  * openfx-supportext is free software: you can redistribute it and/or modify
