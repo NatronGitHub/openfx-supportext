@@ -44,7 +44,7 @@ inline void hiDPIDescribeParams(OFX::ImageEffectDescriptor &desc, GroupParamDesc
     const ImageEffectHostDescription &hostDesc =  *OFX::getImageEffectHostDescription();
     if (hostDesc.isNatron) {
         // Natron doesn't support HiDPI yet
-        //param->setIsSecretAndDisabled(true);
+        param->setIsSecretAndDisabled(true);
     }
 #endif
     if (group) {
