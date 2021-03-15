@@ -30,6 +30,7 @@
 #include "ofxNatron.h"
 #endif
 #include "ofxsMacros.h"
+#include "ofxsOGLHiDPI.h"
 
 #define kParamTrackingCenterPoint "center"
 #define kParamTrackingCenterPointLabel "Center"
@@ -228,6 +229,7 @@ public:
         , _outerBtmLeft(NULL)
         , _outerTopRight(NULL)
         , _name(NULL)
+        , _hiDPI(NULL)
         , _centerDragPos()
         , _offsetDragPos()
         , _innerBtmLeftDragPos()
@@ -244,6 +246,11 @@ public:
         _outerBtmLeft = effect->fetchDouble2DParam(kParamTrackingSearchBoxBtmLeft);
         _outerTopRight = effect->fetchDouble2DParam(kParamTrackingSearchBoxTopRight);
         _name = effect->fetchStringParam(kNatronOfxParamStringSublabelName);
+        if ( effect->paramExists(kParamHiDPI) ) {
+            _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
+            assert(_hiDPI);
+            addParamToSlaveTo(_hiDPI);
+        }
         addParamToSlaveTo(_center);
         addParamToSlaveTo(_offset);
         addParamToSlaveTo(_innerBtmLeft);
@@ -276,6 +283,7 @@ private:
     OFX::Double2DParam* _outerBtmLeft;
     OFX::Double2DParam* _outerTopRight;
     OFX::StringParam* _name;
+    OFX::BooleanParam* _hiDPI;
     OfxPointD _centerDragPos;
     OfxPointD _offsetDragPos;
 

@@ -83,6 +83,7 @@ extern const SFG_Font fgFontFixed9x15;
 extern const SFG_Font fgFontHelvetica10;
 extern const SFG_Font fgFontHelvetica12;
 extern const SFG_Font fgFontHelvetica18;
+extern const SFG_Font fgFontHelvetica24;
 extern const SFG_Font fgFontTimesRoman10;
 extern const SFG_Font fgFontTimesRoman24;
 } // OFX

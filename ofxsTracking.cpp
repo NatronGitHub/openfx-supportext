@@ -355,6 +355,9 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         yo2 += (yc + yoff);
     }
 
+    bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
+    int scaleFactor = hiDPI ? 2 : 1;
+    TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
@@ -363,7 +366,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f);
+    glLineWidth(1.5f * scaleFactor);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -392,7 +395,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         glVertex2d(xo2, yo1);
         glEnd();
 
-        glPointSize(POINT_SIZE);
+        glPointSize(POINT_SIZE * scaleFactor);
         glBegin(GL_POINTS);
 
         ///draw center
@@ -567,7 +570,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         string name;
         _name->getValue(name);
-        TextRenderer::bitmapString( xc, yc, name.c_str() );
+        TextRenderer::bitmapString(xc, yc + POINT_SIZE * scaleFactor, name.c_str(), font);
     }
 
     //glPopAttrib();

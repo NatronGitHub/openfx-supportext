@@ -29,6 +29,7 @@
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
+#include "ofxsOGLHiDPI.h"
 
 // a secret parameter used to enable the interact, if it exists
 #define kParamRectangleInteractEnable "rectangleInteractEnable"
@@ -99,6 +100,8 @@ public:
         , _enable(NULL)
         , _btmLeft(NULL)
         , _size(NULL)
+        , _interactive(NULL)
+        , _hiDPI(NULL)
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
@@ -109,6 +112,11 @@ public:
         addParamToSlaveTo(_size);
         assert(_btmLeft && _size);
         _interactive = effect->paramExists(kParamRectangleInteractInteractive) ? effect->fetchBooleanParam(kParamRectangleInteractInteractive) : 0;
+        if ( effect->paramExists(kParamHiDPI) ) {
+            _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
+            assert(_hiDPI);
+            addParamToSlaveTo(_hiDPI);
+        }
         _btmLeftDragPos.x = _btmLeftDragPos.y = 0;
         _sizeDrag.x = _sizeDrag.y = 0;
         _interactiveDrag = false;
@@ -204,6 +212,7 @@ private:
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
+    OFX::BooleanParam* _hiDPI;
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     bool _interactiveDrag;

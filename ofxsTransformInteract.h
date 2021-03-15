@@ -200,6 +200,7 @@ private:
     OFX::BooleanParam* _invert;
     OFX::BooleanParam* _interactOpen;
     OFX::BooleanParam* _interactive;
+    OFX::BooleanParam* _hiDPI;
 };
 
 typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteract;

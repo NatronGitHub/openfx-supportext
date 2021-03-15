@@ -39,6 +39,7 @@
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
 #include "ofxsOGLTextRenderer.h"
+#include "ofxsOGLHiDPI.h"
 #include "ofxsMacros.h"
 
 namespace OFX {
@@ -77,14 +78,22 @@ public:
         , _state(eMouseStateInactive)
         , _position(NULL)
         , _interactive(NULL)
+        , _hiDPI(NULL)
         , _interactiveDrag(false)
         , _hasNativeHostPositionHandle(false)
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
+        assert(_position);
+        addParamToSlaveTo(_position);
         if ( PositionInteractParam::interactiveName() ) {
             _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
+            assert(_interactive);
         }
-        assert(_position);
+        if ( effect->paramExists(kParamHiDPI) ) {
+            _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
+            assert(_hiDPI);
+            addParamToSlaveTo(_hiDPI);
+        }
         _hasNativeHostPositionHandle = _position->getHostHasNativeOverlayHandle();
         _penPosition.x = _penPosition.y = 0;
     }
@@ -108,6 +117,7 @@ private:
     MouseStateEnum _state;
     OFX::Double2DParam* _position;
     OFX::BooleanParam* _interactive;
+    OFX::BooleanParam* _hiDPI;
     OfxPointD _penPosition;
     bool _interactiveDrag;
     bool _hasNativeHostPositionHandle;
@@ -147,6 +157,10 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         return false;
     }
 
+    bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
+    int scaleFactor = hiDPI ? 2 : 1;
+    TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     //const OfxPointD& pscale = args.pixelScale;
@@ -175,7 +189,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
-    glPointSize( (float)pointSize() );
+    glPointSize( (float)pointSize() * scaleFactor);
 
     // Draw everything twice
     // l = 0: shadow
@@ -192,7 +206,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);
         glEnd();
-        OFX::TextRenderer::bitmapString( pos.x, pos.y, ParamName::name() );
+        OFX::TextRenderer::bitmapString( pos.x, pos.y + pointSize() * scaleFactor, ParamName::name(), font );
     }
 
     //glPopAttrib();

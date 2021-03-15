@@ -19,8 +19,7 @@
  * ***** END LICENSE BLOCK ***** */
 
 /*
- * OFX generic rectangle interact with 4 corner points + center point and 4 mid-points.
- * You can use it to define any rectangle in an image resizable by the user.
+ * OFX generic ramp interact with 2 points
  */
 
 #include "ofxsRamp.h"
@@ -78,6 +77,11 @@ RampInteractHelper::draw(const DrawArgs &args)
     if (noramp) {
         return false;
     }
+
+    bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
+    int scaleFactor = hiDPI ? 2 : 1;
+    TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     _interact->getSuggestedColour(color);
     const OfxPointD &pscale = args.pixelScale;
@@ -195,11 +199,11 @@ RampInteractHelper::draw(const DrawArgs &args)
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f);
+    glLineWidth(1.5f * scaleFactor);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineStipple(2, 0xAAAA);
 
-    glPointSize(POINT_SIZE);
+    glPointSize(POINT_SIZE * scaleFactor);
 
     // Draw everything twice
     // l = 0: shadow
@@ -229,9 +233,7 @@ RampInteractHelper::draw(const DrawArgs &args)
             glVertex2d(pline2[i].x, pline2[i].y);
             glEnd();
 
-            double xoffset = 5 * pscale.x;
-            double yoffset = 5 * pscale.y;
-            TextRenderer::bitmapString(p[i].x + xoffset, p[i].y + yoffset, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label);
+            TextRenderer::bitmapString(p[i].x, p[i].y + POINT_SIZE * scaleFactor, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label, font);
         }
     }
 
@@ -523,5 +525,8 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+
+    // HiDPI
+    hiDPIDescribeParams(desc, group, page);
 } // ofxsRampDescribeParams
 } // namespace OFX

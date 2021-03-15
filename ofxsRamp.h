@@ -32,6 +32,7 @@
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
 #include "ofxsOGLTextRenderer.h"
+#include "ofxsOGLHiDPI.h"
 
 #define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
@@ -94,6 +95,7 @@ class RampInteractHelper
     ChoiceParam* _type;
     BooleanParam* _interactOpen;
     BooleanParam* _interactive;
+    BooleanParam* _hiDPI;
     OfxPointD _point0DragPos, _point1DragPos;
     bool _interactiveDrag;
     OfxPointD _lastMousePos;
@@ -111,6 +113,7 @@ public:
         , _type(NULL)
         , _interactOpen(NULL)
         , _interactive(NULL)
+        , _hiDPI(NULL)
         , _point0DragPos()
         , _point1DragPos()
         , _interactiveDrag(false)
@@ -130,6 +133,11 @@ public:
             _point1 = effect->fetchDouble2DParam(kParamRampPoint1);
             _type = effect->fetchChoiceParam(kParamRampType);
             _interactive = effect->fetchBooleanParam(kParamRampInteractive);
+        }
+        if ( effect->paramExists(kParamHiDPI) ) {
+            _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
+            assert(_hiDPI);
+            // TODO: cannot addParamToSlaveTo(_hiDPI);
         }
         _interactOpen = _effect->fetchBooleanParam(kParamRampInteractOpen);
         assert(_point0 && _point1 && _type && _interactOpen && _interactive);

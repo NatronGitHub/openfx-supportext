@@ -104,6 +104,7 @@ protected:
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
+    OFX::BooleanParam* _hiDPI;
     OFX::ChoiceParam *_outputComponents;
     OFX::ChoiceParam *_outputBitDepth;
     OFX::Int2DParam  *_range;

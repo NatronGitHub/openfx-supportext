@@ -64,6 +64,7 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     , _btmLeft(NULL)
     , _size(NULL)
     , _interactive(NULL)
+    , _hiDPI(NULL)
     , _outputComponents(NULL)
     , _outputBitDepth(NULL)
     , _range(NULL)
@@ -92,6 +93,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
     _size = fetchDouble2DParam(kParamRectangleInteractSize);
     _recenter = fetchPushButtonParam(kParamGeneratorCenter);
     _interactive = fetchBooleanParam(kParamRectangleInteractInteractive);
+    if ( paramExists(kParamHiDPI) ) {
+        _hiDPI = fetchBooleanParam(kParamHiDPI);
+    }
+
     assert(_extent && _format && _formatSize && _formatPar && _btmLeft && _size && _interactive && _recenter);
 
     if (_useOutputComponentsAndDepth) {
@@ -271,6 +276,9 @@ GeneratorPlugin::updateParamsVisibility()
     _recenter->setIsSecretAndDisabled(!hasSize);
     _btmLeft->setIsSecretAndDisabled(!hasSize);
     _interactive->setIsSecretAndDisabled(!hasSize);
+    if (_hiDPI) {
+        _hiDPI->setIsSecretAndDisabled(!hasSize);
+    }
 }
 
 void
@@ -770,6 +778,9 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
+
+    // HiDPI
+    hiDPIDescribeParams(desc, NULL, page);
 
     // range
     if (context == eContextGeneral) {

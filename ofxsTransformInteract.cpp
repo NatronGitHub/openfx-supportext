@@ -23,6 +23,7 @@
  */
 
 #include "ofxsTransformInteract.h"
+#include "ofxsOGLHiDPI.h"
 
 #include <memory>
 #include <cmath>
@@ -294,6 +295,9 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+
+    // HiDPI
+    hiDPIDescribeParams(desc, group, page);
 } // ofxsTransformDescribeParams
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -711,6 +715,11 @@ TransformInteractHelper::draw(const DrawArgs &args)
     }
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
+
+    bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
+    int scaleFactor = hiDPI ? 2 : 1;
+    //TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     _interact->getSuggestedColour(color);
     GLdouble projection[16];
@@ -796,7 +805,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f);
+    glLineWidth(1.5f * scaleFactor);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
