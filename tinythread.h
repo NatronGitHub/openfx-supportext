@@ -377,6 +377,7 @@ class recursive_mutex {
 
 template <class T>
 class lock_guard {
+    friend class condition_variable;
   public:
     typedef T mutex_type;
 
@@ -463,9 +464,9 @@ class condition_variable {
 
       // Release the mutex while waiting for the condition (will decrease
       // the number of waiters when done)...
-      aMutex.unlock();
+      aMutex.mMutex->unlock();
       _wait();
-      aMutex.lock();
+      aMutex.mMutex->lock();
 #else
       pthread_cond_wait(&mHandle, &aMutex.mHandle);
 #endif
