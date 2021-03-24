@@ -332,6 +332,7 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     , _invert(NULL)
     , _interactOpen(NULL)
     , _interactive(NULL)
+    , _hiDPI(NULL)
 {
     assert(_effect && _interact);
     _lastMousePos.x = _lastMousePos.y = 0.;
