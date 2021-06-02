@@ -59,6 +59,7 @@ using namespace OFX;
 #define CIRCLE_RADIUS_MAX 300.
 #define POINT_SIZE 7.
 #define ELLIPSE_N_POINTS 50.
+#define BEZIER_STEPS 8
 
 namespace OFX {
 /// add Transform params. page and group are optional
@@ -820,6 +821,55 @@ TransformInteractHelper::draw(const DrawArgs &args)
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
+        // First, draw the motion curve, based on the keyframes for the translate parameter.
+        if (_translate) {
+            // Draw the motion curve a bit darker
+            const double darken = 0.8;
+            glColor3d(color.r * darken * l, color.g * darken * l, color.b * darken * l);
+
+            int numKeys = _translate->getNumKeys();
+
+            if (numKeys > 0) {
+                OfxPointD targetCenter;
+                OfxPointD center = { 0., 0. };
+                OfxPointD translate = { 0., 0. };
+                glPointSize(POINT_SIZE * scaleFactor);
+                glBegin(GL_POINTS);
+                for (int i=0; i < numKeys; ++i) {
+                    double time = _translate->getKeyTime(i);
+                    if (_center) {
+                        _center->getValueAtTime(time, center.x, center.y);
+                    }
+                    if (_translate) {
+                        _translate->getValueAtTime(time, translate.x, translate.y);
+                    }
+                    getTargetCenter(center, translate, &targetCenter);
+                    glVertex2d(targetCenter.x, targetCenter.y);
+
+                }
+                glEnd();
+                glBegin(GL_LINE_STRIP);
+                double time = _translate->getKeyTime(0);
+                for (int i = 1; i < numKeys; ++i) {
+                    double timeNext = _translate->getKeyTime(i);
+                    for (int j = (i == 1 ? 0 : 1); j <= BEZIER_STEPS; ++j) {
+                        double timeStep = time + j * (timeNext - time) / BEZIER_STEPS;
+                        if (_center) {
+                            _center->getValueAtTime(timeStep, center.x, center.y);
+                        }
+                        if (_translate) {
+                            _translate->getValueAtTime(timeStep, translate.x, translate.y);
+                        }
+                        getTargetCenter(center, translate, &targetCenter);
+                        glVertex2d(targetCenter.x, targetCenter.y);
+                    }
+                    time = timeNext;
+                }
+                glEnd();
+            }
+        }
+
+
         glColor3d(color.r * l, color.g * l, color.b * l);
 
         glPushMatrix();
@@ -1337,22 +1387,26 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if (editBlock) {
             _effect->beginEditBlock("Set Transform");
         }
-        if (centerChanged) {
+        // Change from 2021/06/01:
+        // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
+        // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
+        const bool setAll = true;
+        if (setAll || centerChanged) {
             _center->setValue(center.x, center.y);
         }
-        if (translateChanged) {
+        if (setAll || translateChanged) {
             _translate->setValue(translate.x, translate.y);
         }
-        if (scaleChanged) {
+        if (setAll || scaleChanged) {
             _scale->setValue(scale.x, scale.y);
         }
-        if (rotateChanged) {
+        if (setAll || rotateChanged) {
             _rotate->setValue(rotate);
         }
-        if (skewXChanged) {
+        if (setAll || skewXChanged) {
             _skewX->setValue(skewX);
         }
-        if (skewYChanged) {
+        if (setAll || skewYChanged) {
             _skewY->setValue(skewY);
         }
         if (editBlock) {
