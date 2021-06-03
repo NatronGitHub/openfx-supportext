@@ -1384,13 +1384,13 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
         bool editBlock = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
-        if (editBlock) {
-            _effect->beginEditBlock("Set Transform");
-        }
         // Change from 2021/06/01:
         // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
         // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
         const bool setAll = true;
+        if (setAll || editBlock) {
+            _effect->beginEditBlock("Set Transform");
+        }
         if (setAll || centerChanged) {
             _center->setValue(center.x, center.y);
         }
