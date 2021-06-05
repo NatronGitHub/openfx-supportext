@@ -40,13 +40,6 @@ inline void hiDPIDescribeParams(OFX::ImageEffectDescriptor &desc, GroupParamDesc
     param->setHint(kParamHiDPIHint);
     param->setAnimates(false);
     param->setEvaluateOnChange(false);
-#ifdef OFX_EXTENSIONS_NATRON
-    const ImageEffectHostDescription &hostDesc =  *OFX::getImageEffectHostDescription();
-    if (hostDesc.isNatron) {
-        // Natron doesn't support HiDPI yet
-        param->setIsSecretAndDisabled(true);
-    }
-#endif
     if (group) {
         param->setParent(*group);
     }
