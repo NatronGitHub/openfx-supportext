@@ -81,9 +81,9 @@ RampInteractHelper::draw(const DrawArgs &args)
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    double scaleFactor = hiDPI ? 2 : 1;
+    double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    scaleFactor *= args.screenPixelRatio;
+    screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
@@ -204,11 +204,11 @@ RampInteractHelper::draw(const DrawArgs &args)
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * scaleFactor);
+    glLineWidth(1.5f * screenPixelRatio);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glLineStipple(2, 0xAAAA);
 
-    glPointSize(POINT_SIZE * scaleFactor);
+    glPointSize(POINT_SIZE * screenPixelRatio);
 
     // Draw everything twice
     // l = 0: shadow
@@ -247,7 +247,7 @@ RampInteractHelper::draw(const DrawArgs &args)
             glVertex2d(pline2[i].x, pline2[i].y);
             glEnd();
 
-            TextRenderer::bitmapString(p[i].x, p[i].y + POINT_SIZE * scaleFactor, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label, font);
+            TextRenderer::bitmapString(p[i].x, p[i].y + POINT_SIZE * screenPixelRatio, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label, font);
         }
     }
 

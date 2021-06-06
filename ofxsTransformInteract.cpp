@@ -722,9 +722,9 @@ TransformInteractHelper::draw(const DrawArgs &args)
     const double time = args.time;
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    double scaleFactor = hiDPI ? 2 : 1;
+    double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    scaleFactor *= args.screenPixelRatio;
+    screenPixelRatio *= args.screenPixelRatio;
     //hiDPI |= args.screenPixelRatio > 1;
 #endif
     //TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
@@ -814,7 +814,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
     glEnable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * scaleFactor);
+    glLineWidth(1.5f * screenPixelRatio);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -840,7 +840,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
                 OfxPointD targetCenter;
                 OfxPointD center = { 0., 0. };
                 OfxPointD translate = { 0., 0. };
-                glPointSize(POINT_SIZE * scaleFactor);
+                glPointSize(POINT_SIZE * screenPixelRatio);
                 glBegin(GL_POINTS);
                 for (int i=0; i < numKeys; ++i) {
                     double time = _translate->getKeyTime(i);

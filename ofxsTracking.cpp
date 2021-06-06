@@ -356,9 +356,9 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    double scaleFactor = hiDPI ? 2 : 1;
+    double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    scaleFactor *= args.screenPixelRatio;
+    screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
@@ -370,7 +370,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * scaleFactor);
+    glLineWidth(1.5f * screenPixelRatio);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -399,7 +399,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         glVertex2d(xo2, yo1);
         glEnd();
 
-        glPointSize(POINT_SIZE * scaleFactor);
+        glPointSize(POINT_SIZE * screenPixelRatio);
         glBegin(GL_POINTS);
 
         ///draw center
@@ -574,7 +574,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         string name;
         _name->getValue(name);
-        TextRenderer::bitmapString(xc, yc + POINT_SIZE * scaleFactor, name.c_str(), font);
+        TextRenderer::bitmapString(xc, yc + POINT_SIZE * screenPixelRatio, name.c_str(), font);
     }
 
     //glPopAttrib();

@@ -194,9 +194,9 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    double scaleFactor = hiDPI ? 2 : 1;
+    double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    scaleFactor *= args.screenPixelRatio;
+    screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
@@ -229,11 +229,11 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
-    glPointSize( (float)pointSize() * scaleFactor);
+    glPointSize( (float)pointSize() * screenPixelRatio);
     glEnable(GL_LINE_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * scaleFactor);
+    glLineWidth(1.5f * screenPixelRatio);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -257,7 +257,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);
         glEnd();
-        OFX::TextRenderer::bitmapString( pos.x, pos.y + pointSize() * scaleFactor, ParamName::name(), font );
+        OFX::TextRenderer::bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio, ParamName::name(), font );
     }
 
     //glPopAttrib();
