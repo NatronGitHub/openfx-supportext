@@ -369,6 +369,9 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     if ( _effect->paramExists(kParamTransform3x3Invert) ) {
         _invert = _effect->fetchBooleanParam(kParamTransform3x3Invert);
     }
+    if ( effect->paramExists(kParamHiDPI) ) {
+        _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
+    }
     assert(_rotate && _scale && _scaleUniform && _skewX && _skewY && _skewOrder && _center && _interactive);
     if (_translate) {
         _interact->addParamToSlaveTo(_translate);
