@@ -722,7 +722,11 @@ TransformInteractHelper::draw(const DrawArgs &args)
     const double time = args.time;
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    int scaleFactor = hiDPI ? 2 : 1;
+    double scaleFactor = hiDPI ? 2 : 1;
+#ifdef OFX_EXTENSIONS_NATRON
+    scaleFactor *= args.screenPixelRatio;
+    hiDPI |= args.screenPixelRatio > 1;
+#endif
     //TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
@@ -807,7 +811,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
 
     glDisable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
-    glDisable(GL_POINT_SMOOTH);
+    glEnable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
     glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
     glLineWidth(1.5f * scaleFactor);

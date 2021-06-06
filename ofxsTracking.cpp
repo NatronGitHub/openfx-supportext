@@ -356,7 +356,11 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
-    int scaleFactor = hiDPI ? 2 : 1;
+    double scaleFactor = hiDPI ? 2 : 1;
+#ifdef OFX_EXTENSIONS_NATRON
+    scaleFactor *= args.screenPixelRatio;
+    hiDPI |= args.screenPixelRatio > 1;
+#endif
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
