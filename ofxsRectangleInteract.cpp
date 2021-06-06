@@ -107,7 +107,7 @@ RectangleInteract::draw(const DrawArgs &args)
     double scaleFactor = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
     scaleFactor *= args.screenPixelRatio;
-    hiDPI |= args.screenPixelRatio > 1;
+    //hiDPI |= args.screenPixelRatio > 1;
 #endif
     //TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
