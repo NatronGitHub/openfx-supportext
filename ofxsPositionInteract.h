@@ -42,7 +42,43 @@
 #include "ofxsOGLHiDPI.h"
 #include "ofxsMacros.h"
 
+#define kDrawPointTrajectorySteps 8
+
 namespace OFX {
+
+// Before calling this function: make sure the OpenGL props are correctly set.
+inline void
+drawPointTrajectory(Double2DParam* p, int steps = kDrawPointTrajectorySteps)
+{
+    int numKeys = p->getNumKeys();
+
+    if (numKeys > 0) {
+        glBegin(GL_POINTS);
+        for (int i=0; i < numKeys; ++i) {
+            double time = p->getKeyTime(i);
+            OfxPointD pt;
+            p->getValueAtTime(time, pt.x, pt.y);
+            glVertex2d(pt.x, pt.y);
+
+        }
+        glEnd();
+        glBegin(GL_LINE_STRIP);
+        double time = p->getKeyTime(0);
+        for (int i = 1; i < numKeys; ++i) {
+            double timeNext = p->getKeyTime(i);
+            for (int j = (i == 1 ? 0 : 1); j <= steps; ++j) {
+                double timeStep = time + j * (timeNext - time) / steps;
+                OfxPointD pt;
+                p->getValueAtTime(timeStep, pt.x, pt.y);
+                glVertex2d(pt.x, pt.y);
+            }
+            time = timeNext;
+        }
+        glEnd();
+    }
+}
+
+
 /// template for a generic position interact.
 /*
    The PositionInteractParam class must define a static name() function, returning the OFX parameter name.
@@ -194,6 +230,11 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     }
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
     glPointSize( (float)pointSize() * scaleFactor);
+    glEnable(GL_LINE_SMOOTH);
+    glEnable(GL_BLEND);
+    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    glLineWidth(1.5f * scaleFactor);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
     // l = 0: shadow
@@ -206,6 +247,12 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
+        glEnable(GL_POINT_SMOOTH);
+        const double darken = 0.5;
+        glColor3f(col.r * l * darken, col.g * l * darken, col.b * l * darken);
+        drawPointTrajectory(_position);
+
+        glDisable(GL_POINT_SMOOTH);
         glColor3f(col.r * l, col.g * l, col.b * l);
         glBegin(GL_POINTS);
         glVertex2d(pos.x, pos.y);

@@ -831,7 +831,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
         // First, draw the motion curve, based on the keyframes for the translate parameter.
         if (_translate) {
             // Draw the motion curve a bit darker
-            const double darken = 0.8;
+            const double darken = 0.5;
             glColor3d(color.r * darken * l, color.g * darken * l, color.b * darken * l);
 
             int numKeys = _translate->getNumKeys();

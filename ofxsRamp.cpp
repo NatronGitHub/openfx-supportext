@@ -38,6 +38,8 @@
 #define POINT_TOLERANCE 6
 #define POINT_SIZE 5
 
+#include "ofxsPositionInteract.h"
+
 namespace OFX {
 static inline
 void
@@ -198,7 +200,6 @@ RampInteractHelper::draw(const DrawArgs &args)
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
-    glEnable(GL_LINE_STIPPLE);
     glEnable(GL_LINE_SMOOTH);
     glDisable(GL_POINT_SMOOTH);
     glEnable(GL_BLEND);
@@ -220,7 +221,16 @@ RampInteractHelper::draw(const DrawArgs &args)
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
+        
         for (int i = 0; i < 2; ++i) {
+            glDisable(GL_LINE_STIPPLE);
+            glEnable(GL_POINT_SMOOTH);
+            const double darken = 0.5;
+            glColor3f(color.r * l * darken, color.g * l * darken, color.b * l * darken);
+            drawPointTrajectory(i ==0 ? _point0 : _point1);
+
+            glEnable(GL_LINE_STIPPLE);
+            glDisable(GL_POINT_SMOOTH);
             bool dragging = _state == (i == 0 ? eInteractStateDraggingPoint0 : eInteractStateDraggingPoint1);
             glBegin(GL_POINTS);
             if (dragging) {
