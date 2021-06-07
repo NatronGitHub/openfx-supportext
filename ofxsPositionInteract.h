@@ -249,7 +249,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 
         glEnable(GL_POINT_SMOOTH);
         const double darken = 0.5;
-        glColor3f(col.r * l * darken, col.g * l * darken, col.b * l * darken);
+        glColor3f(color.r * l * darken, color.g * l * darken, color.b * l * darken);
         drawPointTrajectory(_position);
 
         glDisable(GL_POINT_SMOOTH);
