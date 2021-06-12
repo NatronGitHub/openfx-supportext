@@ -49,6 +49,7 @@
 
 #include "ofxsMatrix2D.h"
 #include "ofxsTransform3x3.h"
+#include "ofxsPositionInteract.h"
 
 using namespace OFX;
 
@@ -59,7 +60,6 @@ using namespace OFX;
 #define CIRCLE_RADIUS_MAX 300.
 #define POINT_SIZE 7.
 #define ELLIPSE_N_POINTS 50.
-#define BEZIER_STEPS 8
 
 namespace OFX {
 /// add Transform params. page and group are optional
@@ -836,10 +836,13 @@ TransformInteractHelper::draw(const DrawArgs &args)
 
             int numKeys = _translate->getNumKeys();
 
+            // Try to draw one point per frame, but no more thankDrawPointTrajectoryMaxPoints
+            // in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
             if (numKeys > 0) {
                 OfxPointD targetCenter;
                 OfxPointD center = { 0., 0. };
                 OfxPointD translate = { 0., 0. };
+                int maxStepsPerKey = int(kDrawPointTrajectoryMaxPoints / numKeys);
                 glPointSize(POINT_SIZE * screenPixelRatio);
                 glBegin(GL_POINTS);
                 for (int i=0; i < numKeys; ++i) {
@@ -859,8 +862,9 @@ TransformInteractHelper::draw(const DrawArgs &args)
                 double time = _translate->getKeyTime(0);
                 for (int i = 1; i < numKeys; ++i) {
                     double timeNext = _translate->getKeyTime(i);
-                    for (int j = (i == 1 ? 0 : 1); j <= BEZIER_STEPS; ++j) {
-                        double timeStep = time + j * (timeNext - time) / BEZIER_STEPS;
+                    int steps = std::max(kDrawPointTrajectoryMinStepsPerKey, std::min(int(timeNext - time), maxStepsPerKey));
+                    for (int j = (i == 1 ? 0 : 1); j <= steps; ++j) {
+                        double timeStep = time + j * (timeNext - time) / steps;
                         if (_center) {
                             _center->getValueAtTime(timeStep, center.x, center.y);
                         }

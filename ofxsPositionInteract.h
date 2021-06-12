@@ -42,17 +42,21 @@
 #include "ofxsOGLHiDPI.h"
 #include "ofxsMacros.h"
 
-#define kDrawPointTrajectorySteps 8
+#define kDrawPointTrajectoryMaxPoints 1000
+#define kDrawPointTrajectoryMinStepsPerKey 8
 
 namespace OFX {
 
 // Before calling this function: make sure the OpenGL props are correctly set.
+// Try to draw one point per frame, but no more thankDrawPointTrajectoryMaxPoints
+// in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
 inline void
-drawPointTrajectory(Double2DParam* p, int steps = kDrawPointTrajectorySteps)
+drawPointTrajectory(Double2DParam* p)
 {
     int numKeys = p->getNumKeys();
 
     if (numKeys > 0) {
+        int maxStepsPerKey = int(kDrawPointTrajectoryMaxPoints / numKeys);
         glBegin(GL_POINTS);
         for (int i=0; i < numKeys; ++i) {
             double time = p->getKeyTime(i);
@@ -66,8 +70,10 @@ drawPointTrajectory(Double2DParam* p, int steps = kDrawPointTrajectorySteps)
         double time = p->getKeyTime(0);
         for (int i = 1; i < numKeys; ++i) {
             double timeNext = p->getKeyTime(i);
+            int steps = std::max(kDrawPointTrajectoryMinStepsPerKey, std::min(int(timeNext - time), maxStepsPerKey));
             for (int j = (i == 1 ? 0 : 1); j <= steps; ++j) {
                 double timeStep = time + j * (timeNext - time) / steps;
+
                 OfxPointD pt;
                 p->getValueAtTime(timeStep, pt.x, pt.y);
                 glVertex2d(pt.x, pt.y);
