@@ -1405,7 +1405,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if (setAll || centerChanged) {
             _center->setValue(center.x, center.y);
         }
-        if (setAll || translateChanged) {
+        if ( (setAll && _translate) || translateChanged) {
             _translate->setValue(translate.x, translate.y);
         }
         if (setAll || scaleChanged) {
