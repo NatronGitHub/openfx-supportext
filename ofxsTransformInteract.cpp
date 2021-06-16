@@ -1402,22 +1402,22 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if (setAll || editBlock) {
             _effect->beginEditBlock("Set Transform");
         }
-        if (setAll || centerChanged) {
+        if ( _center && (setAll || centerChanged) ) {
             _center->setValue(center.x, center.y);
         }
-        if ( (setAll && _translate) || translateChanged) {
+        if ( _translate && (setAll || translateChanged) ) {
             _translate->setValue(translate.x, translate.y);
         }
-        if (setAll || scaleChanged) {
+        if ( _scale && (setAll || scaleChanged) ) {
             _scale->setValue(scale.x, scale.y);
         }
-        if (setAll || rotateChanged) {
+        if ( _rotate && (setAll || rotateChanged) ) {
             _rotate->setValue(rotate);
         }
-        if (setAll || skewXChanged) {
+        if ( _skewX && (setAll || skewXChanged) ) {
             _skewX->setValue(skewX);
         }
-        if (setAll || skewYChanged) {
+        if ( _skewY && (setAll || skewYChanged) ) {
             _skewY->setValue(skewY);
         }
         if (editBlock) {
