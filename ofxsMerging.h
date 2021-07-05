@@ -172,7 +172,38 @@ isIdentityForBOnly(MergingFunctionEnum operation)
 
         return true;
 
-    default:
+    case eMergeAverage: // "(A + B) / 2";
+    case eMergeColor: // "SetLum(A, Lum(B))";
+    case eMergeColorBurn: // "darken B towards A";
+    case eMergeColorDodge: // "brighten B towards A";
+    case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+    case eMergeCopy: // "A (a.k.a. src)";
+    case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
+    case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+    case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+    case eMergeFreeze: // "1-sqrt(1-A)/B";
+    case eMergeFrom: // "B-A (a.k.a. subtract)";
+    case eMergeGeometric: // "2AB/(A+B)";
+    case eMergeGrainExtract: // "B - A + 0.5";
+    case eMergeGrainMerge: // "B + A - 0.5";
+    case eMergeHardLight: // "multiply(2*A, B) if A < 0.5, screen(2*A - 1, B) if A > 0.5";
+    case eMergeHue: // "SetLum(SetSat(A, Sat(B)), Lum(B))";
+    case eMergeHypot: // "sqrt(A*A+B*B)";
+    case eMergeIn: // "Ab (a.k.a. src-in)";
+    //case eMergeInterpolated: // "(like average but better and slower)";
+    case eMergeLuminosity: // "SetLum(B, Lum(A))";
+    case eMergeMask: // "Ba (a.k.a dst-in)";
+    case eMergeMax: // "max(A, B) (a.k.a. lighten only)";
+    case eMergeMin: // "min(A, B) (a.k.a. darken only)";
+    case eMergeMinus: // "A-B";
+    case eMergeMultiply: // "AB, A if A < 0 and B < 0";
+    case eMergeOut: // "A(1-b) (a.k.a. src-out)";
+    case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
+    case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+    case eMergeReflect: // "A*A / (1 - B)";
+    case eMergeSaturation: // "SetLum(SetSat(B, Sat(A)), Lum(B))";
+    case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
+    //default: // do not enable the default case, so that we can catch warnings when adding a new operator
 
         return false;
     } // switch
@@ -183,14 +214,49 @@ inline bool
 isSeparable(MergingFunctionEnum operation)
 {
     switch (operation) {
-    case eMergeHue:
-    case eMergeSaturation:
-    case eMergeColor:
-    case eMergeLuminosity:
+    case eMergeHue: // "SetLum(SetSat(A, Sat(B)), Lum(B))";
+    case eMergeSaturation: // "SetLum(SetSat(B, Sat(A)), Lum(B))";
+    case eMergeColor: // "SetLum(A, Lum(B))";
+    case eMergeLuminosity: // "SetLum(B, Lum(A))";
 
         return false;
 
-    default:
+    case eMergeATop: //"Ab + B(1 - a) (a.k.a. src-atop)";
+    case eMergeAverage: // "(A + B) / 2";
+    case eMergeColorBurn: // "darken B towards A";
+    case eMergeColorDodge: // "brighten B towards A";
+    case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+    case eMergeCopy: // "A (a.k.a. src)";
+    case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
+    case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+    case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+    case eMergeExclusion: //"A+B-2AB";
+    case eMergeFreeze: // "1-sqrt(1-A)/B";
+    case eMergeFrom: // "B-A (a.k.a. subtract)";
+    case eMergeGeometric: // "2AB/(A+B)";
+    case eMergeGrainExtract: // "B - A + 0.5";
+    case eMergeGrainMerge: // "B + A - 0.5";
+    case eMergeHardLight: // "multiply(2*A, B) if A < 0.5, screen(2*A - 1, B) if A > 0.5";
+    case eMergeHypot: // "sqrt(A*A+B*B)";
+    case eMergeIn: // "Ab (a.k.a. src-in)";
+    case eMergeMask: // "Ba (a.k.a dst-in)";
+    case eMergeMatte: //"Aa + B(1-a) (unpremultiplied over)";
+    case eMergeMax: // "max(A, B) (a.k.a. lighten only)";
+    case eMergeMin: // "min(A, B) (a.k.a. darken only)";
+    case eMergeMinus: // "A-B";
+    case eMergeMultiply: // "AB, A if A < 0 and B < 0";
+    case eMergeOut: // "A(1-b) (a.k.a. src-out)";
+    case eMergeOver: //"A+B(1-a) (a.k.a. src-over)";
+    case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
+    case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+    case eMergePlus: //"A+B (a.k.a. add)";
+    case eMergeReflect: // "A*A / (1 - B)";
+    case eMergeScreen: //"A+B-AB if A or B <= 1, otherwise max(A, B)";
+    case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
+    case eMergeStencil: //"B(1-a) (a.k.a. dst-out)";
+    case eMergeUnder: //"A(1-b)+B (a.k.a. dst-over)";
+    case eMergeXOR: //"A(1-b)+B(1-a)";
+    //default: // do not enable the default case, so that we can catch warnings when adding a new operator
 
         return true;
     }
@@ -1484,23 +1550,58 @@ mergePixel(bool doAlphaMasking,
         pixman_float_t da = b / (pixman_float_t)maxValue;
 
         switch (f) {
-        case eMergeHue:
+        case eMergeHue: // "SetLum(SetSat(A, Sat(B)), Lum(B))";
             blend_hsl_hue(&res, &dest, da, &src, sa);
             break;
 
-        case eMergeSaturation:
+        case eMergeSaturation: // "SetLum(SetSat(B, Sat(A)), Lum(B))";
             blend_hsl_saturation(&res, &dest, da, &src, sa);
             break;
 
-        case eMergeColor:
+        case eMergeColor: // "SetLum(A, Lum(B))";
             blend_hsl_color(&res, &dest, da, &src, sa);
             break;
 
-        case eMergeLuminosity:
+        case eMergeLuminosity: // "SetLum(B, Lum(A))";
             blend_hsl_luminosity(&res, &dest, da, &src, sa);
             break;
 
-        default:
+        case eMergeATop: //"Ab + B(1 - a) (a.k.a. src-atop)";
+        case eMergeAverage: // "(A + B) / 2";
+        case eMergeColorBurn: // "darken B towards A";
+        case eMergeColorDodge: // "brighten B towards A";
+        case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+        case eMergeCopy: // "A (a.k.a. src)";
+        case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
+        case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+        case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+        case eMergeExclusion: //"A+B-2AB";
+        case eMergeFreeze: // "1-sqrt(1-A)/B";
+        case eMergeFrom: // "B-A (a.k.a. subtract)";
+        case eMergeGeometric: // "2AB/(A+B)";
+        case eMergeGrainExtract: // "B - A + 0.5";
+        case eMergeGrainMerge: // "B + A - 0.5";
+        case eMergeHardLight: // "multiply(2*A, B) if A < 0.5, screen(2*A - 1, B) if A > 0.5";
+        case eMergeHypot: // "sqrt(A*A+B*B)";
+        case eMergeIn: // "Ab (a.k.a. src-in)";
+        case eMergeMask: // "Ba (a.k.a dst-in)";
+        case eMergeMatte: //"Aa + B(1-a) (unpremultiplied over)";
+        case eMergeMax: // "max(A, B) (a.k.a. lighten only)";
+        case eMergeMin: // "min(A, B) (a.k.a. darken only)";
+        case eMergeMinus: // "A-B";
+        case eMergeMultiply: // "AB, A if A < 0 and B < 0";
+        case eMergeOut: // "A(1-b) (a.k.a. src-out)";
+        case eMergeOver: //"A+B(1-a) (a.k.a. src-over)";
+        case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
+        case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+        case eMergePlus: //"A+B (a.k.a. add)";
+        case eMergeReflect: // "A*A / (1 - B)";
+        case eMergeScreen: //"A+B-AB if A or B <= 1, otherwise max(A, B)";
+        case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
+        case eMergeStencil: //"B(1-a) (a.k.a. dst-out)";
+        case eMergeUnder: //"A(1-b)+B (a.k.a. dst-over)";
+        case eMergeXOR: //"A(1-b)+B(1-a)";
+        //default: // do not enable the default case, so that we can catch warnings when adding a new operator
             res.r = res.g = res.b = 0;
             assert(false);
             break;
