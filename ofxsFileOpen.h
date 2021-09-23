@@ -35,6 +35,8 @@ std::wstring utf8_to_utf16 (const std::string& utf8str);
 std::string utf16_to_utf8 (const std::wstring& str);
 #endif
 
+bool exists_utf8(const char* path_utf8);
+int remove_utf8(const char* path_utf8);
 std::FILE* fopen_utf8(const char* path, const char* mode);
 
 } // namespace OFX

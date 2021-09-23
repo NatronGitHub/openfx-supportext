@@ -30,6 +30,8 @@
 #include <sys/stat.h>
 #endif
 
+#include <fstream>
+
 using std::string;
 using std::wstring;
 
@@ -59,6 +61,37 @@ utf16_to_utf8 (const wstring& str)
 }
 
 #endif
+
+bool
+exists_utf8(const char* path_utf8)
+{
+#ifdef _WIN32
+    // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
+    wstring wpath = utf8_to_utf16 (path_utf8);
+
+    return ::_waccess ( wpath.c_str(), 0 ) != -1;
+#else
+
+    // on Unix platforms passing in UTF-8 works
+    return !!std::ifstream(path_utf8);
+#endif
+}
+
+// returns ​0​ upon success or non-zero value on error
+int
+remove_utf8(const char* path_utf8)
+{
+#ifdef _WIN32
+    // on Windows fopen does not accept UTF-8 paths, so we convert to wide char
+    wstring wpath = utf8_to_utf16 (path_utf8);
+
+    return ::_wremove ( wpath.c_str() );
+#else
+
+    // on Unix platforms passing in UTF-8 works
+    return std::remove (path_utf8);
+#endif
+}
 
 std::FILE*
 fopen_utf8(const char* path_utf8,
