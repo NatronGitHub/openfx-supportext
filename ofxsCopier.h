@@ -434,7 +434,7 @@ public:
         if (_dstBounds.y2 < procWindow.y2) {
             procWindow.y2 = _dstBounds.y2;
         }
-        float unpPix[4];
+        float unpPix[4] = {0.f, 0.f, 0.f, 0.f};
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
@@ -480,10 +480,17 @@ public:
                 }
 
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
-                ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
-                for (int c = 0; c < dstNComponents; ++c) {
-                    float v = unpPix[c] * dstMaxValue;
-                    dstPix[c] = ofxsClampIfInt<DSTPIX, dstMaxValue>(v, 0, dstMaxValue);
+                if (!srcPix) {
+                    // no source, be black and transparent
+                    for (int c = 0; c < dstNComponents; ++c) {
+                        dstPix[c] = DSTPIX();
+                    }
+                } else {
+                    ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
+                    for (int c = 0; c < dstNComponents; ++c) {
+                        float v = unpPix[c] * dstMaxValue;
+                        dstPix[c] = ofxsClampIfInt<DSTPIX, dstMaxValue>(v, 0, dstMaxValue);
+                    }
                 }
                 // increment the dst pixel
                 dstPix += dstNComponents;
@@ -574,16 +581,13 @@ public:
                         dstPix[c] = DSTPIX();
                     }
                 } else {
-                    float unpPix[4];
+                    float unpPix[4] = {0.f, 0.f, 0.f, 0.f};
                     if (srcNComponents == 1) {
-                        unpPix[0] = 0.f;
-                        unpPix[1] = 0.f;
-                        unpPix[2] = 0.f;
                         unpPix[3] = srcPix[0] * (1.f / srcMaxValue);
                     } else {
                         unpPix[0] = srcPix[0] * (1.f / srcMaxValue);
                         unpPix[1] = srcPix[1] * (1.f / srcMaxValue);
-                        unpPix[2] = srcPix[2] * (1.f / srcMaxValue);
+                        unpPix[2] = (srcNComponents > 2) ? (srcPix[2] * (1.f / srcMaxValue)) : 0.f;
                         unpPix[3] = (srcNComponents == 4) ? (srcPix[3] * (1.f / srcMaxValue)) : 1.0f;
                     }
                     float pPix[dstNComponents];
@@ -635,11 +639,8 @@ public:
         if (_dstBounds.y2 < procWindow.y2) {
             procWindow.y2 = _dstBounds.y2;
         }
-        float unpPix[4];
+        float unpPix[4] = {0.f, 0.f, 0.f, 0.f};
 
-        if (srcNComponents == 3) {
-            unpPix[3] = 1.f;
-        }
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
                 break;
@@ -685,11 +686,23 @@ public:
                 // origPix is at dstx,dsty
                 const DSTPIX *origPix = (const DSTPIX *)  (_origImg ? _origImg->getPixelAddress(dstx, dsty) : 0);
                 const SRCPIX *srcPix = (const SRCPIX *) getSrcPixelAddress(srcx, srcy);
-                for (int c = 0; c < srcNComponents; ++c) {
-                    unpPix[c] = (srcPix ? (srcPix[c] * (1.f / srcMaxValue)) : 0.f);
+                if (!srcPix) {
+                    // no source, be black and transparent
+                    for (int c = 0; c < dstNComponents; ++c) {
+                        dstPix[c] = DSTPIX();
+                    }
+                } else {
+                    if (srcNComponents == 1) {
+                        unpPix[3] = srcPix[0] * (1.f / srcMaxValue);
+                    } else {
+                        unpPix[0] = srcPix[0] * (1.f / srcMaxValue);
+                        unpPix[1] = srcPix[1] * (1.f / srcMaxValue);
+                        unpPix[2] = (srcNComponents > 2) ? (srcPix[2] * (1.f / srcMaxValue)) : 0.f;
+                        unpPix[3] = (srcNComponents == 4) ? (srcPix[3] * (1.f / srcMaxValue)) : 1.0f;
+                    }
+                    // dstx,dsty are the mask image coordinates (no boundary conditions)
+                    ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);
                 }
-                // dstx,dsty are the mask image coordinates (no boundary conditions)
-                ofxsPremultMaskMixPix<DSTPIX, dstNComponents, dstMaxValue, true>(unpPix, _premult, _premultChannel, dstx, dsty, origPix, _doMasking, _maskImg, (float)_mix, _maskInvert, dstPix);
                 // increment the dst pixel
                 dstPix += dstNComponents;
             }
