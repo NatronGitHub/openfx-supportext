@@ -90,7 +90,6 @@ RampInteractHelper::draw(const DrawArgs &args)
 
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     _interact->getSuggestedColour(color);
-    const OfxPointD &pscale = args.pixelScale;
     GLdouble projection[16];
     glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
