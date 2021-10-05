@@ -35,6 +35,11 @@ namespace OFX {
 
 inline void hiDPIDescribeParams(OFX::ImageEffectDescriptor &desc, GroupParamDescriptor* group, OFX::PageParamDescriptor* page)
 {
+    if ( desc.getParamDescriptor(kParamHiDPI) ) {
+        // hiDPIDescribeParams() may be called several times (eg SeNoise which has both Transform andd Ramp interacts)
+        return;
+    }
+
     BooleanParamDescriptor* param = desc.defineBooleanParam(kParamHiDPI);
     param->setLabel(kParamHiDPILabel);
     param->setHint(kParamHiDPIHint);
