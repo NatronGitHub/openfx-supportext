@@ -1136,7 +1136,7 @@ TrackerRegionInteract::penUp(const PenArgs &args)
 
     const OfxPointD &center = _centerDragPos;
     const OfxPointD &offset = _offsetDragPos;
-    _effect->beginEditBlock("setTrackerRegion");
+    ImageEffect::EditBlock eb(*_effect, "setTrackerRegion");
     {
         OfxPointD btmLeft;
         btmLeft.x = _innerBtmLeftDragPos.x - center.x - offset.x;
@@ -1167,7 +1167,6 @@ TrackerRegionInteract::penUp(const PenArgs &args)
     } else if (_ms == eMouseStateDraggingOffset) {
         _offset->setValueAtTime(args.time, _offsetDragPos.x, _offsetDragPos.y);
     }
-    _effect->endEditBlock();
 
     _ms = eMouseStateIdle;
 

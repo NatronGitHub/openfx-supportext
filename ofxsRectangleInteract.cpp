@@ -697,13 +697,7 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         setBtmLeft = true;
         break;
     }
-    bool editBlock =  setBtmLeft + setSize > 1;
-    if (editBlock) {
-        _effect->beginEditBlock("setRectangle");
-    }
+    ImageEffect::EditBlock eb(*_effect, "setRectangle", setBtmLeft + setSize > 1);
     _btmLeft->setValue(btmLeft.x, btmLeft.y);
     _size->setValue(size.x, size.y);
-    if (editBlock) {
-        _effect->endEditBlock();
-    }
 } // penDown

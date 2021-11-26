@@ -209,9 +209,17 @@ struct Matrix3x3
         m[6] = g; m[7] = h; m[8] = i;
     }
 
-    Matrix3x3(const Matrix3x3 & mat)
+    Matrix3x3(const Matrix3x3 & other)
     {
-        std::copy(mat.m, mat.m + 3*3, m);
+        std::copy(other.m, other.m + 3 * 3, m);
+    }
+
+    Matrix3x3& operator=(const Matrix3x3& other)
+    {
+        if (this != &other) { // not a self-assignment
+            std::copy(other.m, other.m + 3 * 3, m);
+        }
+        return *this;
     }
 
     /// Contruct from columns
@@ -573,9 +581,17 @@ struct Matrix4x4
         std::copy(d, d + 16, m);
     }
 
-    Matrix4x4(const Matrix4x4 & o)
+    Matrix4x4(const Matrix4x4 & other)
     {
-        std::copy(o.m, o.m + 16, m);
+        std::copy(other.m, other.m + 16, m);
+    }
+
+    Matrix4x4& operator=(const Matrix4x4& other)
+    {
+        if (this != &other) { // not a self-assignment
+            std::copy(other.m, other.m + 16, m);
+        }
+        return *this;
     }
 
     double & operator()(int row,
