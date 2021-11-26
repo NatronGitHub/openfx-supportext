@@ -1315,7 +1315,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         newy = fround(newy, pscale.y);
         center.x = newx;
         center.y = newy;
-        //_effect->beginEditBlock("setCenter");
+        //ImageEffect::EditBlock eb(*_effect, "setCenter");
         //_center->setValue(center.x, center.y);
         centerChanged = true;
         if (_translate) {
@@ -1343,7 +1343,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
                 translateChanged = true;
             }
         }
-        //_effect->endEditBlock();
     } else if (_mouseState == eDraggingRotationBar) {
         OfxPointD diffToCenter;
         ///the current mouse position (untransformed) is doing has a certain angle relative to the X axis
@@ -1399,9 +1398,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
         // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
         const bool setAll = true;
-        if (setAll || editBlock) {
-            _effect->beginEditBlock("Set Transform");
-        }
+        ImageEffect::EditBlock(*_effect, "Set Transform", setAll || editBlock);
         if ( _center && (setAll || centerChanged) ) {
             _center->setValue(center.x, center.y);
         }
@@ -1419,9 +1416,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         }
         if ( _skewY && (setAll || skewYChanged) ) {
             _skewY->setValue(skewY);
-        }
-        if (editBlock) {
-            _effect->endEditBlock();
         }
     } else if (didSomething || valuesChanged) {
         _interact->requestRedraw();
@@ -1601,7 +1595,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
 
     if ( !_interactiveDrag && (_mouseState != eReleased) ) {
         // no need to redraw overlay since it is slave to the paramaters
-        _effect->beginEditBlock("Set Transform");
+        ImageEffect::EditBlock eb(*_effect, "Set Transform");
         if (_center) {
             _center->setValue(_centerDrag.x, _centerDrag.y);
         }
@@ -1620,7 +1614,6 @@ TransformInteractHelper::penUp(const PenArgs &args)
         if (_skewY) {
             _skewY->setValue(_skewYDrag);
         }
-        _effect->endEditBlock();
     } else if (_mouseState != eReleased) {
         _interact->requestRedraw();
     }
