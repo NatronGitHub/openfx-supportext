@@ -232,11 +232,6 @@ struct Matrix3x3
         m[6] = m0.z; m[7] = m1.z; m[8] = m2.z;
     }
 
-    Matrix3x3 & operator=(const Matrix3x3 & mat)
-    {
-        std::copy(mat.m, mat.m + 3*3, m); return *this;
-    }
-
     bool isIdentity() const
     {
         return m[0] == 1 && m[1] == 0 && m[2] == 0 &&
