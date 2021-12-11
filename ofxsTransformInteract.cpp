@@ -1563,6 +1563,7 @@ TransformInteractHelper::penDown(const PenArgs &args)
         _mouseState = eDraggingSkewYBar;
         didSomething = true;
     } else {
+        didSomething = (_mouseState != eReleased);
         _mouseState = eReleased;
     }
 
@@ -1593,8 +1594,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
     }
     bool ret = _mouseState != eReleased;
 
-    if ( !_interactiveDrag && (_mouseState != eReleased) ) {
-        // no need to redraw overlay since it is slave to the paramaters
+    if ( !_interactiveDrag && ret ) {
         ImageEffect::EditBlock eb(*_effect, "Set Transform");
         if (_center) {
             _center->setValue(_centerDrag.x, _centerDrag.y);
@@ -1614,7 +1614,10 @@ TransformInteractHelper::penUp(const PenArgs &args)
         if (_skewY) {
             _skewY->setValue(_skewYDrag);
         }
-    } else if (_mouseState != eReleased) {
+    }
+    
+    if (ret) {
+        // Request redraw, because items may be highlighted in previous state.
         _interact->requestRedraw();
     }
 
