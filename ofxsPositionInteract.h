@@ -294,7 +294,7 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 
     // pen position is in cannonical coords
     const OfxPointD &penPos = args.penPosition;
-    bool didSomething = false;
+    bool redraw = false;
     bool valuesChanged = false;
 
     switch (_state) {
@@ -309,11 +309,9 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
             newState = eMouseStateInactive;
         }
 
-        if (_state != newState) {
-            _state = newState;
-            requestRedraw();
-        }
-        didSomething = (_state == eMouseStatePoised);
+        redraw = _state != newState;
+        _state = newState;
+
         break;
     }
 
@@ -328,11 +326,11 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
         _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
     }
 
-    if (valuesChanged) {
+    if (redraw || valuesChanged) {
         requestRedraw();
     }
 
-    return didSomething || valuesChanged;
+    return valuesChanged;
 } // >::penMotion
 
 template <typename ParamName>

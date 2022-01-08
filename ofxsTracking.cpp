@@ -586,7 +586,6 @@ bool
 TrackerRegionInteract::penMotion(const PenArgs &args)
 {
     const OfxPointD& pscale = args.pixelScale;
-    bool didSomething = false;
     bool valuesChanged = false;
     OfxPointD delta;
 
@@ -627,65 +626,49 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
     }
 
 
-    bool lastStateWasHovered = _ds != eDrawStateInactive;
-
+    DrawStateEnum newState = _ds;
     if (_ms == eMouseStateIdle) {
         // test center first
         if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringCenter;
-            didSomething = true;
+            newState = eDrawStateHoveringCenter;
         } else if ( isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerBtmLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerBtmLeft;
         } else if ( isNearby(args.penPosition, xi2, yi1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerBtmRight;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerBtmRight;
         } else if ( isNearby(args.penPosition, xi1, yi2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerTopLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerTopLeft;
         } else if ( isNearby(args.penPosition, xi2, yi2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerTopRight;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerTopRight;
         } else if ( isNearby(args.penPosition, xc + xoff,  yi1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerBtmMid;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerBtmMid;
         } else if ( isNearby(args.penPosition, xi1, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerMidLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerMidLeft;
         } else if ( isNearby(args.penPosition, xc + xoff,  yi2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerTopMid;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerTopMid;
         } else if ( isNearby(args.penPosition, xi2, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringInnerMidRight;
-            didSomething = true;
+            newState = eDrawStateHoveringInnerMidRight;
         } else if ( isNearby(args.penPosition, xo1, yo1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterBtmLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterBtmLeft;
         } else if ( isNearby(args.penPosition, xo2, yo1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterBtmRight;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterBtmRight;
         } else if ( isNearby(args.penPosition, xo1, yo2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterTopLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterTopLeft;
         } else if ( isNearby(args.penPosition, xo2, yo2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterTopRight;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterTopRight;
         } else if ( isNearby(args.penPosition, xc + xoff,  yo1, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterBtmMid;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterBtmMid;
         } else if ( isNearby(args.penPosition, xo1, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterMidLeft;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterMidLeft;
         } else if ( isNearby(args.penPosition, xc + xoff,  yo2, POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterTopMid;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterTopMid;
         } else if ( isNearby(args.penPosition, xo2, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-            _ds = eDrawStateHoveringOuterMidRight;
-            didSomething = true;
+            newState = eDrawStateHoveringOuterMidRight;
         } else {
-            _ds = eDrawStateInactive;
+            newState = eDrawStateInactive;
         }
     }
+    bool redraw = _ds != newState;
+    _ds = newState;
 
     double multiplier = _controlDown ? 0 : 1;
     if (_ms == eMouseStateDraggingInnerBtmLeft) {
@@ -958,13 +941,6 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         valuesChanged = true;
     }
 
-
-    ///repaint if we toggled off a hovered handle
-    if (lastStateWasHovered) {
-        didSomething = true;
-    }
-
-
     if (valuesChanged) {
         ///Keep the points in absolute coordinates
         _innerBtmLeftDragPos.x  = xi1;
@@ -981,13 +957,13 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         _offsetDragPos.y        = yoff;
     }
 
-    if (didSomething || valuesChanged) {
+    if (redraw || valuesChanged) {
         requestRedraw();
     }
 
     _lastMousePos = args.penPosition;
 
-    return didSomething || valuesChanged;
+    return valuesChanged;
 } // penMotion
 
 bool
@@ -1014,68 +990,53 @@ TrackerRegionInteract::penDown(const PenArgs &args)
     xo2 += (xc + xoff);
     yo2 += (yc + yoff);
 
+    MouseStateEnum newState = _ms;
     // test center first
     if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
         if (_controlDown > 0) {
-            _ms = eMouseStateDraggingOffset;
+            newState = eMouseStateDraggingOffset;
         } else {
-            _ms = eMouseStateDraggingCenter;
+            newState = eMouseStateDraggingCenter;
         }
-        didSomething = true;
     } else if ( (xoff != 0) && (yoff != 0) && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOffset;
-        didSomething = true;
+        newState = eMouseStateDraggingOffset;
     } else if ( isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerBtmLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerBtmLeft;
     } else if ( isNearby(args.penPosition, xi2, yi1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerBtmRight;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerBtmRight;
     } else if ( isNearby(args.penPosition, xi1, yi2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerTopLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerTopLeft;
     } else if ( isNearby(args.penPosition, xi2, yi2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerTopRight;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerTopRight;
     } else if ( isNearby(args.penPosition, xc + xoff,  yi1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerBtmMid;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerBtmMid;
     } else if ( isNearby(args.penPosition, xi1, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerMidLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerMidLeft;
     } else if ( isNearby(args.penPosition, xc + xoff,  yi2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerTopMid;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerTopMid;
     } else if ( isNearby(args.penPosition, xi2, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingInnerMidRight;
-        didSomething = true;
+        newState = eMouseStateDraggingInnerMidRight;
     } else if ( isNearby(args.penPosition, xo1, yo1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterBtmLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterBtmLeft;
     } else if ( isNearby(args.penPosition, xo2, yo1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterBtmRight;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterBtmRight;
     } else if ( isNearby(args.penPosition, xo1, yo2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterTopLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterTopLeft;
     } else if ( isNearby(args.penPosition, xo2, yo2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterTopRight;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterTopRight;
     } else if ( isNearby(args.penPosition, xc + xoff,  yo1, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterBtmMid;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterBtmMid;
     } else if ( isNearby(args.penPosition, xo1, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterMidLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterMidLeft;
     } else if ( isNearby(args.penPosition, xc + xoff,  yo2, POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterTopMid;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterTopMid;
     } else if ( isNearby(args.penPosition, xo2, yc + yoff,  POINT_TOLERANCE, pscale) ) {
-        _ms = eMouseStateDraggingOuterMidRight;
-        didSomething = true;
+        newState = eMouseStateDraggingOuterMidRight;
     } else {
-        _ms = eMouseStateIdle;
+        newState = eMouseStateIdle;
     }
+    didSomething = _ms != newState;
+    _ms = newState;
 
 
     ///Keep the points in absolute coordinates

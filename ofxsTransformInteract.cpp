@@ -1102,7 +1102,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         inverted = _invertedDrag;
     }
 
-    bool didSomething = false;
+    bool redraw = false;
     bool centerChanged = false;
     bool translateChanged = false;
     bool scaleChanged = false;
@@ -1180,36 +1180,30 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         // we are not axis-aligned
         double meanPixelScale = (pscale.x + pscale.y) / 2.;
         double hoverTolerance = (POINT_SIZE / 2.) * meanPixelScale;
+        DrawStateEnum newState = _drawState;
         if ( squareContains(transformedPos, centerPoint) ) {
-            _drawState = eCenterPointHovered;
-            didSomething = true;
+            newState = eCenterPointHovered;
         } else if ( squareContains(transformedPos, leftPoint) ) {
-            _drawState = eLeftPointHovered;
-            didSomething = true;
+            newState = eLeftPointHovered;
         } else if ( squareContains(transformedPos, rightPoint) ) {
-            _drawState = eRightPointHovered;
-            didSomething = true;
+            newState = eRightPointHovered;
         } else if ( squareContains(transformedPos, topPoint) ) {
-            _drawState = eTopPointHovered;
-            didSomething = true;
+            newState = eTopPointHovered;
         } else if ( squareContains(transformedPos, bottomPoint) ) {
-            _drawState = eBottomPointHovered;
-            didSomething = true;
+            newState = eBottomPointHovered;
         } else if ( isOnEllipseBorder(transformedPos, targetRadius, targetCenter) ) {
-            _drawState = eCircleHovered;
-            didSomething = true;
+            newState = eCircleHovered;
         } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, hoverTolerance) ) {
-            _drawState = eRotationBarHovered;
-            didSomething = true;
+            newState = eRotationBarHovered;
         } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, hoverTolerance) ) {
-            _drawState = eSkewXBarHoverered;
-            didSomething = true;
+            newState = eSkewXBarHoverered;
         } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, hoverTolerance) ) {
-            _drawState = eSkewYBarHoverered;
-            didSomething = true;
+            newState = eSkewYBarHoverered;
         } else {
-            _drawState = eInActive;
+            newState = eInActive;
         }
+        redraw = _drawState != newState;
+        _drawState = newState;
     } else if (_mouseState == eDraggingCircle) {
         double minX, minY, maxX, maxY;
         _scale->getRange(minX, minY, maxX, maxY);
@@ -1417,13 +1411,13 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if ( _skewY && (setAll || skewYChanged) ) {
             _skewY->setValue(skewY);
         }
-    } else if (didSomething || valuesChanged) {
+    } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
     }
 
     _lastMousePos = args.penPosition;
 
-    return didSomething || valuesChanged;
+    return valuesChanged;
 } // TransformInteractHelper::penMotion
 
 bool
@@ -1532,40 +1526,33 @@ TransformInteractHelper::penDown(const PenArgs &args)
     double pressToleranceX = 5 * pscale.x;
     double pressToleranceY = 5 * pscale.y;
     bool didSomething = false;
+    MouseStateEnum newState = _mouseState;
     if ( squareContains(transformedPos, centerPoint, pressToleranceX, pressToleranceY) ) {
-        _mouseState = ( (!_translate || _modifierStateCtrl) ? eDraggingCenter : eDraggingTranslation );
+        newState = ( (!_translate || _modifierStateCtrl) ? eDraggingCenter : eDraggingTranslation );
         if (_modifierStateShift > 0) {
             _orientation = eOrientationNotSet;
         }
-        didSomething = true;
     } else if ( squareContains(transformedPos, leftPoint, pressToleranceX, pressToleranceY) ) {
-        _mouseState = eDraggingLeftPoint;
-        didSomething = true;
+        newState = eDraggingLeftPoint;
     } else if ( squareContains(transformedPos, rightPoint, pressToleranceX, pressToleranceY) ) {
-        _mouseState = eDraggingRightPoint;
-        didSomething = true;
+        newState = eDraggingRightPoint;
     } else if ( squareContains(transformedPos, topPoint, pressToleranceX, pressToleranceY) ) {
-        _mouseState = eDraggingTopPoint;
-        didSomething = true;
+        newState = eDraggingTopPoint;
     } else if ( squareContains(transformedPos, bottomPoint, pressToleranceX, pressToleranceY) ) {
-        _mouseState = eDraggingBottomPoint;
-        didSomething = true;
+        newState = eDraggingBottomPoint;
     } else if ( isOnEllipseBorder(transformedPos, targetRadius, targetCenter) ) {
-        _mouseState = eDraggingCircle;
-        didSomething = true;
+        newState = eDraggingCircle;
     } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, pressToleranceY) ) {
-        _mouseState = eDraggingRotationBar;
-        didSomething = true;
+        newState = eDraggingRotationBar;
     } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, pressToleranceY) ) {
-        _mouseState = eDraggingSkewXBar;
-        didSomething = true;
+        newState = eDraggingSkewXBar;
     } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, pressToleranceX) ) {
-        _mouseState = eDraggingSkewYBar;
-        didSomething = true;
+        newState = eDraggingSkewYBar;
     } else {
-        didSomething = (_mouseState != eReleased);
-        _mouseState = eReleased;
+        newState = eReleased;
     }
+    didSomething = _mouseState != newState;
+    _mouseState = newState;
 
     _lastMousePos = args.penPosition;
 

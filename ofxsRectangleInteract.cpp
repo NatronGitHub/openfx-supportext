@@ -228,47 +228,37 @@ RectangleInteract::penMotion(const PenArgs &args)
     double y2 = y1 + h;
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
-    bool didSomething = false;
     bool valuesChanged = false;
     OfxPointD delta;
     delta.x = args.penPosition.x - _lastMousePos.x;
     delta.y = args.penPosition.y - _lastMousePos.y;
 
-    bool lastStateWasHovered = _drawState != eDrawStateInactive;
-
-
     aboutToCheckInteractivity(args.time);
+    DrawStateEnum newState = _drawState;
     // test center first
     if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
-        _drawState = eDrawStateHoveringCenter;
-        didSomething = true;
+        newState = eDrawStateHoveringCenter;
     } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
-        _drawState = eDrawStateHoveringBtmLeft;
-        didSomething = true;
+        newState = eDrawStateHoveringBtmLeft;
     } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
-        _drawState = eDrawStateHoveringBtmRight;
-        didSomething = true;
+        newState = eDrawStateHoveringBtmRight;
     } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
-        _drawState = eDrawStateHoveringTopLeft;
-        didSomething = true;
+        newState = eDrawStateHoveringTopLeft;
     } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
-        _drawState = eDrawStateHoveringTopRight;
-        didSomething = true;
+        newState = eDrawStateHoveringTopRight;
     } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
-        _drawState = eDrawStateHoveringBtmMid;
-        didSomething = true;
+        newState = eDrawStateHoveringBtmMid;
     } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
-        _drawState = eDrawStateHoveringTopMid;
-        didSomething = true;
+        newState = eDrawStateHoveringTopMid;
     } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
-        _drawState = eDrawStateHoveringMidLeft;
-        didSomething = true;
+        newState = eDrawStateHoveringMidLeft;
     } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
-        _drawState = eDrawStateHoveringMidRight;
-        didSomething = true;
+        newState = eDrawStateHoveringMidRight;
     } else {
-        _drawState = eDrawStateInactive;
+        newState = eDrawStateInactive;
     }
+    bool redraw = _drawState != newState;
+    _drawState = newState;
 
     const bool keepAR = _modifierStateShift > 0;
     const bool centered = _modifierStateCtrl > 0;
@@ -434,22 +424,17 @@ RectangleInteract::penMotion(const PenArgs &args)
         valuesChanged = true;
     }
 
-    ///repaint if we toggled off a hovered handle
-    if (lastStateWasHovered) {
-        didSomething = true;
-    }
-
     if ( (_mouseState != eMouseStateIdle) && _interactiveDrag && valuesChanged ) {
         setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
         // no need to redraw overlay since it is slave to the paramaters
-    } else if (didSomething || valuesChanged) {
+    } else if (redraw || valuesChanged) {
         requestRedraw();
     }
 
 
     _lastMousePos = args.penPosition;
 
-    return didSomething || valuesChanged;
+    return valuesChanged;
 } // penMotion
 
 bool
@@ -486,36 +471,30 @@ RectangleInteract::penDown(const PenArgs &args)
     aboutToCheckInteractivity(args.time);
 
     // test center first
+    MouseStateEnum newState = _mouseState;
     if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
-        _mouseState = eMouseStateDraggingCenter;
-        didSomething = true;
+        newState = eMouseStateDraggingCenter;
     } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
-        _mouseState = eMouseStateDraggingBtmLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingBtmLeft;
     } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
-        _mouseState = eMouseStateDraggingBtmRight;
-        didSomething = true;
+        newState = eMouseStateDraggingBtmRight;
     } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
-        _mouseState = eMouseStateDraggingTopLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingTopLeft;
     } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
-        _mouseState = eMouseStateDraggingTopRight;
-        didSomething = true;
+        newState = eMouseStateDraggingTopRight;
     } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
-        _mouseState = eMouseStateDraggingBtmMid;
-        didSomething = true;
+        newState = eMouseStateDraggingBtmMid;
     } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
-        _mouseState = eMouseStateDraggingTopMid;
-        didSomething = true;
+        newState = eMouseStateDraggingTopMid;
     } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
-        _mouseState = eMouseStateDraggingMidLeft;
-        didSomething = true;
+        newState = eMouseStateDraggingMidLeft;
     } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
-        _mouseState = eMouseStateDraggingMidRight;
-        didSomething = true;
+        newState = eMouseStateDraggingMidRight;
     } else {
-        _mouseState = eMouseStateIdle;
+        newState = eMouseStateIdle;
     }
+    didSomething = _mouseState != newState;
+    _mouseState = newState;
 
     _btmLeftDragPos.x = x1;
     _btmLeftDragPos.y = y1;
