@@ -792,22 +792,18 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
 
     if ( Coords::rectIsInfinite(srcRoI) ) {
         // RoI cannot be infinite.
-        // This is not a mathematically correct solution, but better than nothing: set to the project size
+        // This is not a mathematically correct solution, but better than nothing: set to the
+        // bounding box of the input RoD and the project size.
+        const OfxRectD srcRoD = _srcClip->getRegionOfDefinition(args.time);
+        Coords::rectIntersection(srcRoI, srcRoD, &srcRoI);
         OfxPointD size = getProjectSize();
         OfxPointD offset = getProjectOffset();
-
-        if (srcRoI.x1 <= kOfxFlagInfiniteMin) {
-            srcRoI.x1 = offset.x;
-        }
-        if (srcRoI.x2 >= kOfxFlagInfiniteMax) {
-            srcRoI.x2 = offset.x + size.x;
-        }
-        if (srcRoI.y1 <= kOfxFlagInfiniteMin) {
-            srcRoI.y1 = offset.y;
-        }
-        if (srcRoI.y2 >= kOfxFlagInfiniteMax) {
-            srcRoI.y2 = offset.y + size.y;
-        }
+        OfxRectD projectRoD;
+        projectRoD.x1 = offset.x;
+        projectRoD.y1 = offset.y;
+        projectRoD.x2 = offset.x + size.x;
+        projectRoD.y2 = offset.y + size.y;
+        Coords::rectBoundingBox(srcRoI, projectRoD, &srcRoI);
     }
 
     if ( _masked && (mix != 1.) ) {
