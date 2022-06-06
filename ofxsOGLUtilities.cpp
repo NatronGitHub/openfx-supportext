@@ -41,6 +41,9 @@ static bool g_glLoaded = false;
 
 extern "C" {
 extern int gladLoadGL(void);
+#if !defined(_WIN32) && !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
+extern int gladLoadEGL(void);
+#endif
 struct gladGLversionStruct
 {
     int major;
@@ -171,7 +174,18 @@ ofxsLoadOpenGLOnce()
     // - opengl32.dll was not found, or libGL.so was not found or OpenGL.framework was not found
     // - glGetString does not return a valid version
     // Note: It does NOT check that required extensions and functions have actually been found
+#if !defined(_WIN32) && !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
+    bool glLoaded = false;
+    const char *onWayland = getenv("WAYLAND_DISPLAY");
+    const char *disableWayland = getenv("NATRON_DISABLE_WAYLAND");
+    if (onWayland && onWayland[0] != '\0' && !disableWayland) {
+        glLoaded = gladLoadEGL();
+    } else {
+        glLoaded = gladLoadGL();
+    }
+#else
     bool glLoaded = gladLoadGL();
+#endif
 
     g_glLoaded = glLoaded;
 
