@@ -56,7 +56,7 @@ int gladLoadEGL(void) {
     PFNEGLBINDAPIPROC bindAPI = NULL;
 
     if(open_egl()) {
-        bindAPI = get_proc("eglBindAPI");
+        bindAPI = (PFNEGLBINDAPIPROC)get_proc("eglBindAPI");
         if (bindAPI != NULL && bindAPI(EGL_OPENGL_API)) {
             status = gladLoadGLLoader(&get_proc);
         }
