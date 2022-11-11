@@ -1392,7 +1392,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
         // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
         const bool setAll = true;
-        ImageEffect::EditBlock(*_effect, "Set Transform", setAll || editBlock);
+        ImageEffect::EditBlock eb(*_effect, "Set Transform", setAll || editBlock);
         if ( _center && (setAll || centerChanged) ) {
             _center->setValue(center.x, center.y);
         }
