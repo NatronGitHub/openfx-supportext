@@ -81,6 +81,28 @@
 #define kParamTransformInteractiveOld "interactive"
 
 namespace OFX {
+struct TransformParams {
+    OfxPointD center;
+    OfxPointD translate;
+    OfxPointD scale;
+    bool scaleUniform;
+    double rotate;
+    double skewX, skewY;
+    int skewOrder;
+    bool inverted;
+    TransformParams() {
+        center = {0., 0.};
+        translate = {0., 0.};
+        scale = {1., 1.};
+        scaleUniform = false;
+        rotate = 0.;
+        skewX = 0.;
+        skewY = 0.;
+        skewOrder = 0;
+        inverted = false;
+    }
+};
+
 inline void
 ofxsTransformGetScale(const OfxPointD &scaleParam,
                       bool scaleUniform,
@@ -154,15 +176,7 @@ protected:
     ImageEffect* _effect;
     Interact* _interact;
     OfxPointD _lastMousePos;
-    OfxPointD _centerDrag;
-    OfxPointD _translateDrag;
-    OfxPointD _scaleParamDrag;
-    bool _scaleUniformDrag;
-    double _rotateDrag;
-    double _skewXDrag;
-    double _skewYDrag;
-    int _skewOrderDrag;
-    bool _invertedDrag;
+    TransformParams _tpDrag;
     bool _interactiveDrag;
 
 public:
@@ -188,6 +202,8 @@ public:
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 
 private:
+    void getTransformParams(double time, TransformParams& tp);
+
     // NON-GENERIC
     OFX::Double2DParam* _translate;
     OFX::DoubleParam* _rotate;

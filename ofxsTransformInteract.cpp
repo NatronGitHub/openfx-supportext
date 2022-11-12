@@ -315,12 +315,7 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     , _effect(effect)
     , _interact(interact)
     , _lastMousePos()
-    , _scaleUniformDrag(false)
-    , _rotateDrag(0)
-    , _skewXDrag(0)
-    , _skewYDrag(0)
-    , _skewOrderDrag(0)
-    , _invertedDrag(false)
+    , _tpDrag()
     , _interactiveDrag(false)
     , _translate(NULL)
     , _rotate(NULL)
@@ -400,9 +395,39 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     if (!_translate) {
         _modifierStateCtrl = 1;
     }
-    _centerDrag.x = _centerDrag.y = 0.;
-    _translateDrag.x = _translateDrag.y = 0.;
-    _scaleParamDrag.x = _scaleParamDrag.y = 0.;
+}
+
+void
+TransformInteractHelper::getTransformParams(double time, TransformParams& tp)
+{
+    tp = TransformParams();
+    if (_center) {
+        _center->getValueAtTime(time, tp.center.x, tp.center.y);
+    }
+    if (_translate) {
+        _translate->getValueAtTime(time, tp.translate.x, tp.translate.y);
+    }
+    if (_scale) {
+        _scale->getValueAtTime(time, tp.scale.x, tp.scale.y);
+    }
+    if (_scaleUniform) {
+        _scaleUniform->getValueAtTime(time, tp.scaleUniform);
+    }
+    if (_rotate) {
+        _rotate->getValueAtTime(time, tp.rotate);
+    }
+    if (_skewX) {
+        _skewX->getValueAtTime(time, tp.skewX);
+    }
+    if (_skewY) {
+        _skewY->getValueAtTime(time, tp.skewY);
+    }
+    if (_skewOrder) {
+        _skewOrder->getValueAtTime(time, tp.skewOrder);
+    }
+    if (_invert) {
+        _invert->getValueAtTime(time, tp.inverted);
+    }
 }
 
 static void
@@ -739,60 +764,19 @@ TransformInteractHelper::draw(const DrawArgs &args)
     shadow.x = 2. / (projection[0] * viewport[2]);
     shadow.y = 2. / (projection[5] * viewport[3]);
 
-    OfxPointD center = { 0., 0. };
-    OfxPointD translate = { 0., 0. };
-    OfxPointD scaleParam = { 1., 1. };
-    bool scaleUniform = false;
-    double rotate = 0.;
-    double skewX = 0., skewY = 0.;
-    int skewOrder = 0;
-    bool inverted = false;
+    TransformParams tp;
 
     if (_mouseState == eReleased) {
-        if (_center) {
-            _center->getValueAtTime(time, center.x, center.y);
-        }
-        if (_translate) {
-            _translate->getValueAtTime(time, translate.x, translate.y);
-        }
-        if (_scale) {
-            _scale->getValueAtTime(time, scaleParam.x, scaleParam.y);
-        }
-        if (_scaleUniform) {
-            _scaleUniform->getValueAtTime(time, scaleUniform);
-        }
-        if (_rotate) {
-            _rotate->getValueAtTime(time, rotate);
-        }
-        if (_skewX) {
-            _skewX->getValueAtTime(time, skewX);
-        }
-        if (_skewY) {
-            _skewY->getValueAtTime(time, skewY);
-        }
-        if (_skewOrder) {
-            _skewOrder->getValueAtTime(time, skewOrder);
-        }
-        if (_invert) {
-            _invert->getValueAtTime(time, inverted);
-        }
+        getTransformParams(time, tp);
     } else {
-        center = _centerDrag;
-        translate = _translateDrag;
-        scaleParam = _scaleParamDrag;
-        scaleUniform = _scaleUniformDrag;
-        rotate = _rotateDrag;
-        skewX = _skewXDrag;
-        skewY = _skewYDrag;
-        skewOrder = _skewOrderDrag;
-        inverted = _invertedDrag;
+        tp = _tpDrag;
     }
 
     OfxPointD targetCenter;
-    getTargetCenter(center, translate, &targetCenter);
+    getTargetCenter(tp.center, tp.translate, &targetCenter);
 
     OfxPointD scale;
-    ofxsTransformGetScale(scaleParam, scaleUniform, &scale);
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
 
     OfxPointD targetRadius;
     getTargetRadius(scale, pscale, &targetRadius);
@@ -802,8 +786,8 @@ TransformInteractHelper::draw(const DrawArgs &args)
 
 
     GLdouble skewMatrix[16];
-    skewMatrix[0] = ( skewOrder ? 1. : (1. + skewX * skewY) ); skewMatrix[1] = skewY; skewMatrix[2] = 0.; skewMatrix[3] = 0;
-    skewMatrix[4] = skewX; skewMatrix[5] = (skewOrder ? (1. + skewX * skewY) : 1.); skewMatrix[6] = 0.; skewMatrix[7] = 0;
+    skewMatrix[0] = ( tp.skewOrder ? 1. : (1. + tp.skewX * tp.skewY) ); skewMatrix[1] = tp.skewY; skewMatrix[2] = 0.; skewMatrix[3] = 0;
+    skewMatrix[4] = tp.skewX; skewMatrix[5] = (tp.skewOrder ? (1. + tp.skewX * tp.skewY) : 1.); skewMatrix[6] = 0.; skewMatrix[7] = 0;
     skewMatrix[8] = 0.; skewMatrix[9] = 0.; skewMatrix[10] = 1.; skewMatrix[11] = 0;
     skewMatrix[12] = 0.; skewMatrix[13] = 0.; skewMatrix[14] = 0.; skewMatrix[15] = 1.;
 
@@ -886,8 +870,8 @@ TransformInteractHelper::draw(const DrawArgs &args)
         glPushMatrix();
         glTranslated(targetCenter.x, targetCenter.y, 0.);
 
-        glRotated(rotate, 0, 0., 1.);
-        drawRotationBar(color, pscale, targetRadius.x, _mouseState == eDraggingRotationBar || _drawState == eRotationBarHovered, inverted, l);
+        glRotated(tp.rotate, 0, 0., 1.);
+        drawRotationBar(color, pscale, targetRadius.x, _mouseState == eDraggingRotationBar || _drawState == eRotationBarHovered, tp.inverted, l);
         glMultMatrixd(skewMatrix);
         glTranslated(-targetCenter.x, -targetCenter.y, 0.);
 
@@ -897,9 +881,9 @@ TransformInteractHelper::draw(const DrawArgs &args)
         // the mouse position in the ellipse frame
         double flip = 0.;
         if ( (_drawState == eSkewXBarHoverered) || (_drawState == eSkewYBarHoverered) ) {
-            double rot = ofxsToRadians(rotate);
+            double rot = ofxsToRadians(tp.rotate);
             Matrix3x3 transformscale;
-            transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+            transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, tp.skewX, tp.skewY, (bool)tp.skewOrder, rot, targetCenter.x, targetCenter.y);
 
             Point3D previousPos;
             previousPos.x = _lastMousePos.x;
@@ -1053,53 +1037,17 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     }
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
-    OfxPointD center = { 0., 0. };
-    OfxPointD translate = { 0., 0. };
-    OfxPointD scaleParam = { 1., 1. };
-    bool scaleUniform = false;
-    double rotate = 0.;
-    double skewX = 0., skewY = 0.;
-    int skewOrder = 0;
-    bool inverted = false;
+    TransformParams tpCurrent;
+    bool tpCurrentSet = false;
+    TransformParams tp;
 
     if (_mouseState == eReleased) {
-        if (_center) {
-            _center->getValueAtTime(time, center.x, center.y);
-        }
-        if (_translate) {
-            _translate->getValueAtTime(time, translate.x, translate.y);
-        }
-        if (_scale) {
-            _scale->getValueAtTime(time, scaleParam.x, scaleParam.y);
-        }
-        if (_scaleUniform) {
-            _scaleUniform->getValueAtTime(time, scaleUniform);
-        }
-        if (_rotate) {
-            _rotate->getValueAtTime(time, rotate);
-        }
-        if (_skewX) {
-            _skewX->getValueAtTime(time, skewX);
-        }
-        if (_skewY) {
-            _skewY->getValueAtTime(time, skewY);
-        }
-        if (_skewOrder) {
-            _skewOrder->getValueAtTime(time, skewOrder);
-        }
-        if (_invert) {
-            _invert->getValueAtTime(time, inverted);
-        }
-    } else {
-        center = _centerDrag;
-        translate = _translateDrag;
-        scaleParam = _scaleParamDrag;
-        scaleUniform = _scaleUniformDrag;
-        rotate = _rotateDrag;
-        skewX = _skewXDrag;
-        skewY = _skewYDrag;
-        skewOrder = _skewOrderDrag;
-        inverted = _invertedDrag;
+        getTransformParams(time, tpCurrent);
+        tpCurrentSet = true;
+        tp = tpCurrent;
+    }
+    else {
+        tp = _tpDrag;
     }
 
     bool redraw = false;
@@ -1110,10 +1058,10 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     bool skewXChanged = false;
     bool skewYChanged = false;
     OfxPointD targetCenter;
-    getTargetCenter(center, translate, &targetCenter);
+    getTargetCenter(tp.center, tp.translate, &targetCenter);
 
     OfxPointD scale;
-    ofxsTransformGetScale(scaleParam, scaleUniform, &scale);
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
 
     OfxPointD targetRadius;
     getTargetRadius(scale, pscale, &targetRadius);
@@ -1130,7 +1078,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     //double dx = args.penPosition.x - _lastMousePos.x;
     //double dy = args.penPosition.y - _lastMousePos.y;
-    double rot = ofxsToRadians(rotate);
+    double rot = ofxsToRadians(tp.rotate);
     Point3D penPos, prevPenPos, rotationPos, transformedPos, previousPos, currentPos;
     penPos.x = args.penPosition.x;
     penPos.y = args.penPosition.y;
@@ -1144,12 +1092,12 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     if ( (_mouseState != eDraggingTranslation) && (_mouseState != eDraggingCenter) ) {
         ///undo skew + rotation to the current position
         rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
-        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
-        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., tp.skewX, tp.skewY, (bool)tp.skewOrder, rot, targetCenter.x, targetCenter.y);
+        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, tp.skewX, tp.skewY, (bool)tp.skewOrder, rot, targetCenter.x, targetCenter.y);
     } else {
         rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, 0., targetCenter.x, targetCenter.y);
-        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
-        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, skewX, skewY, (bool)skewOrder, 0., targetCenter.x, targetCenter.y);
+        transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., tp.skewX, tp.skewY, (bool)tp.skewOrder, 0., targetCenter.x, targetCenter.y);
+        transformscale = ofxsMatInverseTransformCanonical(0., 0., scale.x, scale.y, tp.skewX, tp.skewY, (bool)tp.skewOrder, 0., targetCenter.x, targetCenter.y);
     }
 
     rotationPos = rotation * penPos;
@@ -1229,7 +1177,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             OfxPointD newScale;
             newScale.x = scale.x * scaleRatio;
             newScale.x = (std::max)( minX, (std::min)(newScale.x, maxX) );
-            newScale.y = scaleUniform ? newScale.x : scale.y;
+            newScale.y = tp.scaleUniform ? newScale.x : scale.y;
             scale = newScale;
             //_scale->setValue(scale.x, scale.y);
             scaleChanged = true;
@@ -1243,7 +1191,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             OfxPointD newScale;
             newScale.y = scale.y * scaleRatio;
             newScale.y = (std::max)( minY, (std::min)(newScale.y, maxY) );
-            newScale.x = scaleUniform ? newScale.y : scale.x;
+            newScale.x = tp.scaleUniform ? newScale.y : scale.x;
             scale = newScale;
             //_scale->setValue(scale.x, scale.y);
             scaleChanged = true;
@@ -1258,19 +1206,19 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
         dx = _orientation == eOrientationVertical ? 0 : dx;
         dy = _orientation == eOrientationHorizontal ? 0 : dy;
-        double newx = translate.x + dx;
-        double newy = translate.y + dy;
+        double newx = tp.translate.x + dx;
+        double newy = tp.translate.y + dy;
         // round newx/y to the closest int, 1/10 int, etc
         // this make parameter editing easier
         newx = fround(newx, pscale.x);
         newy = fround(newy, pscale.y);
-        translate.x = newx;
-        translate.y = newy;
+        tp.translate.x = newx;
+        tp.translate.y = newy;
         //_translate->setValue(translate.x, translate.y);
         translateChanged = true;
     } else if (_mouseState == eDraggingCenter) {
-        OfxPointD currentCenter = center;
-        Matrix3x3 R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-skewX, -skewY, !skewOrder) * ofxsMatRotation(rot);
+        OfxPointD currentCenter = tp.center;
+        Matrix3x3 R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-tp.skewX, -tp.skewY, !tp.skewOrder) * ofxsMatRotation(rot);
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
@@ -1307,8 +1255,8 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         // this make parameter editing easier
         newx = fround(newx, pscale.x);
         newy = fround(newy, pscale.y);
-        center.x = newx;
-        center.y = newy;
+        tp.center.x = newx;
+        tp.center.y = newy;
         //ImageEffect::EditBlock eb(*_effect, "setCenter");
         //_center->setValue(center.x, center.y);
         centerChanged = true;
@@ -1330,9 +1278,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
                 dx = dRot.x;
                 dy = dRot.y;
                 OfxPointD newTranslation;
-                newTranslation.x = translate.x + dx - dxrot;
-                newTranslation.y = translate.y + dy - dyrot;
-                translate = newTranslation;
+                newTranslation.x = tp.translate.x + dx - dxrot;
+                newTranslation.y = tp.translate.y + dy - dyrot;
+                tp.translate = newTranslation;
                 //_translate->setValue(translate.x, translate.y);
                 translateChanged = true;
             }
@@ -1344,20 +1292,20 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         diffToCenter.y = rotationPos.y - targetCenter.y;
         diffToCenter.x = rotationPos.x - targetCenter.x;
         double angle = std::atan2(diffToCenter.y, diffToCenter.x);
-        double angledegrees = rotate + ofxsToDegrees(angle);
+        double angledegrees = tp.rotate + ofxsToDegrees(angle);
         double closest90 = 90. * std::floor( (angledegrees + 45.) / 90. );
         if (std::fabs(angledegrees - closest90) < 5.) {
             // snap to closest multiple of 90.
             angledegrees = closest90;
         }
-        rotate = angledegrees;
+        tp.rotate = angledegrees;
         //_rotate->setValue(rotate);
         rotateChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero
         if ( (scale.y != 0.) && (targetCenter.y != previousPos.y) ) {
             const double addSkew = (scale.x / scale.y) * (currentPos.x - previousPos.x) / (currentPos.y - targetCenter.y);
-            skewX = skewX + addSkew;
+            tp.skewX = tp.skewX + addSkew;
             //_skewX->setValue(skewX);
             skewXChanged = true;
         }
@@ -1365,7 +1313,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         // avoid division by zero
         if ( (scale.x != 0.) && (targetCenter.x != previousPos.x) ) {
             const double addSkew = (scale.y / scale.x) * (currentPos.y - previousPos.y) / (currentPos.x - targetCenter.x);
-            skewY = skewY + addSkew;
+            tp.skewY = tp.skewY + addSkew;
             //_skewY->setValue(skewY + addSkew);
             skewYChanged = true;
         }
@@ -1373,43 +1321,48 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         assert(false);
     }
 
-    _centerDrag = center;
-    _translateDrag = translate;
-    _scaleParamDrag = scale;
-    _scaleUniformDrag = scaleUniform;
-    _rotateDrag = rotate;
-    _skewXDrag = skewX;
-    _skewYDrag = skewY;
-    _skewOrderDrag = skewOrder;
-    _invertedDrag = inverted;
+    _tpDrag = tp;
 
     bool valuesChanged = (centerChanged || translateChanged || scaleChanged || rotateChanged || skewXChanged || skewYChanged);
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-        bool editBlock = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
+
         // Change from 2021/06/01:
         // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
         // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
-        const bool setAll = true;
-        ImageEffect::EditBlock eb(*_effect, "Set Transform", setAll || editBlock);
-        if ( _center && (setAll || centerChanged) ) {
-            _center->setValue(center.x, center.y);
+        // Change from 2022/11/12:
+        // Only setValue on parameters that make sense (eg setValue would actually change their value)
+        if (!tpCurrentSet) {
+            getTransformParams(time, tpCurrent);
+            tpCurrentSet = true;
         }
-        if ( _translate && (setAll || translateChanged) ) {
-            _translate->setValue(translate.x, translate.y);
+        centerChanged = centerChanged && (tpCurrent.center.x != tp.center.x || tpCurrent.center.y != tp.center.y);
+        translateChanged = translateChanged && (tpCurrent.translate.x != tp.translate.x || tpCurrent.translate.y != tp.translate.y);
+        scaleChanged = scaleChanged && (tpCurrent.scale.x != tp.scale.x || tpCurrent.scale.y != tp.scale.y);
+        rotateChanged = rotateChanged && (tpCurrent.rotate != tp.rotate);
+        skewXChanged = skewXChanged && (tpCurrent.skewX != tp.skewX);
+        skewYChanged = skewYChanged && (tpCurrent.skewY != tp.skewY);
+        
+        bool editBlockNecessary = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
+        ImageEffect::EditBlock eb(*_effect, "Set Transform", editBlockNecessary);
+        if (centerChanged) {
+            _center->setValue(tp.center.x, tp.center.y);
         }
-        if ( _scale && (setAll || scaleChanged) ) {
+        if (translateChanged) {
+            _translate->setValue(tp.translate.x, tp.translate.y);
+        }
+        if (scaleChanged) {
             _scale->setValue(scale.x, scale.y);
         }
-        if ( _rotate && (setAll || rotateChanged) ) {
-            _rotate->setValue(rotate);
+        if (rotateChanged) {
+            _rotate->setValue(tp.rotate);
         }
-        if ( _skewX && (setAll || skewXChanged) ) {
-            _skewX->setValue(skewX);
+        if (skewXChanged) {
+            _skewX->setValue(tp.skewX);
         }
-        if ( _skewY && (setAll || skewYChanged) ) {
-            _skewY->setValue(skewY);
+        if (skewYChanged) {
+            _skewY->setValue(tp.skewY);
         }
     } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
@@ -1429,63 +1382,22 @@ TransformInteractHelper::penDown(const PenArgs &args)
 
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
-    OfxPointD center = { 0., 0. };
-    OfxPointD translate = { 0., 0. };
-    OfxPointD scaleParam = { 1., 1. };
-    bool scaleUniform = false;
-    double rotate = 0.;
-    double skewX = 0., skewY = 0.;
-    int skewOrder = 0;
-    bool inverted = false;
+    TransformParams tp;
 
     if (_mouseState == eReleased) {
-        if (_center) {
-            _center->getValueAtTime(time, center.x, center.y);
-        }
-        if (_translate) {
-            _translate->getValueAtTime(time, translate.x, translate.y);
-        }
-        if (_scale) {
-            _scale->getValueAtTime(time, scaleParam.x, scaleParam.y);
-        }
-        if (_scaleUniform) {
-            _scaleUniform->getValueAtTime(time, scaleUniform);
-        }
-        if (_rotate) {
-            _rotate->getValueAtTime(time, rotate);
-        }
-        if (_skewX) {
-            _skewX->getValueAtTime(time, skewX);
-        }
-        if (_skewY) {
-            _skewY->getValueAtTime(time, skewY);
-        }
-        if (_skewOrder) {
-            _skewOrder->getValueAtTime(time, skewOrder);
-        }
-        if (_invert) {
-            _invert->getValueAtTime(time, inverted);
-        }
+        getTransformParams(time, tp);
         if (_interactive) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         }
     } else {
-        center = _centerDrag;
-        translate = _translateDrag;
-        scaleParam = _scaleParamDrag;
-        scaleUniform = _scaleUniformDrag;
-        rotate = _rotateDrag;
-        skewX = _skewXDrag;
-        skewY = _skewYDrag;
-        skewOrder = _skewOrderDrag;
-        inverted = _invertedDrag;
+        tp = _tpDrag;
     }
 
     OfxPointD targetCenter;
-    getTargetCenter(center, translate, &targetCenter);
+    getTargetCenter(tp.center, tp.translate, &targetCenter);
 
     OfxPointD scale;
-    ofxsTransformGetScale(scaleParam, scaleUniform, &scale);
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
 
     OfxPointD targetRadius;
     getTargetRadius(scale, pscale, &targetRadius);
@@ -1503,12 +1415,12 @@ TransformInteractHelper::penDown(const PenArgs &args)
     transformedPos.y = args.penPosition.y;
     transformedPos.z = 1.;
 
-    double rot = ofxsToRadians(rotate);
+    double rot = ofxsToRadians(tp.rotate);
 
     ///now undo skew + rotation to the current position
     Matrix3x3 rotation, transform;
     rotation = ofxsMatInverseTransformCanonical(0., 0., 1., 1., 0., 0., false, rot, targetCenter.x, targetCenter.y);
-    transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., skewX, skewY, (bool)skewOrder, rot, targetCenter.x, targetCenter.y);
+    transform = ofxsMatInverseTransformCanonical(0., 0., 1., 1., tp.skewX, tp.skewY, (bool)tp.skewOrder, rot, targetCenter.x, targetCenter.y);
 
     rotationPos = rotation * transformedPos;
     if (rotationPos.z != 0) {
@@ -1556,15 +1468,7 @@ TransformInteractHelper::penDown(const PenArgs &args)
 
     _lastMousePos = args.penPosition;
 
-    _centerDrag = center;
-    _translateDrag = translate;
-    _scaleParamDrag = scaleParam;
-    _scaleUniformDrag = scaleUniform;
-    _rotateDrag = rotate;
-    _skewXDrag = skewX;
-    _skewYDrag = skewY;
-    _skewOrderDrag = skewOrder;
-    _invertedDrag = inverted;
+    _tpDrag = tp;
 
     if (didSomething) {
         _interact->requestRedraw();
@@ -1583,24 +1487,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
 
     if ( !_interactiveDrag && ret ) {
         ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        if (_center) {
-            _center->setValue(_centerDrag.x, _centerDrag.y);
-        }
-        if (_translate) {
-            _translate->setValue(_translateDrag.x, _translateDrag.y);
-        }
-        if (_scale) {
-            _scale->setValue(_scaleParamDrag.x, _scaleParamDrag.y);
-        }
-        if (_rotate) {
-            _rotate->setValue(_rotateDrag);
-        }
-        if (_skewX) {
-            _skewX->setValue(_skewXDrag);
-        }
-        if (_skewY) {
-            _skewY->setValue(_skewYDrag);
-        }
+        getTransformParams(args.time, _tpDrag);
     }
     
     if (ret) {
