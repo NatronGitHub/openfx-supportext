@@ -1165,7 +1165,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             const double distRatio = std::sqrt( (std::max)(distSq / prevDistSq, 0.) );
             scale.x *= distRatio;
             scale.y *= distRatio;
-            //_scale->setValue(scale.x, scale.y);
+            tp.scale = scale;
             scaleChanged = true;
         }
     } else if ( (_mouseState == eDraggingLeftPoint) || (_mouseState == eDraggingRightPoint) ) {
@@ -1178,8 +1178,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             newScale.x = scale.x * scaleRatio;
             newScale.x = (std::max)( minX, (std::min)(newScale.x, maxX) );
             newScale.y = tp.scaleUniform ? newScale.x : scale.y;
-            scale = newScale;
-            //_scale->setValue(scale.x, scale.y);
+            tp.scale = newScale;
             scaleChanged = true;
         }
     } else if ( (_mouseState == eDraggingTopPoint) || (_mouseState == eDraggingBottomPoint) ) {
@@ -1192,8 +1191,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             newScale.y = scale.y * scaleRatio;
             newScale.y = (std::max)( minY, (std::min)(newScale.y, maxY) );
             newScale.x = tp.scaleUniform ? newScale.y : scale.x;
-            scale = newScale;
-            //_scale->setValue(scale.x, scale.y);
+            tp.scale = newScale;
             scaleChanged = true;
         }
     } else if (_mouseState == eDraggingTranslation) {
@@ -1214,7 +1212,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         newy = fround(newy, pscale.y);
         tp.translate.x = newx;
         tp.translate.y = newy;
-        //_translate->setValue(translate.x, translate.y);
         translateChanged = true;
     } else if (_mouseState == eDraggingCenter) {
         OfxPointD currentCenter = tp.center;
@@ -1257,8 +1254,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         newy = fround(newy, pscale.y);
         tp.center.x = newx;
         tp.center.y = newy;
-        //ImageEffect::EditBlock eb(*_effect, "setCenter");
-        //_center->setValue(center.x, center.y);
         centerChanged = true;
         if (_translate) {
             // recompute dxrot,dyrot after rounding
@@ -1281,7 +1276,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
                 newTranslation.x = tp.translate.x + dx - dxrot;
                 newTranslation.y = tp.translate.y + dy - dyrot;
                 tp.translate = newTranslation;
-                //_translate->setValue(translate.x, translate.y);
                 translateChanged = true;
             }
         }
@@ -1299,14 +1293,12 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             angledegrees = closest90;
         }
         tp.rotate = angledegrees;
-        //_rotate->setValue(rotate);
         rotateChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero
         if ( (scale.y != 0.) && (targetCenter.y != previousPos.y) ) {
             const double addSkew = (scale.x / scale.y) * (currentPos.x - previousPos.x) / (currentPos.y - targetCenter.y);
             tp.skewX = tp.skewX + addSkew;
-            //_skewX->setValue(skewX);
             skewXChanged = true;
         }
     } else if (_mouseState == eDraggingSkewYBar) {
@@ -1314,7 +1306,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if ( (scale.x != 0.) && (targetCenter.x != previousPos.x) ) {
             const double addSkew = (scale.y / scale.x) * (currentPos.y - previousPos.y) / (currentPos.x - targetCenter.x);
             tp.skewY = tp.skewY + addSkew;
-            //_skewY->setValue(skewY + addSkew);
             skewYChanged = true;
         }
     } else {
@@ -1353,7 +1344,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             _translate->setValue(tp.translate.x, tp.translate.y);
         }
         if (scaleChanged) {
-            _scale->setValue(scale.x, scale.y);
+            _scale->setValue(tp.scale.x, tp.scale.y);
         }
         if (rotateChanged) {
             _rotate->setValue(tp.rotate);
@@ -1486,8 +1477,16 @@ TransformInteractHelper::penUp(const PenArgs &args)
     bool ret = _mouseState != eReleased;
 
     if ( !_interactiveDrag && ret ) {
+        const TransformParams& tp = _tpDrag;
+        OfxPointD scale;
+        ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
         ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        getTransformParams(args.time, _tpDrag);
+        _center->setValue(tp.center.x, tp.center.y);
+        _translate->setValue(tp.translate.x, tp.translate.y);
+        _scale->setValue(scale.x, scale.y);
+        _rotate->setValue(tp.rotate);
+        _skewX->setValue(tp.skewX);
+        _skewY->setValue(tp.skewY);
     }
     
     if (ret) {
