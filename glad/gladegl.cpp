@@ -1,3 +1,5 @@
+#include <cstddef>
+
 #if !defined(__APPLE__) && !defined(__HAIKU__) \
   && !defined(_WIN32) && !defined(__CYGWIN__)
 
@@ -51,6 +53,7 @@ void* get_proc(const char *namez) {
     return result;
 }
 
+extern "C"
 int gladLoadEGL(void) {
     int status = 0;
     PFNEGLBINDAPIPROC bindAPI = NULL;
@@ -68,6 +71,7 @@ int gladLoadEGL(void) {
 
 #else
 
+extern "C"
 int gladLoadEGL(void) {
     return 0;
 }
