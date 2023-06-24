@@ -1,9 +1,11 @@
+#include <glad/gladegl.h>
+
 #if !defined(__APPLE__) && !defined(__HAIKU__) \
   && !defined(_WIN32) && !defined(__CYGWIN__)
 
-#include <glad/glad.h>
 #include <EGL/egl.h>
 #include <dlfcn.h>
+#include <cstddef>
 
 static void* libEGL;
 
