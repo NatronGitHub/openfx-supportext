@@ -1532,7 +1532,7 @@ typedef void (*PFNGLMULTTRANSPOSEMATRIXFPROC)(const GLfloat* m);
 typedef void (*PFNGLMULTTRANSPOSEMATRIXDPROC)(const GLdouble* m);
 typedef void (*PFNGLBLENDFUNCSEPARATEPROC)(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
 typedef void (*PFNGLMULTIDRAWARRAYSPROC)(GLenum mode, const GLint* first, const GLsizei* count, GLsizei drawcount);
-typedef void (*PFNGLMULTIDRAWELEMENTSPROC)(GLenum mode, const GLsizei* count, GLenum type, const void** indices, GLsizei drawcount);
+typedef void (*PFNGLMULTIDRAWELEMENTSPROC)(GLenum mode, const GLsizei* count, GLenum type, const void*const* indices, GLsizei drawcount);
 typedef void (*PFNGLPOINTPARAMETERFPROC)(GLenum pname, GLfloat param);
 typedef void (*PFNGLPOINTPARAMETERFVPROC)(GLenum pname, const GLfloat* params);
 typedef void (*PFNGLPOINTPARAMETERIPROC)(GLenum pname, GLint param);
@@ -1630,7 +1630,7 @@ typedef void (*PFNGLGETVERTEXATTRIBPOINTERVPROC)(GLuint index, GLenum pname, voi
 typedef GLboolean (*PFNGLISPROGRAMPROC)(GLuint program);
 typedef GLboolean (*PFNGLISSHADERPROC)(GLuint shader);
 typedef void (*PFNGLLINKPROGRAMPROC)(GLuint program);
-typedef void (*PFNGLSHADERSOURCEPROC)(GLuint shader, GLsizei count, const GLchar** string, const GLint* length);
+typedef void (*PFNGLSHADERSOURCEPROC)(GLuint shader, GLsizei count, const GLchar*const* string, const GLint* length);
 typedef void (*PFNGLUSEPROGRAMPROC)(GLuint program);
 typedef void (*PFNGLUNIFORM1FPROC)(GLint location, GLfloat v0);
 typedef void (*PFNGLUNIFORM2FPROC)(GLint location, GLfloat v0, GLfloat v1);
