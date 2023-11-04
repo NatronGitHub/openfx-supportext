@@ -53,12 +53,15 @@ void* get_proc(const char *namez) {
     return result;
 }
 
+// Some older versions of egl.h are missing typedefs (e.g. from CentOS 7)
+typedef EGLBoolean (EGLAPIENTRYP PFNEGLBINDAPIPROC_PRIVATE) (EGLenum api);
+
 int gladLoadEGL(void) {
     int status = 0;
-    PFNEGLBINDAPIPROC bindAPI = NULL;
+    PFNEGLBINDAPIPROC_PRIVATE bindAPI = NULL;
 
     if(open_egl()) {
-        bindAPI = (PFNEGLBINDAPIPROC)get_proc("eglBindAPI");
+        bindAPI = (PFNEGLBINDAPIPROC_PRIVATE)get_proc("eglBindAPI");
         if (bindAPI != NULL && bindAPI(EGL_OPENGL_API)) {
             status = gladLoadGLLoader(&get_proc);
         }
