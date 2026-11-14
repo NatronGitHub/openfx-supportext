@@ -1434,12 +1434,6 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
         // GENERIC (MASKED)
         //
         ofxsMaskMixDescribeParams(desc, page);
-#ifdef OFX_EXTENSIONS_NUKE
-    } else if (getImageEffectHostDescription()->canTransform) {
-        // Transform3x3-GENERIC (NON-MASKED)
-        //
-        //std::cout << "kFnOfxImageEffectCanTransform in describeincontext(" << context << ")=" << desc.getPropertySet().propGetInt(kFnOfxImageEffectCanTransform) << std::endl;
-#endif
     }
 } // Transform3x3DescribeInContextEnd
 } // namespace OFX
