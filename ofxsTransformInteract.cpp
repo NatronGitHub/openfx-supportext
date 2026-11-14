@@ -1296,14 +1296,14 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         rotateChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero
-        if ( (scale.y != 0.) && (targetCenter.y != previousPos.y) ) {
+        if ( (scale.y != 0.) && (currentPos.y != targetCenter.y) ) {
             const double addSkew = (scale.x / scale.y) * (currentPos.x - previousPos.x) / (currentPos.y - targetCenter.y);
             tp.skewX = tp.skewX + addSkew;
             skewXChanged = true;
         }
     } else if (_mouseState == eDraggingSkewYBar) {
         // avoid division by zero
-        if ( (scale.x != 0.) && (targetCenter.x != previousPos.x) ) {
+        if ( (scale.x != 0.) && (currentPos.x != targetCenter.x) ) {
             const double addSkew = (scale.y / scale.x) * (currentPos.y - previousPos.y) / (currentPos.x - targetCenter.x);
             tp.skewY = tp.skewY + addSkew;
             skewYChanged = true;
