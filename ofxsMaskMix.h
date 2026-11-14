@@ -28,6 +28,7 @@
 #include <cfloat> // FLT_EPSILON
 
 #include <ofxsImageEffect.h>
+#include "ofxsCoords.h"
 
 #define kParamPremult "premult"
 #define kParamPremultLabel "(Un)premult"
@@ -93,6 +94,27 @@ bool
 ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 {
     return (desc->hostName.compare(0, 14, "DaVinciResolve") == 0);
+}
+
+/// If the mask is applied and not inverted, set *maskRoD to the mask clip RoD
+/// in pixel coordinates and return true. Outside of this rectangle, a masked
+/// effect outputs its unmasked source. Return false otherwise.
+inline
+bool
+ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
+                    OFX::BooleanParam* maskApply,
+                    OFX::BooleanParam* maskInvert,
+                    double time,
+                    const OfxPointD& renderScale,
+                    OfxRectI* maskRoD)
+{
+    bool doMasking = ( ( !maskApply || maskApply->getValueAtTime(time) ) && maskClip && maskClip->isConnected() );
+    if ( !doMasking || maskInvert->getValueAtTime(time) ) {
+        return false;
+    }
+    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), renderScale, maskClip->getPixelAspectRatio(), maskRoD);
+
+    return true;
 }
 
 inline
