@@ -220,15 +220,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         invtransformsizealloc = 1;
         invtransform.resize(invtransformsizealloc);
         invtransformsize = 1;
-        invtransform[0](0,0) = 0.;
-        invtransform[0](0,1) = 0.;
-        invtransform[0](0,2) = 0.;
-        invtransform[0](1,0) = 0.;
-        invtransform[0](1,1) = 0.;
-        invtransform[0](1,2) = 0.;
-        invtransform[0](2,0) = 0.;
-        invtransform[0](2,1) = 0.;
-        invtransform[0](2,2) = 1.;
+        invtransform[0].setNullTransform();
     } else {
 #     ifndef NDEBUG
         BitDepthEnum dstBitDepth       = dst->getPixelDepth();
@@ -305,15 +297,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsize = 1;
             bool success = getInverseTransformCanonical(time, view, 1., invert, &invtransform[0]); // virtual function
             if (!success) {
-                invtransform[0](0,0) = 0.;
-                invtransform[0](0,1) = 0.;
-                invtransform[0](0,2) = 0.;
-                invtransform[0](1,0) = 0.;
-                invtransform[0](1,1) = 0.;
-                invtransform[0](1,2) = 0.;
-                invtransform[0](2,0) = 0.;
-                invtransform[0](2,1) = 0.;
-                invtransform[0](2,2) = 1.;
+                invtransform[0].setNullTransform();
             } else {
                 Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
                                                                      args.renderScale.y, fielded);
@@ -1165,25 +1149,9 @@ Transform3x3Plugin::getInverseTransforms(double time,
         if (success) {
             invtransform[i] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
         } else {
-            invtransform[i](0,0) = 0.;
-            invtransform[i](0,1) = 0.;
-            invtransform[i](0,2) = 0.;
-            invtransform[i](1,0) = 0.;
-            invtransform[i](1,1) = 0.;
-            invtransform[i](1,2) = 0.;
-            invtransform[i](2,0) = 0.;
-            invtransform[i](2,1) = 0.;
-            invtransform[i](2,2) = 1.;
+            invtransform[i].setNullTransform();
         }
-        allequal = allequal && (invtransform[i](0,0) == invtransform[0](0,0) &&
-                                invtransform[i](0,1) == invtransform[0](0,1) &&
-                                invtransform[i](0,2) == invtransform[0](0,2) &&
-                                invtransform[i](1,0) == invtransform[0](1,0) &&
-                                invtransform[i](1,1) == invtransform[0](1,1) &&
-                                invtransform[i](1,2) == invtransform[0](1,2) &&
-                                invtransform[i](2,0) == invtransform[0](2,0) &&
-                                invtransform[i](2,1) == invtransform[0](2,1) &&
-                                invtransform[i](2,2) == invtransform[0](2,2));
+        allequal = allequal && (invtransform[i] == invtransform[0]);
     }
     if (allequal) { // there is only one transform, no need to do motion blur!
         invtransformsize = 1;
@@ -1222,15 +1190,7 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                 amount[invtransformsize] = amt;
             }
             invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
-            allequal = allequal && (invtransform[invtransformsize](0,0) == invtransform[0](0,0) &&
-                                    invtransform[invtransformsize](0,1) == invtransform[0](0,1) &&
-                                    invtransform[invtransformsize](0,2) == invtransform[0](0,2) &&
-                                    invtransform[invtransformsize](1,0) == invtransform[0](1,0) &&
-                                    invtransform[invtransformsize](1,1) == invtransform[0](1,1) &&
-                                    invtransform[invtransformsize](1,2) == invtransform[0](1,2) &&
-                                    invtransform[invtransformsize](2,0) == invtransform[0](2,0) &&
-                                    invtransform[invtransformsize](2,1) == invtransform[0](2,1) &&
-                                    invtransform[invtransformsize](2,2) == invtransform[0](2,2));
+            allequal = allequal && (invtransform[invtransformsize] == invtransform[0]);
             ++invtransformsize;
         }
     }
