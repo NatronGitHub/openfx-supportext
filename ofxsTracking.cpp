@@ -26,6 +26,7 @@
 #include <cmath>
 
 #include "ofxsOGLTextRenderer.h"
+#include "ofxsOGLOrigin.h"
 
 #ifdef __APPLE__
 #ifndef GL_SILENCE_DEPRECATION
@@ -310,6 +311,9 @@ isNearby(const OfxPointD & p,
 bool
 TrackerRegionInteract::draw(const DrawArgs &args)
 {
+    // draw in canonical coordinates, even if the host overlay is in its native coordinates
+    OFX::OverlayNativeOriginGLScope nativeOriginScope(_effect);
+
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
 
     getSuggestedColour(color);
@@ -583,8 +587,11 @@ TrackerRegionInteract::draw(const DrawArgs &args)
 } // draw
 
 bool
-TrackerRegionInteract::penMotion(const PenArgs &args)
+TrackerRegionInteract::penMotion(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     const OfxPointD& pscale = args.pixelScale;
     bool valuesChanged = false;
     OfxPointD delta;
@@ -967,8 +974,11 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
 } // penMotion
 
 bool
-TrackerRegionInteract::penDown(const PenArgs &args)
+TrackerRegionInteract::penDown(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     const OfxPointD& pscale = args.pixelScale;
     bool didSomething = false;
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc, xoff, yoff;
@@ -1089,8 +1099,11 @@ TrackerRegionInteract::isDraggingOuterPoint() const
 }
 
 bool
-TrackerRegionInteract::penUp(const PenArgs &args)
+TrackerRegionInteract::penUp(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if (_ms == eMouseStateIdle) {
         return false;
     }

@@ -23,6 +23,7 @@
  */
 
 #include "ofxsRamp.h"
+#include "ofxsOGLOrigin.h"
 
 #include <cmath>
 #include <cfloat> // DBL_MAX
@@ -69,6 +70,9 @@ fround(double val,
 bool
 RampInteractHelper::draw(const DrawArgs &args)
 {
+    // draw in canonical coordinates, even if the host overlay is in its native coordinates
+    OFX::OverlayNativeOriginGLScope nativeOriginScope(_effect);
+
     const double time = args.time;
 
     if ( !_interactOpen->getValueAtTime(time) ) {
@@ -266,8 +270,11 @@ isNearby(const OfxPointD& p,
 }
 
 bool
-RampInteractHelper::penMotion(const PenArgs &args)
+RampInteractHelper::penMotion(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     const double time = args.time;
 
     if ( !_interactOpen->getValueAtTime(time) ) {
@@ -321,8 +328,11 @@ RampInteractHelper::penMotion(const PenArgs &args)
 } // RampInteractHelper::penMotion
 
 bool
-RampInteractHelper::penDown(const PenArgs &args)
+RampInteractHelper::penDown(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     const double time = args.time;
 
     if ( !_interactOpen->getValueAtTime(time) ) {
@@ -369,8 +379,11 @@ RampInteractHelper::penDown(const PenArgs &args)
 }
 
 bool
-RampInteractHelper::penUp(const PenArgs &args)
+RampInteractHelper::penUp(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     const double time = args.time;
 
     if ( !_interactOpen->getValueAtTime(time) ) {

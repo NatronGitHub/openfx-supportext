@@ -24,6 +24,7 @@
 
 #include "ofxsTransformInteract.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsOGLOrigin.h"
 
 #include <memory>
 #include <cmath>
@@ -740,6 +741,9 @@ drawRotationBar(const OfxRGBColourD& color,
 bool
 TransformInteractHelper::draw(const DrawArgs &args)
 {
+    // draw in canonical coordinates, even if the host overlay is in its native coordinates
+    OFX::OverlayNativeOriginGLScope nativeOriginScope(_effect);
+
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }
@@ -1030,8 +1034,11 @@ fround(double val,
 
 // overridden functions from Interact to do things
 bool
-TransformInteractHelper::penMotion(const PenArgs &args)
+TransformInteractHelper::penMotion(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }
@@ -1365,8 +1372,11 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 } // TransformInteractHelper::penMotion
 
 bool
-TransformInteractHelper::penDown(const PenArgs &args)
+TransformInteractHelper::penDown(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }
@@ -1469,8 +1479,11 @@ TransformInteractHelper::penDown(const PenArgs &args)
 } // TransformInteractHelper::penDown
 
 bool
-TransformInteractHelper::penUp(const PenArgs &args)
+TransformInteractHelper::penUp(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }

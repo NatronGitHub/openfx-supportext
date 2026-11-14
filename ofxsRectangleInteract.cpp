@@ -24,6 +24,7 @@
  */
 
 #include "ofxsRectangleInteract.h"
+#include "ofxsOGLOrigin.h"
 #include <cmath>
 
 #ifdef __APPLE__
@@ -97,6 +98,9 @@ drawPoint(const OfxRGBColourD &color,
 bool
 RectangleInteract::draw(const DrawArgs &args)
 {
+    // draw in canonical coordinates, even if the host overlay is in its native coordinates
+    OFX::OverlayNativeOriginGLScope nativeOriginScope(_effect);
+
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {
@@ -205,8 +209,11 @@ RectangleInteract::draw(const DrawArgs &args)
 } // draw
 
 bool
-RectangleInteract::penMotion(const PenArgs &args)
+RectangleInteract::penMotion(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {
@@ -438,8 +445,11 @@ RectangleInteract::penMotion(const PenArgs &args)
 } // penMotion
 
 bool
-RectangleInteract::penDown(const PenArgs &args)
+RectangleInteract::penDown(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {
@@ -509,8 +519,11 @@ RectangleInteract::penDown(const PenArgs &args)
 } // penDown
 
 bool
-RectangleInteract::penUp(const PenArgs &args)
+RectangleInteract::penUp(const PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {

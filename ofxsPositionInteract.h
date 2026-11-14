@@ -40,6 +40,7 @@
 #include <ofxsImageEffect.h>
 #include "ofxsOGLTextRenderer.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsOGLOrigin.h"
 #include "ofxsMacros.h"
 
 #define kDrawPointTrajectoryMaxPoints 1000
@@ -191,6 +192,9 @@ template <typename ParamName>
 bool
 PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 {
+    // draw in canonical coordinates, even if the host overlay is in its native coordinates
+    OFX::OverlayNativeOriginGLScope nativeOriginScope(_effect);
+
     if (_hasNativeHostPositionHandle) {
         return false;
     }
@@ -274,8 +278,11 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
 // overridden functions from OFX::Interact to do things
 template <typename ParamName>
 bool
-PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
+PositionInteract<ParamName>::penMotion(const OFX::PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if (_hasNativeHostPositionHandle) {
         return false;
     }
@@ -335,8 +342,11 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
 
 template <typename ParamName>
 bool
-PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
+PositionInteract<ParamName>::penDown(const OFX::PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if (_hasNativeHostPositionHandle) {
         return false;
     }
@@ -349,7 +359,7 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
     }
 
     bool didSomething = false;
-    penMotion(args);
+    penMotion(argsNative); // penMotion() does the conversion
     if (_state == eMouseStatePoised) {
         _state = eMouseStatePicked;
         _penPosition = args.penPosition;
@@ -364,8 +374,11 @@ PositionInteract<ParamName>::penDown(const OFX::PenArgs &args)
 
 template <typename ParamName>
 bool
-PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
+PositionInteract<ParamName>::penUp(const OFX::PenArgs &argsNative)
 {
+    // pen position in canonical coordinates, even if the host gives it in its native coordinates
+    const OFX::PenArgs args = OFX::overlayPenArgsToCanonical(_effect, argsNative);
+
     if (_hasNativeHostPositionHandle) {
         return false;
     }
@@ -383,7 +396,7 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
             const OfxPointD& pscale = args.pixelScale;
             _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         }
-        penMotion(args);
+        penMotion(argsNative); // penMotion() does the conversion
         _state = eMouseStateInactive;
         didSomething = true;
     }
