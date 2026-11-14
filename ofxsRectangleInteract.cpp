@@ -26,6 +26,10 @@
 #include "ofxsRectangleInteract.h"
 #include <cmath>
 
+#ifndef M_PI
+#define M_PI        3.14159265358979323846264338327950288   /* pi             */
+#endif
+
 #ifdef __APPLE__
 #ifndef GL_SILENCE_DEPRECATION
 #define GL_SILENCE_DEPRECATION // Yes, we are still doing OpenGL 2.1
@@ -68,6 +72,63 @@ fround(double val,
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
+}
+
+// rotate point p by the angle (given by its cosine and sine) around center c
+static inline OfxPointD
+rotatePoint(const OfxPointD & p,
+            const OfxPointD & c,
+            double cosa,
+            double sina)
+{
+    OfxPointD ret;
+    double dx = p.x - c.x;
+    double dy = p.y - c.y;
+
+    ret.x = c.x + cosa * dx - sina * dy;
+    ret.y = c.y + sina * dx + cosa * dy;
+
+    return ret;
+}
+
+// get the pen position in the frame of the (unrotated) rectangle
+static inline OfxPointD
+penPositionInRectangleFrame(const OfxPointD & penPosition,
+                            const OfxPointD & center,
+                            double angle)
+{
+    if (angle == 0.) {
+        return penPosition;
+    }
+    double a = -angle * M_PI / 180.;
+
+    return rotatePoint(penPosition, center, std::cos(a), std::sin(a));
+}
+
+void
+RectangleInteract::getRectangle(OfxTime time,
+                                double* x1,
+                                double* y1,
+                                double* w,
+                                double* h,
+                                OfxPointD* center,
+                                double* angle) const
+{
+    if (_mouseState != eMouseStateIdle) {
+        *x1 = _btmLeftDragPos.x;
+        *y1 = _btmLeftDragPos.y;
+        *w = _sizeDrag.x;
+        *h = _sizeDrag.y;
+        // while dragging, the rotation center is the center at the time the pen was pressed
+        *center = _centerDrag;
+        *angle = _angleDrag;
+    } else {
+        _btmLeft->getValueAtTime(time, *x1, *y1);
+        _size->getValueAtTime(time, *w, *h);
+        center->x = *x1 + *w / 2;
+        center->y = *y1 + *h / 2;
+        *angle = _angle ? _angle->getValueAtTime(time) : 0.;
+    }
 }
 
 static void
@@ -123,15 +184,9 @@ RectangleInteract::draw(const DrawArgs &args)
     shadow.y = 2. / (projection[5] * viewport[3]);
 
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
-    }
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
     double x2 = x1 + w;
     double y2 = y1 + h;
     double xc = x1 + w / 2;
@@ -160,6 +215,14 @@ RectangleInteract::draw(const DrawArgs &args)
         // translate (1,-1) pixels
         glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+
+        if (angle != 0.) {
+            // rotate the rectangle around its center (in canonical coordinates)
+            glPushMatrix();
+            glTranslated(center.x, center.y, 0);
+            glRotated(angle, 0, 0, 1);
+            glTranslated(-center.x, -center.y, 0);
+        }
 
         glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
 
@@ -198,6 +261,10 @@ RectangleInteract::draw(const DrawArgs &args)
         glVertex2d(xc, yc - CROSS_SIZE * pscale.y);
         glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
         glEnd();
+
+        if (angle != 0.) {
+            glPopMatrix();
+        }
     }
     //glPopAttrib();
 
@@ -215,44 +282,40 @@ RectangleInteract::penMotion(const PenArgs &args)
 
     const OfxPointD& pscale = args.pixelScale;
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
-    }
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
     double x2 = x1 + w;
     double y2 = y1 + h;
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool valuesChanged = false;
+    // all computations are done in the frame of the unrotated rectangle
+    const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
     OfxPointD delta;
-    delta.x = args.penPosition.x - _lastMousePos.x;
-    delta.y = args.penPosition.y - _lastMousePos.y;
+    delta.x = penPosition.x - _lastMousePos.x;
+    delta.y = penPosition.y - _lastMousePos.y;
 
     aboutToCheckInteractivity(args.time);
     DrawStateEnum newState = _drawState;
     // test center first
-    if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isNearby(penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
         newState = eDrawStateHoveringCenter;
-    } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
         newState = eDrawStateHoveringBtmLeft;
-    } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
         newState = eDrawStateHoveringBtmRight;
-    } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
         newState = eDrawStateHoveringTopLeft;
-    } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
         newState = eDrawStateHoveringTopRight;
-    } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isNearby(penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
         newState = eDrawStateHoveringBtmMid;
-    } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isNearby(penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
         newState = eDrawStateHoveringTopMid;
-    } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
         newState = eDrawStateHoveringMidLeft;
-    } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
         newState = eDrawStateHoveringMidRight;
     } else {
         newState = eDrawStateInactive;
@@ -437,7 +500,7 @@ RectangleInteract::penMotion(const PenArgs &args)
     }
 
 
-    _lastMousePos = args.penPosition;
+    _lastMousePos = penPosition;
 
     return valuesChanged;
 } // penMotion
@@ -453,14 +516,10 @@ RectangleInteract::penDown(const PenArgs &args)
 
     const OfxPointD& pscale = args.pixelScale;
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
+    if (_mouseState == eMouseStateIdle) {
         if ( _interactive && _interactive->getIsEnable() ) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         } else {
@@ -472,28 +531,30 @@ RectangleInteract::penDown(const PenArgs &args)
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool didSomething = false;
+    // all computations are done in the frame of the unrotated rectangle
+    const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
 
     aboutToCheckInteractivity(args.time);
 
     // test center first
     MouseStateEnum newState = _mouseState;
-    if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isNearby(penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
         newState = eMouseStateDraggingCenter;
-    } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
         newState = eMouseStateDraggingBtmLeft;
-    } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
         newState = eMouseStateDraggingBtmRight;
-    } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
         newState = eMouseStateDraggingTopLeft;
-    } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
         newState = eMouseStateDraggingTopRight;
-    } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isNearby(penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
         newState = eMouseStateDraggingBtmMid;
-    } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isNearby(penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
         newState = eMouseStateDraggingTopMid;
-    } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isNearby(penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
         newState = eMouseStateDraggingMidLeft;
-    } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isNearby(penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
         newState = eMouseStateDraggingMidRight;
     } else {
         newState = eMouseStateIdle;
@@ -505,7 +566,9 @@ RectangleInteract::penDown(const PenArgs &args)
     _btmLeftDragPos.y = y1;
     _sizeDrag.x = w;
     _sizeDrag.y = h;
-    _lastMousePos = args.penPosition;
+    _centerDrag = center;
+    _angleDrag = angle;
+    _lastMousePos = penPosition;
     if (didSomething) {
         requestRedraw();
     }
@@ -630,6 +693,20 @@ RectangleInteract::setValue(OfxPointD btmLeft,
 {
     bool setBtmLeft = false;
     bool setSize = false;
+    if (_angleDrag != 0.) {
+        // The rectangle was edited in the frame rotated around _centerDrag, but the
+        // rendered shape is rotated around its own center: translate it so that it stays
+        // at the same place, i.e. btmLeft += (I - R) * (_centerDrag - newCenter)
+        OfxPointD d;
+        d.x = _centerDrag.x - (btmLeft.x + size.x / 2);
+        d.y = _centerDrag.y - (btmLeft.y + size.y / 2);
+        double a = _angleDrag * M_PI / 180.;
+        double cosa = std::cos(a);
+        double sina = std::sin(a);
+        btmLeft.x += d.x - (cosa * d.x - sina * d.y);
+        btmLeft.y += d.y - (sina * d.x + cosa * d.y);
+        setBtmLeft = true;
+    }
     // round newx/y to the closest int, 1/10 int, etc
     // this make parameter editing easier
     switch (_mouseState) {

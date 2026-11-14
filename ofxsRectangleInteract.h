@@ -48,10 +48,18 @@
 #define kParamRectangleInteractInteractiveLabel "Interactive Update"
 #define kParamRectangleInteractInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
 
+// an optional parameter (of type double, in degrees) giving the rotation angle of the rectangle around its center.
+// If it exists, the interact draws and manipulates a rotated rectangle.
+#define kParamRectangleInteractAngle "angle"
+#define kParamRectangleInteractAngleLabel "Angle"
+#define kParamRectangleInteractAngleHint "Rotation angle of the shape around its center, in degrees (counter-clockwise)."
+
 namespace OFX {
 /**
  * @brief In order to work the plug-in using this interact must have 2 parameters named after
  * the defines above.
+ * If the plug-in also has a double parameter named kParamRectangleInteractAngle, the rectangle is
+ * rotated by that angle (in degrees) around its center.
  *
  **/
 class RectangleInteract
@@ -102,6 +110,8 @@ public:
         , _size(NULL)
         , _interactive(NULL)
         , _hiDPI(NULL)
+        , _angle(NULL)
+        , _angleDrag(0.)
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
@@ -117,8 +127,14 @@ public:
             assert(_hiDPI);
             addParamToSlaveTo(_hiDPI);
         }
+        if ( effect->paramExists(kParamRectangleInteractAngle) ) {
+            _angle = effect->fetchDoubleParam(kParamRectangleInteractAngle);
+            assert(_angle);
+            addParamToSlaveTo(_angle);
+        }
         _btmLeftDragPos.x = _btmLeftDragPos.y = 0;
         _sizeDrag.x = _sizeDrag.y = 0;
+        _centerDrag.x = _centerDrag.y = 0;
         _interactiveDrag = false;
     }
 
@@ -201,6 +217,9 @@ protected:
 private:
     void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
 
+    // get the current rectangle, the rotation center and the rotation angle (in degrees)
+    void getRectangle(OfxTime time, double* x1, double* y1, double* w, double* h, OfxPointD* center, double* angle) const;
+
 private:
     OFX::ImageEffect* _effect;
     OfxPointD _lastMousePos;
@@ -213,8 +232,13 @@ private:
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
+    OFX::DoubleParam* _angle; // optional rotation angle, in degrees
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
+    // While dragging, the rectangle (_btmLeftDragPos,_sizeDrag) is expressed in the frame rotated
+    // by _angleDrag around _centerDrag (the center of the rectangle when the pen was pressed).
+    OfxPointD _centerDrag;
+    double _angleDrag;
     bool _interactiveDrag;
 };
 
