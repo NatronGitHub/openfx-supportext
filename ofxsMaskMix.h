@@ -98,7 +98,12 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 
 /// If the mask is applied and not inverted, set *maskRoD to the mask clip RoD
 /// in pixel coordinates and return true. Outside of this rectangle, a masked
-/// effect outputs its unmasked source. Return false otherwise.
+/// effect outputs its unmasked source. Return false otherwise (*maskRoD is
+/// then left unchanged).
+/// Limitations (same as the code this replaces): the field scale is ignored,
+/// so the result is only right when rendering whole frames
+/// (kOfxImageFieldNone or kOfxImageFieldBoth), and an infinite or NaN mask RoD
+/// is not handled.
 inline
 bool
 ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
