@@ -23,7 +23,7 @@
  * In order to use these functions the following condition must be met:
  *#if defined(OFX_EXTENSIONS_NUKE) && defined(OFX_EXTENSIONS_NATRON)
 
-   if (fetchSuite(kFnOfxImageEffectPlaneSuite, 2) &&  // for clipGetImagePlane
+   if (fetchSuite(kFnOfxImageEffectPlaneSuite, 2, true) &&  // for clipGetImagePlane
    getImageEffectHostDescription()->supportsDynamicChoices && // for dynamic layer choices
    getImageEffectHostDescription()->isMultiPlanar) // for clipGetImagePlane
    ... this is ok...
@@ -1391,10 +1391,10 @@ static void refreshHostFlags()
 
 #endif
 #ifdef OFX_EXTENSIONS_NUKE
-    if (getImageEffectHostDescription()->isMultiPlanar && fetchSuite(kFnOfxImageEffectPlaneSuite, 1)) {
+    if (getImageEffectHostDescription()->isMultiPlanar && fetchSuite(kFnOfxImageEffectPlaneSuite, 1, true)) {
         gHostSupportsMultiPlaneV1 = true;
     }
-    if (getImageEffectHostDescription()->isMultiPlanar && gHostSupportsDynamicChoices && fetchSuite(kFnOfxImageEffectPlaneSuite, 2)) {
+    if (getImageEffectHostDescription()->isMultiPlanar && gHostSupportsDynamicChoices && fetchSuite(kFnOfxImageEffectPlaneSuite, 2, true)) {
         gHostSupportsMultiPlaneV2 = true;
     }
 #endif
