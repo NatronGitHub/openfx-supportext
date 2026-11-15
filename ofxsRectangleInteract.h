@@ -30,6 +30,7 @@
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsInteractCursor.h"
 
 // a secret parameter used to enable the interact, if it exists
 #define kParamRectangleInteractEnable "rectangleInteractEnable"
@@ -198,8 +199,23 @@ protected:
         return true;
     }
 
+    /**
+     * @brief Give the cursor back to the host if this interact had set one.
+     * Subclasses that skip RectangleInteract::penMotion() (e.g. when their
+     * rectangle is disabled) should call it on that path, so that a handle
+     * cursor does not stay displayed.
+     **/
+    void releaseCursor()
+    {
+        _cursor.release(this);
+    }
+
 private:
     void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
+
+    /// Report the cursor for the hovered or dragged handle (the host reads it
+    /// after each pen or key action, trapped or not).
+    void updateCursor();
 
 private:
     OFX::ImageEffect* _effect;
@@ -213,6 +229,7 @@ private:
     OFX::Double2DParam* _size;
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
+    OFX::InteractCursor _cursor;
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     bool _interactiveDrag;
