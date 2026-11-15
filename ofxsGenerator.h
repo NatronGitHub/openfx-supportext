@@ -172,7 +172,8 @@ class GeneratorInteract
 public:
 
     GeneratorInteract(OfxInteractHandle handle,
-                      OFX::ImageEffect* effect);
+                      OFX::ImageEffect* effect,
+                      const OFX::RectangleInteractParams& params = OFX::RectangleInteractParams());
 
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;

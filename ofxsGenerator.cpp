@@ -434,8 +434,9 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 }
 
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
-                                     ImageEffect* effect)
-    : RectangleInteract(handle, effect)
+                                     ImageEffect* effect,
+                                     const RectangleInteractParams& params)
+    : RectangleInteract(handle, effect, params)
     , _extent(NULL)
     , _extentValue(eGeneratorExtentDefault)
 {

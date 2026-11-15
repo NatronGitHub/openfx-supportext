@@ -105,6 +105,27 @@ penPositionInRectangleFrame(const OfxPointD & penPosition,
     return rotatePoint(penPosition, center, std::cos(a), std::sin(a));
 }
 
+// is the pen near the handle (x,y)? The handle position is given in the frame of the (unrotated)
+// rectangle, and is rotated into canonical coordinates, where the tolerance is defined.
+static inline bool
+isHandleNearby(const OfxPointD & penPosition,
+               double x,
+               double y,
+               const OfxPointD & center,
+               double angle,
+               const OfxPointD & pscale)
+{
+    if (angle != 0.) {
+        OfxPointD p = { x, y };
+        double a = angle * M_PI / 180.;
+        p = rotatePoint(p, center, std::cos(a), std::sin(a));
+        x = p.x;
+        y = p.y;
+    }
+
+    return isNearby(penPosition, x, y, POINT_TOLERANCE, pscale);
+}
+
 void
 RectangleInteract::getRectangle(OfxTime time,
                                 double* x1,
@@ -290,7 +311,7 @@ RectangleInteract::penMotion(const PenArgs &args)
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool valuesChanged = false;
-    // all computations are done in the frame of the unrotated rectangle
+    // dragging is done in the frame of the unrotated rectangle
     const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
     OfxPointD delta;
     delta.x = penPosition.x - _lastMousePos.x;
@@ -299,23 +320,23 @@ RectangleInteract::penMotion(const PenArgs &args)
     aboutToCheckInteractivity(args.time);
     DrawStateEnum newState = _drawState;
     // test center first
-    if ( isNearby(penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isHandleNearby(args.penPosition, xc, yc, center, angle, pscale)  && allowCenterInteraction() ) {
         newState = eDrawStateHoveringCenter;
-    } else if ( isNearby(penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y1, center, angle, pscale) && allowBtmLeftInteraction() ) {
         newState = eDrawStateHoveringBtmLeft;
-    } else if ( isNearby(penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y1, center, angle, pscale) && allowBtmRightInteraction() ) {
         newState = eDrawStateHoveringBtmRight;
-    } else if ( isNearby(penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y2, center, angle, pscale)  && allowTopLeftInteraction() ) {
         newState = eDrawStateHoveringTopLeft;
-    } else if ( isNearby(penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y2, center, angle, pscale) && allowTopRightInteraction() ) {
         newState = eDrawStateHoveringTopRight;
-    } else if ( isNearby(penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y1, center, angle, pscale)  && allowBtmMidInteraction() ) {
         newState = eDrawStateHoveringBtmMid;
-    } else if ( isNearby(penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y2, center, angle, pscale) && allowTopMidInteraction() ) {
         newState = eDrawStateHoveringTopMid;
-    } else if ( isNearby(penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, yc, center, angle, pscale)  && allowMidLeftInteraction() ) {
         newState = eDrawStateHoveringMidLeft;
-    } else if ( isNearby(penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, yc, center, angle, pscale) && allowMidRightInteraction() ) {
         newState = eDrawStateHoveringMidRight;
     } else {
         newState = eDrawStateInactive;
@@ -531,30 +552,30 @@ RectangleInteract::penDown(const PenArgs &args)
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool didSomething = false;
-    // all computations are done in the frame of the unrotated rectangle
+    // dragging is done in the frame of the unrotated rectangle
     const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
 
     aboutToCheckInteractivity(args.time);
 
     // test center first
     MouseStateEnum newState = _mouseState;
-    if ( isNearby(penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isHandleNearby(args.penPosition, xc, yc, center, angle, pscale)  && allowCenterInteraction() ) {
         newState = eMouseStateDraggingCenter;
-    } else if ( isNearby(penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y1, center, angle, pscale) && allowBtmLeftInteraction() ) {
         newState = eMouseStateDraggingBtmLeft;
-    } else if ( isNearby(penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y1, center, angle, pscale) && allowBtmRightInteraction() ) {
         newState = eMouseStateDraggingBtmRight;
-    } else if ( isNearby(penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y2, center, angle, pscale)  && allowTopLeftInteraction() ) {
         newState = eMouseStateDraggingTopLeft;
-    } else if ( isNearby(penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y2, center, angle, pscale) && allowTopRightInteraction() ) {
         newState = eMouseStateDraggingTopRight;
-    } else if ( isNearby(penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y1, center, angle, pscale)  && allowBtmMidInteraction() ) {
         newState = eMouseStateDraggingBtmMid;
-    } else if ( isNearby(penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y2, center, angle, pscale) && allowTopMidInteraction() ) {
         newState = eMouseStateDraggingTopMid;
-    } else if ( isNearby(penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, yc, center, angle, pscale)  && allowMidLeftInteraction() ) {
         newState = eMouseStateDraggingMidLeft;
-    } else if ( isNearby(penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, yc, center, angle, pscale) && allowMidRightInteraction() ) {
         newState = eMouseStateDraggingMidRight;
     } else {
         newState = eMouseStateIdle;
