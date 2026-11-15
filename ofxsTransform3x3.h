@@ -196,6 +196,7 @@ protected:
     OFX::DoubleParam* _dirBlurAmount; // DirBlur only
     OFX::BooleanParam* _dirBlurCentered; // DirBlur only
     OFX::DoubleParam* _dirBlurFading; // DirBlur only
+    bool _dirBlurFadingSignedAmount; // DirBlur only: if true, use the old (buggy) fading formula, which divides by the signed amount (default is false)
     OFX::BooleanParam* _directionalBlur; // non-DirBlur
     OFX::DoubleParam* _shutter; // non-DirBlur
     OFX::ChoiceParam* _shutteroffset; // non-DirBlur

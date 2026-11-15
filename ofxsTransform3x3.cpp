@@ -102,6 +102,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _dirBlurAmount(NULL)
     , _dirBlurCentered(NULL)
     , _dirBlurFading(NULL)
+    , _dirBlurFadingSignedAmount(false)
     , _directionalBlur(NULL)
     , _shutter(NULL)
     , _shutteroffset(NULL)
@@ -295,8 +296,12 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             if (fading <= 0.) {
                 std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
             } else {
+                // Normalize by |amountTo|: the amount may be negative, in which case dividing
+                // by amountTo would give weights 1+|a|/|amountTo| (brightest at the far end).
+                // _dirBlurFadingSignedAmount keeps the old behaviour for old plugin versions.
+                const double amountNorm = _dirBlurFadingSignedAmount ? amountTo : std::abs(amountTo);
                 for (size_t i = 0; i < invtransformalpha.size(); ++i) {
-                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i]) / amountTo, fading);
+                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i]) / amountNorm, fading);
                 }
             }
         } else {
