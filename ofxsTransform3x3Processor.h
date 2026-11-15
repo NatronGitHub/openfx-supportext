@@ -237,13 +237,12 @@ private:
             canonicalCoords.y = (double)y + 0.5;
 
             for (int x = procWindow.x1; x < procWindow.x2; ++x, dstPix += nComponents) {
-                double acc;
+                double acc = 0.;
                 double accPix[nComponents];
                 double accPix2[nComponents];
                 double mean[nComponents];
                 double var[nComponents];
                 for (int c = 0; c < nComponents; ++c) {
-                    acc = 0.;
                     accPix[c] = 0;
                     accPix2[c] = 0;
                     mean[c] = 0.;

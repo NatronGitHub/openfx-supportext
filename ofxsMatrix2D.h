@@ -27,6 +27,8 @@
 
 #include <cmath>
 #include <cfloat>
+#include <cassert>
+#include <algorithm> // std::fill
 
 #include "ofxsMacros.h" // OFXS_PI
 
@@ -239,6 +241,26 @@ struct Matrix3x3
         return m[0] == 1 && m[1] == 0 && m[2] == 0 &&
                m[3] == 0 && m[4] == 1 && m[5] == 0 &&
                m[6] == 0 && m[7] == 0 && m[8] == 1;
+    }
+
+    bool operator==(const Matrix3x3 & o) const
+    {
+        return m[0] == o.m[0] && m[1] == o.m[1] && m[2] == o.m[2] &&
+               m[3] == o.m[3] && m[4] == o.m[4] && m[5] == o.m[5] &&
+               m[6] == o.m[6] && m[7] == o.m[7] && m[8] == o.m[8];
+    }
+
+    bool operator!=(const Matrix3x3 & o) const
+    {
+        return !(*this == o);
+    }
+
+    /// Set to the degenerate transform that maps every point to the origin
+    /// (all coefficients are zero, except m(2,2) = 1).
+    void setNullTransform()
+    {
+        std::fill(m, m + 3*3, 0.);
+        m[8] = 1.;
     }
 
     double & operator()(int row,
