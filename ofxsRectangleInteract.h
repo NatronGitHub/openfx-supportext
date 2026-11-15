@@ -30,6 +30,7 @@
 #include <ofxsImageEffect.h>
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsInteractCursor.h"
 
 // a secret parameter used to enable the interact, if it exists
 #define kParamRectangleInteractEnable "rectangleInteractEnable"
@@ -212,11 +213,26 @@ protected:
         return true;
     }
 
+    /**
+     * @brief Give the cursor back to the host if this interact had set one.
+     * Subclasses that skip RectangleInteract::penMotion() (e.g. when their
+     * rectangle is disabled) should call it on that path, so that a handle
+     * cursor does not stay displayed.
+     **/
+    void releaseCursor()
+    {
+        _cursor.release(this);
+    }
+
 private:
     void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
 
     // get the current rectangle, the rotation center and the rotation angle (in degrees)
     void getRectangle(OfxTime time, double* x1, double* y1, double* w, double* h, OfxPointD* center, double* angle) const;
+
+    /// Report the cursor for the hovered or dragged handle (the host reads it
+    /// after each pen or key action, trapped or not).
+    void updateCursor();
 
 private:
     OFX::ImageEffect* _effect;
@@ -231,6 +247,7 @@ private:
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
     OFX::DoubleParam* _angle; // optional rotation angle, in degrees
+    OFX::InteractCursor _cursor;
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     // While dragging, the rectangle (_btmLeftDragPos,_sizeDrag) is expressed in the frame rotated
