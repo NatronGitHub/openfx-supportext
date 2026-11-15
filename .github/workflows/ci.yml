@@ -20,18 +20,29 @@ permissions:
 jobs:
   # Compile every SupportExt source file, with warnings as failures, against:
   # - openfx master (NatronGitHub fork): DrawSuite and interact cursor APIs enabled;
-  # - the openfx commit currently used by openfx-misc, openfx-io and openfx-arena:
-  #   those code paths compile to no-ops.
+  # - 05c5a75, the openfx used by openfx-io: OFX 1.5 Support API, but neither
+  #   OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact cursors, so those paths are off;
+  # - 2303ff8, an openfx without the OFX 1.5 APIs: those code paths compile to no-ops.
+  # (openfx-misc uses 014aea9, which only differs from master by docs and CI.)
+  # C++11 everywhere; C++20 and C++23 against openfx master with GCC (Linux)
+  # and Apple clang (macOS).
   compile:
-    name: ${{ matrix.os }} / openfx ${{ matrix.openfx.name }}
+    name: ${{ matrix.os }} / openfx ${{ matrix.openfx.name }} / ${{ matrix.cxxstd }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-latest, windows-2022]
+        cxxstd: [c++11]
         openfx:
           - { name: master, ref: master }
-          - { name: consumers, ref: 2303ff811bee3ffe085287602f684fe5fe5357e0 }
+          - { name: 05c5a75 (openfx-io), ref: 05c5a75dd48c8afcd7c010dc301080ac0360b2f2 }
+          - { name: 2303ff8 (pre-1.5), ref: 2303ff811bee3ffe085287602f684fe5fe5357e0 }
+        include:
+          - { os: ubuntu-24.04, cxxstd: c++20, openfx: { name: master, ref: master } }
+          - { os: ubuntu-24.04, cxxstd: c++23, openfx: { name: master, ref: master } }
+          - { os: macos-latest, cxxstd: c++20, openfx: { name: master, ref: master } }
+          - { os: macos-latest, cxxstd: c++23, openfx: { name: master, ref: master } }
     defaults:
       run:
         shell: ${{ startsWith(matrix.os, 'windows') && 'msys2 {0}' || 'bash' }}
@@ -58,6 +69,8 @@ jobs:
           update: true
           install: git base-devel mingw-w64-x86_64-cc
       - name: Compile
+        env:
+          CXXSTD: -std=${{ matrix.cxxstd }}
         run: .github/scripts/compile.sh openfx
 
   # Build openfx-misc (Misc and CImg plug-ins) with this SupportExt, as a
