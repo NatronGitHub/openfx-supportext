@@ -23,7 +23,7 @@
  * In order to use these functions the following condition must be met:
  *#if defined(OFX_EXTENSIONS_NUKE) && defined(OFX_EXTENSIONS_NATRON)
 
-    if (OFX::fetchSuite(kFnOfxImageEffectPlaneSuite, 2) &&  // for clipGetImagePlane
+    if (OFX::fetchSuite(kFnOfxImageEffectPlaneSuite, 2, true) &&  // for clipGetImagePlane
         OFX::getImageEffectHostDescription()->supportsDynamicChoices && // for dynamic layer choices
         OFX::getImageEffectHostDescription()->isMultiPlanar) // for clipGetImagePlane
          ... this is ok...
