@@ -434,8 +434,9 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 }
 
 GeneratorInteract::GeneratorInteract(OfxInteractHandle handle,
-                                     ImageEffect* effect)
-    : RectangleInteract(handle, effect)
+                                     ImageEffect* effect,
+                                     const char* angleParamName)
+    : RectangleInteract(handle, effect, angleParamName)
     , _extent(NULL)
     , _extentValue(eGeneratorExtentDefault)
 {
@@ -564,10 +565,33 @@ GeneratorInteract::keyUp(const KeyArgs & args)
 }
 
 namespace OFX {
-void
-generatorDescribe(ImageEffectDescriptor &desc)
+// The generator overlay for effects that have a kParamRectangleInteractAngle parameter.
+// DefaultEffectOverlayDescriptor creates the interact from (handle, effect) only, hence this subclass.
+class GeneratorAngleInteract
+    : public GeneratorInteract
 {
-    desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
+public:
+    GeneratorAngleInteract(OfxInteractHandle handle,
+                           ImageEffect* effect)
+        : GeneratorInteract(handle, effect, kParamRectangleInteractAngle)
+    {
+    }
+};
+
+class GeneratorAngleOverlayDescriptor
+    : public DefaultEffectOverlayDescriptor<GeneratorAngleOverlayDescriptor, GeneratorAngleInteract>
+{
+};
+
+void
+generatorDescribe(ImageEffectDescriptor &desc,
+                  bool hasAngle)
+{
+    if (hasAngle) {
+        desc.setOverlayInteractDescriptor(new GeneratorAngleOverlayDescriptor);
+    } else {
+        desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
+    }
 }
 
 void
