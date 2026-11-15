@@ -14,8 +14,6 @@ WARN="-Wall -Wextra -Wno-unused-parameter"
 OUT=$(mktemp -d)
 status=0
 for f in *.cpp glad/*.cpp; do
-    # ofxsMipmap.cpp is not used by any consumer and does not build
-    [ "$f" = ofxsMipmap.cpp ] && continue
     log=$OUT/$(basename "$f").log
     # shellcheck disable=SC2086
     if ! $CXX $CXXSTD $WARN $DEFS $INCS "$@" -c "$f" -o "$OUT/$(basename "$f" .cpp).o" > "$log" 2>&1; then
