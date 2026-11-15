@@ -58,8 +58,15 @@
  *   kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"),
  *   and so do V2 descriptors registered as V1 because the host or the
  *   Support library has no DrawSuite.
- * - An overlay really registered as V2 that gets no draw context draws
- *   nothing: OverlayDraw::canDraw() is false, and draw() returns false.
+ * - An overlay really registered as V2 that gets no draw context, or whose
+ *   draw() was compiled without the DrawSuite backend, draws nothing:
+ *   OverlayDraw::canDraw() is false, and draw() returns false.
+ * Whether the overlay is registered as V2 is decided like the Support library
+ * does in ImageEffectDescriptor::setOverlayInteractDescriptorV2(): if, and only
+ * if, getImageEffectHostDescription()->supportsDrawSuite (filled at
+ * kOfxActionLoad, before describe and instance creation, also when the host
+ * cached the plugin description). So V2 descriptors may also be registered with
+ * desc.setOverlayInteractDescriptorV2() directly.
  *
  * Sizes: the OpenGL overlays multiply their line widths, point sizes and
  * pixel offsets by their screen pixel ratio, (hiDPI param ? 2 : 1) *
@@ -85,16 +92,24 @@
  * accepts V2 descriptors, so a V1 descriptor (which draws with OpenGL) cannot
  * be registered as V2 by mistake. The Support library's own
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2() accepts any
- * descriptor: do not call it directly with a V1 descriptor.
+ * descriptor: never call it with a V1 descriptor.
  *
- * Enabling the DrawSuite backend: the Support library has no macro telling
- * that it provides OFX::DrawContext, DrawArgs::drawContext and
- * ImageEffectDescriptor::setOverlayInteractDescriptorV2 (ofxDrawSuite.h also
- * ships with the upstream Support library, which has none of them). Until it
- * defines OFXS_SUPPORT_HAS_DRAWCONTEXT (proposed), build with
- * -DOFXS_HAVE_DRAWSUITE=1 against a NatronGitHub openfx that has them
- * (master 05c5a75d or later). Without it, everything draws with OpenGL and
+ * Enabling the DrawSuite backend: it needs a Support library with OFX::DrawContext,
+ * DrawArgs::drawContext and ImageEffectDescriptor::setOverlayInteractDescriptorV2
+ * (ofxDrawSuite.h alone is not enough: the upstream Support library ships it
+ * without that API). It is enabled automatically when the Support library defines
+ * OFXS_SUPPORT_HAS_DRAWCONTEXT (NatronGitHub/openfx #87), or with
+ * -DOFXS_HAVE_DRAWSUITE=1 for NatronGitHub openfx 05c5a75d and later without it;
+ * -DOFXS_HAVE_DRAWSUITE=0 disables it. An empty value (-DOFXS_HAVE_DRAWSUITE=) is
+ * an error. Without it, everything draws with OpenGL and
  * ofxsSetOverlayInteractDescriptorV2 registers V1 overlays.
+ * OFXS_HAVE_DRAWSUITE must be a global compiler flag with the same value for
+ * every translation unit (the plugins and the SupportExt sources), never a
+ * #define in a source file. If it differs anyway, OverlayDraw is a different
+ * class on each side (it lives in an inline namespace named after the value,
+ * so this is not an ODR violation), and an overlay registered as V2 whose
+ * draw() was compiled without the DrawSuite draws nothing rather than call
+ * OpenGL.
  *
  * Consumers updating SupportExt: the class layouts of the SupportExt
  * interacts changed, so do a clean build (Makefile.master has no header
@@ -137,15 +152,22 @@
 #include "ofxsOGLTextRenderer.h"
 
 // DrawSuite backend: see "Enabling the DrawSuite backend" above.
-#ifndef OFXS_HAVE_DRAWSUITE
-#ifdef OFXS_SUPPORT_HAS_DRAWCONTEXT
-#define OFXS_HAVE_DRAWSUITE 1
+// OFXS_OVERLAYDRAW_DS is the normalized 0/1 value.
+#if defined(OFXS_HAVE_DRAWSUITE)
+#if (1 - OFXS_HAVE_DRAWSUITE - 1) == 2
+#error "OFXS_HAVE_DRAWSUITE is defined but empty: use -DOFXS_HAVE_DRAWSUITE=1 or -DOFXS_HAVE_DRAWSUITE=0"
+#elif OFXS_HAVE_DRAWSUITE
+#define OFXS_OVERLAYDRAW_DS 1
 #else
-#define OFXS_HAVE_DRAWSUITE 0
+#define OFXS_OVERLAYDRAW_DS 0
 #endif
+#elif defined(OFXS_SUPPORT_HAS_DRAWCONTEXT)
+#define OFXS_OVERLAYDRAW_DS 1
+#else
+#define OFXS_OVERLAYDRAW_DS 0
 #endif
-#if OFXS_HAVE_DRAWSUITE && !defined(kOfxDrawSuite)
-#error "OFXS_HAVE_DRAWSUITE=1 requires a Support library with the OFX 1.5 DrawSuite (OFX::DrawContext)"
+#if OFXS_OVERLAYDRAW_DS && !defined(OFXS_SUPPORT_HAS_DRAWCONTEXT) && !defined(kOfxDrawSuite)
+#error "OFXS_HAVE_DRAWSUITE=1 needs a Support library with the OFX 1.5 DrawSuite API (OFX::DrawContext, NatronGitHub openfx 05c5a75d or later)"
 #endif
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
@@ -200,22 +222,28 @@ private:
     OverlayDrawModeEnum _previous;
 };
 
+/// Is an overlay registered with setOverlayInteractDescriptorV2() registered as
+/// V2? The same test as ImageEffectDescriptor::setOverlayInteractDescriptorV2().
+inline bool
+ofxsOverlayIsRegisteredAsV2()
+{
+#if OFXS_OVERLAYDRAW_DS
+    return getImageEffectHostDescription()->supportsDrawSuite;
+#else
+    return false;
+#endif
+}
+
 /// Base class of the overlay descriptors accepted by ofxsSetOverlayInteractDescriptorV2.
 class EffectOverlayDescriptorV2
     : public EffectOverlayDescriptor
 {
-public:
-    /// called by ofxsSetOverlayInteractDescriptorV2
-    virtual void setRegisteredAsV2(bool v2) = 0;
 };
 
 /// Overlay descriptor for overlays that draw through OverlayDraw: the interact
 /// instances it creates use the DrawSuite when it is registered as V2.
-/// Register it with ofxsSetOverlayInteractDescriptorV2().
-/// The interacts are created by a static DESC (see InteractMainEntry), so
-/// whether the registration was V2 is recorded per DESC type. It only depends
-/// on the host and the Support library, so it is the same for all the plugins
-/// using DESC.
+/// Register it with ofxsSetOverlayInteractDescriptorV2() (or
+/// desc.setOverlayInteractDescriptorV2()).
 template<class DESC, class INSTANCE>
 class DefaultEffectOverlayDescriptorV2
     : public EffectOverlayDescriptorV2, public InteractMainEntry<DESC>
@@ -224,22 +252,12 @@ public:
     Interact* createInstance(OfxInteractHandle handle,
                              ImageEffect *effect)
     {
-        OverlayDrawConstructionScope scope(registeredAsV2() ? eOverlayDrawSuite : eOverlayDrawSuiteFallback);
+        OverlayDrawConstructionScope scope(ofxsOverlayIsRegisteredAsV2() ? eOverlayDrawSuite : eOverlayDrawSuiteFallback);
 
         return new INSTANCE(handle, effect);
     }
 
     virtual OfxPluginEntryPoint* getMainEntry() { return InteractMainEntry<DESC>::overlayInteractMainEntry; }
-
-    virtual void setRegisteredAsV2(bool v2) { registeredAsV2() = v2; }
-
-private:
-    static bool& registeredAsV2()
-    {
-        static bool v2 = false;
-
-        return v2;
-    }
 };
 
 /// Register an overlay as kOfxImageEffectPluginPropOverlayInteractV2 if the
@@ -250,17 +268,25 @@ inline bool
 ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
                                    EffectOverlayDescriptorV2* overlay)
 {
-#if OFXS_HAVE_DRAWSUITE
-    bool v2 = desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
+#if OFXS_OVERLAYDRAW_DS
+    return desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
 #else
     desc.setOverlayInteractDescriptor(overlay); // takes ownership
-    bool v2 = false;
-#endif
-    overlay->setRegisteredAsV2(v2);
 
-    return v2;
+    return false;
+#endif
 }
 
+// inline namespace named after OFXS_OVERLAYDRAW_DS (C++11; C++98 builds must not
+// mix values, see "Enabling the DrawSuite backend")
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
+#define OFXS_OVERLAYDRAW_INLINE_NAMESPACE 1
+#if OFXS_OVERLAYDRAW_DS
+inline namespace OverlayDrawWithDrawSuite {
+#else
+inline namespace OverlayDrawOpenGLOnly {
+#endif
+#endif
 /// OpenGL 1.x immediate-mode subset, drawn with OpenGL or the DrawSuite.
 /// One instance per draw action.
 class OverlayDraw
@@ -293,14 +319,16 @@ public:
             _screenPixelRatio = args.screenPixelRatio;
         }
 #endif
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
         if (mode == eOverlayDrawSuite) {
             _ctx = args.drawContext;
             // registered as V2: "drawing MUST use DrawSuite", never OpenGL
             _canDraw = (_ctx != NULL);
         }
 #else
-        (void)mode;
+        // compiled without the DrawSuite backend: OpenGL is not allowed for an
+        // overlay registered as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
+        _canDraw = (mode != eOverlayDrawSuite);
 #endif
         if (_ctx) {
             _stack.push_back( Mat4() );
@@ -503,7 +531,7 @@ public:
                       const char* string,
                       TextRenderer::Font font = TextRenderer::FONT_HELVETICA_12)
     {
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
         if (_ctx) {
             OfxPointD p;
             transformDS(x, y, &p);
@@ -622,7 +650,7 @@ private:
     // primitive (they are DrawSuite state, and the initial host state is unknown)
     void syncLineStateDS()
     {
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
         // OpenGL widths are in device pixels; the host adjusts the DrawSuite width for screen density
         float width = (float)(_state.lineWidth / _screenPixelRatio);
         if (width != _ctxLineWidth) {
@@ -656,7 +684,7 @@ private:
 
     void applyColourDS(const Colour &c)
     {
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
         if ( !_ctxColourSet || (c != _ctxColour) ) {
             _ctx->setColour(c.r, c.g, c.b, c.a);
             _ctxColour = c;
@@ -670,7 +698,7 @@ private:
 #endif
     }
 
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
     void drawDS(OfxDrawPrimitive prim,
                 const std::vector<OfxPointD> &pts)
     {
@@ -753,11 +781,11 @@ private:
         return pts;
     }
 
-#endif // if OFXS_HAVE_DRAWSUITE
+#endif // if OFXS_OVERLAYDRAW_DS
 
     void flushDS()
     {
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
         const size_t n = _vertices.size();
         std::vector<const Vertex*> ends;
 
@@ -817,12 +845,12 @@ private:
             assert(false); // not used by the SupportExt overlays
             break;
         }
-#endif // if OFXS_HAVE_DRAWSUITE
+#endif // if OFXS_OVERLAYDRAW_DS
         _vertices.clear();
         _mode = 0;
     }
 
-#if OFXS_HAVE_DRAWSUITE
+#if OFXS_OVERLAYDRAW_DS
     const DrawContext* _ctx;
 #else
     const void* _ctx; // always NULL
@@ -842,6 +870,9 @@ private:
     float _ctxLineWidth; // line width sent to the host, -1 if none yet
     int _ctxStipple; // OfxDrawLineStipplePattern sent to the host, -1 if none yet
 };
+#ifdef OFXS_OVERLAYDRAW_INLINE_NAMESPACE
+} // inline namespace
+#endif
 } // namespace OFX
 
 #endif // openfx_supportext_ofxsOverlayDraw_h
