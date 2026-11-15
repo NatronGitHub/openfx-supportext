@@ -204,6 +204,43 @@ RectangleInteract::draw(const DrawArgs &args)
     return true;
 } // draw
 
+void
+RectangleInteract::updateCursor()
+{
+    const char* name = NULL;
+
+    switch (_drawState) {
+    case eDrawStateInactive:
+        break;
+    case eDrawStateHoveringCenter:
+        name = kOfxsCursorMove;
+        break;
+    case eDrawStateHoveringTopLeft:
+    case eDrawStateHoveringBtmRight:
+        name = kOfxsCursorNWSEResize;
+        break;
+    case eDrawStateHoveringTopRight:
+    case eDrawStateHoveringBtmLeft:
+        name = kOfxsCursorNESWResize;
+        break;
+    case eDrawStateHoveringTopMid:
+    case eDrawStateHoveringBtmMid:
+        name = kOfxsCursorNSResize;
+        break;
+    case eDrawStateHoveringMidLeft:
+    case eDrawStateHoveringMidRight:
+        name = kOfxsCursorEWResize;
+        break;
+    }
+    if (!name) {
+        // not over a handle: give the cursor back to the host
+        _cursor.setDefault(this);
+
+        return;
+    }
+    _cursor.set(this, name);
+}
+
 bool
 RectangleInteract::penMotion(const PenArgs &args)
 {
@@ -434,6 +471,11 @@ RectangleInteract::penMotion(const PenArgs &args)
 
     _lastMousePos = args.penPosition;
 
+    // report the cursor for the hovered or dragged handle (during a drag,
+    // _drawState is the dragged handle); the host reads it whether or not the
+    // event is trapped, so the return value is unchanged
+    updateCursor();
+
     return valuesChanged;
 } // penMotion
 
@@ -606,6 +648,8 @@ RectangleInteract::loseFocus(const FocusArgs & /*args*/)
     _modifierStateCtrl = 0;
     _modifierStateShift = 0;
     _interactiveDrag = false;
+    // the host restores its own cursor
+    _cursor.reset();
 }
 
 OfxPointD

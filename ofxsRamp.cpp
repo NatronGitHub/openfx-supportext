@@ -317,6 +317,16 @@ RampInteractHelper::penMotion(const PenArgs &args)
 
     _lastMousePos = args.penPosition;
 
+    // report the cursor; the host reads it whether or not the event is
+    // trapped, so the return value is unchanged
+    if ( (_state != eInteractStateIdle) ||
+         isNearby(args.penPosition, p0.x, p0.y, POINT_TOLERANCE, pscale) ||
+         isNearby(args.penPosition, p1.x, p1.y, POINT_TOLERANCE, pscale) ) {
+        _cursor.set(_interact, kOfxsCursorMove);
+    } else {
+        _cursor.setDefault(_interact);
+    }
+
     return valuesChanged;
 } // RampInteractHelper::penMotion
 
@@ -411,6 +421,8 @@ RampInteractHelper::loseFocus(const FocusArgs & /*args*/)
 {
     _interactiveDrag = false;
     _state = eInteractStateIdle;
+    // the host restores its own cursor
+    _cursor.reset();
 }
 
 void

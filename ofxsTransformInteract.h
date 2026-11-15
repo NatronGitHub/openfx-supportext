@@ -29,6 +29,7 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
+#include "ofxsInteractCursor.h"
 
 #define kParamTransformTranslate "transformTranslate"
 #define kParamTransformTranslateLabel "Translate"
@@ -203,6 +204,16 @@ public:
 
 private:
     void getTransformParams(double time, TransformParams& tp);
+
+    /// The cursor for the current drag or hover state, or NULL if the pen is
+    /// not over a handle.
+    const char* cursorName(const TransformParams& tp, const OfxPointD& targetCenter, const OfxPointD& penPos, const OfxPointD& pscale) const;
+
+    /// Report the cursor for the current state (the host reads it after each
+    /// pen or key action, trapped or not).
+    void updateCursor(const TransformParams& tp, const OfxPointD& penPos, const OfxPointD& pscale);
+
+    InteractCursor _cursor;
 
     // NON-GENERIC
     OFX::Double2DParam* _translate;

@@ -31,6 +31,7 @@
 #endif
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsInteractCursor.h"
 
 #define kParamTrackingCenterPoint "center"
 #define kParamTrackingCenterPointLabel "Center"
@@ -273,6 +274,10 @@ private:
     bool isDraggingInnerPoint() const;
     bool isDraggingOuterPoint() const;
 
+    /// Report the cursor for the hovered or dragged handle (the host reads it
+    /// after each pen or key action, trapped or not).
+    void updateCursor();
+
     OfxPointD _lastMousePos;
     MouseStateEnum _ms;
     DrawStateEnum _ds;
@@ -284,6 +289,7 @@ private:
     OFX::Double2DParam* _outerTopRight;
     OFX::StringParam* _name;
     OFX::BooleanParam* _hiDPI;
+    OFX::InteractCursor _cursor;
     OfxPointD _centerDragPos;
     OfxPointD _offsetDragPos;
 

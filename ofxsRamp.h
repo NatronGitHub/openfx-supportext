@@ -33,6 +33,7 @@
 #include "ofxsMacros.h"
 #include "ofxsOGLTextRenderer.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsInteractCursor.h"
 
 #define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
@@ -102,6 +103,7 @@ class RampInteractHelper
     InteractState _state;
     OFX::ImageEffect* _effect;
     OFX::Interact* _interact;
+    OFX::InteractCursor _cursor;
     Clip *_dstClip;
 
 public:

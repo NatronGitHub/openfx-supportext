@@ -38,6 +38,7 @@
 
 #include <ofxsInteract.h>
 #include <ofxsImageEffect.h>
+#include "ofxsInteractCursor.h"
 #include "ofxsOGLTextRenderer.h"
 #include "ofxsOGLHiDPI.h"
 #include "ofxsMacros.h"
@@ -163,6 +164,7 @@ private:
     OfxPointD _penPosition;
     bool _interactiveDrag;
     bool _hasNativeHostPositionHandle;
+    OFX::InteractCursor _cursor;
 
     double pointSize() const
     {
@@ -330,6 +332,14 @@ PositionInteract<ParamName>::penMotion(const OFX::PenArgs &args)
         requestRedraw();
     }
 
+    // report the cursor; the host reads it whether or not the event is
+    // trapped, so the return value is unchanged
+    if (_state == eMouseStateInactive) {
+        _cursor.setDefault(this);
+    } else {
+        _cursor.set(this, kOfxsCursorMove);
+    }
+
     return valuesChanged;
 } // >::penMotion
 
@@ -405,6 +415,8 @@ PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs & /*args*/)
         _state = eMouseStateInactive;
         requestRedraw();
     }
+    // the host restores its own cursor
+    _cursor.reset();
 }
 
 template <typename ParamName>

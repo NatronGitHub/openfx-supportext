@@ -582,6 +582,83 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     return true;
 } // draw
 
+void
+TrackerRegionInteract::updateCursor()
+{
+    const char* name = NULL;
+
+    switch (_ms) {
+    case eMouseStateIdle:
+        switch (_ds) {
+        case eDrawStateInactive:
+            break;
+        case eDrawStateHoveringCenter:
+            name = kOfxsCursorMove;
+            break;
+        case eDrawStateHoveringInnerTopLeft:
+        case eDrawStateHoveringInnerBtmRight:
+        case eDrawStateHoveringOuterTopLeft:
+        case eDrawStateHoveringOuterBtmRight:
+            name = kOfxsCursorNWSEResize;
+            break;
+        case eDrawStateHoveringInnerTopRight:
+        case eDrawStateHoveringInnerBtmLeft:
+        case eDrawStateHoveringOuterTopRight:
+        case eDrawStateHoveringOuterBtmLeft:
+            name = kOfxsCursorNESWResize;
+            break;
+        case eDrawStateHoveringInnerTopMid:
+        case eDrawStateHoveringInnerBtmMid:
+        case eDrawStateHoveringOuterTopMid:
+        case eDrawStateHoveringOuterBtmMid:
+            name = kOfxsCursorNSResize;
+            break;
+        case eDrawStateHoveringInnerMidLeft:
+        case eDrawStateHoveringInnerMidRight:
+        case eDrawStateHoveringOuterMidLeft:
+        case eDrawStateHoveringOuterMidRight:
+            name = kOfxsCursorEWResize;
+            break;
+        }
+        break;
+    case eMouseStateDraggingCenter:
+    case eMouseStateDraggingOffset:
+        name = kOfxsCursorMove;
+        break;
+    case eMouseStateDraggingInnerTopLeft:
+    case eMouseStateDraggingInnerBtmRight:
+    case eMouseStateDraggingOuterTopLeft:
+    case eMouseStateDraggingOuterBtmRight:
+        name = kOfxsCursorNWSEResize;
+        break;
+    case eMouseStateDraggingInnerTopRight:
+    case eMouseStateDraggingInnerBtmLeft:
+    case eMouseStateDraggingOuterTopRight:
+    case eMouseStateDraggingOuterBtmLeft:
+        name = kOfxsCursorNESWResize;
+        break;
+    case eMouseStateDraggingInnerTopMid:
+    case eMouseStateDraggingInnerBtmMid:
+    case eMouseStateDraggingOuterTopMid:
+    case eMouseStateDraggingOuterBtmMid:
+        name = kOfxsCursorNSResize;
+        break;
+    case eMouseStateDraggingInnerMidLeft:
+    case eMouseStateDraggingInnerMidRight:
+    case eMouseStateDraggingOuterMidLeft:
+    case eMouseStateDraggingOuterMidRight:
+        name = kOfxsCursorEWResize;
+        break;
+    }
+    if (!name) {
+        // not over a handle: give the cursor back to the host
+        _cursor.setDefault(this);
+
+        return;
+    }
+    _cursor.set(this, name);
+}
+
 bool
 TrackerRegionInteract::penMotion(const PenArgs &args)
 {
@@ -963,6 +1040,10 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
 
     _lastMousePos = args.penPosition;
 
+    // report the cursor for the hovered or dragged handle; the host reads it
+    // whether or not the event is trapped, so the return value is unchanged
+    updateCursor();
+
     return valuesChanged;
 } // penMotion
 
@@ -1173,5 +1254,7 @@ TrackerRegionInteract::loseFocus(const FocusArgs & /*args*/)
     _altDown = 0;
     _ds = eDrawStateInactive;
     _ms = eMouseStateIdle;
+    // the host restores its own cursor
+    _cursor.reset();
 }
 } // namespace OFX
