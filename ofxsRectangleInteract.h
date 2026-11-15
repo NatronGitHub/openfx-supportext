@@ -231,8 +231,9 @@ private:
     void getRectangle(OfxTime time, double* x1, double* y1, double* w, double* h, OfxPointD* center, double* angle) const;
 
     /// Report the cursor for the hovered or dragged handle (the host reads it
-    /// after each pen or key action, trapped or not).
-    void updateCursor();
+    /// after each pen or key action, trapped or not). angle is the rotation of
+    /// the rectangle in degrees: resize cursors follow the rotated handles.
+    void updateCursor(double angle, const OfxPointD& pscale);
 
 private:
     OFX::ImageEffect* _effect;
