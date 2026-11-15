@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-14, windows-2022]
+        os: [ubuntu-22.04, macos-latest, windows-2022]
         openfx:
           - { name: master, ref: master }
           - { name: consumers, ref: 2303ff811bee3ffe085287602f684fe5fe5357e0 }
@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl-dev libglu1-mesa-dev
+          sudo apt-get install -y libgl-dev libglu1-mesa-dev libegl-dev
       - name: Setup MinGW environment
         if: startsWith(matrix.os, 'windows')
         uses: msys2/setup-msys2@v2
