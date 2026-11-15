@@ -199,6 +199,17 @@ protected:
         return true;
     }
 
+    /**
+     * @brief Give the cursor back to the host if this interact had set one.
+     * Subclasses that skip RectangleInteract::penMotion() (e.g. when their
+     * rectangle is disabled) should call it on that path, so that a handle
+     * cursor does not stay displayed.
+     **/
+    void releaseCursor()
+    {
+        _cursor.release(this);
+    }
+
 private:
     void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
 

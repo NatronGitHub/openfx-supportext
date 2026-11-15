@@ -234,7 +234,7 @@ RectangleInteract::updateCursor()
     }
     if (!name) {
         // not over a handle: give the cursor back to the host
-        _cursor.setDefault(this);
+        _cursor.release(this);
 
         return;
     }
@@ -247,6 +247,9 @@ RectangleInteract::penMotion(const PenArgs &args)
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {
+        // the interact is disabled: give the cursor back if we had set it
+        releaseCursor();
+
         return false;
     }
 
@@ -649,7 +652,7 @@ RectangleInteract::loseFocus(const FocusArgs & /*args*/)
     _modifierStateShift = 0;
     _interactiveDrag = false;
     // the host restores its own cursor
-    _cursor.reset();
+    _cursor.release(this);
 }
 
 OfxPointD

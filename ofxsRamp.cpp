@@ -271,11 +271,16 @@ RampInteractHelper::penMotion(const PenArgs &args)
     const double time = args.time;
 
     if ( !_interactOpen->getValueAtTime(time) ) {
+        // the overlay is hidden: give the cursor back if we had set it
+        _cursor.release(_interact);
+
         return false;
     }
     RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
     bool noramp = (type == eRampTypeNone);
     if (noramp) {
+        _cursor.release(_interact);
+
         return false;
     }
 
@@ -324,7 +329,7 @@ RampInteractHelper::penMotion(const PenArgs &args)
          isNearby(args.penPosition, p1.x, p1.y, POINT_TOLERANCE, pscale) ) {
         _cursor.set(_interact, kOfxsCursorMove);
     } else {
-        _cursor.setDefault(_interact);
+        _cursor.release(_interact);
     }
 
     return valuesChanged;
@@ -422,7 +427,7 @@ RampInteractHelper::loseFocus(const FocusArgs & /*args*/)
     _interactiveDrag = false;
     _state = eInteractStateIdle;
     // the host restores its own cursor
-    _cursor.reset();
+    _cursor.release(_interact);
 }
 
 void

@@ -652,7 +652,7 @@ TrackerRegionInteract::updateCursor()
     }
     if (!name) {
         // not over a handle: give the cursor back to the host
-        _cursor.setDefault(this);
+        _cursor.release(this);
 
         return;
     }
@@ -1255,6 +1255,6 @@ TrackerRegionInteract::loseFocus(const FocusArgs & /*args*/)
     _ds = eDrawStateInactive;
     _ms = eMouseStateIdle;
     // the host restores its own cursor
-    _cursor.reset();
+    _cursor.release(this);
 }
 } // namespace OFX

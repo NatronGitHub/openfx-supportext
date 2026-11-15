@@ -1152,7 +1152,7 @@ TransformInteractHelper::updateCursor(const TransformParams& tp,
     const char* name = cursorName(tp, targetCenter, penPos, pscale);
     if (!name) {
         // not over a handle: give the cursor back to the host
-        _cursor.setDefault(_interact);
+        _cursor.release(_interact);
 
         return;
     }
@@ -1163,6 +1163,9 @@ bool
 TransformInteractHelper::penMotion(const PenArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
+        // the overlay is hidden: give the cursor back if we had set it
+        _cursor.release(_interact);
+
         return false;
     }
     const OfxPointD &pscale = args.pixelScale;
@@ -1629,49 +1632,16 @@ TransformInteractHelper::penUp(const PenArgs &args)
         _interact->requestRedraw();
     }
 
-    if (ret) {
-        // the pen is over the handle that was dragged: _drawState is only set
-        // by hover motions, and may be stale if penDown was not preceded by one
-        switch (_mouseState) {
-        case eDraggingTranslation:
-        case eDraggingCenter:
-            _drawState = eCenterPointHovered;
-            break;
-        case eDraggingCircle:
-            _drawState = eCircleHovered;
-            break;
-        case eDraggingLeftPoint:
-            _drawState = eLeftPointHovered;
-            break;
-        case eDraggingRightPoint:
-            _drawState = eRightPointHovered;
-            break;
-        case eDraggingTopPoint:
-            _drawState = eTopPointHovered;
-            break;
-        case eDraggingBottomPoint:
-            _drawState = eBottomPointHovered;
-            break;
-        case eDraggingRotationBar:
-            _drawState = eRotationBarHovered;
-            break;
-        case eDraggingSkewXBar:
-            _drawState = eSkewXBarHoverered;
-            break;
-        case eDraggingSkewYBar:
-            _drawState = eSkewYBarHoverered;
-            break;
-        case eReleased:
-            break;
-        }
-    }
     _mouseState = eReleased;
     _lastMousePos = args.penPosition;
 
     if (ret) {
-        // back to the hover cursor of the handle that was dragged (e.g. grab
-        // after grabbing); the next PenMotion updates it
-        updateCursor(_tpDrag, args.penPosition, args.pixelScale);
+        // Recompute the hover state (highlighted handle) and the cursor at the
+        // pen position, as a PenMotion would: _drawState is only set by hover
+        // motions, so it may be stale (penDown not preceded by a hover, or the
+        // pen left the handle during the drag), and no motion may follow
+        // (tablet lift-off). The return value is ignored: this is not a motion.
+        penMotion(args);
     }
 
     return ret;
@@ -1761,6 +1731,6 @@ TransformInteractHelper::loseFocus(const FocusArgs & /*args*/)
     _mouseState = eReleased;
     _drawState = eInActive;
     // the host restores its own cursor
-    _cursor.reset();
+    _cursor.release(_interact);
 }
 } // namespace OFX

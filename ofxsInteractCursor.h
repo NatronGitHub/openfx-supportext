@@ -24,7 +24,8 @@
  * reads the cursor requested by the interact instance. When no interact traps
  * the event, the most recent non-default request of the view is shown. An
  * interact therefore sets a cursor while the pen hovers or drags one of its
- * handles, and sets "default" again when the pen leaves them. It does not need
+ * handles, and gives it back ("default") when the pen leaves them or the
+ * interact stops handling events. It does not need
  * to trap events for that: keep the existing return values, so that other
  * overlays sharing the view still receive pen motion, and hosts without
  * cursor support see no change in behaviour.
@@ -57,19 +58,28 @@
 #define kOfxsCursorNWSEResize "nwse-resize"
 
 namespace OFX {
-/// Per-interact-instance cursor state. Hosts create one interact instance
-/// per view, so this is per-view state, as the cursor is.
+/// Cursor state of one interact helper (one per interact instance; the host
+/// may share an instance between views, so this is per-instance state).
+///
+/// Several helpers may share one interact (OverlayInteractFromHelpers), and
+/// each one reports its cursor in turn on every event. To let them coexist,
+/// a helper only gives the cursor back ("default") if it is the one that set
+/// it: release() does nothing if this helper does not own the cursor. The
+/// property is set on every call (it is cheap), so the last helper that wants
+/// a cursor during an event wins.
 class InteractCursor
 {
 public:
     InteractCursor()
-        : _current()
+        : _owned(false)
     {
     }
 
     /// Request a cursor. Returns true if the host supports it (it is then
     /// displayed after the current action, subject to the host's arbitration
-    /// between interacts sharing the view).
+    /// between interacts sharing the view). If the host does not support that
+    /// cursor, give the cursor back rather than leaving a previous request in
+    /// place.
     bool set(Interact* interact,
              const char* name)
     {
@@ -77,15 +87,12 @@ public:
         if (!interact) {
             return false;
         }
-        if (_current == name) {
-            return true;
-        }
         if ( interact->setCursor(name) ) {
-            _current = name;
+            _owned = (std::string(name) != kOfxsCursorDefault);
 
             return true;
         }
-        _current.clear();
+        release(interact);
 
         return false;
 #else
@@ -96,18 +103,19 @@ public:
 #endif
     }
 
-    /// Give the cursor back to the host. Returns true if the host supports
-    /// interact cursors.
-    bool setDefault(Interact* interact)
+    /// Give the cursor back to the host ("default"), if this helper set it.
+    /// Call it when the pen leaves the handles, when the interact stops
+    /// handling events (overlay hidden, params disabled), and on loseFocus.
+    void release(Interact* interact)
     {
-        return set(interact, kOfxsCursorDefault);
-    }
-
-    /// Forget the cached cursor (e.g. on loseFocus, after which the host
-    /// restores its own cursor), so that the next set() reports it again.
-    void reset()
-    {
-        _current.clear();
+#ifdef OFXS_HAVE_INTERACT_CURSOR
+        if (_owned && interact) {
+            interact->setCursor(kOfxsCursorDefault);
+        }
+#else
+        (void)interact;
+#endif
+        _owned = false;
     }
 
     /// The resize cursor closest to the direction (dx, dy), given in
@@ -143,7 +151,7 @@ public:
     }
 
 private:
-    std::string _current; //< last cursor the host accepted, empty if unknown
+    bool _owned; //< this helper set a non-default cursor that it has not released
 };
 } // namespace OFX
 
