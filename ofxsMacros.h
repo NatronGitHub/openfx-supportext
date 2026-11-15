@@ -27,6 +27,9 @@
 
 /* *INDENT-OFF* */
 
+// pi, as a plain literal (M_PI is not standard C++ and needs _USE_MATH_DEFINES on MSVC)
+#define OFXS_PI 3.14159265358979323846264338327950288
+
 #define OFXS_NAMESPACE_OFX_ENTER namespace OFX {
 #define OFXS_NAMESPACE_OFX_EXIT }
 

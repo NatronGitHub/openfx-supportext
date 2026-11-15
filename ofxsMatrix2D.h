@@ -28,13 +28,15 @@
 #include <cmath>
 #include <cfloat>
 
+#include "ofxsMacros.h" // OFXS_PI
+
 namespace OFX {
 // NEVER define a variable/constant in a header (said it 100 times already)
 // an inline function is OK
 inline double
 ofxsPi()
 {
-    return 3.14159265358979323846264338327950288419717;
+    return OFXS_PI;
 }
 
 /**
