@@ -92,7 +92,11 @@
  * accepts V2 descriptors, so a V1 descriptor (which draws with OpenGL) cannot
  * be registered as V2 by mistake. The Support library's own
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2() accepts any
- * descriptor: never call it with a V1 descriptor.
+ * descriptor: never call it with a V1 descriptor. Conversely, never register a
+ * V2 descriptor with the V1 setOverlayInteractDescriptor(): on a DrawSuite host
+ * its overlay would draw with the DrawSuite through a V1 registration (which
+ * the spec discourages), or draw nothing on hosts that pass no draw context to
+ * V1 overlays.
  *
  * Enabling the DrawSuite backend: it needs a Support library with OFX::DrawContext,
  * DrawArgs::drawContext and ImageEffectDescriptor::setOverlayInteractDescriptorV2
@@ -105,11 +109,15 @@
  * ofxsSetOverlayInteractDescriptorV2 registers V1 overlays.
  * OFXS_HAVE_DRAWSUITE must be a global compiler flag with the same value for
  * every translation unit (the plugins and the SupportExt sources), never a
- * #define in a source file. If it differs anyway, OverlayDraw is a different
- * class on each side (it lives in an inline namespace named after the value,
- * so this is not an ODR violation), and an overlay registered as V2 whose
- * draw() was compiled without the DrawSuite draws nothing rather than call
- * OpenGL.
+ * #define in a source file: this rule is what guarantees correct drawing.
+ * Mixing values is an ODR violation, and some inline functions that depend on
+ * the value (e.g. the draw() of template interacts such as PositionInteract,
+ * or the V2 descriptor classes of the SupportExt headers) may then be linked
+ * with either variant. The rest only limits the damage: the macro-dependent
+ * helpers and OverlayDraw live in an inline namespace named after the value
+ * (C++11), MSVC reports mismatched object files at link time
+ * (#pragma detect_mismatch), and an overlay registered as V2 whose draw() was
+ * compiled without the DrawSuite draws nothing rather than call OpenGL.
  *
  * Consumers updating SupportExt: the class layouts of the SupportExt
  * interacts changed, so do a clean build (Makefile.master has no header
@@ -222,6 +230,25 @@ private:
     OverlayDrawModeEnum _previous;
 };
 
+// Everything below depends on OFXS_OVERLAYDRAW_DS: put it in an inline namespace
+// named after the value (C++11), and let MSVC check that all the object files
+// agree. This limits the damage of mixed values, which are not allowed (see
+// "Enabling the DrawSuite backend").
+#ifdef _MSC_VER
+#if OFXS_OVERLAYDRAW_DS
+#pragma detect_mismatch("OFXS_OVERLAYDRAW_DS", "1")
+#else
+#pragma detect_mismatch("OFXS_OVERLAYDRAW_DS", "0")
+#endif
+#endif
+#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
+#define OFXS_OVERLAYDRAW_INLINE_NAMESPACE 1
+#if OFXS_OVERLAYDRAW_DS
+inline namespace OverlayDrawWithDrawSuite {
+#else
+inline namespace OverlayDrawOpenGLOnly {
+#endif
+#endif
 /// Is an overlay registered with setOverlayInteractDescriptorV2() registered as
 /// V2? The same test as ImageEffectDescriptor::setOverlayInteractDescriptorV2().
 inline bool
@@ -277,16 +304,6 @@ ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
 #endif
 }
 
-// inline namespace named after OFXS_OVERLAYDRAW_DS (C++11; C++98 builds must not
-// mix values, see "Enabling the DrawSuite backend")
-#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
-#define OFXS_OVERLAYDRAW_INLINE_NAMESPACE 1
-#if OFXS_OVERLAYDRAW_DS
-inline namespace OverlayDrawWithDrawSuite {
-#else
-inline namespace OverlayDrawOpenGLOnly {
-#endif
-#endif
 /// OpenGL 1.x immediate-mode subset, drawn with OpenGL or the DrawSuite.
 /// One instance per draw action.
 class OverlayDraw
