@@ -152,7 +152,7 @@ public:
         , _hiDPI(NULL)
         , _interactiveDrag(false)
         , _hasNativeHostPositionHandle(false)
-        , _drawSuite( OFX::ofxsOverlayIsConstructedForDrawSuite() )
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
         assert(_position);
@@ -194,7 +194,7 @@ private:
     bool _interactiveDrag;
     bool _hasNativeHostPositionHandle;
     OFX::InteractCursor _cursor;
-    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 
     double pointSize() const
     {
@@ -231,19 +231,24 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         return false;
     }
 
+    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
+    OverlayDraw d(args, _drawMode);
+    if ( !d.canDraw() ) {
+        return false; // registered as V2 but no draw context: OpenGL is not allowed
+    }
+
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
     screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
+    screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     //const OfxPointD& pscale = args.pixelScale;
-    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
-    OverlayDraw d(args, _drawSuite);
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];

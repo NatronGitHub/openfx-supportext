@@ -80,18 +80,23 @@ RampInteractHelper::draw(const DrawArgs &args)
         return false;
     }
 
+    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
+    OverlayDraw d(args, _drawMode);
+    if ( !d.canDraw() ) {
+        return false; // registered as V2 but no draw context: OpenGL is not allowed
+    }
+
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
     screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
+    screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     _interact->getSuggestedColour(color);
-    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
-    OverlayDraw d(args, _drawSuite);
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];

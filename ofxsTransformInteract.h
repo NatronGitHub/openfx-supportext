@@ -229,7 +229,7 @@ private:
     OFX::BooleanParam* _interactOpen;
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
-    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 };
 
 typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteract;

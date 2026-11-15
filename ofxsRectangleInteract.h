@@ -104,7 +104,7 @@ public:
         , _size(NULL)
         , _interactive(NULL)
         , _hiDPI(NULL)
-        , _drawSuite( OFX::ofxsOverlayIsConstructedForDrawSuite() )
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
@@ -232,7 +232,7 @@ private:
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
     OFX::InteractCursor _cursor;
-    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     bool _interactiveDrag;

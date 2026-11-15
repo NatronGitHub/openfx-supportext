@@ -315,7 +315,10 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
-    OverlayDraw d(args, _drawSuite);
+    OverlayDraw d(args, _drawMode);
+    if ( !d.canDraw() ) {
+        return false; // registered as V2 but no draw context: OpenGL is not allowed
+    }
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
@@ -363,6 +366,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
+    screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs

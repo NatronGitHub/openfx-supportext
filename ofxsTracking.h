@@ -232,7 +232,7 @@ public:
         , _outerTopRight(NULL)
         , _name(NULL)
         , _hiDPI(NULL)
-        , _drawSuite( OFX::ofxsOverlayIsConstructedForDrawSuite() )
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
         , _centerDragPos()
         , _offsetDragPos()
         , _innerBtmLeftDragPos()
@@ -292,7 +292,7 @@ private:
     OFX::StringParam* _name;
     OFX::BooleanParam* _hiDPI;
     OFX::InteractCursor _cursor;
-    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
     OfxPointD _centerDragPos;
     OfxPointD _offsetDragPos;
 

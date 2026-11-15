@@ -106,7 +106,7 @@ class RampInteractHelper
     OFX::Interact* _interact;
     OFX::InteractCursor _cursor;
     Clip *_dstClip;
-    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 
 public:
     RampInteractHelper(OFX::ImageEffect* effect,
@@ -126,7 +126,7 @@ public:
         , _effect(effect)
         , _interact(interact)
         , _dstClip(NULL)
-        , _drawSuite( OFX::ofxsOverlayIsConstructedForDrawSuite() )
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
         if (oldParams) {
             _point0 = effect->fetchDouble2DParam(kParamRampPoint0Old);

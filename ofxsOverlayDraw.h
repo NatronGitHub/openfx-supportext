@@ -39,9 +39,7 @@
  *     pixel is args.pixelScale ("The size of a real screen pixel under the
  *     interact's canonical projection").
  *   - glLineWidth and glPointSize values are in device pixels in the OpenGL
- *     overlays (they are multiplied by the screen pixel ratio). The DrawSuite
- *     line width is in screen pixels and "The host should adjust for screen
- *     density", so the host's screen pixel ratio is divided out.
+ *     overlays; the DrawSuite line width is in screen pixels (see "Sizes").
  *   - GL_POINTS have no DrawSuite primitive: each point is drawn as a filled
  *     square (or a filled disc with GL_POINT_SMOOTH) of the point size.
  *   - Colour is DrawSuite state, not per vertex: a primitive whose vertices
@@ -51,12 +49,27 @@
  *   - Blending, smoothing and hints are left to the host.
  *   - TextRenderer::bitmapString maps to drawText (font chosen by the host).
  *
- * Which backend is used: the DrawSuite one if, and only if, the overlay was
- * created by a DefaultEffectOverlayDescriptorV2 (i.e. the plugin opted in with
- * ofxsSetOverlayInteractDescriptorV2) and the host passed a draw context.
- * Overlays registered as V1 keep using OpenGL even on hosts with a DrawSuite
- * ("If this is called via kOfxImageEffectPluginPropOverlayInteractV1, drawing
- * SHOULD use OpenGL").
+ * Which backend is used:
+ * - the DrawSuite one if the overlay was created by a
+ *   DefaultEffectOverlayDescriptorV2 (the plugin opted in with
+ *   ofxsSetOverlayInteractDescriptorV2) and the host passed a draw context;
+ * - OpenGL otherwise. Overlays registered as V1 keep using OpenGL even on
+ *   hosts with a DrawSuite ("If this is called via
+ *   kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"),
+ *   and so do V2 descriptors registered as V1 because the host or the
+ *   Support library has no DrawSuite.
+ * - An overlay really registered as V2 that gets no draw context draws
+ *   nothing: OverlayDraw::canDraw() is false, and draw() returns false.
+ *
+ * Sizes: the OpenGL overlays multiply their line widths, point sizes and
+ * pixel offsets by their screen pixel ratio, (hiDPI param ? 2 : 1) *
+ * args.screenPixelRatio. They pass that ratio through
+ * OverlayDraw::overlayScreenPixelRatio(), which returns it unchanged for
+ * OpenGL, and 1 for the DrawSuite: "The host should adjust for screen
+ * density", so neither the density nor the hiDPI param change the DrawSuite
+ * sizes, and a missing kOfxInteractPropScreenPixelRatio (ratio 0) cannot give
+ * zero sizes. (If an overlay does not call it, OverlayDraw divides its sizes
+ * by args.screenPixelRatio, or 1 if it is <= 0.)
  *
  * How a plugin opts in (all the overlay's drawing must go through
  * OverlayDraw, including the draw() of any subclass or extra helper):
@@ -68,8 +81,26 @@
  *
  * instead of desc.setOverlayInteractDescriptor(new MyOverlayDescriptor). The
  * SupportExt overlays provide ready-made V2 descriptors (e.g.
- * TransformOverlayDescriptorV2). On hosts or Support libraries without the
- * DrawSuite, this registers a V1 overlay that draws with OpenGL, as before.
+ * TransformOverlayDescriptorV2). ofxsSetOverlayInteractDescriptorV2 only
+ * accepts V2 descriptors, so a V1 descriptor (which draws with OpenGL) cannot
+ * be registered as V2 by mistake. The Support library's own
+ * ImageEffectDescriptor::setOverlayInteractDescriptorV2() accepts any
+ * descriptor: do not call it directly with a V1 descriptor.
+ *
+ * Enabling the DrawSuite backend: the Support library has no macro telling
+ * that it provides OFX::DrawContext, DrawArgs::drawContext and
+ * ImageEffectDescriptor::setOverlayInteractDescriptorV2 (ofxDrawSuite.h also
+ * ships with the upstream Support library, which has none of them). Until it
+ * defines OFXS_SUPPORT_HAS_DRAWCONTEXT (proposed), build with
+ * -DOFXS_HAVE_DRAWSUITE=1 against a NatronGitHub openfx that has them
+ * (master 05c5a75d or later). Without it, everything draws with OpenGL and
+ * ofxsSetOverlayInteractDescriptorV2 registers V1 overlays.
+ *
+ * Consumers updating SupportExt: the class layouts of the SupportExt
+ * interacts changed, so do a clean build (Makefile.master has no header
+ * dependency tracking). The OpenGL headers now come through ofxsOverlayDraw.h
+ * and the SupportExt interact headers: a translation unit that uses glad.h
+ * must include it before them.
  */
 
 #ifndef openfx_supportext_ofxsOverlayDraw_h
@@ -81,6 +112,16 @@
 #include <cstring>
 #include <string>
 #include <vector>
+
+#if defined(_WIN32) && !defined(__MINGW32__)
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h> // for WINGDIAPI and APIENTRY, used by GL/gl.h
+#endif
 
 #ifdef __APPLE__
 #ifndef GL_SILENCE_DEPRECATION
@@ -95,10 +136,16 @@
 #include "ofxsImageEffect.h"
 #include "ofxsOGLTextRenderer.h"
 
-// The DrawSuite API of the Support library (OFX::DrawContext, DrawArgs::drawContext,
-// ImageEffectDescriptor::setOverlayInteractDescriptorV2) comes with ofxDrawSuite.h.
-#if defined(kOfxDrawSuite)
+// DrawSuite backend: see "Enabling the DrawSuite backend" above.
+#ifndef OFXS_HAVE_DRAWSUITE
+#ifdef OFXS_SUPPORT_HAS_DRAWCONTEXT
 #define OFXS_HAVE_DRAWSUITE 1
+#else
+#define OFXS_HAVE_DRAWSUITE 0
+#endif
+#endif
+#if OFXS_HAVE_DRAWSUITE && !defined(kOfxDrawSuite)
+#error "OFXS_HAVE_DRAWSUITE=1 requires a Support library with the OFX 1.5 DrawSuite (OFX::DrawContext)"
 #endif
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
@@ -110,76 +157,108 @@
 #endif
 
 namespace OFX {
-/// true while a DefaultEffectOverlayDescriptorV2 creates an interact instance,
-/// on the creating thread. Read it in the interact (or helper) constructor.
-inline bool&
-ofxsOverlayDrawSuiteConstructionFlag()
+/// How an interact draws, decided by the descriptor that created it.
+enum OverlayDrawModeEnum
 {
-    static OFXS_OVERLAYDRAW_THREAD_LOCAL bool flag = false;
+    eOverlayDrawOpenGL = 0, //< V1 descriptor: always OpenGL
+    eOverlayDrawSuiteFallback, //< V2 descriptor registered as V1 (no DrawSuite): OpenGL
+    eOverlayDrawSuite //< V2 descriptor registered as V2: DrawSuite only
+};
 
-    return flag;
+/// The draw mode of the interact being created, on the creating thread (set by
+/// DefaultEffectOverlayDescriptorV2::createInstance).
+inline OverlayDrawModeEnum&
+ofxsOverlayDrawConstructionMode()
+{
+    static OFXS_OVERLAYDRAW_THREAD_LOCAL OverlayDrawModeEnum mode = eOverlayDrawOpenGL;
+
+    return mode;
 }
 
-/// Should the interact being constructed draw with the DrawSuite when the host
-/// provides it?
-inline bool
-ofxsOverlayIsConstructedForDrawSuite()
+/// Read it in the interact (or helper) constructor, and pass it to OverlayDraw.
+inline OverlayDrawModeEnum
+ofxsOverlayDrawModeForNewInteract()
 {
-    return ofxsOverlayDrawSuiteConstructionFlag();
+    return ofxsOverlayDrawConstructionMode();
 }
 
-class OverlayDrawSuiteConstructionScope
+class OverlayDrawConstructionScope
 {
 public:
-    OverlayDrawSuiteConstructionScope()
-        : _previous(ofxsOverlayDrawSuiteConstructionFlag())
+    explicit OverlayDrawConstructionScope(OverlayDrawModeEnum mode)
+        : _previous( ofxsOverlayDrawConstructionMode() )
     {
-        ofxsOverlayDrawSuiteConstructionFlag() = true;
+        ofxsOverlayDrawConstructionMode() = mode;
     }
 
-    ~OverlayDrawSuiteConstructionScope()
+    ~OverlayDrawConstructionScope()
     {
-        ofxsOverlayDrawSuiteConstructionFlag() = _previous;
+        ofxsOverlayDrawConstructionMode() = _previous;
     }
 
 private:
-    bool _previous;
+    OverlayDrawModeEnum _previous;
+};
+
+/// Base class of the overlay descriptors accepted by ofxsSetOverlayInteractDescriptorV2.
+class EffectOverlayDescriptorV2
+    : public EffectOverlayDescriptor
+{
+public:
+    /// called by ofxsSetOverlayInteractDescriptorV2
+    virtual void setRegisteredAsV2(bool v2) = 0;
 };
 
 /// Overlay descriptor for overlays that draw through OverlayDraw: the interact
-/// instances it creates use the DrawSuite when the host provides it.
+/// instances it creates use the DrawSuite when it is registered as V2.
 /// Register it with ofxsSetOverlayInteractDescriptorV2().
+/// The interacts are created by a static DESC (see InteractMainEntry), so
+/// whether the registration was V2 is recorded per DESC type. It only depends
+/// on the host and the Support library, so it is the same for all the plugins
+/// using DESC.
 template<class DESC, class INSTANCE>
 class DefaultEffectOverlayDescriptorV2
-    : public EffectOverlayDescriptor, public InteractMainEntry<DESC>
+    : public EffectOverlayDescriptorV2, public InteractMainEntry<DESC>
 {
 public:
     Interact* createInstance(OfxInteractHandle handle,
                              ImageEffect *effect)
     {
-        OverlayDrawSuiteConstructionScope scope;
+        OverlayDrawConstructionScope scope(registeredAsV2() ? eOverlayDrawSuite : eOverlayDrawSuiteFallback);
 
         return new INSTANCE(handle, effect);
     }
 
     virtual OfxPluginEntryPoint* getMainEntry() { return InteractMainEntry<DESC>::overlayInteractMainEntry; }
+
+    virtual void setRegisteredAsV2(bool v2) { registeredAsV2() = v2; }
+
+private:
+    static bool& registeredAsV2()
+    {
+        static bool v2 = false;
+
+        return v2;
+    }
 };
 
 /// Register an overlay as kOfxImageEffectPluginPropOverlayInteractV2 if the
 /// host and the Support library have the DrawSuite, else as
 /// kOfxImageEffectPluginPropOverlayInteractV1. Returns true if it was
-/// registered as V2.
+/// registered as V2. Only V2 descriptors are accepted (see above).
 inline bool
 ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
-                                   EffectOverlayDescriptor* overlay)
+                                   EffectOverlayDescriptorV2* overlay)
 {
-#ifdef OFXS_HAVE_DRAWSUITE
-    return desc.setOverlayInteractDescriptorV2(overlay);
+#if OFXS_HAVE_DRAWSUITE
+    bool v2 = desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
 #else
-    desc.setOverlayInteractDescriptor(overlay);
-
-    return false;
+    desc.setOverlayInteractDescriptor(overlay); // takes ownership
+    bool v2 = false;
 #endif
+    overlay->setRegisteredAsV2(v2);
+
+    return v2;
 }
 
 /// OpenGL 1.x immediate-mode subset, drawn with OpenGL or the DrawSuite.
@@ -187,11 +266,12 @@ ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
 class OverlayDraw
 {
 public:
-    /// drawSuiteEnabled: the overlay was created by a DefaultEffectOverlayDescriptorV2
-    /// (see ofxsOverlayIsConstructedForDrawSuite()).
+    /// mode: the interact's OverlayDrawModeEnum (ofxsOverlayDrawModeForNewInteract()
+    /// in its constructor)
     OverlayDraw(const DrawArgs &args,
-                bool drawSuiteEnabled)
+                OverlayDrawModeEnum mode)
         : _ctx(NULL)
+        , _canDraw(true)
         , _pixelScale(args.pixelScale)
         , _screenPixelRatio(1.)
         , _mode(0)
@@ -208,20 +288,47 @@ public:
         , _ctxStipple(-1)
     {
 #ifdef OFX_EXTENSIONS_NATRON
+        // default size conversion, if the overlay does not call overlayScreenPixelRatio()
         if (args.screenPixelRatio > 0.) {
             _screenPixelRatio = args.screenPixelRatio;
         }
 #endif
-#ifdef OFXS_HAVE_DRAWSUITE
-        if (drawSuiteEnabled) {
+#if OFXS_HAVE_DRAWSUITE
+        if (mode == eOverlayDrawSuite) {
             _ctx = args.drawContext;
+            // registered as V2: "drawing MUST use DrawSuite", never OpenGL
+            _canDraw = (_ctx != NULL);
         }
 #else
-        (void)drawSuiteEnabled;
+        (void)mode;
 #endif
         if (_ctx) {
             _stack.push_back( Mat4() );
         }
+    }
+
+    /// false if the overlay must not draw at all (registered as V2, but no draw
+    /// context): draw() should then return false.
+    bool canDraw() const { return _canDraw; }
+
+    /// Call with the overlay's screen pixel ratio, i.e. the factor of its OpenGL
+    /// line widths, point sizes and pixel offsets, and use the returned value
+    /// instead:
+    /// - OpenGL: the ratio is returned unchanged (the OpenGL path is unchanged);
+    /// - DrawSuite: 1 is returned, since the host adjusts the DrawSuite sizes for
+    ///   screen density. The hiDPI param and the host's screen pixel ratio thus
+    ///   have no effect, and a ratio <= 0 (no kOfxInteractPropScreenPixelRatio)
+    ///   cannot give zero sizes.
+    double overlayScreenPixelRatio(double ratio)
+    {
+        if (_ctx) {
+            _screenPixelRatio = 1.;
+
+            return 1.;
+        }
+        _screenPixelRatio = (ratio > 0.) ? ratio : 1.;
+
+        return ratio;
     }
 
     /// true if drawing goes to the DrawSuite (no OpenGL call at all)
@@ -396,7 +503,7 @@ public:
                       const char* string,
                       TextRenderer::Font font = TextRenderer::FONT_HELVETICA_12)
     {
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
         if (_ctx) {
             OfxPointD p;
             transformDS(x, y, &p);
@@ -515,7 +622,7 @@ private:
     // primitive (they are DrawSuite state, and the initial host state is unknown)
     void syncLineStateDS()
     {
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
         // OpenGL widths are in device pixels; the host adjusts the DrawSuite width for screen density
         float width = (float)(_state.lineWidth / _screenPixelRatio);
         if (width != _ctxLineWidth) {
@@ -549,7 +656,7 @@ private:
 
     void applyColourDS(const Colour &c)
     {
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
         if ( !_ctxColourSet || (c != _ctxColour) ) {
             _ctx->setColour(c.r, c.g, c.b, c.a);
             _ctxColour = c;
@@ -559,10 +666,11 @@ private:
         (void)c;
         (void)_ctxColour;
         (void)_ctxColourSet;
+        (void)_screenPixelRatio;
 #endif
     }
 
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
     void drawDS(OfxDrawPrimitive prim,
                 const std::vector<OfxPointD> &pts)
     {
@@ -645,11 +753,11 @@ private:
         return pts;
     }
 
-#endif // ifdef OFXS_HAVE_DRAWSUITE
+#endif // if OFXS_HAVE_DRAWSUITE
 
     void flushDS()
     {
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
         const size_t n = _vertices.size();
         std::vector<const Vertex*> ends;
 
@@ -709,16 +817,17 @@ private:
             assert(false); // not used by the SupportExt overlays
             break;
         }
-#endif // ifdef OFXS_HAVE_DRAWSUITE
+#endif // if OFXS_HAVE_DRAWSUITE
         _vertices.clear();
         _mode = 0;
     }
 
-#ifdef OFXS_HAVE_DRAWSUITE
+#if OFXS_HAVE_DRAWSUITE
     const DrawContext* _ctx;
 #else
     const void* _ctx; // always NULL
 #endif
+    bool _canDraw;
     OfxPointD _pixelScale;
     double _screenPixelRatio;
     GLenum _mode;
