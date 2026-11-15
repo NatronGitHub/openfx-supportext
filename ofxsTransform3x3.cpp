@@ -292,7 +292,9 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             if (_dirBlurFading) {
                 _dirBlurFading->getValueAtTime(time, fading);
             }
-            if (fading <= 0.) {
+            // amountTo == 0: every sample has amount 0, and the fading formula
+            // would give 0/0 = NaN weights (isIdentity normally avoids rendering)
+            if ( (fading <= 0.) || (amountTo == 0.) ) {
                 std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
             } else {
                 for (size_t i = 0; i < invtransformalpha.size(); ++i) {
