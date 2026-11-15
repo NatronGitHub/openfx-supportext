@@ -1222,16 +1222,16 @@ Transform3x3Plugin::getInverseTransformsBlur(double time,
                 amount[invtransformsize] = amt;
             }
             invtransform[invtransformsize] = canonicalToPixel * invtransformCanonical * pixelToCanonical;
+            allequal = allequal && (invtransform[invtransformsize](0,0) == invtransform[0](0,0) &&
+                                    invtransform[invtransformsize](0,1) == invtransform[0](0,1) &&
+                                    invtransform[invtransformsize](0,2) == invtransform[0](0,2) &&
+                                    invtransform[invtransformsize](1,0) == invtransform[0](1,0) &&
+                                    invtransform[invtransformsize](1,1) == invtransform[0](1,1) &&
+                                    invtransform[invtransformsize](1,2) == invtransform[0](1,2) &&
+                                    invtransform[invtransformsize](2,0) == invtransform[0](2,0) &&
+                                    invtransform[invtransformsize](2,1) == invtransform[0](2,1) &&
+                                    invtransform[invtransformsize](2,2) == invtransform[0](2,2));
             ++invtransformsize;
-            allequal = allequal && (invtransform[i](0,0) == invtransform[0](0,0) &&
-                                    invtransform[i](0,1) == invtransform[0](0,1) &&
-                                    invtransform[i](0,2) == invtransform[0](0,2) &&
-                                    invtransform[i](1,0) == invtransform[0](1,0) &&
-                                    invtransform[i](1,1) == invtransform[0](1,1) &&
-                                    invtransform[i](1,2) == invtransform[0](1,2) &&
-                                    invtransform[i](2,0) == invtransform[0](2,0) &&
-                                    invtransform[i](2,1) == invtransform[0](2,1) &&
-                                    invtransform[i](2,2) == invtransform[0](2,2));
         }
     }
     if ( (invtransformsize != 0) && allequal ) { // there is only one transform, no need to do motion blur!
