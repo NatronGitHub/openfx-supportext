@@ -374,54 +374,59 @@ RectangleInteract::penMotion(const PenArgs &args)
     }
 
 
-    //if size is negative shift bottom left
-    if (_sizeDrag.x < 0) {
-        if (_mouseState == eMouseStateDraggingBtmLeft) {
-            _mouseState = eMouseStateDraggingBtmRight;
-        } else if (_mouseState == eMouseStateDraggingMidLeft) {
-            _mouseState = eMouseStateDraggingMidRight;
-        } else if (_mouseState == eMouseStateDraggingTopLeft) {
-            _mouseState = eMouseStateDraggingTopRight;
-        } else if (_mouseState == eMouseStateDraggingBtmRight) {
-            _mouseState = eMouseStateDraggingBtmLeft;
-        } else if (_mouseState == eMouseStateDraggingMidRight) {
-            _mouseState = eMouseStateDraggingMidLeft;
-        } else if (_mouseState == eMouseStateDraggingTopRight) {
-            _mouseState = eMouseStateDraggingTopLeft;
+    // Normalize the dragged rectangle. Only while dragging: on a hover,
+    // _sizeDrag is not the current rectangle (it is (0,0) before the first
+    // drag), and normalizing it would mark the event as handled.
+    if (_mouseState != eMouseStateIdle) {
+        //if size is negative shift bottom left
+        if (_sizeDrag.x < 0) {
+            if (_mouseState == eMouseStateDraggingBtmLeft) {
+                _mouseState = eMouseStateDraggingBtmRight;
+            } else if (_mouseState == eMouseStateDraggingMidLeft) {
+                _mouseState = eMouseStateDraggingMidRight;
+            } else if (_mouseState == eMouseStateDraggingTopLeft) {
+                _mouseState = eMouseStateDraggingTopRight;
+            } else if (_mouseState == eMouseStateDraggingBtmRight) {
+                _mouseState = eMouseStateDraggingBtmLeft;
+            } else if (_mouseState == eMouseStateDraggingMidRight) {
+                _mouseState = eMouseStateDraggingMidLeft;
+            } else if (_mouseState == eMouseStateDraggingTopRight) {
+                _mouseState = eMouseStateDraggingTopLeft;
+            }
+
+            _btmLeftDragPos.x += _sizeDrag.x;
+            _sizeDrag.x = -_sizeDrag.x;
+            valuesChanged = true;
+        }
+        if (_sizeDrag.y < 0) {
+            if (_mouseState == eMouseStateDraggingTopLeft) {
+                _mouseState = eMouseStateDraggingBtmLeft;
+            } else if (_mouseState == eMouseStateDraggingTopMid) {
+                _mouseState = eMouseStateDraggingBtmMid;
+            } else if (_mouseState == eMouseStateDraggingTopRight) {
+                _mouseState = eMouseStateDraggingBtmRight;
+            } else if (_mouseState == eMouseStateDraggingBtmLeft) {
+                _mouseState = eMouseStateDraggingTopLeft;
+            } else if (_mouseState == eMouseStateDraggingBtmMid) {
+                _mouseState = eMouseStateDraggingTopMid;
+            } else if (_mouseState == eMouseStateDraggingBtmRight) {
+                _mouseState = eMouseStateDraggingTopRight;
+            }
+
+            _btmLeftDragPos.y += _sizeDrag.y;
+            _sizeDrag.y = -_sizeDrag.y;
+            valuesChanged = true;
         }
 
-        _btmLeftDragPos.x += _sizeDrag.x;
-        _sizeDrag.x = -_sizeDrag.x;
-        valuesChanged = true;
-    }
-    if (_sizeDrag.y < 0) {
-        if (_mouseState == eMouseStateDraggingTopLeft) {
-            _mouseState = eMouseStateDraggingBtmLeft;
-        } else if (_mouseState == eMouseStateDraggingTopMid) {
-            _mouseState = eMouseStateDraggingBtmMid;
-        } else if (_mouseState == eMouseStateDraggingTopRight) {
-            _mouseState = eMouseStateDraggingBtmRight;
-        } else if (_mouseState == eMouseStateDraggingBtmLeft) {
-            _mouseState = eMouseStateDraggingTopLeft;
-        } else if (_mouseState == eMouseStateDraggingBtmMid) {
-            _mouseState = eMouseStateDraggingTopMid;
-        } else if (_mouseState == eMouseStateDraggingBtmRight) {
-            _mouseState = eMouseStateDraggingTopRight;
+        ///forbid 0 pixels wide crop rectangles
+        if (_sizeDrag.x < 1) {
+            _sizeDrag.x = 1;
+            valuesChanged = true;
         }
-
-        _btmLeftDragPos.y += _sizeDrag.y;
-        _sizeDrag.y = -_sizeDrag.y;
-        valuesChanged = true;
-    }
-
-    ///forbid 0 pixels wide crop rectangles
-    if (_sizeDrag.x < 1) {
-        _sizeDrag.x = 1;
-        valuesChanged = true;
-    }
-    if (_sizeDrag.y < 1) {
-        _sizeDrag.y = 1;
-        valuesChanged = true;
+        if (_sizeDrag.y < 1) {
+            _sizeDrag.y = 1;
+            valuesChanged = true;
+        }
     }
 
     if ( (_mouseState != eMouseStateIdle) && _interactiveDrag && valuesChanged ) {
