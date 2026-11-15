@@ -31,6 +31,7 @@
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
+#include "ofxsOverlayDraw.h"
 
 // a secret parameter used to enable the interact, if it exists
 #define kParamRectangleInteractEnable "rectangleInteractEnable"
@@ -110,6 +111,7 @@ public:
         , _interactive(NULL)
         , _hiDPI(NULL)
         , _angle(NULL)
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
         , _angleDrag(0.)
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
@@ -249,6 +251,7 @@ private:
     OFX::BooleanParam* _hiDPI;
     OFX::DoubleParam* _angle; // optional rotation angle, in degrees
     OFX::InteractCursor _cursor;
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     // While dragging, the rectangle (_btmLeftDragPos,_sizeDrag) is expressed in the frame rotated
@@ -260,6 +263,13 @@ private:
 
 class RectangleOverlayDescriptor
     : public OFX::DefaultEffectOverlayDescriptor<RectangleOverlayDescriptor, RectangleInteract>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new RectangleOverlayDescriptorV2)
+class RectangleOverlayDescriptorV2
+    : public OFX::DefaultEffectOverlayDescriptorV2<RectangleOverlayDescriptorV2, RectangleInteract>
 {
 };
 } // namespace OFX

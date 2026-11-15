@@ -34,6 +34,7 @@
 #include "ofxsOGLTextRenderer.h"
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
+#include "ofxsOverlayDraw.h"
 
 #define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
@@ -105,6 +106,7 @@ class RampInteractHelper
     OFX::Interact* _interact;
     OFX::InteractCursor _cursor;
     Clip *_dstClip;
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 
 public:
     RampInteractHelper(OFX::ImageEffect* effect,
@@ -124,6 +126,7 @@ public:
         , _effect(effect)
         , _interact(interact)
         , _dstClip(NULL)
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
         if (oldParams) {
             _point0 = effect->fetchDouble2DParam(kParamRampPoint0Old);
@@ -213,6 +216,13 @@ class RampOverlayDescriptor
 {
 };
 
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new RampOverlayDescriptorV2)
+class RampOverlayDescriptorV2
+    : public DefaultEffectOverlayDescriptorV2<RampOverlayDescriptorV2, RampInteract>
+{
+};
+
 class RampInteractHelperOldParams
     : public RampInteractHelper
 {
@@ -226,6 +236,13 @@ typedef OverlayInteractFromHelper<RampInteractHelperOldParams> RampInteractOldPa
 
 class RampOverlayDescriptorOldParams
     : public DefaultEffectOverlayDescriptor<RampOverlayDescriptorOldParams, RampInteractOldParams>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new RampOverlayDescriptorOldParamsV2)
+class RampOverlayDescriptorOldParamsV2
+    : public DefaultEffectOverlayDescriptorV2<RampOverlayDescriptorOldParamsV2, RampInteractOldParams>
 {
 };
 

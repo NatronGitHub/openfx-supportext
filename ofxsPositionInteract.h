@@ -41,6 +41,7 @@
 #include "ofxsInteractCursor.h"
 #include "ofxsOGLTextRenderer.h"
 #include "ofxsOGLHiDPI.h"
+#include "ofxsOverlayDraw.h"
 #include "ofxsMacros.h"
 
 #define kDrawPointTrajectoryMaxPoints 1000
@@ -51,23 +52,25 @@ namespace OFX {
 // Before calling this function: make sure the OpenGL props are correctly set.
 // Try to draw one point per frame, but no more thankDrawPointTrajectoryMaxPoints
 // in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
+// DRAW is OverlayDraw, or OverlayDrawGLDirect for plain OpenGL.
+template <class DRAW>
 inline void
-drawPointTrajectory(Double2DParam* p)
+drawPointTrajectoryT(DRAW& d, Double2DParam* p)
 {
     int numKeys = p->getNumKeys();
 
     if (numKeys > 0) {
         int maxStepsPerKey = int(kDrawPointTrajectoryMaxPoints / numKeys);
-        glBegin(GL_POINTS);
+        d.glBegin(GL_POINTS);
         for (int i=0; i < numKeys; ++i) {
             double time = p->getKeyTime(i);
             OfxPointD pt;
             p->getValueAtTime(time, pt.x, pt.y);
-            glVertex2d(pt.x, pt.y);
+            d.glVertex2d(pt.x, pt.y);
 
         }
-        glEnd();
-        glBegin(GL_LINE_STRIP);
+        d.glEnd();
+        d.glBegin(GL_LINE_STRIP);
         double time = p->getKeyTime(0);
         for (int i = 1; i < numKeys; ++i) {
             double timeNext = p->getKeyTime(i);
@@ -77,12 +80,37 @@ drawPointTrajectory(Double2DParam* p)
 
                 OfxPointD pt;
                 p->getValueAtTime(timeStep, pt.x, pt.y);
-                glVertex2d(pt.x, pt.y);
+                d.glVertex2d(pt.x, pt.y);
             }
             time = timeNext;
         }
-        glEnd();
+        d.glEnd();
     }
+}
+
+
+/// forwards to OpenGL, for drawPointTrajectory(Double2DParam*)
+struct OverlayDrawGLDirect
+{
+    void glBegin(GLenum mode) { ::glBegin(mode); }
+    void glVertex2d(GLdouble x, GLdouble y) { ::glVertex2d(x, y); }
+    void glEnd() { ::glEnd(); }
+};
+
+// draw with OpenGL
+inline void
+drawPointTrajectory(Double2DParam* p)
+{
+    OverlayDrawGLDirect d;
+
+    drawPointTrajectoryT(d, p);
+}
+
+// draw with OpenGL or the DrawSuite
+inline void
+drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
+{
+    drawPointTrajectoryT(d, p);
 }
 
 
@@ -124,6 +152,7 @@ public:
         , _hiDPI(NULL)
         , _interactiveDrag(false)
         , _hasNativeHostPositionHandle(false)
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
         _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
         assert(_position);
@@ -165,6 +194,7 @@ private:
     bool _interactiveDrag;
     bool _hasNativeHostPositionHandle;
     OFX::InteractCursor _cursor;
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 
     double pointSize() const
     {
@@ -201,21 +231,28 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         return false;
     }
 
+    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
+    OverlayDraw d(args, _drawMode);
+    if ( !d.canDraw() ) {
+        return false; // registered as V2 but no draw context: OpenGL is not allowed
+    }
+
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
     screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
+    screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     //const OfxPointD& pscale = args.pixelScale;
     GLdouble projection[16];
-    glGetDoublev( GL_PROJECTION_MATRIX, projection);
+    d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
     shadow.x = 2. / (projection[0] * viewport[2]);
     shadow.y = 2. / (projection[5] * viewport[3]);
@@ -237,35 +274,35 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
-    glPointSize( (float)pointSize() * screenPixelRatio);
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_BLEND);
-    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * screenPixelRatio);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    d.glPointSize( (float)pointSize() * screenPixelRatio);
+    d.glEnable(GL_LINE_SMOOTH);
+    d.glEnable(GL_BLEND);
+    d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    d.glLineWidth(1.5f * screenPixelRatio);
+    d.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
         // shadow (uses GL_PROJECTION)
-        glMatrixMode(GL_PROJECTION);
+        d.glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        glTranslated(direction * shadow.x, -direction * shadow.y, 0);
-        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+        d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
+        d.glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
-        glEnable(GL_POINT_SMOOTH);
+        d.glEnable(GL_POINT_SMOOTH);
         const double darken = 0.5;
-        glColor3f(color.r * l * darken, color.g * l * darken, color.b * l * darken);
-        drawPointTrajectory(_position);
+        d.glColor3f(color.r * l * darken, color.g * l * darken, color.b * l * darken);
+        drawPointTrajectory(d, _position);
 
-        glDisable(GL_POINT_SMOOTH);
-        glColor3f(col.r * l, col.g * l, col.b * l);
-        glBegin(GL_POINTS);
-        glVertex2d(pos.x, pos.y);
-        glEnd();
-        OFX::TextRenderer::bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio, ParamName::name(), font );
+        d.glDisable(GL_POINT_SMOOTH);
+        d.glColor3f(col.r * l, col.g * l, col.b * l);
+        d.glBegin(GL_POINTS);
+        d.glVertex2d(pos.x, pos.y);
+        d.glEnd();
+        d.bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio, ParamName::name(), font );
     }
 
     //glPopAttrib();
@@ -425,6 +462,14 @@ PositionInteract<ParamName>::loseFocus(const OFX::FocusArgs & /*args*/)
 template <typename ParamName>
 class PositionOverlayDescriptor
     : public OFX::DefaultEffectOverlayDescriptor<PositionOverlayDescriptor<ParamName>, PositionInteract<ParamName> >
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new PositionOverlayDescriptorV2<ParamName>)
+template <typename ParamName>
+class PositionOverlayDescriptorV2
+    : public OFX::DefaultEffectOverlayDescriptorV2<PositionOverlayDescriptorV2<ParamName>, PositionInteract<ParamName> >
 {
 };
 } // namespace OFX

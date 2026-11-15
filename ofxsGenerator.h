@@ -203,9 +203,32 @@ class GeneratorOverlayDescriptor
 {
 };
 
+class GeneratorOverlayDescriptorV2
+    : public DefaultEffectOverlayDescriptorV2<GeneratorOverlayDescriptorV2, GeneratorInteract>
+{
+};
+
 // Set the generator overlay. If hasAngle is true, the effect must also have a
 // kParamRectangleInteractAngle parameter, and the overlay is rotated by that angle.
 void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool hasAngle = false);
+
+/// How the generator overlay draws, for generatorDescribe(desc, [hasAngle,] overlayDraw).
+enum GeneratorOverlayDrawEnum
+{
+    eGeneratorOverlayDrawOpenGL = 0, //< OpenGL (kOfxImageEffectPluginPropOverlayInteractV1), like generatorDescribe(desc, hasAngle)
+    eGeneratorOverlayDrawSuite //< OFX 1.5 DrawSuite on hosts that provide it (V2), else OpenGL
+};
+
+/// Set the generator overlay, optionally rotated (hasAngle, as above). With
+/// eGeneratorOverlayDrawSuite, it is registered with
+/// ofxsSetOverlayInteractDescriptorV2, and draws with the DrawSuite on hosts that
+/// provide it: only use it if the plugin adds no OpenGL drawing of its own to the
+/// generator overlay.
+/// generatorDescribe(desc, overlayDraw) is generatorDescribe(desc, false, overlayDraw).
+/// These overloads have no default argument, so that generatorDescribe(desc) and
+/// generatorDescribe(desc, bool) always select the OpenGL overlay above.
+void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool hasAngle, GeneratorOverlayDrawEnum overlayDraw);
+void generatorDescribe(OFX::ImageEffectDescriptor &desc, GeneratorOverlayDrawEnum overlayDraw);
 
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,

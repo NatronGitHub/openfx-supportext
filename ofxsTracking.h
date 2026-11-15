@@ -32,6 +32,7 @@
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
+#include "ofxsOverlayDraw.h"
 
 #define kParamTrackingCenterPoint "center"
 #define kParamTrackingCenterPointLabel "Center"
@@ -231,6 +232,7 @@ public:
         , _outerTopRight(NULL)
         , _name(NULL)
         , _hiDPI(NULL)
+        , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
         , _centerDragPos()
         , _offsetDragPos()
         , _innerBtmLeftDragPos()
@@ -290,6 +292,7 @@ private:
     OFX::StringParam* _name;
     OFX::BooleanParam* _hiDPI;
     OFX::InteractCursor _cursor;
+    OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
     OfxPointD _centerDragPos;
     OfxPointD _offsetDragPos;
 
@@ -305,6 +308,13 @@ private:
 
 class TrackerRegionOverlayDescriptor
     : public OFX::DefaultEffectOverlayDescriptor<TrackerRegionOverlayDescriptor, TrackerRegionInteract>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new TrackerRegionOverlayDescriptorV2)
+class TrackerRegionOverlayDescriptorV2
+    : public OFX::DefaultEffectOverlayDescriptorV2<TrackerRegionOverlayDescriptorV2, TrackerRegionInteract>
 {
 };
 } // OFX

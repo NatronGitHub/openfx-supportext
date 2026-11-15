@@ -314,10 +314,15 @@ TrackerRegionInteract::draw(const DrawArgs &args)
 
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
+    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
+    OverlayDraw d(args, _drawMode);
+    if ( !d.canDraw() ) {
+        return false; // registered as V2 but no draw context: OpenGL is not allowed
+    }
     GLdouble projection[16];
-    glGetDoublev( GL_PROJECTION_MATRIX, projection);
+    d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
     shadow.x = 2. / (projection[0] * viewport[2]);
     shadow.y = 2. / (projection[5] * viewport[3]);
@@ -361,220 +366,221 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     screenPixelRatio *= args.screenPixelRatio;
     hiDPI |= args.screenPixelRatio > 1;
 #endif
+    screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
     TextRenderer::Font font = hiDPI ? TextRenderer::FONT_TIMES_ROMAN_24 : TextRenderer::FONT_HELVETICA_12;
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
 
-    glDisable(GL_LINE_STIPPLE);
-    glEnable(GL_LINE_SMOOTH);
-    glDisable(GL_POINT_SMOOTH);
-    glEnable(GL_BLEND);
-    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * screenPixelRatio);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    d.glDisable(GL_LINE_STIPPLE);
+    d.glEnable(GL_LINE_SMOOTH);
+    d.glDisable(GL_POINT_SMOOTH);
+    d.glEnable(GL_BLEND);
+    d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    d.glLineWidth(1.5f * screenPixelRatio);
+    d.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
         // shadow (uses GL_PROJECTION)
-        glMatrixMode(GL_PROJECTION);
+        d.glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        glTranslated(direction * shadow.x, -direction * shadow.y, 0);
-        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+        d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
+        d.glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
-        glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
-        glBegin(GL_LINE_LOOP);
-        glVertex2d(xi1, yi1);
-        glVertex2d(xi1, yi2);
-        glVertex2d(xi2, yi2);
-        glVertex2d(xi2, yi1);
-        glEnd();
+        d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+        d.glBegin(GL_LINE_LOOP);
+        d.glVertex2d(xi1, yi1);
+        d.glVertex2d(xi1, yi2);
+        d.glVertex2d(xi2, yi2);
+        d.glVertex2d(xi2, yi1);
+        d.glEnd();
 
-        glBegin(GL_LINE_LOOP);
-        glVertex2d(xo1, yo1);
-        glVertex2d(xo1, yo2);
-        glVertex2d(xo2, yo2);
-        glVertex2d(xo2, yo1);
-        glEnd();
+        d.glBegin(GL_LINE_LOOP);
+        d.glVertex2d(xo1, yo1);
+        d.glVertex2d(xo1, yo2);
+        d.glVertex2d(xo2, yo2);
+        d.glVertex2d(xo2, yo1);
+        d.glEnd();
 
-        glPointSize(POINT_SIZE * screenPixelRatio);
-        glBegin(GL_POINTS);
+        d.glPointSize(POINT_SIZE * screenPixelRatio);
+        d.glBegin(GL_POINTS);
 
         ///draw center
         if ( (_ds == eDrawStateHoveringCenter) || (_ms == eMouseStateDraggingCenter) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc, yc);
+        d.glVertex2d(xc, yc);
 
         if ( (xoff != 0) || (yoff != 0) ) {
-            glVertex2d(xc + xoff, yc + yoff);
+            d.glVertex2d(xc + xoff, yc + yoff);
         }
 
         //////DRAWING INNER POINTS
         if ( (_ds == eDrawStateHoveringInnerBtmLeft) || (_ms == eMouseStateDraggingInnerBtmLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi1, yi1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi1, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xc + xoff, yi1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xc + xoff, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerBtmRight) || (_ms == eMouseStateDraggingInnerBtmRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi2, yi1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi2, yi1);
         }
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi1, yc + yoff);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi1, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi2, yc + yoff);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi2, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringInnerTopLeft) || (_ms == eMouseStateDraggingInnerTopLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi1, yi2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi1, yi2);
         }
 
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xc + xoff, yi2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xc + xoff, yi2);
         }
 
         if ( (_ds == eDrawStateHoveringInnerTopRight) || (_ms == eMouseStateDraggingInnerTopRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xi2, yi2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xi2, yi2);
         }
 
 
         //////DRAWING OUTTER POINTS
 
         if ( (_ds == eDrawStateHoveringOuterBtmLeft) || (_ms == eMouseStateDraggingOuterBtmLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo1, yo1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo1, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xc + xoff, yo1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xc + xoff, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterBtmRight) || (_ms == eMouseStateDraggingOuterBtmRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo2, yo1);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo2, yo1);
         }
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo1, yc + yoff);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo1, yc + yoff);
         }
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo2, yc + yoff);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo2, yc + yoff);
         }
 
         if ( (_ds == eDrawStateHoveringOuterTopLeft) || (_ms == eMouseStateDraggingOuterTopLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo1, yo2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo1, yo2);
         }
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xc + xoff, yo2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xc + xoff, yo2);
         }
         if ( (_ds == eDrawStateHoveringOuterTopRight) || (_ms == eMouseStateDraggingOuterTopRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
-            glVertex2d(xo2, yo2);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glVertex2d(xo2, yo2);
         }
 
-        glEnd();
+        d.glEnd();
 
         if ( (xoff != 0) || (yoff != 0) ) {
-            glBegin(GL_LINES);
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
-            glVertex2d(xc, yc);
-            glVertex2d(xc + xoff, yc + yoff);
-            glEnd();
+            d.glBegin(GL_LINES);
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glVertex2d(xc, yc);
+            d.glVertex2d(xc + xoff, yc + yoff);
+            d.glEnd();
         }
 
         double handleSizeX = HANDLE_SIZE * pscale.x;
         double handleSizeY = HANDLE_SIZE * pscale.y;
 
         ///now show small lines at handle positions
-        glBegin(GL_LINES);
+        d.glBegin(GL_LINES);
 
         if ( (_ds == eDrawStateHoveringInnerMidLeft) || (_ms == eMouseStateDraggingInnerMidLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xi1, yc + yoff);
-        glVertex2d(xi1 - handleSizeX, yc + yoff);
+        d.glVertex2d(xi1, yc + yoff);
+        d.glVertex2d(xi1 - handleSizeX, yc + yoff);
 
         if ( (_ds == eDrawStateHoveringInnerTopMid) || (_ms == eMouseStateDraggingInnerTopMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc + xoff, yi2);
-        glVertex2d(xc + xoff, yi2 + handleSizeY);
+        d.glVertex2d(xc + xoff, yi2);
+        d.glVertex2d(xc + xoff, yi2 + handleSizeY);
 
         if ( (_ds == eDrawStateHoveringInnerMidRight) || (_ms == eMouseStateDraggingInnerMidRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xi2, yc + yoff);
-        glVertex2d(xi2 + handleSizeX, yc + yoff);
+        d.glVertex2d(xi2, yc + yoff);
+        d.glVertex2d(xi2 + handleSizeX, yc + yoff);
 
         if ( (_ds == eDrawStateHoveringInnerBtmMid) || (_ms == eMouseStateDraggingInnerBtmMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc + xoff, yi1);
-        glVertex2d(xc + xoff, yi1 - handleSizeY);
+        d.glVertex2d(xc + xoff, yi1);
+        d.glVertex2d(xc + xoff, yi1 - handleSizeY);
 
         //////DRAWING OUTTER HANDLES
 
         if ( (_ds == eDrawStateHoveringOuterMidLeft) || (_ms == eMouseStateDraggingOuterMidLeft) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xo1, yc + yoff);
-        glVertex2d(xo1 - handleSizeX, yc + yoff);
+        d.glVertex2d(xo1, yc + yoff);
+        d.glVertex2d(xo1 - handleSizeX, yc + yoff);
 
         if ( (_ds == eDrawStateHoveringOuterTopMid) || (_ms == eMouseStateDraggingOuterTopMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc + xoff, yo2);
-        glVertex2d(xc + xoff, yo2 + handleSizeY);
+        d.glVertex2d(xc + xoff, yo2);
+        d.glVertex2d(xc + xoff, yo2 + handleSizeY);
 
         if ( (_ds == eDrawStateHoveringOuterMidRight) || (_ms == eMouseStateDraggingOuterMidRight) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xo2 + handleSizeX, yc + yoff);
-        glVertex2d(xo2, yc + yoff);
+        d.glVertex2d(xo2 + handleSizeX, yc + yoff);
+        d.glVertex2d(xo2, yc + yoff);
 
         if ( (_ds == eDrawStateHoveringOuterBtmMid) || (_ms == eMouseStateDraggingOuterBtmMid) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc + xoff, yo1);
-        glVertex2d(xc + xoff, yo1 - handleSizeY);
-        glEnd();
+        d.glVertex2d(xc + xoff, yo1);
+        d.glVertex2d(xc + xoff, yo1 - handleSizeY);
+        d.glEnd();
 
 
-        glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+        d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         string name;
         _name->getValue(name);
-        TextRenderer::bitmapString(xc, yc + POINT_SIZE * screenPixelRatio, name.c_str(), font);
+        d.bitmapString(xc, yc + POINT_SIZE * screenPixelRatio, name.c_str(), font);
     }
 
     //glPopAttrib();
