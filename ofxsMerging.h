@@ -30,10 +30,7 @@
 #include <algorithm>
 
 #include "ofxsImageEffect.h"
-
-#ifndef M_PI
-#define M_PI        3.14159265358979323846264338327950288   /* pi             */
-#endif
+#include "ofxsMacros.h"
 
 namespace OFX {
 // References:
@@ -998,7 +995,7 @@ interpolatedFunc(PIX A,
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
 
-    return PIX( maxValue * ( 0.5 - 0.25 * ( std::cos(M_PI * An) - std::cos(M_PI * Bn) ) ) );
+    return PIX( maxValue * ( 0.5 - 0.25 * ( std::cos(OFXS_PI * An) - std::cos(OFXS_PI * Bn) ) ) );
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcatop

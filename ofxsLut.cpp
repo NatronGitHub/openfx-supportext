@@ -34,9 +34,7 @@ typedef unsigned char uint8_t;
 #include <limits>
 #include <cmath>
 
-#ifndef M_PI
-#define M_PI        3.14159265358979323846264338327950288   /* pi             */
-#endif
+#include "ofxsMacros.h"
 
 namespace OFX {
 namespace Color {
@@ -343,7 +341,7 @@ rgb_to_hsi( float r,
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
     float m = (std::min)((std::min)(nR, nG), nB);
-    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( (std::max)( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / M_PI);
+    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( (std::max)( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / OFXS_PI);
     float sum = nR + nG + nB;
 
     if (theta > 0) {
@@ -371,17 +369,17 @@ hsi_to_rgb(float h,
 
     if ( h < (OFXS_HUE_CIRCLE / 3) ) {
         *b = a;
-        *r = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
+        *r = (float)( i * ( 1 + s * std::cos( h * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
         *g = 3 * i - (*r + *b);
     } else if ( h < (OFXS_HUE_CIRCLE * 2 / 3) ) {
         h -= OFXS_HUE_CIRCLE / 3;
         *r = a;
-        *g = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
+        *g = (float)( i * ( 1 + s * std::cos( h * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
         *b = 3 * i - (*r + *g);
     } else {
         h -= OFXS_HUE_CIRCLE * 2 / 3;
         *g = a;
-        *b = (float)( i * ( 1 + s * std::cos( h * M_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * M_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
+        *b = (float)( i * ( 1 + s * std::cos( h * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) / std::cos( ( (OFXS_HUE_CIRCLE / 6) - h ) * OFXS_PI / (OFXS_HUE_CIRCLE / 2) ) ) );
         *r = 3 * i - (*g + *b);
     }
 } // hsi_to_rgb
