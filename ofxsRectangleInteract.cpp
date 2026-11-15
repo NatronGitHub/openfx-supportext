@@ -27,6 +27,7 @@
 #include "ofxsOverlayDraw.h"
 #include <cmath>
 
+
 #ifdef __APPLE__
 #ifndef GL_SILENCE_DEPRECATION
 #define GL_SILENCE_DEPRECATION // Yes, we are still doing OpenGL 2.1
@@ -69,6 +70,84 @@ fround(double val,
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
+}
+
+// rotate point p by the angle (given by its cosine and sine) around center c
+static inline OfxPointD
+rotatePoint(const OfxPointD & p,
+            const OfxPointD & c,
+            double cosa,
+            double sina)
+{
+    OfxPointD ret;
+    double dx = p.x - c.x;
+    double dy = p.y - c.y;
+
+    ret.x = c.x + cosa * dx - sina * dy;
+    ret.y = c.y + sina * dx + cosa * dy;
+
+    return ret;
+}
+
+// get the pen position in the frame of the (unrotated) rectangle
+static inline OfxPointD
+penPositionInRectangleFrame(const OfxPointD & penPosition,
+                            const OfxPointD & center,
+                            double angle)
+{
+    if (angle == 0.) {
+        return penPosition;
+    }
+    double a = -angle * OFXS_PI / 180.;
+
+    return rotatePoint(penPosition, center, std::cos(a), std::sin(a));
+}
+
+// is the pen near the handle (x,y)? The handle position is given in the frame of the (unrotated)
+// rectangle, and is rotated into canonical coordinates, where the tolerance is defined.
+static inline bool
+isHandleNearby(const OfxPointD & penPosition,
+               double x,
+               double y,
+               const OfxPointD & center,
+               double angle,
+               const OfxPointD & pscale)
+{
+    if (angle != 0.) {
+        OfxPointD p = { x, y };
+        double a = angle * OFXS_PI / 180.;
+        p = rotatePoint(p, center, std::cos(a), std::sin(a));
+        x = p.x;
+        y = p.y;
+    }
+
+    return isNearby(penPosition, x, y, POINT_TOLERANCE, pscale);
+}
+
+void
+RectangleInteract::getRectangle(OfxTime time,
+                                double* x1,
+                                double* y1,
+                                double* w,
+                                double* h,
+                                OfxPointD* center,
+                                double* angle) const
+{
+    if (_mouseState != eMouseStateIdle) {
+        *x1 = _btmLeftDragPos.x;
+        *y1 = _btmLeftDragPos.y;
+        *w = _sizeDrag.x;
+        *h = _sizeDrag.y;
+        // while dragging, the rotation center is the center at the time the pen was pressed
+        *center = _centerDrag;
+        *angle = _angleDrag;
+    } else {
+        _btmLeft->getValueAtTime(time, *x1, *y1);
+        _size->getValueAtTime(time, *w, *h);
+        center->x = *x1 + *w / 2;
+        center->y = *y1 + *h / 2;
+        *angle = _angle ? _angle->getValueAtTime(time) : 0.;
+    }
 }
 
 static void
@@ -132,15 +211,9 @@ RectangleInteract::draw(const DrawArgs &args)
     shadow.y = 2. / (projection[5] * viewport[3]);
 
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
-    }
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
     double x2 = x1 + w;
     double y2 = y1 + h;
     double xc = x1 + w / 2;
@@ -169,6 +242,14 @@ RectangleInteract::draw(const DrawArgs &args)
         // translate (1,-1) pixels
         d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
         d.glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+
+        if (angle != 0.) {
+            // rotate the rectangle around its center (in canonical coordinates)
+            d.glPushMatrix();
+            d.glTranslated(center.x, center.y, 0);
+            d.glRotated(angle, 0, 0, 1);
+            d.glTranslated(-center.x, -center.y, 0);
+        }
 
         d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
 
@@ -207,6 +288,10 @@ RectangleInteract::draw(const DrawArgs &args)
         d.glVertex2d(xc, yc - CROSS_SIZE * pscale.y);
         d.glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
         d.glEnd();
+
+        if (angle != 0.) {
+            d.glPopMatrix();
+        }
     }
     //glPopAttrib();
 
@@ -214,9 +299,13 @@ RectangleInteract::draw(const DrawArgs &args)
 } // draw
 
 void
-RectangleInteract::updateCursor()
+RectangleInteract::updateCursor(double angle,
+                                const OfxPointD& pscale)
 {
     const char* name = NULL;
+    // direction of the handle from the rectangle center, in the rectangle frame
+    // (corners use the diagonals, as the unrotated cursors do)
+    double dx = 0., dy = 0.;
 
     switch (_drawState) {
     case eDrawStateInactive:
@@ -227,18 +316,22 @@ RectangleInteract::updateCursor()
     case eDrawStateHoveringTopLeft:
     case eDrawStateHoveringBtmRight:
         name = kOfxsCursorNWSEResize;
+        dx = -1.; dy = 1.;
         break;
     case eDrawStateHoveringTopRight:
     case eDrawStateHoveringBtmLeft:
         name = kOfxsCursorNESWResize;
+        dx = 1.; dy = 1.;
         break;
     case eDrawStateHoveringTopMid:
     case eDrawStateHoveringBtmMid:
         name = kOfxsCursorNSResize;
+        dy = 1.;
         break;
     case eDrawStateHoveringMidLeft:
     case eDrawStateHoveringMidRight:
         name = kOfxsCursorEWResize;
+        dx = 1.;
         break;
     }
     if (!name) {
@@ -246,6 +339,14 @@ RectangleInteract::updateCursor()
         _cursor.release(this);
 
         return;
+    }
+    if ( (angle != 0.) && ( (dx != 0.) || (dy != 0.) ) ) {
+        // the rectangle is rotated (counter-clockwise, in canonical coordinates):
+        // use the resize cursor along the rotated handle direction
+        double a = angle * OFXS_PI / 180.;
+        double cosa = std::cos(a);
+        double sina = std::sin(a);
+        name = InteractCursor::resizeCursorForDirection(cosa * dx - sina * dy, sina * dx + cosa * dy, pscale);
     }
     _cursor.set(this, name);
 }
@@ -264,44 +365,40 @@ RectangleInteract::penMotion(const PenArgs &args)
 
     const OfxPointD& pscale = args.pixelScale;
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
-    }
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
     double x2 = x1 + w;
     double y2 = y1 + h;
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool valuesChanged = false;
+    // dragging is done in the frame of the unrotated rectangle
+    const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
     OfxPointD delta;
-    delta.x = args.penPosition.x - _lastMousePos.x;
-    delta.y = args.penPosition.y - _lastMousePos.y;
+    delta.x = penPosition.x - _lastMousePos.x;
+    delta.y = penPosition.y - _lastMousePos.y;
 
     aboutToCheckInteractivity(args.time);
     DrawStateEnum newState = _drawState;
     // test center first
-    if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isHandleNearby(args.penPosition, xc, yc, center, angle, pscale)  && allowCenterInteraction() ) {
         newState = eDrawStateHoveringCenter;
-    } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y1, center, angle, pscale) && allowBtmLeftInteraction() ) {
         newState = eDrawStateHoveringBtmLeft;
-    } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y1, center, angle, pscale) && allowBtmRightInteraction() ) {
         newState = eDrawStateHoveringBtmRight;
-    } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y2, center, angle, pscale)  && allowTopLeftInteraction() ) {
         newState = eDrawStateHoveringTopLeft;
-    } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y2, center, angle, pscale) && allowTopRightInteraction() ) {
         newState = eDrawStateHoveringTopRight;
-    } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y1, center, angle, pscale)  && allowBtmMidInteraction() ) {
         newState = eDrawStateHoveringBtmMid;
-    } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y2, center, angle, pscale) && allowTopMidInteraction() ) {
         newState = eDrawStateHoveringTopMid;
-    } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, yc, center, angle, pscale)  && allowMidLeftInteraction() ) {
         newState = eDrawStateHoveringMidLeft;
-    } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, yc, center, angle, pscale) && allowMidRightInteraction() ) {
         newState = eDrawStateHoveringMidRight;
     } else {
         newState = eDrawStateInactive;
@@ -486,12 +583,12 @@ RectangleInteract::penMotion(const PenArgs &args)
     }
 
 
-    _lastMousePos = args.penPosition;
+    _lastMousePos = penPosition;
 
     // report the cursor for the hovered or dragged handle (during a drag,
     // _drawState is the dragged handle); the host reads it whether or not the
     // event is trapped, so the return value is unchanged
-    updateCursor();
+    updateCursor(angle, pscale);
 
     return valuesChanged;
 } // penMotion
@@ -507,14 +604,10 @@ RectangleInteract::penDown(const PenArgs &args)
 
     const OfxPointD& pscale = args.pixelScale;
     double x1, y1, w, h;
-    if (_mouseState != eMouseStateIdle) {
-        x1 = _btmLeftDragPos.x;
-        y1 = _btmLeftDragPos.y;
-        w = _sizeDrag.x;
-        h = _sizeDrag.y;
-    } else {
-        _btmLeft->getValueAtTime(args.time, x1, y1);
-        _size->getValueAtTime(args.time, w, h);
+    OfxPointD center;
+    double angle;
+    getRectangle(args.time, &x1, &y1, &w, &h, &center, &angle);
+    if (_mouseState == eMouseStateIdle) {
         if ( _interactive && _interactive->getIsEnable() ) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         } else {
@@ -526,28 +619,30 @@ RectangleInteract::penDown(const PenArgs &args)
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
     bool didSomething = false;
+    // dragging is done in the frame of the unrotated rectangle
+    const OfxPointD penPosition = penPositionInRectangleFrame(args.penPosition, center, angle);
 
     aboutToCheckInteractivity(args.time);
 
     // test center first
     MouseStateEnum newState = _mouseState;
-    if ( isNearby(args.penPosition, xc, yc, POINT_TOLERANCE, pscale)  && allowCenterInteraction() ) {
+    if ( isHandleNearby(args.penPosition, xc, yc, center, angle, pscale)  && allowCenterInteraction() ) {
         newState = eMouseStateDraggingCenter;
-    } else if ( isNearby(args.penPosition, x1, y1, POINT_TOLERANCE, pscale) && allowBtmLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y1, center, angle, pscale) && allowBtmLeftInteraction() ) {
         newState = eMouseStateDraggingBtmLeft;
-    } else if ( isNearby(args.penPosition, x2, y1, POINT_TOLERANCE, pscale) && allowBtmRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y1, center, angle, pscale) && allowBtmRightInteraction() ) {
         newState = eMouseStateDraggingBtmRight;
-    } else if ( isNearby(args.penPosition, x1, y2, POINT_TOLERANCE, pscale)  && allowTopLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, y2, center, angle, pscale)  && allowTopLeftInteraction() ) {
         newState = eMouseStateDraggingTopLeft;
-    } else if ( isNearby(args.penPosition, x2, y2, POINT_TOLERANCE, pscale) && allowTopRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, y2, center, angle, pscale) && allowTopRightInteraction() ) {
         newState = eMouseStateDraggingTopRight;
-    } else if ( isNearby(args.penPosition, xc, y1, POINT_TOLERANCE, pscale)  && allowBtmMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y1, center, angle, pscale)  && allowBtmMidInteraction() ) {
         newState = eMouseStateDraggingBtmMid;
-    } else if ( isNearby(args.penPosition, xc, y2, POINT_TOLERANCE, pscale) && allowTopMidInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, xc, y2, center, angle, pscale) && allowTopMidInteraction() ) {
         newState = eMouseStateDraggingTopMid;
-    } else if ( isNearby(args.penPosition, x1, yc, POINT_TOLERANCE, pscale)  && allowMidLeftInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x1, yc, center, angle, pscale)  && allowMidLeftInteraction() ) {
         newState = eMouseStateDraggingMidLeft;
-    } else if ( isNearby(args.penPosition, x2, yc, POINT_TOLERANCE, pscale) && allowMidRightInteraction() ) {
+    } else if ( isHandleNearby(args.penPosition, x2, yc, center, angle, pscale) && allowMidRightInteraction() ) {
         newState = eMouseStateDraggingMidRight;
     } else {
         newState = eMouseStateIdle;
@@ -559,7 +654,9 @@ RectangleInteract::penDown(const PenArgs &args)
     _btmLeftDragPos.y = y1;
     _sizeDrag.x = w;
     _sizeDrag.y = h;
-    _lastMousePos = args.penPosition;
+    _centerDrag = center;
+    _angleDrag = angle;
+    _lastMousePos = penPosition;
     if (didSomething) {
         requestRedraw();
     }
@@ -686,56 +783,116 @@ RectangleInteract::setValue(OfxPointD btmLeft,
 {
     bool setBtmLeft = false;
     bool setSize = false;
-    // round newx/y to the closest int, 1/10 int, etc
-    // this make parameter editing easier
-    switch (_mouseState) {
-    case eMouseStateIdle:
-        break;
-    case eMouseStateDraggingTopLeft:
-        btmLeft.x = fround(btmLeft.x, pscale.x);
-        size.x = fround(size.x, pscale.x);
-        size.y = fround(size.y, pscale.y);
+    if (_angleDrag != 0.) {
+        // Rotated: btmLeft is not an edge position on screen, so rounding it would move the
+        // side that must stay fixed. Round the size instead, in the rectangle frame, and move
+        // btmLeft so that the fixed side (or the center, with Ctrl) stays in place.
+        const bool centered = _modifierStateCtrl > 0;
+        int sideX = 0; // -1: the left side moves, +1: the right side moves, 0: width unchanged
+        int sideY = 0; // -1: the bottom side moves, +1: the top side moves, 0: height unchanged
+        switch (_mouseState) {
+        case eMouseStateDraggingTopLeft:
+            sideX = -1; sideY = +1;
+            break;
+        case eMouseStateDraggingTopRight:
+            sideX = +1; sideY = +1;
+            break;
+        case eMouseStateDraggingBtmLeft:
+            sideX = -1; sideY = -1;
+            break;
+        case eMouseStateDraggingBtmRight:
+            sideX = +1; sideY = -1;
+            break;
+        case eMouseStateDraggingTopMid:
+            sideY = +1;
+            break;
+        case eMouseStateDraggingBtmMid:
+            sideY = -1;
+            break;
+        case eMouseStateDraggingMidRight:
+            sideX = +1;
+            break;
+        case eMouseStateDraggingMidLeft:
+            sideX = -1;
+            break;
+        case eMouseStateDraggingCenter:
+        case eMouseStateIdle:
+            break;
+        }
+        if (sideX != 0) {
+            double w = fround(size.x, pscale.x);
+            btmLeft.x -= centered ? (w - size.x) / 2 : (sideX < 0 ? w - size.x : 0.);
+            size.x = w;
+        }
+        if (sideY != 0) {
+            double h = fround(size.y, pscale.y);
+            btmLeft.y -= centered ? (h - size.y) / 2 : (sideY < 0 ? h - size.y : 0.);
+            size.y = h;
+        }
+        // The rectangle was edited in the frame rotated around _centerDrag, but the
+        // rendered shape is rotated around its own center: translate it so that it stays
+        // at the same place, i.e. btmLeft += (I - R) * (_centerDrag - newCenter)
+        OfxPointD d;
+        d.x = _centerDrag.x - (btmLeft.x + size.x / 2);
+        d.y = _centerDrag.y - (btmLeft.y + size.y / 2);
+        double a = _angleDrag * OFXS_PI / 180.;
+        double cosa = std::cos(a);
+        double sina = std::sin(a);
+        btmLeft.x += d.x - (cosa * d.x - sina * d.y);
+        btmLeft.y += d.y - (sina * d.x + cosa * d.y);
         setBtmLeft = setSize = true;
-        break;
-    case eMouseStateDraggingTopRight:
-        size.x = fround(size.x, pscale.x);
-        size.y = fround(size.y, pscale.y);
-        setSize = true;
-        break;
-    case eMouseStateDraggingBtmLeft:
-        btmLeft.x = fround(btmLeft.x, pscale.x);
-        btmLeft.y = fround(btmLeft.y, pscale.y);
-        size.x = fround(size.x, pscale.x);
-        size.y = fround(size.y, pscale.y);
-        setBtmLeft = setSize = true;
-        break;
-    case eMouseStateDraggingBtmRight:
-        size.x = fround(size.x, pscale.x);
-        size.y = fround(size.y, pscale.y);
-        btmLeft.y = fround(btmLeft.y, pscale.y);
-        setBtmLeft = setSize = true;
-        break;
-    case eMouseStateDraggingCenter:
-        btmLeft.x = fround(btmLeft.x, pscale.x);
-        btmLeft.y = fround(btmLeft.y, pscale.y);
-        setBtmLeft = true;
-        break;
-    case eMouseStateDraggingTopMid:
-        size.y = fround(size.y, pscale.y);
-        setSize = true;
-        break;
-    case eMouseStateDraggingMidRight:
-        size.x = fround(size.x, pscale.x);
-        setSize = true;
-        break;
-    case eMouseStateDraggingBtmMid:
-        btmLeft.y = fround(btmLeft.y, pscale.y);
-        setBtmLeft = true;
-        break;
-    case eMouseStateDraggingMidLeft:
-        btmLeft.x = fround(btmLeft.x, pscale.x);
-        setBtmLeft = true;
-        break;
+    } else {
+        // round newx/y to the closest int, 1/10 int, etc
+        // this make parameter editing easier
+        switch (_mouseState) {
+        case eMouseStateIdle:
+            break;
+        case eMouseStateDraggingTopLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            setBtmLeft = setSize = true;
+            break;
+        case eMouseStateDraggingTopRight:
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            setSize = true;
+            break;
+        case eMouseStateDraggingBtmLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            setBtmLeft = setSize = true;
+            break;
+        case eMouseStateDraggingBtmRight:
+            size.x = fround(size.x, pscale.x);
+            size.y = fround(size.y, pscale.y);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            setBtmLeft = setSize = true;
+            break;
+        case eMouseStateDraggingCenter:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            setBtmLeft = true;
+            break;
+        case eMouseStateDraggingTopMid:
+            size.y = fround(size.y, pscale.y);
+            setSize = true;
+            break;
+        case eMouseStateDraggingMidRight:
+            size.x = fround(size.x, pscale.x);
+            setSize = true;
+            break;
+        case eMouseStateDraggingBtmMid:
+            btmLeft.y = fround(btmLeft.y, pscale.y);
+            setBtmLeft = true;
+            break;
+        case eMouseStateDraggingMidLeft:
+            btmLeft.x = fround(btmLeft.x, pscale.x);
+            setBtmLeft = true;
+            break;
+        }
     }
     ImageEffect::EditBlock eb(*_effect, "setRectangle", setBtmLeft + setSize > 1);
     _btmLeft->setValue(btmLeft.x, btmLeft.y);
