@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <cfloat>
+#include <algorithm> // std::fill
 
 #include "ofxsMacros.h" // OFXS_PI
 
