@@ -207,10 +207,22 @@ class GeneratorOverlayDescriptorV2
 {
 };
 
-/// drawSuite: register the overlay with ofxsSetOverlayInteractDescriptorV2, so
-/// that it draws with the OFX 1.5 DrawSuite on hosts that provide it (only if
-/// the plugin does not add its own OpenGL drawing to the generator overlay)
-void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool drawSuite = false);
+/// How the generator overlay draws, for generatorDescribe(desc, overlayDraw).
+enum GeneratorOverlayDrawEnum
+{
+    eGeneratorOverlayDrawOpenGL = 0, //< OpenGL (kOfxImageEffectPluginPropOverlayInteractV1), like generatorDescribe(desc)
+    eGeneratorOverlayDrawSuite //< OFX 1.5 DrawSuite on hosts that provide it (V2), else OpenGL
+};
+
+/// Set the generator overlay, drawn with OpenGL.
+void generatorDescribe(OFX::ImageEffectDescriptor &desc);
+
+/// Set the generator overlay. With eGeneratorOverlayDrawSuite, it is registered
+/// with ofxsSetOverlayInteractDescriptorV2, and draws with the DrawSuite on hosts
+/// that provide it: only use it if the plugin adds no OpenGL drawing of its own
+/// to the generator overlay. A separate overload (no default argument), so that
+/// it composes with other options such as generatorDescribe(desc, bool).
+void generatorDescribe(OFX::ImageEffectDescriptor &desc, GeneratorOverlayDrawEnum overlayDraw);
 
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
