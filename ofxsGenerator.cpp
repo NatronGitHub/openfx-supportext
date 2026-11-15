@@ -583,6 +583,11 @@ class GeneratorAngleOverlayDescriptor
 {
 };
 
+class GeneratorAngleOverlayDescriptorV2
+    : public DefaultEffectOverlayDescriptorV2<GeneratorAngleOverlayDescriptorV2, GeneratorAngleInteract>
+{
+};
+
 void
 generatorDescribe(ImageEffectDescriptor &desc,
                   bool hasAngle)
@@ -596,13 +601,23 @@ generatorDescribe(ImageEffectDescriptor &desc,
 
 void
 generatorDescribe(ImageEffectDescriptor &desc,
+                  bool hasAngle,
                   GeneratorOverlayDrawEnum overlayDraw)
 {
-    if (overlayDraw == eGeneratorOverlayDrawSuite) {
-        ofxsSetOverlayInteractDescriptorV2(desc, new GeneratorOverlayDescriptorV2);
+    if (overlayDraw != eGeneratorOverlayDrawSuite) {
+        generatorDescribe(desc, hasAngle);
+    } else if (hasAngle) {
+        ofxsSetOverlayInteractDescriptorV2(desc, new GeneratorAngleOverlayDescriptorV2);
     } else {
-        desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
+        ofxsSetOverlayInteractDescriptorV2(desc, new GeneratorOverlayDescriptorV2);
     }
+}
+
+void
+generatorDescribe(ImageEffectDescriptor &desc,
+                  GeneratorOverlayDrawEnum overlayDraw)
+{
+    generatorDescribe(desc, false, overlayDraw);
 }
 
 void
