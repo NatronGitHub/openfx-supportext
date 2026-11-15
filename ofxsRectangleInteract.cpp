@@ -24,6 +24,7 @@
  */
 
 #include "ofxsRectangleInteract.h"
+#include "ofxsOverlayDraw.h"
 #include <cmath>
 
 #ifdef __APPLE__
@@ -71,7 +72,8 @@ fround(double val,
 }
 
 static void
-drawPoint(const OfxRGBColourD &color,
+drawPoint(OverlayDraw& d,
+          const OfxRGBColourD &color,
           bool draw,
           double x,
           double y,
@@ -83,14 +85,14 @@ drawPoint(const OfxRGBColourD &color,
     if (draw) {
         if (ds == id) {
             if (keepAR) {
-                glColor3f(1.f * l, 0.f * l, 0.f * l);
+                d.glColor3f(1.f * l, 0.f * l, 0.f * l);
             } else {
-                glColor3f(0.f * l, 1.f * l, 0.f * l);
+                d.glColor3f(0.f * l, 1.f * l, 0.f * l);
             }
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(x, y);
+        d.glVertex2d(x, y);
     }
 }
 
@@ -114,10 +116,12 @@ RectangleInteract::draw(const DrawArgs &args)
     OfxRGBColourD color = { 0.8, 0.8, 0.8 };
     getSuggestedColour(color);
     const OfxPointD& pscale = args.pixelScale;
+    // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
+    OverlayDraw d(args, _drawSuite);
     GLdouble projection[16];
-    glGetDoublev( GL_PROJECTION_MATRIX, projection);
+    d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
     GLint viewport[4];
-    glGetIntegerv(GL_VIEWPORT, viewport);
+    d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
     shadow.x = 2. / (projection[0] * viewport[2]);
     shadow.y = 2. / (projection[5] * viewport[3]);
@@ -142,62 +146,62 @@ RectangleInteract::draw(const DrawArgs &args)
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
     aboutToCheckInteractivity(args.time);
 
-    glDisable(GL_LINE_STIPPLE);
-    glEnable(GL_LINE_SMOOTH);
-    glDisable(GL_POINT_SMOOTH);
-    glEnable(GL_BLEND);
-    glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    glLineWidth(1.5f * screenPixelRatio);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    d.glDisable(GL_LINE_STIPPLE);
+    d.glEnable(GL_LINE_SMOOTH);
+    d.glDisable(GL_POINT_SMOOTH);
+    d.glEnable(GL_BLEND);
+    d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
+    d.glLineWidth(1.5f * screenPixelRatio);
+    d.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
     for (int l = 0; l < 2; ++l) {
         // shadow (uses GL_PROJECTION)
-        glMatrixMode(GL_PROJECTION);
+        d.glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        glTranslated(direction * shadow.x, -direction * shadow.y, 0);
-        glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
+        d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
+        d.glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
-        glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+        d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
 
-        glBegin(GL_LINE_LOOP);
-        glVertex2d(x1, y1);
-        glVertex2d(x1, y2);
-        glVertex2d(x2, y2);
-        glVertex2d(x2, y1);
-        glEnd();
+        d.glBegin(GL_LINE_LOOP);
+        d.glVertex2d(x1, y1);
+        d.glVertex2d(x1, y2);
+        d.glVertex2d(x2, y2);
+        d.glVertex2d(x2, y1);
+        d.glEnd();
 
-        glPointSize(POINT_SIZE * screenPixelRatio);
-        glBegin(GL_POINTS);
-        drawPoint(color, allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _drawState, keepAR, l);
-        drawPoint(color, allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _drawState, false,  l);
-        drawPoint(color, allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _drawState, keepAR, l);
-        drawPoint(color, allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _drawState, false,  l);
-        drawPoint(color, allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _drawState, false,  l);
-        drawPoint(color, allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _drawState, false,  l);
-        drawPoint(color, allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _drawState, keepAR, l);
-        drawPoint(color, allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _drawState, false,  l);
-        drawPoint(color, allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _drawState, keepAR, l);
-        glEnd();
-        glPointSize(1);
+        d.glPointSize(POINT_SIZE * screenPixelRatio);
+        d.glBegin(GL_POINTS);
+        drawPoint(d, color, allowBtmLeftInteraction(),  x1, y1, eDrawStateHoveringBtmLeft,  _drawState, keepAR, l);
+        drawPoint(d, color, allowMidLeftInteraction(),  x1, yc, eDrawStateHoveringMidLeft,  _drawState, false,  l);
+        drawPoint(d, color, allowTopLeftInteraction(),  x1, y2, eDrawStateHoveringTopLeft,  _drawState, keepAR, l);
+        drawPoint(d, color, allowBtmMidInteraction(),   xc, y1, eDrawStateHoveringBtmMid,   _drawState, false,  l);
+        drawPoint(d, color, allowCenterInteraction(),   xc, yc, eDrawStateHoveringCenter,   _drawState, false,  l);
+        drawPoint(d, color, allowTopMidInteraction(),   xc, y2, eDrawStateHoveringTopMid,   _drawState, false,  l);
+        drawPoint(d, color, allowBtmRightInteraction(), x2, y1, eDrawStateHoveringBtmRight, _drawState, keepAR, l);
+        drawPoint(d, color, allowMidRightInteraction(), x2, yc, eDrawStateHoveringMidRight, _drawState, false,  l);
+        drawPoint(d, color, allowTopRightInteraction(), x2, y2, eDrawStateHoveringTopRight, _drawState, keepAR, l);
+        d.glEnd();
+        d.glPointSize(1);
 
         ///draw center cross hair
-        glBegin(GL_LINES);
+        d.glBegin(GL_LINES);
         if ( (_drawState == eDrawStateHoveringCenter) || ( centered && (_drawState != eDrawStateInactive) ) ) {
-            glColor3f(0.f * l, 1.f * l, 0.f * l);
+            d.glColor3f(0.f * l, 1.f * l, 0.f * l);
         } else if ( !allowCenterInteraction() ) {
-            glColor3f( (float)(color.r / 2) * l, (float)(color.g / 2) * l, (float)(color.b / 2) * l );
+            d.glColor3f( (float)(color.r / 2) * l, (float)(color.g / 2) * l, (float)(color.b / 2) * l );
         } else {
-            glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         }
-        glVertex2d(xc - CROSS_SIZE * pscale.x, yc);
-        glVertex2d(xc + CROSS_SIZE * pscale.x, yc);
-        glVertex2d(xc, yc - CROSS_SIZE * pscale.y);
-        glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
-        glEnd();
+        d.glVertex2d(xc - CROSS_SIZE * pscale.x, yc);
+        d.glVertex2d(xc + CROSS_SIZE * pscale.x, yc);
+        d.glVertex2d(xc, yc - CROSS_SIZE * pscale.y);
+        d.glVertex2d(xc, yc + CROSS_SIZE * pscale.y);
+        d.glEnd();
     }
     //glPopAttrib();
 

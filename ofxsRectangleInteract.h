@@ -31,6 +31,7 @@
 #include "ofxsMacros.h"
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
+#include "ofxsOverlayDraw.h"
 
 // a secret parameter used to enable the interact, if it exists
 #define kParamRectangleInteractEnable "rectangleInteractEnable"
@@ -103,6 +104,7 @@ public:
         , _size(NULL)
         , _interactive(NULL)
         , _hiDPI(NULL)
+        , _drawSuite( OFX::ofxsOverlayIsConstructedForDrawSuite() )
     {
         if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
             _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
@@ -230,6 +232,7 @@ private:
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
     OFX::InteractCursor _cursor;
+    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
     OfxPointD _btmLeftDragPos;
     OfxPointD _sizeDrag;
     bool _interactiveDrag;
@@ -237,6 +240,13 @@ private:
 
 class RectangleOverlayDescriptor
     : public OFX::DefaultEffectOverlayDescriptor<RectangleOverlayDescriptor, RectangleInteract>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new RectangleOverlayDescriptorV2)
+class RectangleOverlayDescriptorV2
+    : public OFX::DefaultEffectOverlayDescriptorV2<RectangleOverlayDescriptorV2, RectangleInteract>
 {
 };
 } // namespace OFX

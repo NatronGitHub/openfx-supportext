@@ -565,9 +565,14 @@ GeneratorInteract::keyUp(const KeyArgs & args)
 
 namespace OFX {
 void
-generatorDescribe(ImageEffectDescriptor &desc)
+generatorDescribe(ImageEffectDescriptor &desc,
+                  bool drawSuite)
 {
-    desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
+    if (drawSuite) {
+        ofxsSetOverlayInteractDescriptorV2(desc, new GeneratorOverlayDescriptorV2);
+    } else {
+        desc.setOverlayInteractDescriptor(new GeneratorOverlayDescriptor);
+    }
 }
 
 void

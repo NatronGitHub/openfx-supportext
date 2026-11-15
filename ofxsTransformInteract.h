@@ -30,6 +30,7 @@
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
 #include "ofxsInteractCursor.h"
+#include "ofxsOverlayDraw.h"
 
 #define kParamTransformTranslate "transformTranslate"
 #define kParamTransformTranslateLabel "Translate"
@@ -228,12 +229,20 @@ private:
     OFX::BooleanParam* _interactOpen;
     OFX::BooleanParam* _interactive;
     OFX::BooleanParam* _hiDPI;
+    bool _drawSuite; // created by a DefaultEffectOverlayDescriptorV2: draw with the DrawSuite if available
 };
 
 typedef OverlayInteractFromHelper<TransformInteractHelper> TransformInteract;
 
 class TransformOverlayDescriptor
     : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptor, TransformInteract>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new TransformOverlayDescriptorV2)
+class TransformOverlayDescriptorV2
+    : public DefaultEffectOverlayDescriptorV2<TransformOverlayDescriptorV2, TransformInteract>
 {
 };
 
@@ -250,6 +259,13 @@ typedef OverlayInteractFromHelper<TransformInteractHelperOldParams> TransformInt
 
 class TransformOverlayDescriptorOldParams
     : public DefaultEffectOverlayDescriptor<TransformOverlayDescriptorOldParams, TransformInteractOldParams>
+{
+};
+
+/// Draws with the DrawSuite when the host provides it; register with
+/// ofxsSetOverlayInteractDescriptorV2(desc, new TransformOverlayDescriptorOldParamsV2)
+class TransformOverlayDescriptorOldParamsV2
+    : public DefaultEffectOverlayDescriptorV2<TransformOverlayDescriptorOldParamsV2, TransformInteractOldParams>
 {
 };
 } // namespace OFX

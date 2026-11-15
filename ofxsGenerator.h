@@ -202,7 +202,15 @@ class GeneratorOverlayDescriptor
 {
 };
 
-void generatorDescribe(OFX::ImageEffectDescriptor &desc);
+class GeneratorOverlayDescriptorV2
+    : public DefaultEffectOverlayDescriptorV2<GeneratorOverlayDescriptorV2, GeneratorInteract>
+{
+};
+
+/// drawSuite: register the overlay with ofxsSetOverlayInteractDescriptorV2, so
+/// that it draws with the OFX 1.5 DrawSuite on hosts that provide it (only if
+/// the plugin does not add its own OpenGL drawing to the generator overlay)
+void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool drawSuite = false);
 
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
