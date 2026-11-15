@@ -173,7 +173,7 @@ public:
 
     GeneratorInteract(OfxInteractHandle handle,
                       OFX::ImageEffect* effect,
-                      const OFX::RectangleInteractParams& params = OFX::RectangleInteractParams());
+                      const char* angleParamName = NULL);
 
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
@@ -203,7 +203,9 @@ class GeneratorOverlayDescriptor
 {
 };
 
-void generatorDescribe(OFX::ImageEffectDescriptor &desc);
+// Set the generator overlay. If hasAngle is true, the effect must also have a
+// kParamRectangleInteractAngle parameter, and the overlay is rotated by that angle.
+void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool hasAngle = false);
 
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,

@@ -48,40 +48,15 @@
 #define kParamRectangleInteractInteractiveLabel "Interactive Update"
 #define kParamRectangleInteractInteractiveHint "If checked, update the parameter values during interaction with the image viewer, else update the values when pen is released."
 
-// an optional parameter (of type double, in degrees) giving the rotation angle of the rectangle around its center.
-// The interact uses it only if its name is given in RectangleInteractParams::angle (see below).
+// An optional parameter (of type double, in degrees) giving the rotation angle of the rectangle around its center.
+// It is not detected by name: the effect must pass its name to the RectangleInteract constructor.
 #define kParamRectangleInteractAngle "rectangleAngle"
 #define kParamRectangleInteractAngleLabel "Angle"
-#define kParamRectangleInteractAngleHint "Rotation angle of the shape around its center, in degrees (counter-clockwise)."
 
 namespace OFX {
 /**
- * @brief The names of the parameters used by RectangleInteract.
- * The defaults are the names defined above. The angle parameter is not used by default:
- * set angle to the name of a double parameter (e.g. kParamRectangleInteractAngle) to draw and
- * manipulate a rectangle rotated by that angle (in degrees) around its center.
- **/
-struct RectangleInteractParams
-{
-    const char* enable; // optional boolean parameter, used if it exists
-    const char* btmLeft; // Double2D parameter
-    const char* size; // Double2D parameter
-    const char* interactive; // optional boolean parameter, used if it exists
-    const char* angle; // optional double parameter, used if not NULL
-
-    RectangleInteractParams()
-        : enable(kParamRectangleInteractEnable)
-        , btmLeft(kParamRectangleInteractBtmLeft)
-        , size(kParamRectangleInteractSize)
-        , interactive(kParamRectangleInteractInteractive)
-        , angle(NULL)
-    {
-    }
-};
-
-/**
- * @brief In order to work the plug-in using this interact must have the bottom left and size
- * parameters named in RectangleInteractParams (by default, named after the defines above).
+ * @brief In order to work the plug-in using this interact must have 2 parameters named after
+ * the defines above.
  *
  **/
 class RectangleInteract
@@ -120,7 +95,7 @@ public:
 
     RectangleInteract(OfxInteractHandle handle,
                       OFX::ImageEffect* effect,
-                      const RectangleInteractParams& params = RectangleInteractParams())
+                      const char* angleParamName = NULL) // name of the optional rotation angle parameter (see kParamRectangleInteractAngle)
         : OFX::OverlayInteract(handle)
         , _effect(effect)
         , _lastMousePos()
@@ -136,22 +111,22 @@ public:
         , _angle(NULL)
         , _angleDrag(0.)
     {
-        if ( _effect->paramExists(params.enable) ) {
-            _enable = effect->fetchBooleanParam(params.enable);
+        if ( _effect->paramExists(kParamRectangleInteractEnable) ) {
+            _enable = effect->fetchBooleanParam(kParamRectangleInteractEnable);
         }
-        _btmLeft = effect->fetchDouble2DParam(params.btmLeft);
-        _size = effect->fetchDouble2DParam(params.size);
+        _btmLeft = effect->fetchDouble2DParam(kParamRectangleInteractBtmLeft);
+        _size = effect->fetchDouble2DParam(kParamRectangleInteractSize);
         addParamToSlaveTo(_btmLeft);
         addParamToSlaveTo(_size);
         assert(_btmLeft && _size);
-        _interactive = effect->paramExists(params.interactive) ? effect->fetchBooleanParam(params.interactive) : 0;
+        _interactive = effect->paramExists(kParamRectangleInteractInteractive) ? effect->fetchBooleanParam(kParamRectangleInteractInteractive) : 0;
         if ( effect->paramExists(kParamHiDPI) ) {
             _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
             assert(_hiDPI);
             addParamToSlaveTo(_hiDPI);
         }
-        if (params.angle) {
-            _angle = effect->fetchDoubleParam(params.angle);
+        if (angleParamName) {
+            _angle = effect->fetchDoubleParam(angleParamName);
             assert(_angle);
             addParamToSlaveTo(_angle);
         }
