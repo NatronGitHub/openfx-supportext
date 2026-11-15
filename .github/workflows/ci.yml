@@ -1,0 +1,87 @@
+name: Continuous Integration
+
+on:
+  push:
+    paths-ignore:
+      - LICENSE
+      - README.md
+  pull_request:
+    paths-ignore:
+      - LICENSE
+      - README.md
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Compile every SupportExt source file, with warnings as failures, against:
+  # - openfx master (NatronGitHub fork): DrawSuite and interact cursor APIs enabled;
+  # - the openfx commit currently used by openfx-misc, openfx-io and openfx-arena:
+  #   those code paths compile to no-ops.
+  compile:
+    name: ${{ matrix.os }} / openfx ${{ matrix.openfx.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-latest, windows-2022]
+        openfx:
+          - { name: master, ref: master }
+          - { name: consumers, ref: 2303ff811bee3ffe085287602f684fe5fe5357e0 }
+    defaults:
+      run:
+        shell: ${{ startsWith(matrix.os, 'windows') && 'msys2 {0}' || 'bash' }}
+    steps:
+      - name: Checkout openfx-supportext
+        uses: actions/checkout@v4
+      - name: Checkout openfx (${{ matrix.openfx.name }})
+        uses: actions/checkout@v4
+        with:
+          repository: NatronGitHub/openfx
+          ref: ${{ matrix.openfx.ref }}
+          path: openfx
+      - name: Install Ubuntu packages
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl-dev libglu1-mesa-dev libegl-dev
+      - name: Setup MinGW environment
+        if: startsWith(matrix.os, 'windows')
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: mingw64
+          update: true
+          install: git base-devel mingw-w64-x86_64-cc
+      - name: Compile
+        run: .github/scripts/compile.sh openfx
+
+  # Build openfx-misc (Misc and CImg plug-ins) with this SupportExt, as a
+  # consumer would, to catch API or header breakage.
+  openfx-misc:
+    name: openfx-misc with this SupportExt (Ubuntu)
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout openfx-misc
+        uses: actions/checkout@v4
+        with:
+          repository: NatronGitHub/openfx-misc
+          submodules: recursive
+      - name: Checkout openfx-supportext
+        uses: actions/checkout@v4
+        with:
+          path: supportext-under-test
+      - name: Use this SupportExt
+        run: |
+          rm -rf SupportExt
+          mv supportext-under-test SupportExt
+      - name: Install Ubuntu packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglu1-mesa-dev libgl-dev
+      - name: Build (release)
+        run: make -j4 CONFIG=release
