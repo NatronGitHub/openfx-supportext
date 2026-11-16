@@ -82,7 +82,8 @@ for s in $SUPPORTEXT; do srcs+=("$SX/$s.cpp"); done
 for s in $PLUGINS; do srcs+=("$MISC/$s"); done
 export CXX CXXFLAGS OBJ
 # shellcheck disable=SC2016
-printf '%s\n' "${srcs[@]}" | xargs -P "$JOBS" -I{} bash -c 'o="$OBJ/$(basename "{}" .cpp).o"; $CXX $CXXFLAGS -c "{}" -o "$o" > "$o.log" 2>&1 || { cat "$o.log"; exit 255; }'
+# (pass the file as an argument: BSD xargs -I limits the command to 255 bytes)
+printf '%s\n' "${srcs[@]}" | xargs -P "$JOBS" -n 1 bash -c 'o="$OBJ/$(basename "$1" .cpp).o"; $CXX $CXXFLAGS -c "$1" -o "$o" > "$o.log" 2>&1 || { cat "$o.log"; exit 255; }' _
 
 BUNDLE="$WORK/plugins/SupportExtTest.ofx.bundle"
 rm -rf "$WORK/plugins"; mkdir -p "$BUNDLE/Contents/$ARCH"
@@ -110,7 +111,7 @@ while read -r id ctx params; do
     oprefix="$OUT/$name"
     [ "$OS" = mingw ] && oprefix=$(cygpath -w "$oprefix")
     # shellcheck disable=SC2086
-    if (cd "$OUT" && OFX_PLUGIN_PATH="$PLUGPATH" "$HD" -p "$id" -c "$ctx" -o "$oprefix" $params) > "$OUT/$name.log" 2>&1 \
+    if (cd "$OUT" && OFX_PLUGIN_PATH="$PLUGPATH" "$HD" --no-std-paths --no-cache -p "$id" -c "$ctx" -o "$oprefix" $params) > "$OUT/$name.log" 2>&1 \
        && frames_ok "$OUT/$name"; then
         echo "ok   $id ($ctx)"
     else
