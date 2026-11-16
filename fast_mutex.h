@@ -27,6 +27,7 @@ freely, subject to the following restrictions:
 #if __cplusplus > 199711L || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) // C++11 (MSVC reports 199711L without /Zc:__cplusplus)
 //#warning "fast_mutex should not be used with C++ >= C++11, consider switching to std::thread"
 #include <atomic>
+#include <thread>
 
 namespace tthread {
 
@@ -52,7 +53,9 @@ class fast_mutex
   void lock()
   {
     while(_lockFlag.test_and_set(std::memory_order_acquire))
-    { }
+    {
+      std::this_thread::yield(); // like the pre-C++11 code below: don't busy-wait
+    }
   }
 
   bool try_lock()
