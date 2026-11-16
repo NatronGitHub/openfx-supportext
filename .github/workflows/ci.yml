@@ -1,22 +1,26 @@
 name: Continuous Integration
 
-# Per push and pull request: exactly one build per platform (macOS, Linux,
-# Windows), in C++17. Extra variants (C++20, C++23, other openfx versions) are
+# On pushes to master, RB-* and tags, and on non-draft pull requests: exactly
+# one build per platform (macOS, Linux, Windows), in C++17. Extra variants (C++20, C++23, other openfx versions) are
 # in extended.yml.
 
 on:
   push:
+    branches: [master, 'RB-*']
+    tags: ['*']
     paths-ignore:
       - LICENSE
       - '**.md'
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths-ignore:
       - LICENSE
       - '**.md'
 
+# Cancel superseded runs (but never tag builds)
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
   contents: read
@@ -31,7 +35,10 @@ jobs:
   # The Linux job also builds openfx-misc with this SupportExt, as a consumer.
   build:
     name: ${{ matrix.name }}
+    # no CI on draft pull requests
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
