@@ -1,8 +1,8 @@
 name: Continuous Integration
 
-# On pushes to master, RB-* and tags, and on non-draft pull requests: exactly
-# one build per platform (macOS, Linux, Windows), in C++17. Extra variants (C++20, C++23, other openfx versions) are
-# in extended.yml.
+# On pushes to master, RB-* and tags, and on non-draft pull requests: one build
+# per platform (Linux, Windows, then macOS), in C++17 (see build-one.yml).
+# Extra variants (C++20, C++23, other openfx versions) are in extended.yml.
 
 on:
   push:
@@ -26,87 +26,31 @@ permissions:
   contents: read
 
 jobs:
-  # Each job compiles every SupportExt source file in C++17, with warnings as
-  # failures (RB-2.6 Qt5 builds use C++17; C++20 is in extended.yml):
-  # - against openfx master (NatronGitHub fork), where the DrawSuite and interact
-  #   cursor code is enabled;
-  # - against openfx 2303ff8, which predates the OFX 1.5 APIs, so those code
-  #   paths compile to no-ops.
-  # Each job then loads and renders a few SupportExt-based openfx-misc plug-ins
-  # with openfx's hostDemo (tests/hostdemo/run.sh). The Linux job also builds
-  # openfx-misc with this SupportExt, as a consumer.
+  # Linux and Windows first; macOS (arm64 runners are scarce) only runs when they
+  # pass. Merging requires Linux and Windows; macOS is informative. The macOS
+  # build also runs nightly (extended.yml).
   build:
     name: ${{ matrix.name }}
     # no CI on draft pull requests
     if: github.event_name != 'pull_request' || !github.event.pull_request.draft
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
         include:
-          # system (Xcode) clang; no MacPorts or Homebrew dependency is needed
-          - { name: macOS 15 arm64 (Xcode clang), os: macos-15, shell: 'bash -eo pipefail {0}' }
           - { name: Ubuntu 24.04 (GCC), os: ubuntu-24.04, shell: 'bash -eo pipefail {0}' }
           - { name: Windows (MSYS2 UCRT64), os: windows-2022, shell: 'msys2 {0}' }
-    defaults:
-      run:
-        shell: ${{ matrix.shell }}
-    steps:
-      - name: Checkout openfx-supportext
-        uses: actions/checkout@v4
-      - name: Checkout openfx master
-        uses: actions/checkout@v4
-        with:
-          repository: NatronGitHub/openfx
-          ref: master
-          path: openfx
-      - name: Checkout openfx 2303ff8 (pre-OFX 1.5)
-        uses: actions/checkout@v4
-        with:
-          repository: NatronGitHub/openfx
-          ref: 2303ff811bee3ffe085287602f684fe5fe5357e0
-          path: openfx-pre15
-      - name: Install Ubuntu packages
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgl-dev libglu1-mesa-dev libegl-dev
-      - name: Setup MSYS2 UCRT64
-        if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          cache: true
-          install: git base-devel mingw-w64-ucrt-x86_64-cc mingw-w64-ucrt-x86_64-cmake mingw-w64-ucrt-x86_64-ninja
-      - name: Compiler version
-        run: |
-          set -eo pipefail
-          c++ --version
-      - name: Compile (openfx master, C++17)
-        run: |
-          set -eo pipefail
-          CXXSTD=-std=c++17 .github/scripts/compile.sh openfx
-      - name: Compile (openfx 2303ff8, C++17)
-        run: |
-          set -eo pipefail
-          CXXSTD=-std=c++17 .github/scripts/compile.sh openfx-pre15
-      - name: Load and render plug-ins with hostDemo
-        # builds openfx's hostDemo and a bundle of openfx-misc plug-ins (Transform,
-        # Crop, Constant, Rectangle, Position) against this SupportExt, linked like
-        # the consumers' bundles, and renders each one: catches link, export,
-        # describe and render errors that compiling alone doesn't see
-        run: |
-          set -eo pipefail
-          git clone --depth 1 https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc-src"
-          CXXSTD=-std=c++17 tests/hostdemo/run.sh openfx "$RUNNER_TEMP/openfx-misc-src" "$RUNNER_TEMP/hostdemo"
-      - name: Build openfx-misc with this SupportExt
-        if: runner.os == 'Linux'
-        run: |
-          set -eo pipefail
-          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc"
-          rm -rf "$RUNNER_TEMP/openfx-misc/SupportExt"
-          mkdir "$RUNNER_TEMP/openfx-misc/SupportExt"
-          git archive HEAD | tar -x -C "$RUNNER_TEMP/openfx-misc/SupportExt"
-          make -C "$RUNNER_TEMP/openfx-misc" -j4 CONFIG=release
+    uses: ./.github/workflows/build-one.yml
+    with:
+      name: ${{ matrix.name }}
+      os: ${{ matrix.os }}
+      shell: ${{ matrix.shell }}
+
+  macos:
+    name: macOS 15 arm64 (Xcode clang)
+    needs: [build]
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    # system (Xcode) clang; no MacPorts or Homebrew dependency is needed
+    uses: ./.github/workflows/build-one.yml
+    with:
+      name: macOS 15 arm64 (Xcode clang)
+      os: macos-15
