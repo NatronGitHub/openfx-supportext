@@ -74,7 +74,7 @@ drawPointTrajectoryT(DRAW& d, Double2DParam* p)
         double time = p->getKeyTime(0);
         for (int i = 1; i < numKeys; ++i) {
             double timeNext = p->getKeyTime(i);
-            int steps = std::max(kDrawPointTrajectoryMinStepsPerKey, std::min(int(timeNext - time), maxStepsPerKey));
+            int steps = (std::max)(kDrawPointTrajectoryMinStepsPerKey, (std::min)(int(timeNext - time), maxStepsPerKey));
             for (int j = (i == 1 ? 0 : 1); j <= steps; ++j) {
                 double timeStep = time + j * (timeNext - time) / steps;
 

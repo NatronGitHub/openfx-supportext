@@ -696,12 +696,12 @@ private:
             for (int i = 0; i < 32; ++i) {
                 if ( (_state.stipplePattern >> (i % 16)) & 1 ) {
                     ++run;
-                    longest = std::max(longest, run);
+                    longest = (std::max)(longest, run);
                 } else {
                     run = 0;
                 }
             }
-            longest = std::min(longest, 16) * std::max(1, (int)_state.stippleFactor);
+            longest = (std::min)(longest, 16) * (std::max)(1, (int)_state.stippleFactor);
             p = (longest <= 2) ? kOfxDrawLineStipplePatternDot : kOfxDrawLineStipplePatternDash;
         }
         if ( (int)p != _ctxStipple ) {
