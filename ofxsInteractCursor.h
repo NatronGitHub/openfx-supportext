@@ -72,6 +72,7 @@ class InteractCursor
 public:
     InteractCursor()
         : _owned(false)
+        , _name()
     {
     }
 
@@ -89,6 +90,7 @@ public:
         }
         if ( interact->setCursor(name) ) {
             _owned = (std::string(name) != kOfxsCursorDefault);
+            _name = _owned ? name : "";
 
             return true;
         }
@@ -103,19 +105,26 @@ public:
 #endif
     }
 
-    /// Give the cursor back to the host ("default"), if this helper set it.
+    /// Give the cursor back to the host ("default"), if this helper set it and
+    /// the interact still requests it: another helper sharing the interact may
+    /// have set its own cursor since (e.g. earlier during the same event), and
+    /// that request must not be overwritten.
     /// Call it when the pen leaves the handles, when the interact stops
     /// handling events (overlay hidden, params disabled), and on loseFocus.
     void release(Interact* interact)
     {
 #ifdef OFXS_HAVE_INTERACT_CURSOR
         if (_owned && interact) {
-            interact->setCursor(kOfxsCursorDefault);
+            const std::string current = interact->getProperties().propGetString(kOfxInteractPropCursor, 0, false);
+            if (current == _name) {
+                interact->setCursor(kOfxsCursorDefault);
+            }
         }
 #else
         (void)interact;
 #endif
         _owned = false;
+        _name.clear();
     }
 
     /// The resize cursor closest to the direction (dx, dy), given in
@@ -152,6 +161,7 @@ public:
 
 private:
     bool _owned; //< this helper set a non-default cursor that it has not released
+    std::string _name; //< the cursor this helper set, if _owned
 };
 } // namespace OFX
 

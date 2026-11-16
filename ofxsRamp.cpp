@@ -89,7 +89,7 @@ RampInteractHelper::draw(const DrawArgs &args)
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    screenPixelRatio *= args.screenPixelRatio;
+    screenPixelRatio *= OverlayDraw::hostScreenPixelRatio(args); // 1 if the host does not set it
     hiDPI |= args.screenPixelRatio > 1;
 #endif
     screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0

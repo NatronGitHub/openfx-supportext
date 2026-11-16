@@ -72,6 +72,17 @@ fround(double val,
     return pscale10 * std::floor(val / pscale10 + 0.5);
 }
 
+// round a size like fround, but keep the 1-unit minimum that penMotion enforces
+// (when zoomed out, fround(1, 10) would give 0)
+static double
+froundSize(double val,
+           double pscale)
+{
+    double r = fround(val, pscale);
+
+    return (r < 1.) ? 1. : r;
+}
+
 // rotate point p by the angle (given by its cosine and sine) around center c
 static inline OfxPointD
 rotatePoint(const OfxPointD & p,
@@ -193,7 +204,7 @@ RectangleInteract::draw(const DrawArgs &args)
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    screenPixelRatio *= args.screenPixelRatio;
+    screenPixelRatio *= OverlayDraw::hostScreenPixelRatio(args); // 1 if the host does not set it
     //hiDPI |= args.screenPixelRatio > 1;
 #endif
     screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
@@ -658,6 +669,40 @@ RectangleInteract::penDown(const PenArgs &args)
     _angleDrag = angle;
     _lastMousePos = penPosition;
     if (didSomething) {
+        // the pen is over the pressed handle: _drawState is otherwise only set by
+        // motions, and may be stale if penDown was not preceded by a hover (tablets)
+        switch (_mouseState) {
+        case eMouseStateIdle:
+            break;
+        case eMouseStateDraggingTopLeft:
+            _drawState = eDrawStateHoveringTopLeft;
+            break;
+        case eMouseStateDraggingTopRight:
+            _drawState = eDrawStateHoveringTopRight;
+            break;
+        case eMouseStateDraggingBtmLeft:
+            _drawState = eDrawStateHoveringBtmLeft;
+            break;
+        case eMouseStateDraggingBtmRight:
+            _drawState = eDrawStateHoveringBtmRight;
+            break;
+        case eMouseStateDraggingCenter:
+            _drawState = eDrawStateHoveringCenter;
+            break;
+        case eMouseStateDraggingTopMid:
+            _drawState = eDrawStateHoveringTopMid;
+            break;
+        case eMouseStateDraggingMidRight:
+            _drawState = eDrawStateHoveringMidRight;
+            break;
+        case eMouseStateDraggingBtmMid:
+            _drawState = eDrawStateHoveringBtmMid;
+            break;
+        case eMouseStateDraggingMidLeft:
+            _drawState = eDrawStateHoveringMidLeft;
+            break;
+        }
+        updateCursor(angle, pscale);
         requestRedraw();
     }
 
@@ -762,6 +807,10 @@ RectangleInteract::loseFocus(const FocusArgs & /*args*/)
     _modifierStateCtrl = 0;
     _modifierStateShift = 0;
     _interactiveDrag = false;
+    // a drag is abandoned if the focus is lost (the host may never send the
+    // pen up), as in TransformInteractHelper and TrackerRegionInteract
+    _mouseState = eMouseStateIdle;
+    _drawState = eDrawStateInactive;
     // the host restores its own cursor
     _cursor.release(this);
 }
@@ -820,12 +869,12 @@ RectangleInteract::setValue(OfxPointD btmLeft,
             break;
         }
         if (sideX != 0) {
-            double w = fround(size.x, pscale.x);
+            double w = froundSize(size.x, pscale.x);
             btmLeft.x -= centered ? (w - size.x) / 2 : (sideX < 0 ? w - size.x : 0.);
             size.x = w;
         }
         if (sideY != 0) {
-            double h = fround(size.y, pscale.y);
+            double h = froundSize(size.y, pscale.y);
             btmLeft.y -= centered ? (h - size.y) / 2 : (sideY < 0 ? h - size.y : 0.);
             size.y = h;
         }
@@ -849,25 +898,25 @@ RectangleInteract::setValue(OfxPointD btmLeft,
             break;
         case eMouseStateDraggingTopLeft:
             btmLeft.x = fround(btmLeft.x, pscale.x);
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
+            size.x = froundSize(size.x, pscale.x);
+            size.y = froundSize(size.y, pscale.y);
             setBtmLeft = setSize = true;
             break;
         case eMouseStateDraggingTopRight:
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
+            size.x = froundSize(size.x, pscale.x);
+            size.y = froundSize(size.y, pscale.y);
             setSize = true;
             break;
         case eMouseStateDraggingBtmLeft:
             btmLeft.x = fround(btmLeft.x, pscale.x);
             btmLeft.y = fround(btmLeft.y, pscale.y);
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
+            size.x = froundSize(size.x, pscale.x);
+            size.y = froundSize(size.y, pscale.y);
             setBtmLeft = setSize = true;
             break;
         case eMouseStateDraggingBtmRight:
-            size.x = fround(size.x, pscale.x);
-            size.y = fround(size.y, pscale.y);
+            size.x = froundSize(size.x, pscale.x);
+            size.y = froundSize(size.y, pscale.y);
             btmLeft.y = fround(btmLeft.y, pscale.y);
             setBtmLeft = setSize = true;
             break;
@@ -877,11 +926,11 @@ RectangleInteract::setValue(OfxPointD btmLeft,
             setBtmLeft = true;
             break;
         case eMouseStateDraggingTopMid:
-            size.y = fround(size.y, pscale.y);
+            size.y = froundSize(size.y, pscale.y);
             setSize = true;
             break;
         case eMouseStateDraggingMidRight:
-            size.x = fround(size.x, pscale.x);
+            size.x = froundSize(size.x, pscale.x);
             setSize = true;
             break;
         case eMouseStateDraggingBtmMid:
