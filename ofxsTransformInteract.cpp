@@ -1632,7 +1632,9 @@ TransformInteractHelper::penUp(const PenArgs &args)
         ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
         ImageEffect::EditBlock eb(*_effect, "Set Transform");
         _center->setValue(tp.center.x, tp.center.y);
-        _translate->setValue(tp.translate.x, tp.translate.y);
+        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
+            _translate->setValue(tp.translate.x, tp.translate.y);
+        }
         _scale->setValue(scale.x, scale.y);
         _rotate->setValue(tp.rotate);
         _skewX->setValue(tp.skewX);
