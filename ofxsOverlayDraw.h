@@ -382,7 +382,13 @@ public:
     /// (glPointSize(0) and glLineWidth(0) are GL_INVALID_VALUE).
     static double hostScreenPixelRatio(const DrawArgs& args)
     {
+#ifdef OFX_EXTENSIONS_NATRON
         return (args.screenPixelRatio > 0.) ? args.screenPixelRatio : 1.;
+#else
+        (void)args;
+
+        return 1.;
+#endif
     }
 
     /// true if drawing goes to the DrawSuite (no OpenGL call at all)

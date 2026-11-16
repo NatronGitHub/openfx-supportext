@@ -715,6 +715,9 @@ RectangleInteract::penUp(const PenArgs &args)
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
          !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
          ( _enable && !_enable->getValueAtTime(args.time) ) ) {
+        // the interact was disabled during the drag (if any): abandon it
+        abandonDrag();
+
         return false;
     }
 
