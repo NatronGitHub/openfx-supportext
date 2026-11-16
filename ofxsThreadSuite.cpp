@@ -42,7 +42,7 @@
 #define DBG(x) (void)0
 #endif
 
-#if __cplusplus > 199711L           // C++11
+#if __cplusplus > 199711L || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) // C++11 (MSVC reports 199711L without /Zc:__cplusplus)
 #include <thread>
 #include <mutex>
 // use our version of fast_mutex.h, which has bug fixes
