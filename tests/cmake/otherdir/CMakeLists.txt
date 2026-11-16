@@ -1,0 +1,1 @@
+supportext_add_sources(sx_otherdir COMPONENTS TEXT)
