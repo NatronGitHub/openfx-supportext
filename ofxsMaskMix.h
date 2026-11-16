@@ -100,11 +100,14 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// in pixel coordinates and return true. Outside of this rectangle, a masked
 /// effect outputs its unmasked source. Return false otherwise (*maskRoD is
 /// then left unchanged).
-/// The field scale (ofxCoordSystem.rst: "Y' = Y * SY * FS") is not applied:
-/// it is keyed on the image's kOfxImagePropField, and with the default field
-/// extraction (kOfxImageFieldDoubled, "making a full height image") images and
-/// the render window are full height, so FS is 1. A plug-in that sets
-/// kOfxImageFieldSingle extraction must scale the result itself.
+/// fieldToRender gives the field scale (ofxCoordSystem.rst, Canonical to
+/// Pixel: "Y' = Y * SY * FS", FS = 0.5 for images whose kOfxImagePropField is
+/// kOfxImageFieldLower or kOfxImageFieldUpper, i.e. half-height single-field
+/// images). The default, eFieldNone (FS = 1), is right for progressive clips,
+/// and for fielded clips with the default field extraction kOfxImageFieldDoubled
+/// ("making a full height image") or kOfxImageFieldBoth. Pass args.fieldToRender
+/// only if the plug-in sets kOfxImageFieldSingle extraction ("making a half
+/// height image") on its clips.
 /// Infinite bounds are scaled like finite ones; results outside the int range
 /// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
 /// (see Coords::toPixelEnclosing).
@@ -115,13 +118,18 @@ ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
                     OFX::BooleanParam* maskInvert,
                     double time,
                     const OfxPointD& renderScale,
-                    OfxRectI* maskRoD)
+                    OfxRectI* maskRoD,
+                    OFX::FieldEnum fieldToRender = OFX::eFieldNone)
 {
     bool doMasking = ( ( !maskApply || maskApply->getValueAtTime(time) ) && maskClip && maskClip->isConnected() );
     if ( !doMasking || maskInvert->getValueAtTime(time) ) {
         return false;
     }
-    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), renderScale, maskClip->getPixelAspectRatio(), maskRoD);
+    OfxPointD scale = renderScale;
+    if ( (fieldToRender == OFX::eFieldLower) || (fieldToRender == OFX::eFieldUpper) ) {
+        scale.y *= 0.5;
+    }
+    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), scale, maskClip->getPixelAspectRatio(), maskRoD);
 
     return true;
 }
