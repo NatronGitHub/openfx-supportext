@@ -168,6 +168,28 @@ scaleFromMipmapLevel(unsigned int level)
     return 1. / (1 << level);
 }
 
+// Convert a pixel coordinate computed in double (already rounded down or up)
+// to int, without undefined behaviour: values beyond the int range are clamped
+// to kOfxFlagInfiniteMin/kOfxFlagInfiniteMax (the infinite flags), and NaN
+// gives the given infinite flag. Values within the int range are converted
+// exactly as a plain (int) cast would.
+inline int
+pixelToIntClamped(double v,
+                  int nanValue)
+{
+    if (v != v) { // NaN
+        return nanValue;
+    }
+    if (v <= (double)kOfxFlagInfiniteMin) {
+        return kOfxFlagInfiniteMin;
+    }
+    if (v >= (double)kOfxFlagInfiniteMax) {
+        return kOfxFlagInfiniteMax;
+    }
+
+    return (int)v;
+}
+
 inline void
 toPixelEnclosing(const OfxRectD & regionOfInterest,
                  const OfxPointD & renderScale,
@@ -180,10 +202,11 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
 
         return;
     }
-    rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par);
-    rect->y1 = (int)std::floor(regionOfInterest.y1 * renderScale.y);
-    rect->x2 = (int)std::ceil(regionOfInterest.x2 * renderScale.x / par);
-    rect->y2 = (int)std::ceil(regionOfInterest.y2 * renderScale.y);
+    // same arithmetic as before; only the int conversion is protected
+    rect->x1 = pixelToIntClamped(std::floor(regionOfInterest.x1 * renderScale.x / par), kOfxFlagInfiniteMin);
+    rect->y1 = pixelToIntClamped(std::floor(regionOfInterest.y1 * renderScale.y), kOfxFlagInfiniteMin);
+    rect->x2 = pixelToIntClamped(std::ceil(regionOfInterest.x2 * renderScale.x / par), kOfxFlagInfiniteMax);
+    rect->y2 = pixelToIntClamped(std::ceil(regionOfInterest.y2 * renderScale.y), kOfxFlagInfiniteMax);
 }
 
 inline void

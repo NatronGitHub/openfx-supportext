@@ -100,10 +100,13 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// in pixel coordinates and return true. Outside of this rectangle, a masked
 /// effect outputs its unmasked source. Return false otherwise (*maskRoD is
 /// then left unchanged).
-/// Limitations (same as the code this replaces): the field scale is ignored,
-/// so the result is only right when rendering whole frames
-/// (kOfxImageFieldNone or kOfxImageFieldBoth), and an infinite or NaN mask RoD
-/// is not handled.
+/// fieldToRender (e.g. args.fieldToRender) gives the field scale: OFX spec,
+/// Canonical to Pixel: "Y' = Y * SY * FS", where FS is "0.5 if the image
+/// property kOfxImagePropField is kOfxImageFieldLower or kOfxImageFieldUpper,
+/// 1.0 otherwise". The default (eFieldNone) is for whole frames.
+/// Infinite bounds are scaled like finite ones; results outside the int range
+/// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
+/// (see Coords::toPixelEnclosing).
 inline
 bool
 ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
@@ -111,13 +114,18 @@ ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
                     OFX::BooleanParam* maskInvert,
                     double time,
                     const OfxPointD& renderScale,
-                    OfxRectI* maskRoD)
+                    OfxRectI* maskRoD,
+                    OFX::FieldEnum fieldToRender = OFX::eFieldNone)
 {
     bool doMasking = ( ( !maskApply || maskApply->getValueAtTime(time) ) && maskClip && maskClip->isConnected() );
     if ( !doMasking || maskInvert->getValueAtTime(time) ) {
         return false;
     }
-    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), renderScale, maskClip->getPixelAspectRatio(), maskRoD);
+    OfxPointD scale = renderScale;
+    if ( (fieldToRender == OFX::eFieldLower) || (fieldToRender == OFX::eFieldUpper) ) {
+        scale.y *= 0.5;
+    }
+    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), scale, maskClip->getPixelAspectRatio(), maskRoD);
 
     return true;
 }

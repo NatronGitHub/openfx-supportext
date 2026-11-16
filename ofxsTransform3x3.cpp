@@ -1023,7 +1023,13 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
                 if (getImageEffectHostDescription()->supportsMultiResolution) {
                     // In Sony Catalyst Edit, clipGetRegionOfDefinition returns the RoD in pixels instead of canonical coordinates.
                     // In hosts that do not support multiResolution (e.g. Sony Catalyst Edit), all inputs have the same RoD anyway.
-                    Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
+                    // field scale (ofxCoordSystem.rst, Canonical to Pixel: "Y' = Y * SY * FS",
+                    // FS = 0.5 for kOfxImageFieldLower or kOfxImageFieldUpper, 1.0 otherwise)
+                    OfxPointD scale = args.renderScale;
+                    if ( (args.fieldToRender == eFieldLower) || (args.fieldToRender == eFieldUpper) ) {
+                        scale.y *= 0.5;
+                    }
+                    Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), scale, _maskClip->getPixelAspectRatio(), &maskRoD);
                     // effect is identity if the renderWindow doesn't intersect the mask RoD
                     if ( !Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
                         identityClip = _srcClip;
