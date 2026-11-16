@@ -100,10 +100,11 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// in pixel coordinates and return true. Outside of this rectangle, a masked
 /// effect outputs its unmasked source. Return false otherwise (*maskRoD is
 /// then left unchanged).
-/// fieldToRender (e.g. args.fieldToRender) gives the field scale: OFX spec,
-/// Canonical to Pixel: "Y' = Y * SY * FS", where FS is "0.5 if the image
-/// property kOfxImagePropField is kOfxImageFieldLower or kOfxImageFieldUpper,
-/// 1.0 otherwise". The default (eFieldNone) is for whole frames.
+/// The field scale (ofxCoordSystem.rst: "Y' = Y * SY * FS") is not applied:
+/// it is keyed on the image's kOfxImagePropField, and with the default field
+/// extraction (kOfxImageFieldDoubled, "making a full height image") images and
+/// the render window are full height, so FS is 1. A plug-in that sets
+/// kOfxImageFieldSingle extraction must scale the result itself.
 /// Infinite bounds are scaled like finite ones; results outside the int range
 /// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
 /// (see Coords::toPixelEnclosing).
@@ -114,18 +115,13 @@ ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
                     OFX::BooleanParam* maskInvert,
                     double time,
                     const OfxPointD& renderScale,
-                    OfxRectI* maskRoD,
-                    OFX::FieldEnum fieldToRender = OFX::eFieldNone)
+                    OfxRectI* maskRoD)
 {
     bool doMasking = ( ( !maskApply || maskApply->getValueAtTime(time) ) && maskClip && maskClip->isConnected() );
     if ( !doMasking || maskInvert->getValueAtTime(time) ) {
         return false;
     }
-    OfxPointD scale = renderScale;
-    if ( (fieldToRender == OFX::eFieldLower) || (fieldToRender == OFX::eFieldUpper) ) {
-        scale.y *= 0.5;
-    }
-    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), scale, maskClip->getPixelAspectRatio(), maskRoD);
+    OFX::Coords::toPixelEnclosing(maskClip->getRegionOfDefinition(time), renderScale, maskClip->getPixelAspectRatio(), maskRoD);
 
     return true;
 }
