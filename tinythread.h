@@ -24,7 +24,7 @@ freely, subject to the following restrictions:
 #ifndef _TINYTHREAD_H_
 #define _TINYTHREAD_H_
 
-#if __cplusplus > 199711L           // C++11
+#if __cplusplus > 199711L || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) // C++11 (MSVC reports 199711L without /Zc:__cplusplus)
 
 //#warning "tinythread should not be used with C++ >= C++11, consider switching to std::thread"
 #include <thread>
@@ -116,7 +116,7 @@ using lock_guard = std::unique_lock<Mutex>;
 #define TINYTHREAD_VERSION (TINYTHREAD_VERSION_MAJOR * 100 + TINYTHREAD_VERSION_MINOR)
 
 // Do we have a fully featured C++11 compiler?
-#if (__cplusplus > 199711L) || (defined(__STDCXX_VERSION__) && (__STDCXX_VERSION__ >= 201001L))
+#if (__cplusplus > 199711L) || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) || (defined(__STDCXX_VERSION__) && (__STDCXX_VERSION__ >= 201001L))
   #define _TTHREAD_CPP11_
 #endif
 
