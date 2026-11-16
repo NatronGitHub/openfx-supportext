@@ -1,87 +1,96 @@
 name: Continuous Integration
 
+# Per push and pull request: exactly one build per platform (macOS, Linux,
+# Windows). Extra variants (C++23, other openfx versions) are in extended.yml.
+
 on:
   push:
     paths-ignore:
       - LICENSE
-      - README.md
+      - '**.md'
   pull_request:
     paths-ignore:
       - LICENSE
-      - README.md
+      - '**.md'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
 
 jobs:
-  # Compile every SupportExt source file, with warnings as failures, against:
-  # - openfx master (NatronGitHub fork): DrawSuite and interact cursor APIs enabled;
-  # - the openfx commit currently used by openfx-misc, openfx-io and openfx-arena:
-  #   those code paths compile to no-ops.
-  compile:
-    name: ${{ matrix.os }} / openfx ${{ matrix.openfx.name }}
+  # Each job compiles every SupportExt source file, with warnings as failures:
+  # - against openfx master (NatronGitHub fork), where the DrawSuite and interact
+  #   cursor code is enabled, in C++11 (what consumers build with) and C++20;
+  # - against openfx 2303ff8, which predates the OFX 1.5 APIs, so those code
+  #   paths compile to no-ops.
+  # The Linux job also builds openfx-misc with this SupportExt, as a consumer.
+  build:
+    name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-latest, windows-2022]
-        openfx:
-          - { name: master, ref: master }
-          - { name: consumers, ref: 2303ff811bee3ffe085287602f684fe5fe5357e0 }
+        include:
+          # system (Xcode) clang; no MacPorts or Homebrew dependency is needed
+          - { name: macOS 15 arm64 (Xcode clang), os: macos-15, shell: 'bash -eo pipefail {0}' }
+          - { name: Ubuntu 24.04 (GCC), os: ubuntu-24.04, shell: 'bash -eo pipefail {0}' }
+          - { name: Windows (MSYS2 UCRT64), os: windows-2022, shell: 'msys2 {0}' }
     defaults:
       run:
-        shell: ${{ startsWith(matrix.os, 'windows') && 'msys2 {0}' || 'bash' }}
+        shell: ${{ matrix.shell }}
     steps:
       - name: Checkout openfx-supportext
         uses: actions/checkout@v4
-      - name: Checkout openfx (${{ matrix.openfx.name }})
+      - name: Checkout openfx master
         uses: actions/checkout@v4
         with:
           repository: NatronGitHub/openfx
-          ref: ${{ matrix.openfx.ref }}
+          ref: master
           path: openfx
+      - name: Checkout openfx 2303ff8 (pre-OFX 1.5)
+        uses: actions/checkout@v4
+        with:
+          repository: NatronGitHub/openfx
+          ref: 2303ff811bee3ffe085287602f684fe5fe5357e0
+          path: openfx-pre15
       - name: Install Ubuntu packages
-        if: startsWith(matrix.os, 'ubuntu')
-        shell: bash
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl-dev libglu1-mesa-dev libegl-dev
-      - name: Setup MinGW environment
-        if: startsWith(matrix.os, 'windows')
+          sudo apt-get install -y --no-install-recommends libgl-dev libglu1-mesa-dev libegl-dev
+      - name: Setup MSYS2 UCRT64
+        if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
-          msystem: mingw64
+          msystem: UCRT64
           update: true
-          install: git base-devel mingw-w64-x86_64-cc
-      - name: Compile
-        run: .github/scripts/compile.sh openfx
-
-  # Build openfx-misc (Misc and CImg plug-ins) with this SupportExt, as a
-  # consumer would, to catch API or header breakage.
-  openfx-misc:
-    name: openfx-misc with this SupportExt (Ubuntu)
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout openfx-misc
-        uses: actions/checkout@v4
-        with:
-          repository: NatronGitHub/openfx-misc
-          submodules: recursive
-      - name: Checkout openfx-supportext
-        uses: actions/checkout@v4
-        with:
-          path: supportext-under-test
-      - name: Use this SupportExt
+          cache: true
+          install: git base-devel mingw-w64-ucrt-x86_64-cc
+      - name: Compiler version
         run: |
-          rm -rf SupportExt
-          mv supportext-under-test SupportExt
-      - name: Install Ubuntu packages
+          set -eo pipefail
+          c++ --version
+      - name: Compile (openfx master, C++11)
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libglu1-mesa-dev libgl-dev
-      - name: Build (release)
-        run: make -j4 CONFIG=release
+          set -eo pipefail
+          CXXSTD=-std=c++11 .github/scripts/compile.sh openfx
+      - name: Compile (openfx master, C++20)
+        run: |
+          set -eo pipefail
+          CXXSTD=-std=c++20 .github/scripts/compile.sh openfx
+      - name: Compile (openfx 2303ff8, C++11)
+        run: |
+          set -eo pipefail
+          CXXSTD=-std=c++11 .github/scripts/compile.sh openfx-pre15
+      - name: Build openfx-misc with this SupportExt
+        if: runner.os == 'Linux'
+        run: |
+          set -eo pipefail
+          git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc"
+          rm -rf "$RUNNER_TEMP/openfx-misc/SupportExt"
+          mkdir "$RUNNER_TEMP/openfx-misc/SupportExt"
+          git archive HEAD | tar -x -C "$RUNNER_TEMP/openfx-misc/SupportExt"
+          make -C "$RUNNER_TEMP/openfx-misc" -j4 CONFIG=release
