@@ -858,7 +858,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
                 double time = _translate->getKeyTime(0);
                 for (int i = 1; i < numKeys; ++i) {
                     double timeNext = _translate->getKeyTime(i);
-                    int steps = std::max(kDrawPointTrajectoryMinStepsPerKey, std::min(int(timeNext - time), maxStepsPerKey));
+                    int steps = (std::max)(kDrawPointTrajectoryMinStepsPerKey, (std::min)(int(timeNext - time), maxStepsPerKey));
                     for (int j = (i == 1 ? 0 : 1); j <= steps; ++j) {
                         double timeStep = time + j * (timeNext - time) / steps;
                         if (_center) {
