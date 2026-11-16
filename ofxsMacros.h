@@ -29,6 +29,8 @@
 
 // pi, as a plain literal (M_PI is not standard C++ and needs _USE_MATH_DEFINES on MSVC)
 #define OFXS_PI 3.14159265358979323846264338327950288
+// ln(2), as a plain literal (same value as M_LN2, which is not standard C++)
+#define OFXS_LN2 0.693147180559945309417232121458176568
 
 #define OFXS_NAMESPACE_OFX_ENTER namespace OFX {
 #define OFXS_NAMESPACE_OFX_EXIT }

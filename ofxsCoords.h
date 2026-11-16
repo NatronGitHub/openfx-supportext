@@ -30,10 +30,7 @@
 #include <algorithm>
 
 #include "ofxsImageEffect.h"
-
-#ifndef M_LN2
-#define M_LN2       0.693147180559945309417232121458176568  /* loge(2)        */
-#endif
+#include "ofxsMacros.h" // OFXS_LN2
 
 namespace OFX {
 namespace Coords {
@@ -333,7 +330,7 @@ unsigned int
 mipmapLevelFromScale(double s)
 {
     assert(0. < s && s <= 1.);
-    unsigned int retval = (unsigned int)(std::max)(0., -std::floor(std::log(s) / M_LN2 + 0.5));
+    unsigned int retval = (unsigned int)(std::max)(0., -std::floor(std::log(s) / OFXS_LN2 + 0.5));
 
     return retval;
 }
