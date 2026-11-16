@@ -104,8 +104,9 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// Canonical to Pixel: "Y' = Y * SY * FS", where FS is "0.5 if the image
 /// property kOfxImagePropField is kOfxImageFieldLower or kOfxImageFieldUpper,
 /// 1.0 otherwise". The default (eFieldNone) is for whole frames.
-/// An infinite mask RoD stays infinite (kOfxFlagInfiniteMin/Max), and a NaN
-/// bound is treated as infinite (see Coords::toPixelEnclosing).
+/// Infinite bounds are scaled like finite ones; results outside the int range
+/// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
+/// (see Coords::toPixelEnclosing).
 inline
 bool
 ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
