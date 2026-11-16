@@ -1,13 +1,13 @@
 #!/bin/bash
 # Compile every SupportExt source file against an openfx checkout.
 # Usage: compile.sh <openfx dir> [extra compiler flags...]
-# Environment: CXX (default c++), CXXSTD (default -std=c++11).
+# Environment: CXX (default c++), CXXSTD (default -std=c++17).
 # Fails on any compiler error or warning.
 set -u
 OFX=$1
 shift
 CXX=${CXX:-c++}
-CXXSTD=${CXXSTD:--std=c++11}
+CXXSTD=${CXXSTD:--std=c++17}
 DEFS="-DOFX_EXTENSIONS_VEGAS -DOFX_EXTENSIONS_NUKE -DOFX_EXTENSIONS_NATRON -DOFX_EXTENSIONS_TUTTLE -DOFX_SUPPORTS_OPENGLRENDER"
 INCS="-I. -Iglad -I$OFX/include -I$OFX/Support/include -I$OFX/Support/Plugins/include"
 WARN="-Wall -Wextra -Wno-unused-parameter"
