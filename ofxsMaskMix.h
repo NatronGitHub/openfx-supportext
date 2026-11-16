@@ -100,10 +100,14 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// in pixel coordinates and return true. Outside of this rectangle, a masked
 /// effect outputs its unmasked source. Return false otherwise (*maskRoD is
 /// then left unchanged).
-/// fieldToRender (e.g. args.fieldToRender) gives the field scale: OFX spec,
-/// Canonical to Pixel: "Y' = Y * SY * FS", where FS is "0.5 if the image
-/// property kOfxImagePropField is kOfxImageFieldLower or kOfxImageFieldUpper,
-/// 1.0 otherwise". The default (eFieldNone) is for whole frames.
+/// fieldToRender gives the field scale (ofxCoordSystem.rst, Canonical to
+/// Pixel: "Y' = Y * SY * FS", FS = 0.5 for images whose kOfxImagePropField is
+/// kOfxImageFieldLower or kOfxImageFieldUpper, i.e. half-height single-field
+/// images). The default, eFieldNone (FS = 1), is right for progressive clips,
+/// and for fielded clips with the default field extraction kOfxImageFieldDoubled
+/// ("making a full height image") or kOfxImageFieldBoth. Pass args.fieldToRender
+/// only if the plug-in sets kOfxImageFieldSingle extraction ("making a half
+/// height image") on its clips.
 /// Infinite bounds are scaled like finite ones; results outside the int range
 /// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
 /// (see Coords::toPixelEnclosing).
