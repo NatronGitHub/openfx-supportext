@@ -1,6 +1,7 @@
 name: Extended builds
 
-# Extra variants that are not run per push or pull request: C++20 (RB-2.6 Qt6
+# Extra variants that are not run per push or pull request, plus the per-PR
+# macOS build: C++20 (RB-2.6 Qt6
 # builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
 # OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
 # cursors). Nightly (skipped if master didn't change in the last day), or on
@@ -38,6 +39,15 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"; echo "No commits on master in the last 25 hours: skipping."
           fi
 
+  # the per-PR macOS build (also run per PR, after Linux and Windows)
+  macos:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/build-one.yml
+    with:
+      name: macOS 15 arm64 (Xcode clang) / per-PR build
+      os: macos-15
+
   compile:
     name: ${{ matrix.name }}
     needs: changes
@@ -73,3 +83,27 @@ jobs:
           sudo apt-get install -y --no-install-recommends libgl-dev libglu1-mesa-dev libegl-dev
       - name: Compile
         run: CXXSTD=-std=${{ matrix.std }} .github/scripts/compile.sh openfx
+
+  # MSVC is not used by the consumers, but checks that the sources (e.g. the
+  # windows.h-before-GL/gl.h include order in ofxsOverlayDraw.h) compile with it.
+  # Errors fail; warnings are reported as annotations.
+  msvc:
+    name: Windows (MSVC) / openfx master / C++17
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout openfx-supportext
+        uses: actions/checkout@v4
+      - name: Checkout openfx
+        uses: actions/checkout@v4
+        with:
+          repository: NatronGitHub/openfx
+          ref: master
+          path: openfx
+      - name: MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Compile
+        shell: pwsh
+        run: .github/scripts/compile-msvc.ps1 openfx -Std c++17
