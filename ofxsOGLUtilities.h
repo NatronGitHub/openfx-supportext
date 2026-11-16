@@ -85,4 +85,4 @@ bool getOpenGLSupportPixelbuffer();
 bool getOpenGLSupportVertexArray();
 } // namespace OFX
 
-#endif /* defined(openfx_supportext_ofxsOGLDebug_h) */
+#endif /* defined(openfx_supportext_ofxsOGLUtilities_h) */
