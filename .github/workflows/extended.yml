@@ -1,12 +1,13 @@
 name: Extended builds
 
-# Extra variants that are not run per push or pull request: C++23, and the
-# openfx version used by openfx-io (05c5a75: OFX 1.5 Support API, but neither
-# OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact cursors). Weekly, or on demand.
+# Extra variants that are not run per push or pull request: C++20 (RB-2.6 Qt6
+# builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
+# OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
+# cursors). Nightly, or on demand.
 
 on:
   schedule:
-    - cron: '17 3 * * 1'
+    - cron: '17 3 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -24,10 +25,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - { name: macOS 15 (Xcode clang) / openfx master / C++20, os: macos-15, ofx: master, std: c++20 }
+          - { name: Ubuntu 24.04 (GCC) / openfx master / C++20, os: ubuntu-24.04, ofx: master, std: c++20 }
           - { name: macOS 15 (Xcode clang) / openfx master / C++23, os: macos-15, ofx: master, std: c++23 }
           - { name: Ubuntu 24.04 (GCC) / openfx master / C++23, os: ubuntu-24.04, ofx: master, std: c++23 }
-          - { name: macOS 15 (Xcode clang) / openfx 05c5a75 / C++11, os: macos-15, ofx: 05c5a75dd48c8afcd7c010dc301080ac0360b2f2, std: c++11 }
-          - { name: Ubuntu 24.04 (GCC) / openfx 05c5a75 / C++11, os: ubuntu-24.04, ofx: 05c5a75dd48c8afcd7c010dc301080ac0360b2f2, std: c++11 }
+          - { name: macOS 15 (Xcode clang) / openfx 05c5a75 / C++17, os: macos-15, ofx: 05c5a75dd48c8afcd7c010dc301080ac0360b2f2, std: c++17 }
+          - { name: Ubuntu 24.04 (GCC) / openfx 05c5a75 / C++17, os: ubuntu-24.04, ofx: 05c5a75dd48c8afcd7c010dc301080ac0360b2f2, std: c++17 }
     defaults:
       run:
         shell: bash -eo pipefail {0}
