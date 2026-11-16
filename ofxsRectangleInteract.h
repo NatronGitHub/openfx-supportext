@@ -226,6 +226,20 @@ protected:
         _cursor.release(this);
     }
 
+    /**
+     * @brief Abandon a drag in progress, without changing the parameters, and
+     * clear the hover state and the cursor. Called when the interact stops
+     * handling pen events (disabled, or a subclass condition such as
+     * GeneratorInteract's extent): a later hover must not act as a drag.
+     **/
+    void abandonDrag()
+    {
+        _mouseState = eMouseStateIdle;
+        _drawState = eDrawStateInactive;
+        _interactiveDrag = false;
+        releaseCursor();
+    }
+
 private:
     void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
 

@@ -528,6 +528,9 @@ GeneratorInteract::penUp(const PenArgs &args)
     GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
 
     if (extent != eGeneratorExtentSize) {
+        // the extent changed during the drag (if any): abandon it
+        abandonDrag();
+
         return false;
     }
 

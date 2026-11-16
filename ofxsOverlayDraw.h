@@ -376,6 +376,21 @@ public:
         return ratio;
     }
 
+    /// The host's screen pixel ratio (kOfxInteractPropScreenPixelRatio, a Natron
+    /// extension), or 1 if the host does not set it: the Support library then
+    /// reads 0, which would give zero OpenGL point sizes and line widths
+    /// (glPointSize(0) and glLineWidth(0) are GL_INVALID_VALUE).
+    static double hostScreenPixelRatio(const DrawArgs& args)
+    {
+#ifdef OFX_EXTENSIONS_NATRON
+        return (args.screenPixelRatio > 0.) ? args.screenPixelRatio : 1.;
+#else
+        (void)args;
+
+        return 1.;
+#endif
+    }
+
     /// true if drawing goes to the DrawSuite (no OpenGL call at all)
     bool usesDrawSuite() const { return _ctx != NULL; }
 

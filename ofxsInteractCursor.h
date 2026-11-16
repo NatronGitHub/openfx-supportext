@@ -38,6 +38,7 @@
 #define openfx_supportext_ofxsInteractCursor_h
 
 #include <cmath>
+#include <map>
 #include <string>
 
 #include "ofxsInteract.h"
@@ -63,16 +64,32 @@ namespace OFX {
 ///
 /// Several helpers may share one interact (OverlayInteractFromHelpers), and
 /// each one reports its cursor in turn on every event. To let them coexist,
-/// a helper only gives the cursor back ("default") if it is the one that set
-/// it: release() does nothing if this helper does not own the cursor. The
-/// property is set on every call (it is cheap), so the last helper that wants
-/// a cursor during an event wins.
+/// the owner of each interact's cursor (the helper that last set a non-default
+/// cursor on it) is recorded, and a helper only gives the cursor back
+/// ("default") if it is the current owner: release() does nothing otherwise,
+/// even if the other helper requested the same cursor name. The property is
+/// set on every call (it is cheap), so the last helper that wants a cursor
+/// during an event wins.
 class InteractCursor
 {
 public:
     InteractCursor()
-        : _owned(false)
     {
+    }
+
+    ~InteractCursor()
+    {
+#ifdef OFXS_HAVE_INTERACT_CURSOR
+        // forget the interacts whose cursor this helper owns
+        OwnerMap& owners = ownerMap();
+        for (OwnerMap::iterator it = owners.begin(); it != owners.end(); ) {
+            if (it->second == this) {
+                owners.erase(it++);
+            } else {
+                ++it;
+            }
+        }
+#endif
     }
 
     /// Request a cursor. Returns true if the host supports it (it is then
@@ -88,7 +105,15 @@ public:
             return false;
         }
         if ( interact->setCursor(name) ) {
-            _owned = (std::string(name) != kOfxsCursorDefault);
+            OwnerMap& owners = ownerMap();
+            if (std::string(name) != kOfxsCursorDefault) {
+                owners[interact] = this;
+            } else {
+                OwnerMap::iterator it = owners.find(interact);
+                if ( (it != owners.end()) && (it->second == this) ) {
+                    owners.erase(it);
+                }
+            }
 
             return true;
         }
@@ -103,19 +128,26 @@ public:
 #endif
     }
 
-    /// Give the cursor back to the host ("default"), if this helper set it.
-    /// Call it when the pen leaves the handles, when the interact stops
-    /// handling events (overlay hidden, params disabled), and on loseFocus.
+    /// Give the cursor back to the host ("default"), if this helper owns the
+    /// interact's cursor, i.e. it is the helper that last set a non-default
+    /// cursor on it. Call it when the pen leaves the handles, when the
+    /// interact stops handling events (overlay hidden, params disabled), and
+    /// on loseFocus.
     void release(Interact* interact)
     {
 #ifdef OFXS_HAVE_INTERACT_CURSOR
-        if (_owned && interact) {
+        if (!interact) {
+            return;
+        }
+        OwnerMap& owners = ownerMap();
+        OwnerMap::iterator it = owners.find(interact);
+        if ( (it != owners.end()) && (it->second == this) ) {
+            owners.erase(it);
             interact->setCursor(kOfxsCursorDefault);
         }
 #else
         (void)interact;
 #endif
-        _owned = false;
     }
 
     /// The resize cursor closest to the direction (dx, dy), given in
@@ -151,7 +183,18 @@ public:
     }
 
 private:
-    bool _owned; //< this helper set a non-default cursor that it has not released
+#ifdef OFXS_HAVE_INTERACT_CURSOR
+    // owner of each interact's cursor. Interact actions run on the host's UI
+    // thread, so no locking is needed. Function-local static in an inline
+    // function: one map per plug-in binary.
+    typedef std::map<const Interact*, const InteractCursor*> OwnerMap;
+    static OwnerMap& ownerMap()
+    {
+        static OwnerMap owners;
+
+        return owners;
+    }
+#endif
 };
 } // namespace OFX
 

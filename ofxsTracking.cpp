@@ -363,7 +363,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
 #ifdef OFX_EXTENSIONS_NATRON
-    screenPixelRatio *= args.screenPixelRatio;
+    screenPixelRatio *= OverlayDraw::hostScreenPixelRatio(args); // 1 if the host does not set it
     hiDPI |= args.screenPixelRatio > 1;
 #endif
     screenPixelRatio = d.overlayScreenPixelRatio(screenPixelRatio); // DrawSuite: 1 if <= 0
@@ -1002,26 +1002,30 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         }
     }
 
-    ///forbid 0 pixels wide rectangles
-    if (xi2 <= xi1) {
-        xi1 = (xi2 + xi1) / 2;
-        xi2 = xi1 + 1;
-        valuesChanged = true;
-    }
-    if (yi2 <= yi1) {
-        yi1 = (yi2 + yi1) / 2;
-        yi2 = yi1 + 1;
-        valuesChanged = true;
-    }
-    if (xo2 <= xo1) {
-        xo1 = (xo2 + xo1) / 2;
-        xo2 = xo1 + 1;
-        valuesChanged = true;
-    }
-    if (yo2 <= yo1) {
-        yo1 = (yo2 + yo1) / 2;
-        yo2 = yo1 + 1;
-        valuesChanged = true;
+    // Only while dragging: when idle, the rectangles come from the params, and
+    // fixing degenerate ones here would mark every hover as handled (trapped).
+    if (_ms != eMouseStateIdle) {
+        ///forbid 0 pixels wide rectangles
+        if (xi2 <= xi1) {
+            xi1 = (xi2 + xi1) / 2;
+            xi2 = xi1 + 1;
+            valuesChanged = true;
+        }
+        if (yi2 <= yi1) {
+            yi1 = (yi2 + yi1) / 2;
+            yi2 = yi1 + 1;
+            valuesChanged = true;
+        }
+        if (xo2 <= xo1) {
+            xo1 = (xo2 + xo1) / 2;
+            xo2 = xo1 + 1;
+            valuesChanged = true;
+        }
+        if (yo2 <= yo1) {
+            yo1 = (yo2 + yo1) / 2;
+            yo2 = yo1 + 1;
+            valuesChanged = true;
+        }
     }
 
     if (valuesChanged) {
