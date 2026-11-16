@@ -3,6 +3,32 @@ openfx-supportext
 
 Extensions for the OpenFX Support library
 
+Building with CMake
+-------------------
+
+SupportExt is compiled into each plug-in target, with the plug-in's own
+compile definitions (`OFX_EXTENSIONS_*`, `OFX_SUPPORTS_OPENGLRENDER`,
+`HAVE_OSMESA` and the DrawSuite support change class layouts, so SupportExt
+must not be built separately with other values):
+
+```cmake
+include(SupportExt/cmake/SupportExt.cmake)   # or add_subdirectory(SupportExt)
+add_library(MyPlugin MODULE ${MY_SOURCES})
+target_compile_definitions(MyPlugin PRIVATE OFX_EXTENSIONS_NATRON OFX_EXTENSIONS_NUKE
+                           OFX_EXTENSIONS_VEGAS OFX_EXTENSIONS_TUTTLE OFX_SUPPORTS_OPENGLRENDER)
+supportext_add_sources(MyPlugin COMPONENTS THREADS TRANSFORM3X3 TRANSFORM_INTERACT)
+```
+
+`supportext_add_sources(<target> [ALL] [OPENGL] [OSMESA] [EGL] [COMPONENTS <name>...])`
+adds the selected sources and SupportExt's include directories, links
+`OpenGL::GL` for the components that draw, links `openfx::Support` if that
+target exists, and can be called several times. The components and options
+are documented in `cmake/SupportExt.cmake`. `OSMESA` needs an imported target
+`OSMesa::OSMesa` defined by the consumer.
+
+Configured as a top-level project (`cmake -S . -B build -DOPENFX_DIR=<openfx>`),
+SupportExt builds a compile check of every source.
+
 License
 -------
 
