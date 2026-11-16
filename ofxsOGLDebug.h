@@ -21,6 +21,26 @@
 #ifndef openfx_supportext_ofxsOGLDebug_h
 #define openfx_supportext_ofxsOGLDebug_h
 
+/*
+ * OpenGL debugging helpers: OFX::glErrorString() (a replacement for
+ * gluErrorString(), which needs libGLU), OFX::glGetEnumString(), and the
+ * glCheckError() macro (no-op unless DEBUG is defined).
+ *
+ * Include an OpenGL header first (glad.h, ofxsOGLFunctions.h or GL/gl.h):
+ * this header needs GLenum and the GL_* constants.
+ *
+ * glErrorString and glGetEnumString are also declared in the global namespace,
+ * for existing code. Define OFXS_OGLDEBUG_NO_GLOBAL_NAMES to avoid that, e.g.
+ * when a host or library defines its own global glErrorString.
+ */
+
+#include <cstddef> // NULL
+
+#ifndef GL_NO_ERROR
+#error "ofxsOGLDebug.h: include an OpenGL header (glad.h, ofxsOGLFunctions.h or GL/gl.h) first"
+#endif
+
+namespace OFX {
 inline const char*
 glErrorString(GLenum errorCode)
 {
@@ -552,23 +572,29 @@ glGetEnumString(GLenum v)
 
 /* *INDENT-ON* */
 
+// put a breakpoint in glError to halt the debugger
+inline void
+glError() {}
+} // namespace OFX
+
+#ifndef OFXS_OGLDEBUG_NO_GLOBAL_NAMES
+using OFX::glErrorString;
+using OFX::glGetEnumString;
+#endif
+
 #ifndef DEBUG
 #define glCheckError() ( (void)0 )
 #else
 
 #include <iostream>
 
-// put a breakpoint in glError to halt the debugger
-inline void
-glError() {}
-
 
 #define glCheckError()                                                  \
     {                                                                   \
         GLenum _glerror_ = glGetError();                                \
         if (_glerror_ != GL_NO_ERROR) {                                 \
-            std::cout << "GL_ERROR: " << __FILE__ << ":" << __LINE__ << " " << glErrorString(_glerror_) << std::endl; \
-            glError();                                                  \
+            std::cout << "GL_ERROR: " << __FILE__ << ":" << __LINE__ << " " << OFX::glErrorString(_glerror_) << std::endl; \
+            OFX::glError();                                             \
         }                                                               \
     }
 
