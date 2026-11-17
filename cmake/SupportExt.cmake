@@ -124,15 +124,21 @@ function(_supportext_link TARGET ITEM)
     get_property(_imported TARGET ${_real} PROPERTY IMPORTED)
     get_property(_global TARGET ${_real} PROPERTY IMPORTED_GLOBAL)
     get_property(_here DIRECTORY PROPERTY IMPORTED_TARGETS)
-    get_property(_tdir TARGET ${TARGET} PROPERTY SOURCE_DIR)
+    # BINARY_DIR, not SOURCE_DIR: a source directory may be added twice
+    get_property(_tdir TARGET ${TARGET} PROPERTY BINARY_DIR)
+    if(_imported AND NOT _global)
+      # the ALIAS is local to the directory that created it, the aliased target may not be
+      set(ITEM "${_real}")
+    endif()
     if(_imported AND NOT _global AND _real IN_LIST _here
-       AND NOT _tdir STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+       AND NOT _tdir STREQUAL CMAKE_CURRENT_BINARY_DIR)
       set_property(TARGET ${_real} PROPERTY IMPORTED_GLOBAL TRUE)
       # A package's exported targets (e.g. openfx::Api, openfx::HostSupport and
       # openfx::Support) form one export set: if only some were global, a later
       # find_package() of that package in another directory would fail with "Some (but
       # not all) targets in this export set were already defined". Promote the other
-      # imported targets of the calling directory with the same namespace too.
+      # imported targets of the calling directory with the same namespace too (an export
+      # set installed without a NAMESPACE is not detected).
       if(_real MATCHES "^([^:]+)::")
         set(_ns "${CMAKE_MATCH_1}::")
         foreach(_t ${_here})
@@ -145,7 +151,6 @@ function(_supportext_link TARGET ITEM)
           endif()
         endforeach()
       endif()
-      set(ITEM "${_real}")
     endif()
   endif()
   get_property(_libs TARGET ${TARGET} PROPERTY LINK_LIBRARIES)

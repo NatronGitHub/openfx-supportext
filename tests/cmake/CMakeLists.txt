@@ -84,7 +84,7 @@ add_subdirectory(sibling_b)
 sx_test_module(sx_otherdir text.cpp)
 add_subdirectory(otherdir)
 
-# 6. separate projects, configured by the CI: tests/cmake/visibility (calls from
-#    another directory with consumer-created imported targets), tests/cmake/visibility_late
-#    and tests/cmake/oldpolicy
-#    (a consumer with 3.1 policies, with CMake < 4)
+# 6. separate projects, configured by the CI:
+#    - tests/cmake/visibility, visibility_late and visibility_twice: calls from
+#      another directory with consumer-created imported targets
+#    - tests/cmake/oldpolicy: a consumer with 3.1 policies (with CMake < 4)
