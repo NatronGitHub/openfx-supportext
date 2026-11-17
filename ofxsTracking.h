@@ -302,8 +302,10 @@ private:
     OfxPointD _innerTopRightDragPos;
     OfxPointD _outerBtmLeftDragPos;
     OfxPointD _outerTopRightDragPos;
+    // counted from keyDown/keyUp: the state with openfx versions that don't track the modifiers
     int _controlDown;
     int _altDown;
+    bool ctrlDown() const;
 };
 
 class TrackerRegionOverlayDescriptor

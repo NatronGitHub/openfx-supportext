@@ -229,8 +229,8 @@ RectangleInteract::draw(const DrawArgs &args)
     double y2 = y1 + h;
     double xc = x1 + w / 2;
     double yc = y1 + h / 2;
-    const bool keepAR = _modifierStateShift > 0;
-    const bool centered = _modifierStateCtrl > 0;
+    const bool keepAR = shiftDown();
+    const bool centered = ctrlDown();
 
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
     aboutToCheckInteractivity(args.time);
@@ -417,8 +417,8 @@ RectangleInteract::penMotion(const PenArgs &args)
     bool redraw = _drawState != newState;
     _drawState = newState;
 
-    const bool keepAR = _modifierStateShift > 0;
-    const bool centered = _modifierStateCtrl > 0;
+    const bool keepAR = shiftDown();
+    const bool centered = ctrlDown();
     if ( keepAR && (_sizeDrag.x > 0.) && (_sizeDrag.y > 0.) &&
          ( ( _mouseState == eMouseStateDraggingTopLeft) ||
            ( _mouseState == eMouseStateDraggingTopRight) ||
@@ -737,6 +737,26 @@ RectangleInteract::penUp(const PenArgs &args)
 
 // keyDown just updates the modifier state
 bool
+RectangleInteract::ctrlDown() const
+{
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    return (getKeyModifiers() & kNatronOfxKeyModifierControl) != 0;
+#else
+    return _modifierStateCtrl > 0;
+#endif
+}
+
+bool
+RectangleInteract::shiftDown() const
+{
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    return (getKeyModifiers() & kNatronOfxKeyModifierShift) != 0;
+#else
+    return _modifierStateShift > 0;
+#endif
+}
+
+bool
 RectangleInteract::keyDown(const KeyArgs &args)
 {
     if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
@@ -839,7 +859,7 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         // Rotated: btmLeft is not an edge position on screen, so rounding it would move the
         // side that must stay fixed. Round the size instead, in the rectangle frame, and move
         // btmLeft so that the fixed side (or the center, with Ctrl) stays in place.
-        const bool centered = _modifierStateCtrl > 0;
+        const bool centered = ctrlDown();
         int sideX = 0; // -1: the left side moves, +1: the right side moves, 0: width unchanged
         int sideY = 0; // -1: the bottom side moves, +1: the top side moves, 0: height unchanged
         switch (_mouseState) {

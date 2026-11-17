@@ -256,8 +256,11 @@ private:
     OfxPointD _lastMousePos;
     MouseStateEnum _mouseState;
     DrawStateEnum _drawState;
+    // counted from keyDown/keyUp: the state with openfx versions that don't track the modifiers
     int _modifierStateCtrl;
     int _modifierStateShift;
+    bool ctrlDown() const;
+    bool shiftDown() const;
     OFX::BooleanParam* _enable;
     OFX::Double2DParam* _btmLeft;
     OFX::Double2DParam* _size;
