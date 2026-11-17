@@ -38,3 +38,13 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.21)
   find_package(Threads REQUIRED)
   supportext_add_sources(vis_e OSMESA COMPONENTS THREADS TEXT)
 endif()
+
+# X. an export set (what find_package(openfx) creates) in the calling directory: the
+#    helper makes openfx2::Support global, so it must make openfx2::Api global too, or a
+#    later find_package(openfx2) elsewhere fails ("Some (but not all) targets in this
+#    export set were already defined"), as the check in x3 does (CMake 3.21 or later)
+if(NOT CMAKE_VERSION VERSION_LESS 3.21)
+  add_subdirectory(x1)
+  add_subdirectory(x2)
+  add_subdirectory(x3)
+endif()

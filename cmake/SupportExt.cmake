@@ -126,6 +126,23 @@ function(_supportext_link TARGET ITEM)
     if(_imported AND NOT _global AND _real IN_LIST _here
        AND NOT _tdir STREQUAL CMAKE_CURRENT_SOURCE_DIR)
       set_property(TARGET ${_real} PROPERTY IMPORTED_GLOBAL TRUE)
+      # A package's exported targets (e.g. openfx::Api, openfx::HostSupport and
+      # openfx::Support) form one export set: if only some were global, a later
+      # find_package() of that package in another directory would fail with "Some (but
+      # not all) targets in this export set were already defined". Promote the other
+      # imported targets of the calling directory with the same namespace too.
+      if(_real MATCHES "^([^:]+)::")
+        set(_ns "${CMAKE_MATCH_1}::")
+        foreach(_t ${_here})
+          string(FIND "${_t}" "${_ns}" _pos)
+          if(_pos EQUAL 0)
+            get_property(_g TARGET ${_t} PROPERTY IMPORTED_GLOBAL)
+            if(NOT _g)
+              set_property(TARGET ${_t} PROPERTY IMPORTED_GLOBAL TRUE)
+            endif()
+          endif()
+        endforeach()
+      endif()
       set(ITEM "${_real}")
     endif()
   endif()
