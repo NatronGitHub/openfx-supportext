@@ -38,7 +38,14 @@ sx_test_module(sx_parent position.cpp)
 supportext_add_sources(sx_parent COMPONENTS POSITION_INTERACT THREADS TRANSFORM3X3
                        TRANSFORM_INTERACT GENERATOR RAMP TRACKING)
 # calling it again adds nothing twice
+get_property(_sources_before TARGET sx_parent PROPERTY SOURCES)
+get_property(_libs_before TARGET sx_parent PROPERTY LINK_LIBRARIES)
 supportext_add_sources(sx_parent COMPONENTS THREADS POSITION_INTERACT)
+get_property(_sources_after TARGET sx_parent PROPERTY SOURCES)
+get_property(_libs_after TARGET sx_parent PROPERTY LINK_LIBRARIES)
+if(NOT _sources_after STREQUAL _sources_before OR NOT _libs_after STREQUAL _libs_before)
+  message(FATAL_ERROR "a second supportext_add_sources() call added sources or links again")
+endif()
 
 # 1b. the header-only overlay alone must pull in TEXT
 sx_test_module(sx_position position.cpp)
@@ -77,5 +84,6 @@ add_subdirectory(sibling_b)
 sx_test_module(sx_otherdir text.cpp)
 add_subdirectory(otherdir)
 
-# 6. a consumer with old policies: tests/cmake/oldpolicy is a separate project,
-#    configured by the CI (with CMake < 4)
+# 6. separate projects, configured by the CI: tests/cmake/visibility (calls from
+#    another directory with consumer-created imported targets) and tests/cmake/oldpolicy
+#    (a consumer with 3.1 policies, with CMake < 4)

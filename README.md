@@ -32,10 +32,12 @@ directories to `<target>`. The arguments may come in any order, and `OPENGL`,
   library itself.
 
 The links also reach the final link when `<target>` is a STATIC or OBJECT
-library. The function can be called several times. It can also be called from another
-directory than the target's, unless the consumer already ran `find_package(OpenGL)` or
-`find_package(Threads)` in the calling directory (those imported targets are not visible
-from the target's directory): then call it from the target's directory.
+library. The function can be called several times, and from another directory than the
+target's. The imported targets it links (`OpenGL::GL`, `Threads::Threads`,
+`OSMesa::OSMesa`, `openfx::Support`) must then be visible from the target's directory.
+Those the helper finds itself are made global, and with CMake 3.21 or later, so are those
+created in the calling directory (e.g. by `find_package`).
+
 Plug-ins whose own code draws text with the header-only overlay code
 (`OverlayDraw::bitmapString`, `ofxsPositionInteract.h`) need the `OVERLAY` (or
 `POSITION_INTERACT`) component, which brings `TEXT`. `OPENGL` brings the EGL loader, which is used on

@@ -65,10 +65,12 @@
 #
 # Calling supportext_add_sources() several times for the same target is fine: each
 # source is added once. It can also be called from another directory than the
-# target's, as long as the imported targets it links (OpenGL::GL, Threads::Threads,
-# OSMesa::OSMesa, openfx::Support) are either created by the helper itself or global:
-# if the consumer already ran find_package(OpenGL) or find_package(Threads) in the
-# calling directory, call it from the target's directory instead.
+# target's: the imported targets it links (OpenGL::GL, Threads::Threads, OSMesa::OSMesa,
+# openfx::Support) must then be visible from the target's directory. Those the helper
+# finds itself are made global. With CMake 3.21 or later, so are those the consumer
+# created in the calling directory (e.g. with find_package) when the target's directory
+# cannot see them. An imported target created in a third directory that the target's
+# directory cannot see is reported by CMake at generate time.
 #
 # If a source tree contains several copies of SupportExt (e.g. openfx-arena's
 # SupportExt and OpenFX-IO/SupportExt), the first one included is used by every
@@ -92,10 +94,11 @@ if(COMMAND supportext_add_sources)
 endif()
 
 # The functions below use if(IN_LIST) (policy CMP0057) and keep the policy settings in
-# force where they are defined: use CMake 3.16 policies here, whatever the consumer's
-# cmake_minimum_required (openfx-io and openfx-arena still declare 3.1).
+# force where they are defined: use CMake 3.16+ policies here, whatever the consumer's
+# cmake_minimum_required (openfx-io and openfx-arena still declare 3.1). Note that the
+# helper's own find_package(OpenGL) then uses CMP0072 NEW (GLVND on Linux).
 cmake_policy(PUSH)
-cmake_policy(VERSION 3.16)
+cmake_policy(VERSION 3.16...3.31)
 
 # Add <item> to the link libraries of <target>, once, without using
 # target_link_libraries (whose plain and keyword signatures cannot be mixed).
@@ -103,19 +106,35 @@ function(_supportext_link TARGET ITEM)
   if(NOT ITEM)
     return()
   endif()
-  # An imported target found by the consumer in the calling directory is not visible
-  # from the target's own directory, and it cannot be made global from here (only the
-  # directory that created it can): fail with a clear message instead of a generic
-  # "target was not found" at generate time.
-  if(TARGET ${ITEM})
-    get_property(_imported TARGET ${ITEM} PROPERTY IMPORTED)
-    get_property(_global TARGET ${ITEM} PROPERTY IMPORTED_GLOBAL)
-    get_property(_tdir TARGET ${TARGET} PROPERTY SOURCE_DIR)
-    if(_imported AND NOT _global AND NOT _tdir STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-      message(FATAL_ERROR "supportext_add_sources(${TARGET}): ${ITEM} is an imported target of "
-        "${CMAKE_CURRENT_SOURCE_DIR}, not visible from ${TARGET}'s directory ${_tdir}. Call "
-        "supportext_add_sources() from ${TARGET}'s directory, or create ${ITEM} as a global "
-        "imported target (find_package(... GLOBAL), CMake >= 3.24, or IMPORTED_GLOBAL).")
+  # A non-global imported target is visible in the directory that created it and in
+  # the subdirectories added after it. If the consumer created ITEM (e.g. with
+  # find_package) in the calling directory and TARGET is defined elsewhere (a parent
+  # or a sibling), TARGET's directory cannot see it: make it global, which only the
+  # creating directory may do. This needs the IMPORTED_TARGETS directory property
+  # (CMake 3.21); otherwise, and for an ITEM created in another directory that TARGET's
+  # directory cannot see, CMake reports the missing target at generate time.
+  if(TARGET ${ITEM} AND NOT CMAKE_VERSION VERSION_LESS 3.21)
+    get_property(_real TARGET ${ITEM} PROPERTY ALIASED_TARGET)
+    if(NOT _real)
+      set(_real "${ITEM}")
+    endif()
+    get_property(_imported TARGET ${_real} PROPERTY IMPORTED)
+    get_property(_global TARGET ${_real} PROPERTY IMPORTED_GLOBAL)
+    get_property(_here DIRECTORY PROPERTY IMPORTED_TARGETS)
+    if(_imported AND NOT _global AND _real IN_LIST _here)
+      # visible if TARGET's directory is the calling directory or below it
+      get_property(_d TARGET ${TARGET} PROPERTY SOURCE_DIR)
+      set(_visible OFF)
+      while(NOT "${_d}" STREQUAL "")
+        if(_d STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+          set(_visible ON)
+          break()
+        endif()
+        get_property(_d DIRECTORY "${_d}" PROPERTY PARENT_DIRECTORY)
+      endwhile()
+      if(NOT _visible)
+        set_property(TARGET ${_real} PROPERTY IMPORTED_GLOBAL TRUE)
+      endif()
     endif()
   endif()
   get_property(_libs TARGET ${TARGET} PROPERTY LINK_LIBRARIES)
