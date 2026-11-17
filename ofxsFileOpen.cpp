@@ -28,6 +28,7 @@
 #include <windows.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <share.h> // _SH_DENYNO
 #endif
 
 #include <fstream>
@@ -102,7 +103,9 @@ fopen_utf8(const char* path_utf8,
     wstring wpath = utf8_to_utf16 (path_utf8);
     wstring wmode = utf8_to_utf16 (mode);
 
-    return ::_wfopen ( wpath.c_str(), wmode.c_str() );
+    // _wfsopen with _SH_DENYNO is _wfopen (which MSVC deprecates), with the same sharing
+    // mode; _wfopen_s would open the file without sharing
+    return ::_wfsopen ( wpath.c_str(), wmode.c_str(), _SH_DENYNO );
 #else
 
     // on Unix platforms passing in UTF-8 works

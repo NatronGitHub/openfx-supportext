@@ -210,11 +210,11 @@ RampInteractHelper::draw(const DrawArgs &args)
     d.glDisable(GL_POINT_SMOOTH);
     d.glEnable(GL_BLEND);
     d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    d.glLineWidth(1.5f * screenPixelRatio);
+    d.glLineWidth(static_cast<GLfloat>(1.5 * screenPixelRatio));
     d.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     d.glLineStipple(2, 0xAAAA);
 
-    d.glPointSize(POINT_SIZE * screenPixelRatio);
+    d.glPointSize(static_cast<GLfloat>(POINT_SIZE * screenPixelRatio));
 
     // Draw everything twice
     // l = 0: shadow
@@ -232,7 +232,7 @@ RampInteractHelper::draw(const DrawArgs &args)
             d.glDisable(GL_LINE_STIPPLE);
             d.glEnable(GL_POINT_SMOOTH);
             const double darken = 0.5;
-            d.glColor3f(color.r * l * darken, color.g * l * darken, color.b * l * darken);
+            d.glColor3f(static_cast<GLfloat>(color.r * l * darken), static_cast<GLfloat>(color.g * l * darken), static_cast<GLfloat>(color.b * l * darken));
             drawPointTrajectory(d, i ==0 ? _point0 : _point1);
 
             d.glEnable(GL_LINE_STIPPLE);
