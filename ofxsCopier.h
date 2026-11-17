@@ -98,15 +98,19 @@ public:
                 assert(_srcBoundary == 0);
                 std::memset(dstPix, 0, rowBytes);
             } else {
-                int x1 = (std::max)(_srcBounds.x1, procWindow.x1);
-                int x2 = (std::min)(_srcBounds.x2, procWindow.x2);
+                // [x1, x2) is the part of the line covered by src, clamped to procWindow:
+                // src may be entirely on the left or on the right of procWindow (e.g. when
+                // the output RoD is larger than the source RoD), and the parts of the line
+                // that are filled before x1 and after x2 must not go beyond procWindow.
+                int x1 = (std::min)( (std::max)(_srcBounds.x1, procWindow.x1), procWindow.x2 );
+                int x2 = (std::max)( (std::min)(_srcBounds.x2, procWindow.x2), x1 );
                 // start of line may be black
                 if (procWindow.x1 < x1) {
                     if ( (_srcBoundary != 1) && (_srcBoundary != 2) ) {
                         std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
                         dstPix += nComponents * (x1 - procWindow.x1);
                     } else if (_srcBoundary == 1) {
-                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(x1, srcy);
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(_srcBounds.x1, srcy);
                         assert(srcPix);
                         if (!srcPix) {
                             std::memset( dstPix, 0, sizeof(PIX) * nComponents * (x1 - procWindow.x1) );
@@ -173,7 +177,7 @@ public:
                         std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
                         dstPix += nComponents * (procWindow.x2 - x2);
                     } else if (_srcBoundary == 1) {
-                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(x2 - 1, srcy);
+                        const PIX *srcPix = (const PIX *) getSrcPixelAddress(_srcBounds.x2 - 1, srcy);
                         assert(srcPix);
                         if (!srcPix) {
                             std::memset( dstPix, 0, sizeof(PIX) * nComponents * (procWindow.x2 - x2) );
