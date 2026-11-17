@@ -274,7 +274,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         _position->getValueAtTime(args.time, pos.x, pos.y);
     }
     //glPushAttrib(GL_ALL_ATTRIB_BITS); // caller is responsible for protecting attribs
-    d.glPointSize( (float)pointSize() * screenPixelRatio);
+    d.glPointSize(static_cast<GLfloat>( (float)pointSize() * screenPixelRatio));
     d.glEnable(GL_LINE_SMOOTH);
     d.glEnable(GL_BLEND);
     d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
