@@ -85,6 +85,7 @@ jobs:
           cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel
           # calls from another directory with consumer-created imported targets
           cmake -S tests/cmake/visibility -B "$RUNNER_TEMP/supportext-cmake-visibility"
+          cmake -S tests/cmake/visibility_late -B "$RUNNER_TEMP/supportext-cmake-visibility-late"
           # a consumer with cmake_minimum_required(VERSION 3.1) policies (configure
           # only): CMake 4 rejects policy versions below 3.5
           case "$(cmake --version)" in

@@ -36,7 +36,8 @@ library. The function can be called several times, and from another directory th
 target's. The imported targets it links (`OpenGL::GL`, `Threads::Threads`,
 `OSMesa::OSMesa`, `openfx::Support`) must then be visible from the target's directory.
 Those the helper finds itself are made global, and with CMake 3.21 or later, so are those
-created in the calling directory (e.g. by `find_package`).
+created in the calling directory (e.g. by `find_package`), together with the other
+imported targets of their namespace.
 
 Plug-ins whose own code draws text with the header-only overlay code
 (`OverlayDraw::bitmapString`, `ofxsPositionInteract.h`) need the `OVERLAY` (or

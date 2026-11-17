@@ -68,7 +68,9 @@
 # target's: the imported targets it links (OpenGL::GL, Threads::Threads, OSMesa::OSMesa,
 # openfx::Support) must then be visible from the target's directory. Those the helper
 # finds itself are made global. With CMake 3.21 or later, so are those the consumer
-# created in the calling directory (e.g. with find_package). An imported target created in a third directory that the target's
+# created in the calling directory (e.g. with find_package), with the other imported
+# targets of their namespace (their export set); an ALIAS of one is linked by its
+# aliased name. An imported target created in a third directory that the target's
 # directory cannot see is reported by CMake at generate time.
 #
 # If a source tree contains several copies of SupportExt (e.g. openfx-arena's
