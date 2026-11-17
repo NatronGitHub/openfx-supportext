@@ -63,8 +63,12 @@
 # PRIVATE/PUBLIC) the consumer uses, and a library the consumer already linked
 # (e.g. openfx::Support) is not added twice.
 #
-# Calling supportext_add_sources() several times for the same target, or from
-# another directory than the target's, is fine: each source is added once.
+# Calling supportext_add_sources() several times for the same target is fine: each
+# source is added once. It can also be called from another directory than the
+# target's, as long as the imported targets it links (OpenGL::GL, Threads::Threads,
+# OSMesa::OSMesa, openfx::Support) are either created by the helper itself or global:
+# if the consumer already ran find_package(OpenGL) or find_package(Threads) in the
+# calling directory, call it from the target's directory instead.
 #
 # If a source tree contains several copies of SupportExt (e.g. openfx-arena's
 # SupportExt and OpenFX-IO/SupportExt), the first one included is used by every
@@ -87,11 +91,32 @@ if(COMMAND supportext_add_sources)
   return()
 endif()
 
+# The functions below use if(IN_LIST) (policy CMP0057) and keep the policy settings in
+# force where they are defined: use CMake 3.16 policies here, whatever the consumer's
+# cmake_minimum_required (openfx-io and openfx-arena still declare 3.1).
+cmake_policy(PUSH)
+cmake_policy(VERSION 3.16)
+
 # Add <item> to the link libraries of <target>, once, without using
 # target_link_libraries (whose plain and keyword signatures cannot be mixed).
 function(_supportext_link TARGET ITEM)
   if(NOT ITEM)
     return()
+  endif()
+  # An imported target found by the consumer in the calling directory is not visible
+  # from the target's own directory, and it cannot be made global from here (only the
+  # directory that created it can): fail with a clear message instead of a generic
+  # "target was not found" at generate time.
+  if(TARGET ${ITEM})
+    get_property(_imported TARGET ${ITEM} PROPERTY IMPORTED)
+    get_property(_global TARGET ${ITEM} PROPERTY IMPORTED_GLOBAL)
+    get_property(_tdir TARGET ${TARGET} PROPERTY SOURCE_DIR)
+    if(_imported AND NOT _global AND NOT _tdir STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+      message(FATAL_ERROR "supportext_add_sources(${TARGET}): ${ITEM} is an imported target of "
+        "${CMAKE_CURRENT_SOURCE_DIR}, not visible from ${TARGET}'s directory ${_tdir}. Call "
+        "supportext_add_sources() from ${TARGET}'s directory, or create ${ITEM} as a global "
+        "imported target (find_package(... GLOBAL), CMake >= 3.24, or IMPORTED_GLOBAL).")
+    endif()
   endif()
   get_property(_libs TARGET ${TARGET} PROPERTY LINK_LIBRARIES)
   if(NOT ITEM IN_LIST _libs)
@@ -145,7 +170,8 @@ function(supportext_add_sources TARGET)
   endforeach()
 
   # component -> sources (relative to the SupportExt directory) and dependencies.
-  # These are function variables, so the function works from any directory.
+  # These are function variables, so the function works from any directory
+  # (see above for the imported targets it links).
   set(_components THREADS FILEOPEN LUT MULTIPLANE SHUTTER TRANSFORM3X3 TEXT OVERLAY
       POSITION_INTERACT TRANSFORM_INTERACT RECTANGLE_INTERACT GENERATOR RAMP TRACKING
       OGL_FUNCTIONS EGL)
@@ -186,7 +212,7 @@ function(supportext_add_sources TARGET)
 
   # resolve the dependencies
   set(_done "")
-  while(_todo)
+  while(NOT "${_todo}" STREQUAL "")
     list(GET _todo 0 _c)
     list(REMOVE_AT _todo 0)
     string(TOUPPER "${_c}" _c)
@@ -257,3 +283,5 @@ function(supportext_add_sources TARGET)
     _supportext_link(${TARGET} Threads::Threads)
   endif()
 endfunction()
+
+cmake_policy(POP)

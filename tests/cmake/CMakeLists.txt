@@ -40,6 +40,10 @@ supportext_add_sources(sx_parent COMPONENTS POSITION_INTERACT THREADS TRANSFORM3
 # calling it again adds nothing twice
 supportext_add_sources(sx_parent COMPONENTS THREADS POSITION_INTERACT)
 
+# 1b. the header-only overlay alone must pull in TEXT
+sx_test_module(sx_position position.cpp)
+supportext_add_sources(sx_position COMPONENTS POSITION_INTERACT)
+
 # 2. OPENGL (glad, EGL on Linux, dl), every component
 sx_test_module(sx_all opengl.cpp)
 supportext_add_sources(sx_all ALL)
@@ -72,3 +76,6 @@ add_subdirectory(sibling_b)
 # 5. a target defined here, the helper called from another directory
 sx_test_module(sx_otherdir text.cpp)
 add_subdirectory(otherdir)
+
+# 6. a consumer with old policies: tests/cmake/oldpolicy is a separate project,
+#    configured by the CI (with CMake < 4)

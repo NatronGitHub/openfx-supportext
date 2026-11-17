@@ -75,13 +75,18 @@ jobs:
       - name: CMake helper (compile check of every source, consumer tests)
         # tests/cmake: add_subdirectory(SupportExt) then a call from the parent,
         # sibling includes, a STATIC library linked into a module, OPENGL modules
-        # linked without undefined symbols, options inside COMPONENTS
+        # linked without undefined symbols, options inside COMPONENTS, a consumer
+        # with old (3.1) policies
         run: |
           set -eo pipefail
           cmake -S . -B "$RUNNER_TEMP/supportext-cmake" -DOPENFX_DIR="$PWD/openfx"
           cmake --build "$RUNNER_TEMP/supportext-cmake" --parallel
           cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx"
           cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel
+          # a consumer with cmake_minimum_required(VERSION 3.1) policies (configure only)
+          if cmake --version | head -1 | grep -q 'version [0-3]\.'; then
+            cmake -S tests/cmake/oldpolicy -B "$RUNNER_TEMP/supportext-cmake-oldpolicy"
+          fi
       - name: Load and render plug-ins with hostDemo
         # builds openfx's hostDemo and a bundle of openfx-misc plug-ins (Transform,
         # Crop, Constant, Rectangle, Position) against this SupportExt, linked like
