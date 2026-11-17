@@ -716,7 +716,7 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
     OfxRectD srcRoI;
     double mix = 1.;
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-    if (doMasking) {
+    if (doMasking && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
@@ -1016,8 +1016,10 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
 
         bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
         if (doMasking) {
-            bool maskInvert;
-            _maskInvert->getValueAtTime(args.time, maskInvert);
+            bool maskInvert = false;
+            if (_maskInvert) {
+                _maskInvert->getValueAtTime(args.time, maskInvert);
+            }
             if (!maskInvert) {
                 OfxRectI maskRoD;
                 if (getImageEffectHostDescription()->supportsMultiResolution) {
