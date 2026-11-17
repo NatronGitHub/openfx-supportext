@@ -68,8 +68,7 @@
 # target's: the imported targets it links (OpenGL::GL, Threads::Threads, OSMesa::OSMesa,
 # openfx::Support) must then be visible from the target's directory. Those the helper
 # finds itself are made global. With CMake 3.21 or later, so are those the consumer
-# created in the calling directory (e.g. with find_package) when the target's directory
-# cannot see them. An imported target created in a third directory that the target's
+# created in the calling directory (e.g. with find_package). An imported target created in a third directory that the target's
 # directory cannot see is reported by CMake at generate time.
 #
 # If a source tree contains several copies of SupportExt (e.g. openfx-arena's
@@ -108,11 +107,13 @@ function(_supportext_link TARGET ITEM)
   endif()
   # A non-global imported target is visible in the directory that created it and in
   # the subdirectories added after it. If the consumer created ITEM (e.g. with
-  # find_package) in the calling directory and TARGET is defined elsewhere (a parent
-  # or a sibling), TARGET's directory cannot see it: make it global, which only the
-  # creating directory may do. This needs the IMPORTED_TARGETS directory property
-  # (CMake 3.21); otherwise, and for an ITEM created in another directory that TARGET's
-  # directory cannot see, CMake reports the missing target at generate time.
+  # find_package) in the calling directory and TARGET is defined in another directory,
+  # TARGET's directory may not see it: make it global, which only the creating
+  # directory may do (and is harmless if it was visible). This needs the
+  # IMPORTED_TARGETS directory property (CMake 3.21); otherwise, and for an ITEM created
+  # in a third directory that TARGET's directory cannot see, CMake reports the missing
+  # target at generate time. An ALIAS of a non-global imported target is local too: link
+  # the aliased target instead.
   if(TARGET ${ITEM} AND NOT CMAKE_VERSION VERSION_LESS 3.21)
     get_property(_real TARGET ${ITEM} PROPERTY ALIASED_TARGET)
     if(NOT _real)
@@ -121,20 +122,11 @@ function(_supportext_link TARGET ITEM)
     get_property(_imported TARGET ${_real} PROPERTY IMPORTED)
     get_property(_global TARGET ${_real} PROPERTY IMPORTED_GLOBAL)
     get_property(_here DIRECTORY PROPERTY IMPORTED_TARGETS)
-    if(_imported AND NOT _global AND _real IN_LIST _here)
-      # visible if TARGET's directory is the calling directory or below it
-      get_property(_d TARGET ${TARGET} PROPERTY SOURCE_DIR)
-      set(_visible OFF)
-      while(NOT "${_d}" STREQUAL "")
-        if(_d STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-          set(_visible ON)
-          break()
-        endif()
-        get_property(_d DIRECTORY "${_d}" PROPERTY PARENT_DIRECTORY)
-      endwhile()
-      if(NOT _visible)
-        set_property(TARGET ${_real} PROPERTY IMPORTED_GLOBAL TRUE)
-      endif()
+    get_property(_tdir TARGET ${TARGET} PROPERTY SOURCE_DIR)
+    if(_imported AND NOT _global AND _real IN_LIST _here
+       AND NOT _tdir STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+      set_property(TARGET ${_real} PROPERTY IMPORTED_GLOBAL TRUE)
+      set(ITEM "${_real}")
     endif()
   endif()
   get_property(_libs TARGET ${TARGET} PROPERTY LINK_LIBRARIES)

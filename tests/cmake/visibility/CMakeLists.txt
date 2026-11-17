@@ -27,3 +27,14 @@ if(NOT CMAKE_VERSION VERSION_LESS 3.21)
   add_subdirectory(p1)
   add_subdirectory(p2)
 endif()
+
+# E. target in a subdirectory added before the imported target is created here, and
+#    an ALIAS of a non-global imported target (CMake 3.21 or later; after P, which
+#    must find Threads in its own directory)
+if(NOT CMAKE_VERSION VERSION_LESS 3.21)
+  add_subdirectory(e)
+  add_library(vis_osmesa_real INTERFACE IMPORTED)
+  add_library(OSMesa::OSMesa ALIAS vis_osmesa_real)
+  find_package(Threads REQUIRED)
+  supportext_add_sources(vis_e OSMESA COMPONENTS THREADS TEXT)
+endif()
