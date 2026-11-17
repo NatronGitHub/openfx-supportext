@@ -6,7 +6,8 @@
 #   supportext_add_sources(MyPlugin COMPONENTS THREADS TRANSFORM3X3 TRANSFORM_INTERACT)
 #
 # Used as the top-level project, it builds a compile check of every source
-# (requires -DOPENFX_DIR=<openfx checkout>), as the CI's compile.sh does.
+# (requires -DOPENFX_DIR=<openfx checkout>), as the CI's compile.sh does; the
+# consumer tests are in tests/cmake.
 cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   project(SupportExt CXX)
@@ -28,5 +29,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   target_compile_definitions(SupportExtCheck PRIVATE
     OFX_EXTENSIONS_VEGAS OFX_EXTENSIONS_NUKE OFX_EXTENSIONS_NATRON OFX_EXTENSIONS_TUTTLE
     OFX_SUPPORTS_OPENGLRENDER $<$<BOOL:${APPLE}>:GL_SILENCE_DEPRECATION>)
-  supportext_add_sources(SupportExtCheck ALL EGL)
+  supportext_add_sources(SupportExtCheck ALL)
+  # ofxsOGLFunctions_mesa.cpp (the OSMESA option) needs an OSMesa::OSMesa target:
+  # compile it without HAVE_OSMESA, which at least checks it is a valid file
+  target_sources(SupportExtCheck PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ofxsOGLFunctions_mesa.cpp")
 endif()
