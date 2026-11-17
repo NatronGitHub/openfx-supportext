@@ -1221,7 +1221,7 @@ Transform3x3Plugin::changedParam(const InstanceChangedArgs &args,
 
         changedTransform(args);
     }
-    if (paramName == kParamTransform3x3DirectionalBlur) {
+    if (paramName == kParamTransform3x3DirectionalBlur && _directionalBlur) {
         bool directionalBlur;
         _directionalBlur->getValueAtTime(args.time, directionalBlur);
         _shutter->setEnabled(!directionalBlur);
