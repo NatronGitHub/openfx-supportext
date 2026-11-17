@@ -1688,6 +1688,14 @@ TransformInteractHelper::keyDown(const KeyArgs &args)
             _orientation = eOrientationNotSet;
         }
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( ( _translate && ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) ) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         _interact->requestRedraw();
     }
@@ -1743,10 +1751,23 @@ TransformInteractHelper::keyUp(const KeyArgs &args)
             --_modifierStateShift;
             mustRedraw = (_modifierStateShift == 0);
         }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+        // (the modifiers are already updated in keyUp: the other Shift key may still be down)
+        if ( !shiftDown() ) {
+#else
         if (_modifierStateShift == 0) {
+#endif
             _orientation = eOrientationAllDirections;
         }
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( ( _translate && ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) ) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         _interact->requestRedraw();
     }

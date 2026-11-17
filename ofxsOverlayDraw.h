@@ -161,10 +161,10 @@
 
 // The openfx Support library tracks the keyboard modifiers of interacts
 // (OFX::Interact::getKeyModifiers(), ofxNatron.h extension 13, openfx ec562898 and later):
-// SupportExt's overlays then take Shift/Control/Alt from it, which also gives the modifiers
+// SupportExt's overlays then take Shift and Control from it, which also gives the modifiers
 // pressed before the overlay got the focus when the host passes them. Older openfx: the
 // overlays count the modifier keyDown/keyUp themselves, as before.
-#if defined(OFX_EXTENSIONS_NATRON) && defined(kNatronOfxInteractPropKeyModifiers) && !defined(OFXS_HAVE_KEY_MODIFIERS)
+#if defined(OFX_EXTENSIONS_NATRON) && defined(kNatronOfxInteractPropKeyModifiers)
 #define OFXS_HAVE_KEY_MODIFIERS 1
 #endif
 

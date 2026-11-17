@@ -735,7 +735,6 @@ RectangleInteract::penUp(const PenArgs &args)
     return didSmthing;
 } // penUp
 
-// keyDown just updates the modifier state
 bool
 RectangleInteract::ctrlDown() const
 {
@@ -756,6 +755,7 @@ RectangleInteract::shiftDown() const
 #endif
 }
 
+// keyDown just updates the modifier state
 bool
 RectangleInteract::keyDown(const KeyArgs &args)
 {
@@ -780,6 +780,14 @@ RectangleInteract::keyDown(const KeyArgs &args)
         mustRedraw = _modifierStateShift == 0;
         ++_modifierStateShift;
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         requestRedraw();
     }
@@ -814,6 +822,14 @@ RectangleInteract::keyUp(const KeyArgs &args)
             mustRedraw = _modifierStateShift == 0;
         }
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         requestRedraw();
     }
