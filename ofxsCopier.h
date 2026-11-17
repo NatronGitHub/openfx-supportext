@@ -65,7 +65,25 @@ public:
             procWindow.y2 = _dstBounds.y2;
         }
 
+        if ( (procWindow.x2 <= procWindow.x1) || (procWindow.y2 <= procWindow.y1) ) {
+            return;
+        }
+
         int rowBytes = sizeof(PIX) * nComponents * (procWindow.x2 - procWindow.x1);
+
+        if ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) {
+            // empty source: the output is black whatever the boundary conditions
+            // (the Periodic code below would divide by zero or loop forever)
+            for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
+                PIX *dstPix = (PIX *) getDstPixelAddress(procWindow.x1, dsty);
+                assert(dstPix);
+                if (dstPix) {
+                    std::memset(dstPix, 0, rowBytes);
+                }
+            }
+
+            return;
+        }
 
         for (int dsty = procWindow.y1; dsty < procWindow.y2; ++dsty) {
             if ( _effect.abort() ) {
@@ -94,7 +112,8 @@ public:
                 }
             }
 
-            if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) || (_srcBounds.y2 <= _srcBounds.y1) ) {
+            if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
+                // the source is not empty (see above), so Nearest and Periodic always find a source row
                 assert(_srcBoundary == 0);
                 std::memset(dstPix, 0, rowBytes);
             } else {
@@ -146,6 +165,7 @@ public:
 #                             endif
                                 std::copy(srcPix, srcPix + nComponents, dstPix);
                                 dstPix += nComponents;
+                                srcPix += nComponents;
                                 ++srcx;
                                 if (_srcBounds.x2 <= srcx) {
                                     srcx -= (_srcBounds.x2 - _srcBounds.x1);
@@ -207,6 +227,7 @@ public:
 #                             endif
                                 std::copy(srcPix, srcPix + nComponents, dstPix);
                                 dstPix += nComponents;
+                                srcPix += nComponents;
                                 ++srcx;
                                 if (_srcBounds.x2 <= srcx) {
                                     srcx -= (_srcBounds.x2 - _srcBounds.x1);
@@ -785,8 +806,11 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     int x2 = (std::min)(renderWindow.x2, dstBounds.x2);
     int y1 = (std::max)(renderWindow.y1, dstBounds.y1);
     int y2 = (std::min)(renderWindow.y2, dstBounds.y2);
+    if ( (x2 <= x1) || (y2 <= y1) ) {
+        return;
+    }
     PIX* dstPixels = (PIX*)dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * dstPixelComponentCount;
-    int rowElements = dstPixelComponentCount * (x2 - renderWindow.x1);
+    int rowElements = dstPixelComponentCount * (x2 - x1);
 
     for (int y = y1; y < y2; ++y, dstPixels += dstRowElements) {
         std::fill( dstPixels, dstPixels + rowElements, PIX() ); // no src pixel here, be black and transparent
