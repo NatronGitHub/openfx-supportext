@@ -376,7 +376,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     d.glDisable(GL_POINT_SMOOTH);
     d.glEnable(GL_BLEND);
     d.glHint(GL_LINE_SMOOTH_HINT, GL_DONT_CARE);
-    d.glLineWidth(1.5f * screenPixelRatio);
+    d.glLineWidth(static_cast<GLfloat>(1.5 * screenPixelRatio));
     d.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // Draw everything twice
@@ -405,7 +405,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         d.glVertex2d(xo2, yo1);
         d.glEnd();
 
-        d.glPointSize(POINT_SIZE * screenPixelRatio);
+        d.glPointSize(static_cast<GLfloat>(POINT_SIZE * screenPixelRatio));
         d.glBegin(GL_POINTS);
 
         ///draw center
