@@ -741,11 +741,11 @@ from_func_Cineon(float v)
 
 /// The argument of the log10 of the log encodings below, kept in the function's domain: below
 /// the black offset, log10 would give NaN (or -inf at 0), e.g. when Lut::fillTables() encodes
-/// negative values. Values at or above FLT_MIN are unchanged.
+/// negative values. Every positive value (denormals included) is unchanged.
 inline float
 log10DomainArg(float x)
 {
-    return (x < FLT_MIN) ? FLT_MIN : x;
+    return (x > 0.f) ? x : FLT_MIN;
 }
 
 /// to Cineon from Linear Opto-Electronic Transfer Function (OETF)

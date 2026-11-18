@@ -253,7 +253,10 @@ rgb_to_hsl( float r,
 
         return;
     }
-    *s = (*l <= 0.5) ? ( delta / (maxv + minv) ) : ( delta / ( 2 - (maxv + minv) ) ); // s = delta/(1-abs(2L-1))
+    // s = delta/(1-abs(2L-1)); near white, 2 - (maxv + minv) can round to 0 (e.g. (1, 1, 0.99999994)),
+    // which gave inf, then NaN in hsl_to_rgb: the saturation is then 1
+    const float sden = (*l <= 0.5) ? (maxv + minv) : ( 2 - (maxv + minv) );
+    *s = (sden != 0.f) ? (delta / sden) : 1.f;
 
     if (r == maxv) {
         *h = (g - b) / delta;                       // between yellow & magenta
@@ -358,8 +361,11 @@ rgb_to_hsi( float r,
     } else {
         *h = 0.;
     }
-    if (sum > 0) {
+    if (sum >= 3.f / FLT_MAX) {
         *s = 1 - 3 / sum * m;
+    } else if (sum > 0) {
+        // 3 / sum would overflow to inf, then inf * 0 = NaN when m == 0
+        *s = 1 - 3 * (m / sum);
     } else {
         *s = 0.;
     }
