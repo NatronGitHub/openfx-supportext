@@ -289,7 +289,8 @@ hsl_to_rgb(float h,
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
-    float sv = (v - p ) / v;
+    // v == 0 (l == 0, or s == -1) would give 0/0 or x/0, then NaN in t or q
+    float sv = (v != 0.f) ? (v - p ) / v : 0.f;
     float vsf = v * sv * f;
     float t = p + vsf;
     float q = v - vsf;
@@ -341,7 +342,15 @@ rgb_to_hsi( float r,
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
     float m = (std::min)((std::min)(nR, nG), nB);
-    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( (std::max)( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / OFXS_PI);
+    // the hue angle; 0 for a gray pixel (den2 == 0 would give 0/0), and the cosine is clamped
+    // to [-1, 1], which rounding can exceed (acos would give NaN)
+    float theta = 0.f;
+    const float den2 = (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB);
+    if (den2 > 0.f) {
+        float c = 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt(den2);
+        c = (c > 1.f) ? 1.f : ( (c < -1.f) ? -1.f : c );
+        theta = (float)(std::acos(c) * (OFXS_HUE_CIRCLE / 2) / OFXS_PI);
+    }
     float sum = nR + nG + nB;
 
     if (theta > 0) {
