@@ -162,7 +162,8 @@ inline
 double
 scaleFromMipmapLevel(unsigned int level)
 {
-    return 1. / (1 << level);
+    // 1. / (1 << level) exactly, without the undefined shift for level >= 31
+    return std::ldexp( 1., -(int)( (std::min)(level, 1100u) ) );
 }
 
 // Convert a pixel coordinate computed in double (already rounded down or up)
@@ -233,10 +234,11 @@ toPixelNearest(const OfxRectD & regionOfInterest,
 
         return;
     }
-    rect->x1 = (int)std::floor(regionOfInterest.x1 * renderScale.x / par + 0.5);
-    rect->y1 = (int)std::floor(regionOfInterest.y1 * renderScale.y + 0.5);
-    rect->x2 = (int)std::ceil(regionOfInterest.x2 * renderScale.x / par - 0.5);
-    rect->y2 = (int)std::ceil(regionOfInterest.y2 * renderScale.y - 0.5);
+    // the int conversion is protected (an infinite RoD with PAR < 1 is outside the int range)
+    rect->x1 = pixelToIntClamped(std::floor(regionOfInterest.x1 * renderScale.x / par + 0.5), kOfxFlagInfiniteMin);
+    rect->y1 = pixelToIntClamped(std::floor(regionOfInterest.y1 * renderScale.y + 0.5), kOfxFlagInfiniteMin);
+    rect->x2 = pixelToIntClamped(std::ceil(regionOfInterest.x2 * renderScale.x / par - 0.5), kOfxFlagInfiniteMax);
+    rect->y2 = pixelToIntClamped(std::ceil(regionOfInterest.y2 * renderScale.y - 0.5), kOfxFlagInfiniteMax);
 }
 
 inline void
@@ -264,8 +266,9 @@ toPixel(const OfxPointD & p_canonical,
         OfxPointI *p_pixel)
 {
     assert(par);
-    p_pixel->x = (int)std::floor(p_canonical.x * renderScale.x / par);
-    p_pixel->y = (int)std::floor(p_canonical.y * renderScale.y);
+    // the int conversion is protected (values outside the int range are clamped)
+    p_pixel->x = pixelToIntClamped(std::floor(p_canonical.x * renderScale.x / par), 0);
+    p_pixel->y = pixelToIntClamped(std::floor(p_canonical.y * renderScale.y), 0);
 }
 
 // subpixel version (no rounding)
@@ -345,9 +348,14 @@ unsigned int
 mipmapLevelFromScale(double s)
 {
     assert(0. < s && s <= 1.);
-    unsigned int retval = (unsigned int)(std::max)(0., -std::floor(std::log(s) / OFXS_LN2 + 0.5));
+    if (s <= 0.) {
+        // log(0) = -inf, then an undefined unsigned conversion (spec: render scales are > 0)
+        return 0;
+    }
+    const double level = (std::max)(0., -std::floor(std::log(s) / OFXS_LN2 + 0.5));
 
-    return retval;
+    // 30 at most, so that scaleFromMipmapLevel (1 << level) stays defined
+    return (level < 30.) ? (unsigned int)level : 30u;
 }
 } // Coords
 } // OFX
