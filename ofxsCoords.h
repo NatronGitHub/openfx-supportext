@@ -127,9 +127,14 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (thisLevel == 0) {
         return r;
     }
+    if (thisLevel > 30) {
+        // 1 << 31 overflows an int; at level 30 any finite rectangle is already at most 4 pixels
+        thisLevel = 30;
+    }
     OfxRectI ret;
-    int pot = (1 << thisLevel);
-    int pot_minus1 = pot - 1;
+    // the arithmetic is in long long: r.x2 + pot_minus1 overflowed an int for r.x2 near INT_MAX
+    const long long pot = (1LL << thisLevel);
+    const long long pot_minus1 = pot - 1;
     if (r.x1 <= kOfxFlagInfiniteMin) {
         ret.x1 = kOfxFlagInfiniteMin;
     } else {
@@ -139,7 +144,7 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (r.x2 >= kOfxFlagInfiniteMax) {
         ret.x2 = kOfxFlagInfiniteMax;
     } else {
-        ret.x2 = (r.x2 + pot_minus1) >> thisLevel;
+        ret.x2 = (int)( ( (long long)r.x2 + pot_minus1 ) >> thisLevel );
         assert(ret.x2 * pot >= r.x2);
     }
     if (r.y1 <= kOfxFlagInfiniteMin) {
@@ -151,7 +156,7 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (r.y2 >= kOfxFlagInfiniteMax) {
         ret.y2 = kOfxFlagInfiniteMax;
     } else {
-        ret.y2 = (r.y2 + pot_minus1) >> thisLevel;
+        ret.y2 = (int)( ( (long long)r.y2 + pot_minus1 ) >> thisLevel );
         assert(ret.y2 * pot >= r.y2);
     }
 

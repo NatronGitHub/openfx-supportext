@@ -353,6 +353,35 @@ struct Matrix3x3
 
     bool inverse(Matrix3x3* invOut) const
     {
+        // entries so large or small that the cofactors or the determinant overflow or underflow
+        // (inf * 0 = NaN in the result): invert an exactly rescaled copy (by a power of 2), then
+        // rescale the result, which is exact. Other matrices take the unscaled path unchanged.
+        double mx = 0.;
+        for (int k = 0; k < 9; ++k) {
+            mx = (std::max)( mx, std::fabs(m[k]) );
+        }
+        if ( ( mx > std::ldexp(1., 200) ) || ( (mx > 0.) && ( mx < std::ldexp(1., -200) ) ) ) {
+            int e = 0;
+            (void)std::frexp(mx, &e);
+            Matrix3x3 scaled(*this);
+            for (int k = 0; k < 9; ++k) {
+                scaled.m[k] = std::ldexp(m[k], -e);
+            }
+            if ( !scaled.inverseUnscaled(invOut) ) {
+                return false;
+            }
+            for (int k = 0; k < 9; ++k) {
+                invOut->m[k] = std::ldexp(invOut->m[k], -e);
+            }
+
+            return true;
+        }
+
+        return inverseUnscaled(invOut);
+    }
+
+    bool inverseUnscaled(Matrix3x3* invOut) const
+    {
         double inv[9], det;
         int i;
 
@@ -664,6 +693,35 @@ struct Matrix4x4
     }
 
     bool inverse(Matrix4x4* invOut) const
+    {
+        // entries so large or small that the cofactors or the determinant overflow or underflow
+        // (inf * 0 = NaN in the result): invert an exactly rescaled copy (by a power of 2), then
+        // rescale the result, which is exact. Other matrices take the unscaled path unchanged.
+        double mx = 0.;
+        for (int k = 0; k < 16; ++k) {
+            mx = (std::max)( mx, std::fabs(m[k]) );
+        }
+        if ( ( mx > std::ldexp(1., 200) ) || ( (mx > 0.) && ( mx < std::ldexp(1., -200) ) ) ) {
+            int e = 0;
+            (void)std::frexp(mx, &e);
+            Matrix4x4 scaled(*this);
+            for (int k = 0; k < 16; ++k) {
+                scaled.m[k] = std::ldexp(m[k], -e);
+            }
+            if ( !scaled.inverseUnscaled(invOut) ) {
+                return false;
+            }
+            for (int k = 0; k < 16; ++k) {
+                invOut->m[k] = std::ldexp(invOut->m[k], -e);
+            }
+
+            return true;
+        }
+
+        return inverseUnscaled(invOut);
+    }
+
+    bool inverseUnscaled(Matrix4x4* invOut) const
     {
         double inv[16], det;
         int i;

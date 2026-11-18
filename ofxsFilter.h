@@ -648,6 +648,23 @@ ofxsGetPixComp(const PIX* p,
 }
 
 // Macros used in ofxsFilterInterpolate2D
+// floor(v) as an int, for a source pixel coordinate: unchanged for |floor(v)| < 2^30. Larger
+// values (far outside any image, e.g. near the horizon of a strong perspective, where the old
+// int conversion was undefined for |v| >= 2^31 and x86 and arm64 picked different pixels) and
+// NaN are clamped to +-2^30, which is outside any image and keeps the neighbours (+1, +2)
+// defined: the output is the same as for any coordinate that far (black, or the edge pixel).
+inline int
+ofxsFloorToPixel(double v)
+{
+    const double f = std::floor(v);
+
+    if ( (f > -1073741824.) && (f < 1073741824.) ) {
+        return (int)f;
+    }
+
+    return (f >= 1073741824.) ? 1073741824 : -1073741824;
+}
+
 #define OFXS_CLAMPXY(m) \
     m ## x = (std::max)( srcImg->getBounds().x1, (std::min)(m ## x, srcImg->getBounds().x2 - 1) ); \
     m ## y = (std::max)( srcImg->getBounds().y1, (std::min)(m ## y, srcImg->getBounds().y2 - 1) )
@@ -691,8 +708,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterBox: {
         ///nearest neighboor
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int mx = (int)std::floor(fx);     // don't add 0.5
-        int my = (int)std::floor(fy);     // don't add 0.5
+        int mx = ofxsFloorToPixel(fx);     // don't add 0.5
+        int my = ofxsFloorToPixel(fy);     // don't add 0.5
 
         if (!blackOutside) {
             OFXS_CLAMPXY(m);
@@ -714,8 +731,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterCubic: {
         // bilinear or cubic
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = (int)std::floor(fx - 0.5);
-        int cy = (int)std::floor(fy - 0.5);
+        int cx = ofxsFloorToPixel(fx - 0.5);
+        int cy = ofxsFloorToPixel(fy - 0.5);
         int nx = cx + 1;
         int ny = cy + 1;
         if (!blackOutside) {
@@ -759,8 +776,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterParzen:
     case eFilterNotch: {
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = (int)std::floor(fx - 0.5);
-        int cy = (int)std::floor(fy - 0.5);
+        int cx = ofxsFloorToPixel(fx - 0.5);
+        int cy = ofxsFloorToPixel(fy - 0.5);
         int px = cx - 1;
         int py = cy - 1;
         int nx = cx + 1;
