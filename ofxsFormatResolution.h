@@ -36,7 +36,7 @@
 #define kParamFormatPAL169         "PAL_16:9"
 #define kParamFormatPAL169Label    "PAL_16:9 720x576 1.46"
 #define kParamFormatHD720          "HD_720"
-#define kParamFormatHD720Label     "HD_720 1280x1720"
+#define kParamFormatHD720Label     "HD_720 1280x720"
 #define kParamFormatHD             "HD"
 #define kParamFormatHDLabel        "HD 1920x1080"
 #define kParamFormatUHD4K          "UHD_4K"
