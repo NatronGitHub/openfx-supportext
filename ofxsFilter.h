@@ -648,6 +648,23 @@ ofxsGetPixComp(const PIX* p,
 }
 
 // Macros used in ofxsFilterInterpolate2D
+// floor(v) as an int, for a source pixel coordinate, clamped to [INT_MIN + 1, INT_MAX - 2] so
+// that the neighbours used by the filters (-1, +1, +2) stay defined: unchanged wherever the old
+// conversion was defined. Beyond (e.g. near the horizon of a strong perspective, where the old
+// conversion was undefined and x86 and arm64 picked different pixels) and for NaN, the value is
+// clamped, which is outside any image: black, or the edge pixel with Black Outside off.
+inline int
+ofxsFloorToPixel(double v)
+{
+    const double f = std::floor(v);
+
+    if ( (f > -2147483647.) && (f < 2147483645.) ) {
+        return (int)f;
+    }
+
+    return (f >= 2147483645.) ? 2147483645 : -2147483647;
+}
+
 #define OFXS_CLAMPXY(m) \
     m ## x = (std::max)( srcImg->getBounds().x1, (std::min)(m ## x, srcImg->getBounds().x2 - 1) ); \
     m ## y = (std::max)( srcImg->getBounds().y1, (std::min)(m ## y, srcImg->getBounds().y2 - 1) )
@@ -691,8 +708,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterBox: {
         ///nearest neighboor
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int mx = (int)std::floor(fx);     // don't add 0.5
-        int my = (int)std::floor(fy);     // don't add 0.5
+        int mx = ofxsFloorToPixel(fx);     // don't add 0.5
+        int my = ofxsFloorToPixel(fy);     // don't add 0.5
 
         if (!blackOutside) {
             OFXS_CLAMPXY(m);
@@ -714,8 +731,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterCubic: {
         // bilinear or cubic
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = (int)std::floor(fx - 0.5);
-        int cy = (int)std::floor(fy - 0.5);
+        int cx = ofxsFloorToPixel(fx - 0.5);
+        int cy = ofxsFloorToPixel(fy - 0.5);
         int nx = cx + 1;
         int ny = cy + 1;
         if (!blackOutside) {
@@ -759,8 +776,8 @@ ofxsFilterInterpolate2D(double fx,
     case eFilterParzen:
     case eFilterNotch: {
         // the center of pixel (0,0) has coordinates (0.5,0.5)
-        int cx = (int)std::floor(fx - 0.5);
-        int cy = (int)std::floor(fy - 0.5);
+        int cx = ofxsFloorToPixel(fx - 0.5);
+        int cy = ofxsFloorToPixel(fy - 0.5);
         int px = cx - 1;
         int py = cy - 1;
         int nx = cx + 1;
@@ -1218,8 +1235,10 @@ ofxsFilterInterpolate2DSuper(double fx,
     //int isy = std::ceil(sy);
     // This is why we prefer rounding. The jump will be at sx=sqrt(3)=1.732.
     // This produces quicker renders too, since we supersample less.
-    int isx = (int)std::ceil(sx-0.5);
-    int isy = (int)std::ceil(sy-0.5);
+    // sx, sy are in [0, 4], or NaN for a NaN Jacobian (then no supersampling, instead of an
+    // undefined int conversion)
+    int isx = (sx >= 0.) ? (int)std::ceil(sx-0.5) : 0;
+    int isy = (sy >= 0.) ? (int)std::ceil(sy-0.5) : 0;
 
     return ofxsFilterInterpolate2DSuperInternal<PIX, nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, isx, isy, isx, isy, srcImg, blackOutside, tmpPix);
 #endif

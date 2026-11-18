@@ -127,31 +127,36 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (thisLevel == 0) {
         return r;
     }
+    if (thisLevel > 32) {
+        // a level beyond 32 gives the same result as 32 (any int coordinate >> 32 is 0 or -1)
+        thisLevel = 32;
+    }
     OfxRectI ret;
-    int pot = (1 << thisLevel);
-    int pot_minus1 = pot - 1;
+    // the arithmetic is in long long: r.x2 + pot_minus1 overflowed an int for r.x2 near INT_MAX
+    const long long pot = (1LL << thisLevel);
+    const long long pot_minus1 = pot - 1;
     if (r.x1 <= kOfxFlagInfiniteMin) {
         ret.x1 = kOfxFlagInfiniteMin;
     } else {
-        ret.x1 = r.x1 >> thisLevel;
+        ret.x1 = (int)( (long long)r.x1 >> thisLevel );
         assert(ret.x1 * pot <= r.x1);
     }
     if (r.x2 >= kOfxFlagInfiniteMax) {
         ret.x2 = kOfxFlagInfiniteMax;
     } else {
-        ret.x2 = (r.x2 + pot_minus1) >> thisLevel;
+        ret.x2 = (int)( ( (long long)r.x2 + pot_minus1 ) >> thisLevel );
         assert(ret.x2 * pot >= r.x2);
     }
     if (r.y1 <= kOfxFlagInfiniteMin) {
         ret.y1 = kOfxFlagInfiniteMin;
     } else {
-        ret.y1 = r.y1 >> thisLevel;
+        ret.y1 = (int)( (long long)r.y1 >> thisLevel );
         assert(ret.y1 * pot <= r.y1);
     }
     if (r.y2 >= kOfxFlagInfiniteMax) {
         ret.y2 = kOfxFlagInfiniteMax;
     } else {
-        ret.y2 = (r.y2 + pot_minus1) >> thisLevel;
+        ret.y2 = (int)( ( (long long)r.y2 + pot_minus1 ) >> thisLevel );
         assert(ret.y2 * pot >= r.y2);
     }
 
