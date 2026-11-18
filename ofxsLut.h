@@ -61,10 +61,10 @@ template<int numvals>
 int
 floatToInt(float value)
 {
-    if (value <= 0) {
-        return 0;
-    } else if (value >= 1.) {
-        return numvals - 1;
+    // the int conversion below is only reached strictly inside (0, 1): a NaN pixel (input data)
+    // fails every comparison and gives 0, without a NaN test; it was (int)NaN (UB) before
+    if ( !( (value > 0) && (value < 1.) ) ) {
+        return (value >= 1.) ? (numvals - 1) : 0;
     }
 
     //return value * (numvals - 1) + 0.5; // gives a bad result with gcc 7.2.0 32 bits for value=intToFloat<0xff01>(0x8080)
