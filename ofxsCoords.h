@@ -267,8 +267,8 @@ toPixel(const OfxPointD & p_canonical,
 {
     assert(par);
     // the int conversion is protected (values outside the int range are clamped)
-    p_pixel->x = pixelToIntClamped(std::floor(p_canonical.x * renderScale.x / par), 0);
-    p_pixel->y = pixelToIntClamped(std::floor(p_canonical.y * renderScale.y), 0);
+    p_pixel->x = pixelToIntClamped(std::floor(p_canonical.x * renderScale.x / par), kOfxFlagInfiniteMin);
+    p_pixel->y = pixelToIntClamped(std::floor(p_canonical.y * renderScale.y), kOfxFlagInfiniteMin);
 }
 
 // subpixel version (no rounding)
@@ -354,7 +354,7 @@ mipmapLevelFromScale(double s)
     }
     const double level = (std::max)(0., -std::floor(std::log(s) / OFXS_LN2 + 0.5));
 
-    // 30 at most, so that scaleFromMipmapLevel (1 << level) stays defined
+    // 30 at most, so that 1 << level stays defined (e.g. in downscalePowerOfTwoSmallestEnclosing)
     return (level < 30.) ? (unsigned int)level : 30u;
 }
 } // Coords
