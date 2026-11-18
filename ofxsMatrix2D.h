@@ -363,7 +363,7 @@ struct Matrix3x3
         det = m[0] * inv[0] + m[1] * inv[3] + m[2] * inv[6];
 
         if (std::fabs(det) < DBL_MIN) {
-            // singular, or so close that 1/det would overflow to inf (then 0*inf = NaN below)
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
             return false;
         }
 
@@ -699,7 +699,7 @@ struct Matrix4x4
         det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
         if (std::fabs(det) < DBL_MIN) {
-            // singular, or so close that 1/det would overflow to inf (then 0*inf = NaN below)
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
             return false;
         }
 

@@ -526,14 +526,14 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
                    const OfxRectI& to)
 
 {
-    assert(awidth > 0 && aheight > 0 && axstride > 0 && aystride > 0 && depth > 0);
-    assert(bwidth > 0 && bheight > 0 && bxstride > 0 && bystride > 0);
     if ( (awidth == 0) || (aheight == 0) || (bwidth == 0) || (bheight == 0) ||
          (from.x2 <= from.x1) || (from.y2 <= from.y1) || (to.x2 <= to.x1) || (to.y2 <= to.y1) ) {
         // nothing to draw: an empty source or destination (e.g. an image with empty bounds) would
         // give 0/0 below, and out-of-bounds reads
         return;
     }
+    assert(axstride > 0 && aystride > 0 && depth > 0);
+    assert(bxstride > 0 && bystride > 0);
     double x1 = from.x1;
     double y1 = from.y1;
     double x2 = from.x2;
