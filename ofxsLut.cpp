@@ -203,7 +203,9 @@ hsv_to_rgb(float h,
         h = 0.f; // NaN hue (input data): sector 0, f = 0
     }
     float f = h - i;          // factorial part of h
-    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+    // take h modulo 360; a negative multiple of 6 gives sector 0 (it gave 6, i.e. the default
+    // case: magenta instead of red for h = -1, while h = 0 and h = 1 give red)
+    i = (i >= 0) ? (i % 6) : ( (i % 6) + 6 ) % 6;
     float p = v * ( 1 - s );
     float q = v * ( 1 - s * f );
     float t = v * ( 1 - s * ( 1 - f ) );
@@ -315,7 +317,9 @@ hsl_to_rgb(float h,
         h = 0.f; // NaN hue (input data): sector 0, f = 0
     }
     float f = h - i;          // factorial part of h
-    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+    // take h modulo 360; a negative multiple of 6 gives sector 0 (it gave 6, i.e. the default
+    // case: magenta instead of red for h = -1, while h = 0 and h = 1 give red)
+    i = (i >= 0) ? (i % 6) : ( (i % 6) + 6 ) % 6;
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
     // v == 0 (l == 0, or s == -1) would give 0/0 or x/0, then NaN in t or q
@@ -403,9 +407,16 @@ hsi_to_rgb(float h,
            float i,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
     float a = i * (1 - s);
+
+    if ( wrapHue && ( (h < 0) || (h > OFXS_HUE_CIRCLE) ) ) {
+        // a hue outside the circle gave a non-periodic result, and a division by ~0 (inf) near
+        // h = -1/12 and 13/12: wrap it. Opt-in, since it changes existing out-of-range outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+    }
 
     if ( h < (OFXS_HUE_CIRCLE / 3) ) {
         *b = a;
