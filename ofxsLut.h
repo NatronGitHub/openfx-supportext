@@ -276,8 +276,19 @@ public:
             }
         }
 
-        // interpolate linearly
-        return (short)((v8u_prev << 8) + v8u_prev + (v - v32f_prev) * ( ( (v8u_next - v8u_prev) << 8 ) + (v8u_next + v8u_prev) ) / (v32f_next - v32f_prev) + 0.5f);
+        // interpolate linearly: 8-bit value k is 16-bit value 257 * k. The result is clamped to
+        // [0, 65535] before the int conversion (it used a wrong slope, 256 + next + prev, and an
+        // overflowing (short) conversion); a NaN v gives 0.
+        float r = v8u_prev * 257.f + 0.5f;
+        const float dv = v32f_next - v32f_prev;
+        if (dv > 0.f) {
+            r += (v - v32f_prev) * ( 257.f * (v8u_next - v8u_prev) ) / dv;
+        }
+        if ( (r > 0.f) && (r < 65535.f) ) {
+            return (unsigned short)(int)r;
+        }
+
+        return (r >= 65535.f) ? 65535 : 0;
     }
 
     /* @brief Converts a byte ranging in [0 - 255] in the destination color-space using the look-up tables.
@@ -929,13 +940,18 @@ to_func_VLog(float v)
 /// h = [0,360], s = [0,1], v = [0,1]
 ///		if s == 0, then h = -1 (undefined)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
-void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b );
+/// wrapHue: wrap the hue into [0, OFXS_HUE_CIRCLE) first (new plug-in versions should set it;
+/// false keeps the old output, wrong for hues in [-1, -5/6) mod 1, see the implementation)
+void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b, bool wrapHue = false );
 
 void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l );
-void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b );
+/// wrapHue: as for hsv_to_rgb
+void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b, bool wrapHue = false );
 
 void rgb_to_hsi( float r, float g, float b, float *h, float *s, float *i );
-void hsi_to_rgb( float h, float s, float i, float *r, float *g, float *b );
+/// wrapHue: wrap a hue outside [0, OFXS_HUE_CIRCLE] into the circle (new plug-in versions
+/// should set it; false keeps the old, non-periodic output for out-of-range hues)
+void hsi_to_rgb( float h, float s, float i, float *r, float *g, float *b, bool wrapHue = false );
 
 void rgb_to_ycbcr601( float r, float g, float b, float *y, float *cb, float *cr );
 void ycbcr_to_rgb601( float y, float cb, float cr, float *r, float *g, float *b );

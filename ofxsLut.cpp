@@ -178,8 +178,18 @@ hsv_to_rgb(float h,
            float v,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
+    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
+        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
+        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
+        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        if (h >= OFXS_HUE_CIRCLE) {
+            h = 0.f; // rounding of a tiny negative hue
+        }
+    }
     if (s == 0) {
         // achromatic (grey)
         *r = *g = *b = v;
@@ -290,8 +300,18 @@ hsl_to_rgb(float h,
            float l,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
+    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
+        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
+        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
+        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        if (h >= OFXS_HUE_CIRCLE) {
+            h = 0.f; // rounding of a tiny negative hue
+        }
+    }
     if (s == 0) {
         // achromatic (grey)
         *r = *g = *b = l;
@@ -403,9 +423,16 @@ hsi_to_rgb(float h,
            float i,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
     float a = i * (1 - s);
+
+    if ( wrapHue && ( (h < 0) || (h > OFXS_HUE_CIRCLE) ) ) {
+        // a hue outside the circle gave a non-periodic result, and a division by ~0 (inf) near
+        // h = -1/12 and 13/12: wrap it. Opt-in, since it changes existing out-of-range outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+    }
 
     if ( h < (OFXS_HUE_CIRCLE / 3) ) {
         *b = a;
