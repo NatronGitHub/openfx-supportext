@@ -197,10 +197,13 @@ private:
                             xinside = yinside = false;
                         }
 
-                        double Jxx = xinside ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / (transformed.z * transformed.z) : 0.;
-                        double Jxy = xinside ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / (transformed.z * transformed.z) : 0.;
-                        double Jyx = yinside ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / (transformed.z * transformed.z) : 0;
-                        double Jyy = yinside ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / (transformed.z * transformed.z) : 0.;
+                        // zz underflows to 0 for 0 < z < ~1.6e-162 (~1.5e-154 with flush-to-zero): no Jacobian then (plain
+                        // interpolation), instead of a division by 0
+                        const double zz = transformed.z * transformed.z;
+                        double Jxx = (xinside && zz != 0.) ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / zz : 0.;
+                        double Jxy = (xinside && zz != 0.) ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / zz : 0.;
+                        double Jyx = (yinside && zz != 0.) ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / zz : 0;
+                        double Jyy = (yinside && zz != 0.) ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / zz : 0.;
                         ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                     }
                 }
@@ -286,10 +289,13 @@ private:
                                     xinside = yinside = false;
                                 }
 
-                                double Jxx = xinside ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / (transformed.z * transformed.z) : 0.;
-                                double Jxy = xinside ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / (transformed.z * transformed.z) : 0.;
-                                double Jyx = yinside ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / (transformed.z * transformed.z) : 0;
-                                double Jyy = yinside ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / (transformed.z * transformed.z) : 0.;
+                                // zz underflows to 0 for 0 < z < ~1.6e-162 (~1.5e-154 with flush-to-zero): no Jacobian then (plain
+                                // interpolation), instead of a division by 0
+                                const double zz = transformed.z * transformed.z;
+                                double Jxx = (xinside && zz != 0.) ? (H(0,0) * transformed.z - transformed.x * H(2,0)) / zz : 0.;
+                                double Jxy = (xinside && zz != 0.) ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / zz : 0.;
+                                double Jyx = (yinside && zz != 0.) ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / zz : 0;
+                                double Jyy = (yinside && zz != 0.) ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / zz : 0.;
                                 ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
                             }
                         }
