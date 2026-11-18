@@ -253,7 +253,10 @@ rgb_to_hsl( float r,
 
         return;
     }
-    *s = (*l <= 0.5) ? ( delta / (maxv + minv) ) : ( delta / ( 2 - (maxv + minv) ) ); // s = delta/(1-abs(2L-1))
+    // s = delta/(1-abs(2L-1)); near white, 2 - (maxv + minv) can round to 0 (e.g. (1, 1, 0.99999994)),
+    // which gave inf, then NaN in hsl_to_rgb: the saturation is then 1
+    const float sden = (*l <= 0.5) ? (maxv + minv) : ( 2 - (maxv + minv) );
+    *s = (sden != 0.f) ? (delta / sden) : 1.f;
 
     if (r == maxv) {
         *h = (g - b) / delta;                       // between yellow & magenta
@@ -289,7 +292,8 @@ hsl_to_rgb(float h,
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
-    float sv = (v - p ) / v;
+    // v == 0 (l == 0, or s == -1) would give 0/0 or x/0, then NaN in t or q
+    float sv = (v != 0.f) ? (v - p ) / v : 0.f;
     float vsf = v * sv * f;
     float t = p + vsf;
     float q = v - vsf;
@@ -341,7 +345,15 @@ rgb_to_hsi( float r,
     float nG = g; //(g < 0 ? 0 : (g > 1. ? 1. : g));
     float nB = b; //(b < 0 ? 0 : (b > 1. ? 1. : b));
     float m = (std::min)((std::min)(nR, nG), nB);
-    float theta = (float)(std::acos( 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt( (std::max)( 0.f, (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB) ) ) ) * (OFXS_HUE_CIRCLE / 2) / OFXS_PI);
+    // the hue angle; 0 for a gray pixel (den2 == 0 would give 0/0), and the cosine is clamped
+    // to [-1, 1], which rounding can exceed (acos would give NaN)
+    float theta = 0.f;
+    const float den2 = (nR - nG) * (nR - nG) + (nR - nB) * (nG - nB);
+    if (den2 > 0.f) {
+        float c = 0.5f * ( (nR - nG) + (nR - nB) ) / std::sqrt(den2);
+        c = (c > 1.f) ? 1.f : ( (c < -1.f) ? -1.f : c );
+        theta = (float)(std::acos(c) * (OFXS_HUE_CIRCLE / 2) / OFXS_PI);
+    }
     float sum = nR + nG + nB;
 
     if (theta > 0) {
@@ -350,7 +362,9 @@ rgb_to_hsi( float r,
         *h = 0.;
     }
     if (sum > 0) {
-        *s = 1 - 3 / sum * m;
+        // m == 0 gives 1 (as 1 - 3 / sum * 0 does), also when sum is so small (subnormal) that
+        // 3 / sum overflows to inf, which gave inf * 0 = NaN
+        *s = (m == 0.f) ? 1.f : (1 - 3 / sum * m);
     } else {
         *s = 0.;
     }

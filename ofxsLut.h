@@ -28,6 +28,7 @@
 #include <string>
 #include <map>
 #include <cmath>
+#include <cfloat> // FLT_MIN
 #include <cassert>
 #include <cstring> // for memcpy
 #include <cstdlib> // for rand
@@ -738,6 +739,15 @@ from_func_Cineon(float v)
     return ( 1.f / ( 1.f - 0.01079775161f ) ) * ( std::pow(10.f, ( (1023.f * v) - 685.f ) * 0.002f / 0.6f) - 0.01079775161f);
 }
 
+/// The argument of the log10 of the log encodings below, kept in the function's domain: below
+/// the black offset, log10 would give NaN (or -inf at 0), e.g. when Lut::fillTables() encodes
+/// negative values. Every positive value (denormals included) is unchanged.
+inline float
+log10DomainArg(float x)
+{
+    return (x > 0.f) ? x : FLT_MIN;
+}
+
 /// to Cineon from Linear Opto-Electronic Transfer Function (OETF)
 inline float
 to_func_Cineon(float v)
@@ -747,7 +757,7 @@ to_func_Cineon(float v)
     //float offset = 0.01079775161f;
 
     //return (std::log10( (v + offset) / ( 1.f / (1.f - offset) ) ) / 0.0033f + 685.0f) / 1023.f;
-    return (std::log10( (v + 0.01079775161f) / ( 1.f / (1.f - 0.01079775161f) ) ) / (0.002f / 0.6f) + 685.0f) / 1023.f;
+    return (std::log10( log10DomainArg( (v + 0.01079775161f) / ( 1.f / (1.f - 0.01079775161f) ) ) ) / (0.002f / 0.6f) + 685.0f) / 1023.f;
 }
 
 /// from Gamma 1.8 to Linear Electro-Optical Transfer Function (EOTF)
@@ -789,7 +799,7 @@ from_func_Panalog(float v)
 inline float
 to_func_Panalog(float v)
 {
-    return (444.f * std::log10(0.0408f + (1.0f - 0.0408f) * v) + 681.f) / 1023.f;
+    return (444.f * std::log10( log10DomainArg(0.0408f + (1.0f - 0.0408f) * v) ) + 681.f) / 1023.f;
 }
 
 /// from REDLog to Linear Electro-Optical Transfer Function (EOTF)
@@ -803,7 +813,7 @@ from_func_REDLog(float v)
     inline float
 to_func_REDLog(float v)
 {
-    return (511.f * std::log10(0.01f + (1.0f - 0.01f) * v) + 1023.f) / 1023.f;
+    return (511.f * std::log10( log10DomainArg(0.01f + (1.0f - 0.01f) * v) ) + 1023.f) / 1023.f;
 }
 
 /// from ViperLog to Linear Electro-Optical Transfer Function (EOTF)
@@ -817,7 +827,7 @@ from_func_ViperLog(float v)
 inline float
 to_func_ViperLog(float v)
 {
-    return (500.f * std::log10(v) + 1023.f) / 1023.f;
+    return (500.f * std::log10( log10DomainArg(v) ) + 1023.f) / 1023.f;
 }
 
 /// from AlexaV3LogC to Linear Electro-Optical Transfer Function (EOTF)
