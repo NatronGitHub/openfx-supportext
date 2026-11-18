@@ -26,6 +26,7 @@
 #define Misc_ofxsMaskMix_h
 
 #include <cfloat> // FLT_EPSILON
+#include <cmath> // copysign
 
 #include <ofxsImageEffect.h>
 #include "ofxsCoords.h"
@@ -361,12 +362,24 @@ ofxsPremult(const float unpPix[4],
     // premult by alpha <= 0 gives 0
     float alpha = (std::max)(0.f, unpPix[3]);
 
-    tmpPix[0] = unpPix[0] * alpha * maxValue;
-    if (nComponents >= 2) {
-        tmpPix[1] = unpPix[1] * alpha * maxValue;
-    }
-    if (nComponents >= 3) {
-        tmpPix[2] = unpPix[2] * alpha * maxValue;
+    if (alpha == 0.f) {
+        // a signed zero, as c * 0 gives for a finite c: an infinite colour (HDR values that
+        // overflowed upstream) gave inf * 0 = NaN
+        tmpPix[0] = std::copysign(0.f, unpPix[0]);
+        if (nComponents >= 2) {
+            tmpPix[1] = std::copysign(0.f, unpPix[1]);
+        }
+        if (nComponents >= 3) {
+            tmpPix[2] = std::copysign(0.f, unpPix[2]);
+        }
+    } else {
+        tmpPix[0] = unpPix[0] * alpha * maxValue;
+        if (nComponents >= 2) {
+            tmpPix[1] = unpPix[1] * alpha * maxValue;
+        }
+        if (nComponents >= 3) {
+            tmpPix[2] = unpPix[2] * alpha * maxValue;
+        }
     }
     if (nComponents >= 4) {
         tmpPix[3] = alpha * maxValue;
