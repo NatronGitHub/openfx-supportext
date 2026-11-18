@@ -101,10 +101,15 @@ jobs:
         # SupportExt's sources instead of its submodule, then describes and renders
         # every plug-in with hostDemo; catches link, export, describe and render
         # errors that compiling alone doesn't see. Linux and macOS (the script's
-        # platforms).
+        # platforms); on Windows, openfx-misc's own CI is the backstop for link and
+        # render errors of SupportExt-based bundles. openfx-misc master is used, with
+        # its pinned openfx (the openfx master checkout above is compile-checked only)
+        # and its expectation lists (SKIP, XFAIL): fixing a bug listed as XFAIL there
+        # makes this step fail (XPASS) until openfx-misc updates its list.
         if: runner.os != 'Windows'
         run: |
           set -eo pipefail
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc"
+          echo "openfx-misc $(git -C "$RUNNER_TEMP/openfx-misc" rev-parse HEAD), openfx $(git -C "$RUNNER_TEMP/openfx-misc/openfx" rev-parse HEAD)"
           "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --supportext "$PWD" \
             --build "$RUNNER_TEMP/openfx-misc-build" "$RUNNER_TEMP/openfx-misc-install"
