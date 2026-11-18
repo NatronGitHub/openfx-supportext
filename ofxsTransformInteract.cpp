@@ -773,8 +773,14 @@ TransformInteractHelper::draw(const DrawArgs &args)
     GLint viewport[4];
     d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2. / (projection[0] * viewport[2]);
-    shadow.y = 2. / (projection[5] * viewport[3]);
+    // one pixel in the projection; 0 for a degenerate viewport or projection (inf, then
+    // inf - inf = NaN in the shadow translations)
+    {
+        const double denx = projection[0] * viewport[2];
+        const double deny = projection[5] * viewport[3];
+        shadow.x = (denx != 0.) ? 2. / denx : 0.;
+        shadow.y = (deny != 0.) ? 2. / deny : 0.;
+    }
 
     TransformParams tp;
 
@@ -944,6 +950,10 @@ isOnEllipseBorder(const Point3D& pos,
                   const OfxPointD& targetCenter,
                   double epsilon = 0.1)
 {
+    if ( (targetRadius.x == 0.) || (targetRadius.y == 0.) ) {
+        // a zero pixel scale (buggy host) would give 0/0
+        return false;
+    }
     double v = ( (pos.x - targetCenter.x) * (pos.x - targetCenter.x) / (targetRadius.x * targetRadius.x) +
                  (pos.y - targetCenter.y) * (pos.y - targetCenter.y) / (targetRadius.y * targetRadius.y) );
 
@@ -1035,6 +1045,11 @@ static double
 fround(double val,
        double pscale)
 {
+    if ( (pscale < FLT_MIN) || (pscale > DBL_MAX) ) {
+        // a zero, negative, denormal or infinite pixel scale (buggy host) would give log10(<= 0),
+        // or inf*0
+        return val;
+    }
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
@@ -1360,7 +1375,14 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         translateChanged = true;
     } else if (_mouseState == eDraggingCenter) {
         OfxPointD currentCenter = tp.center;
-        Matrix3x3 R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-tp.skewX, -tp.skewY, !tp.skewOrder) * ofxsMatRotation(rot);
+        // with a _translate param, the center motion is compensated for the transform; not with
+        // a zero (or denormal) scale, which collapses the transformed image (1/0, then inf*0 = NaN
+        // in R); FLT_MIN is the limit used by ofxsMatInverseTransformCanonical
+        const bool compensate = _translate && (std::fabs(scale.x) >= FLT_MIN) && (std::fabs(scale.y) >= FLT_MIN);
+        Matrix3x3 R;
+        if (compensate) {
+            R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-tp.skewX, -tp.skewY, !tp.skewOrder) * ofxsMatRotation(rot);
+        }
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
@@ -1372,7 +1394,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         dy = _orientation == eOrientationHorizontal ? 0 : dy;
 
         double dxrot, dyrot;
-        if (!_translate) {
+        if (!compensate) {
             dxrot = dx;
             dyrot = dy;
         } else {
@@ -1400,7 +1422,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         tp.center.x = newx;
         tp.center.y = newy;
         centerChanged = true;
-        if (_translate) {
+        if (compensate) {
             // recompute dxrot,dyrot after rounding
             Matrix3x3 Rinv;
             if ( R.inverse(&Rinv) ) {
@@ -1440,15 +1462,15 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         tp.rotate = angledegrees;
         rotateChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
-        // avoid division by zero
-        if ( (scale.y != 0.) && (currentPos.y != targetCenter.y) ) {
+        // avoid division by zero, and by a denormal scale (scale.x / scale.y = inf, then inf*0)
+        if ( (std::fabs(scale.y) >= FLT_MIN) && (currentPos.y != targetCenter.y) ) {
             const double addSkew = (scale.x / scale.y) * (currentPos.x - previousPos.x) / (currentPos.y - targetCenter.y);
             tp.skewX = tp.skewX + addSkew;
             skewXChanged = true;
         }
     } else if (_mouseState == eDraggingSkewYBar) {
-        // avoid division by zero
-        if ( (scale.x != 0.) && (currentPos.x != targetCenter.x) ) {
+        // avoid division by zero, and by a denormal scale (scale.y / scale.x = inf, then inf*0)
+        if ( (std::fabs(scale.x) >= FLT_MIN) && (currentPos.x != targetCenter.x) ) {
             const double addSkew = (scale.y / scale.x) * (currentPos.y - previousPos.y) / (currentPos.x - targetCenter.x);
             tp.skewY = tp.skewY + addSkew;
             skewYChanged = true;

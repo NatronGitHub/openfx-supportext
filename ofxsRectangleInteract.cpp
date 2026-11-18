@@ -26,6 +26,7 @@
 #include "ofxsRectangleInteract.h"
 #include "ofxsOverlayDraw.h"
 #include <cmath>
+#include <cfloat> // FLT_MIN
 
 
 #ifdef __APPLE__
@@ -64,7 +65,9 @@ static double
 fround(double val,
        double pscale)
 {
-    if (pscale == 0) {
+    if ( (pscale < FLT_MIN) || (pscale > DBL_MAX) ) {
+        // a zero, negative, denormal or infinite pixel scale (buggy host) would give log10(<= 0),
+        // or inf*0
         return val;
     }
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
@@ -218,8 +221,14 @@ RectangleInteract::draw(const DrawArgs &args)
     GLint viewport[4];
     d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2. / (projection[0] * viewport[2]);
-    shadow.y = 2. / (projection[5] * viewport[3]);
+    // one pixel in the projection; 0 for a degenerate viewport or projection (inf, then
+    // inf - inf = NaN in the shadow translations)
+    {
+        const double denx = projection[0] * viewport[2];
+        const double deny = projection[5] * viewport[3];
+        shadow.x = (denx != 0.) ? 2. / denx : 0.;
+        shadow.y = (deny != 0.) ? 2. / deny : 0.;
+    }
 
     double x1, y1, w, h;
     OfxPointD center;

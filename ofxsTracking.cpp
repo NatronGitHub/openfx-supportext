@@ -324,8 +324,14 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     GLint viewport[4];
     d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2. / (projection[0] * viewport[2]);
-    shadow.y = 2. / (projection[5] * viewport[3]);
+    // one pixel in the projection; 0 for a degenerate viewport or projection (inf, then
+    // inf - inf = NaN in the shadow translations)
+    {
+        const double denx = projection[0] * viewport[2];
+        const double deny = projection[5] * viewport[3];
+        shadow.x = (denx != 0.) ? 2. / denx : 0.;
+        shadow.y = (deny != 0.) ? 2. / deny : 0.;
+    }
 
     double xi1, xi2, yi1, yi2, xo1, xo2, yo1, yo2, xc, yc, xoff, yoff;
 
