@@ -61,6 +61,10 @@ double
 fround(double val,
        double pscale)
 {
+    if (pscale < FLT_MIN) {
+        // a zero, negative or denormal pixel scale (buggy host) would give log10(<= 0)
+        return val;
+    }
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
     return pscale10 * std::floor(val / pscale10 + 0.5);
@@ -102,8 +106,14 @@ RampInteractHelper::draw(const DrawArgs &args)
     GLint viewport[4];
     d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2. / (projection[0] * viewport[2]);
-    shadow.y = 2. / (projection[5] * viewport[3]);
+    // one pixel in the projection; 0 for a degenerate viewport or projection (inf, then
+    // inf - inf = NaN in the shadow translations)
+    {
+        const double denx = projection[0] * viewport[2];
+        const double deny = projection[5] * viewport[3];
+        shadow.x = (denx != 0.) ? 2. / denx : 0.;
+        shadow.y = (deny != 0.) ? 2. / deny : 0.;
+    }
 
     OfxPointD p[2];
     if (_state == eInteractStateIdle) {
@@ -187,6 +197,13 @@ RampInteractHelper::draw(const DrawArgs &args)
                     pline2[i].y = intery1.y / intery1.z;
                 }
             }
+        } else if ( (intery1.z == 0.) || (intery2.z == 0.) ) {
+            // degenerate line (point0 == point1: line[i] is 0): don't draw it (the divisions
+            // below would give 0/0)
+            pline1[i].x = p[i].x;
+            pline1[i].y = p[i].y;
+            pline2[i].x = p[i].x;
+            pline2[i].y = p[i].y;
         } else {
             // initialize pline1 to the intersection with y=y1, pline2 with y=y2
             pline1[i].x = intery1.x / intery1.z;

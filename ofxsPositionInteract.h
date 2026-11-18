@@ -26,6 +26,7 @@
 #define openfx_supportext_ofxsPositionInteract_h
 
 #include <cmath>
+#include <cfloat> // FLT_MIN
 
 #ifdef __APPLE__
 #ifndef GL_SILENCE_DEPRECATION
@@ -213,6 +214,10 @@ private:
     inline double fround(double val,
                          double pscale)
     {
+        if (pscale < FLT_MIN) {
+            // a zero, negative or denormal pixel scale (buggy host) would give log10(<= 0)
+            return val;
+        }
         double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
 
         return pscale10 * std::floor(val / pscale10 + 0.5);
@@ -254,8 +259,14 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     GLint viewport[4];
     d.glGetIntegerv(GL_VIEWPORT, viewport);
     OfxPointD shadow; // how much to translate GL_PROJECTION to get exactly one pixel on screen
-    shadow.x = 2. / (projection[0] * viewport[2]);
-    shadow.y = 2. / (projection[5] * viewport[3]);
+    // one pixel in the projection; 0 for a degenerate viewport or projection (inf, then
+    // inf - inf = NaN in the shadow translations)
+    {
+        const double denx = projection[0] * viewport[2];
+        const double deny = projection[5] * viewport[3];
+        shadow.x = (denx != 0.) ? 2. / denx : 0.;
+        shadow.y = (deny != 0.) ? 2. / deny : 0.;
+    }
 
     OfxRGBColourF col;
     switch (_state) {
