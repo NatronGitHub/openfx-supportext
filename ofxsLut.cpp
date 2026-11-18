@@ -361,11 +361,10 @@ rgb_to_hsi( float r,
     } else {
         *h = 0.;
     }
-    if (sum >= 3.f / FLT_MAX) {
-        *s = 1 - 3 / sum * m;
-    } else if (sum > 0) {
-        // 3 / sum would overflow to inf, then inf * 0 = NaN when m == 0
-        *s = 1 - 3 * (m / sum);
+    if (sum > 0) {
+        // m == 0 gives 1 (as 1 - 3 / sum * 0 does), also when sum is so small (subnormal) that
+        // 3 / sum overflows to inf, which gave inf * 0 = NaN
+        *s = (m == 0.f) ? 1.f : (1 - 3 / sum * m);
     } else {
         *s = 0.;
     }
