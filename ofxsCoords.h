@@ -127,9 +127,9 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (thisLevel == 0) {
         return r;
     }
-    if (thisLevel > 30) {
-        // 1 << 31 overflows an int; at level 30 any finite rectangle is already at most 4 pixels
-        thisLevel = 30;
+    if (thisLevel > 32) {
+        // a level beyond 32 gives the same result as 32 (any int coordinate >> 32 is 0 or -1)
+        thisLevel = 32;
     }
     OfxRectI ret;
     // the arithmetic is in long long: r.x2 + pot_minus1 overflowed an int for r.x2 near INT_MAX
@@ -138,7 +138,7 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (r.x1 <= kOfxFlagInfiniteMin) {
         ret.x1 = kOfxFlagInfiniteMin;
     } else {
-        ret.x1 = r.x1 >> thisLevel;
+        ret.x1 = (int)( (long long)r.x1 >> thisLevel );
         assert(ret.x1 * pot <= r.x1);
     }
     if (r.x2 >= kOfxFlagInfiniteMax) {
@@ -150,7 +150,7 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
     if (r.y1 <= kOfxFlagInfiniteMin) {
         ret.y1 = kOfxFlagInfiniteMin;
     } else {
-        ret.y1 = r.y1 >> thisLevel;
+        ret.y1 = (int)( (long long)r.y1 >> thisLevel );
         assert(ret.y1 * pot <= r.y1);
     }
     if (r.y2 >= kOfxFlagInfiniteMax) {

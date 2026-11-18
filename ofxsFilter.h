@@ -648,21 +648,21 @@ ofxsGetPixComp(const PIX* p,
 }
 
 // Macros used in ofxsFilterInterpolate2D
-// floor(v) as an int, for a source pixel coordinate: unchanged for |floor(v)| < 2^30. Larger
-// values (far outside any image, e.g. near the horizon of a strong perspective, where the old
-// int conversion was undefined for |v| >= 2^31 and x86 and arm64 picked different pixels) and
-// NaN are clamped to +-2^30, which is outside any image and keeps the neighbours (+1, +2)
-// defined: the output is the same as for any coordinate that far (black, or the edge pixel).
+// floor(v) as an int, for a source pixel coordinate, clamped to [INT_MIN + 1, INT_MAX - 2] so
+// that the neighbours used by the filters (-1, +1, +2) stay defined: unchanged wherever the old
+// conversion was defined. Beyond (e.g. near the horizon of a strong perspective, where the old
+// conversion was undefined and x86 and arm64 picked different pixels) and for NaN, the value is
+// clamped, which is outside any image: black, or the edge pixel with Black Outside off.
 inline int
 ofxsFloorToPixel(double v)
 {
     const double f = std::floor(v);
 
-    if ( (f > -1073741824.) && (f < 1073741824.) ) {
+    if ( (f > -2147483647.) && (f < 2147483645.) ) {
         return (int)f;
     }
 
-    return (f >= 1073741824.) ? 1073741824 : -1073741824;
+    return (f >= 2147483645.) ? 2147483645 : -2147483647;
 }
 
 #define OFXS_CLAMPXY(m) \
@@ -1235,8 +1235,10 @@ ofxsFilterInterpolate2DSuper(double fx,
     //int isy = std::ceil(sy);
     // This is why we prefer rounding. The jump will be at sx=sqrt(3)=1.732.
     // This produces quicker renders too, since we supersample less.
-    int isx = (int)std::ceil(sx-0.5);
-    int isy = (int)std::ceil(sy-0.5);
+    // sx, sy are in [0, 4], or NaN for a NaN Jacobian (then no supersampling, instead of an
+    // undefined int conversion)
+    int isx = (sx >= 0.) ? (int)std::ceil(sx-0.5) : 0;
+    int isy = (sy >= 0.) ? (int)std::ceil(sy-0.5) : 0;
 
     return ofxsFilterInterpolate2DSuperInternal<PIX, nComponents, eFilterBilinear, false, false>(fx, fy, Jxx, Jxy, Jyx, Jyy, isx, isy, isx, isy, srcImg, blackOutside, tmpPix);
 #endif
