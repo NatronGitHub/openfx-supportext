@@ -105,12 +105,14 @@ jobs:
         # loaded and every plug-in described) is the backstop for link and load
         # errors of SupportExt-based bundles; Windows renders are not tested. openfx-misc master is used, with
         # its pinned openfx (the openfx master checkout above is compile-checked only)
-        # and its expectation lists (SKIP, XFAIL): fixing a bug listed as XFAIL there
-        # makes this step fail (XPASS) until openfx-misc updates its list.
+        # and its expectation lists (SKIP, XFAIL, PARAMS renders of Transform,
+        # Position and CornerPin, with motion blur).
         if: runner.os != 'Windows'
         run: |
           set -eo pipefail
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc"
           echo "openfx-misc $(git -C "$RUNNER_TEMP/openfx-misc" rev-parse HEAD), openfx $(git -C "$RUNNER_TEMP/openfx-misc/openfx" rev-parse HEAD)"
-          "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --supportext "$PWD" \
+          # SMOKETEST_XPASS_OK: a SupportExt PR that fixes a bug listed as XFAIL in
+          # openfx-misc (XPASS), or leaves a stale entry, is reported but doesn't fail
+          SMOKETEST_XPASS_OK=1 "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --supportext "$PWD" \
             --build "$RUNNER_TEMP/openfx-misc-build" "$RUNNER_TEMP/openfx-misc-install"
