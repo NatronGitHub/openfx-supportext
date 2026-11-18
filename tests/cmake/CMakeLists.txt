@@ -3,6 +3,11 @@
 # Each case links a MODULE with undefined symbols forbidden, so that a missing
 # SupportExt component or library (OpenGL, dl, threads, TEXT...) fails the build.
 cmake_minimum_required(VERSION 3.16)
+# macOS 14.0 deployment target, as the plug-in repositories (VFX Reference Platform CY2027,
+# openfx#160); a toolchain file, a cross build or MACOSX_DEPLOYMENT_TARGET take precedence
+if(CMAKE_HOST_APPLE AND NOT CMAKE_TOOLCHAIN_FILE AND (NOT CMAKE_SYSTEM_NAME OR CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET AND "$ENV{MACOSX_DEPLOYMENT_TARGET}" STREQUAL "")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET 14.0 CACHE STRING "Minimum macOS version")
+endif()
 project(SupportExtConsumerTests CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
