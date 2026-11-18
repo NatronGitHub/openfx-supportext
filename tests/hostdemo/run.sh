@@ -2,7 +2,9 @@
 # Load and render SupportExt-based plug-ins with openfx's hostDemo.
 #
 # Builds:
-# - hostDemo, from an openfx checkout (CMake, bundled expat);
+# - hostDemo, from an openfx checkout (CMake; HostSupport uses the system expat
+#   since NatronGitHub/openfx#143, so install it: libexpat1-dev, MSYS2
+#   mingw-w64-ucrt-x86_64-expat; macOS has it in the SDK);
 # - a test bundle, SupportExtTest.ofx.bundle, made of a few openfx-misc
 #   plug-ins that use SupportExt, compiled against THIS SupportExt and the
 #   openfx Support library, and linked like the consumers' bundles
