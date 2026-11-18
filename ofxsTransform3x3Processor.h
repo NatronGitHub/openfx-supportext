@@ -322,7 +322,15 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = (std::max)( maxsamples, (std::min)( (int)(var[c] / maxErr2), maxIt ) );
+                                    // compare in double before converting to int: var / maxErr2 can exceed
+                                    // the int range for HDR images (UB: INT_MIN on x86, which kept the
+                                    // minimum number of samples, saturation on arm64)
+                                    const double n = var[c] / maxErr2;
+                                    if ( n >= (double)maxIt ) {
+                                        maxsamples = maxIt;
+                                    } else if ( n > (double)maxsamples ) {
+                                        maxsamples = (int)n;
+                                    }
                                 }
                             }
                         }
@@ -342,7 +350,15 @@ private:
                                 // - the error should be less than motionblur*maxValue/100
                                 // - the total number of iterations should be less than motionblur*100
                                 if (maxsamples < maxIt) {
-                                    maxsamples = (std::max)( maxsamples, (std::min)( (int)(var[c] / maxErr2), maxIt ) );
+                                    // compare in double before converting to int: var / maxErr2 can exceed
+                                    // the int range for HDR images (UB: INT_MIN on x86, which kept the
+                                    // minimum number of samples, saturation on arm64)
+                                    const double n = var[c] / maxErr2;
+                                    if ( n >= (double)maxIt ) {
+                                        maxsamples = maxIt;
+                                    } else if ( n > (double)maxsamples ) {
+                                        maxsamples = (int)n;
+                                    }
                                 }
                             }
                         }
