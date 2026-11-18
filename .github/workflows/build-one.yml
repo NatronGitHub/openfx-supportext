@@ -101,8 +101,9 @@ jobs:
         # SupportExt's sources instead of its submodule, then describes and renders
         # every plug-in with hostDemo; catches link, export, describe and render
         # errors that compiling alone doesn't see. Linux and macOS (the script's
-        # platforms); on Windows, openfx-misc's own CI is the backstop for link and
-        # render errors of SupportExt-based bundles. openfx-misc master is used, with
+        # platforms); on Windows, openfx-misc's own CI (loadtest.sh: every bundle is
+        # loaded and every plug-in described) is the backstop for link and load
+        # errors of SupportExt-based bundles; Windows renders are not tested. openfx-misc master is used, with
         # its pinned openfx (the openfx master checkout above is compile-checked only)
         # and its expectation lists (SKIP, XFAIL): fixing a bug listed as XFAIL there
         # makes this step fail (XPASS) until openfx-misc updates its list.
