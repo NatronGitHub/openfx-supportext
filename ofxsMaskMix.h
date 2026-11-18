@@ -110,7 +110,7 @@ ofxsMaskIsAlwaysConnected(OFX::ImageEffectHostDescription *desc)
 /// height image") on its clips.
 /// Infinite bounds are scaled like finite ones; results outside the int range
 /// are clamped to kOfxFlagInfiniteMin/Max, and NaN bounds become infinite
-/// (see Coords::toPixelEnclosing).
+/// in IEEE builds (see Coords::pixelToIntClamped).
 inline
 bool
 ofxsMaskGetRoDPixel(OFX::Clip* maskClip,

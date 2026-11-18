@@ -167,15 +167,18 @@ scaleFromMipmapLevel(unsigned int level)
 
 // Convert a pixel coordinate computed in double (already rounded down or up)
 // to int, without undefined behaviour: values beyond the int range are clamped
-// to kOfxFlagInfiniteMin/kOfxFlagInfiniteMax (the infinite flags), and NaN
-// gives the given infinite flag. Values within the int range are converted
-// exactly as a plain (int) cast would.
+// to kOfxFlagInfiniteMin/kOfxFlagInfiniteMax (the infinite flags). Values within
+// the int range are converted exactly as a plain (int) cast would.
+// The int cast is only reached for a value strictly inside the int range. A
+// NaN coordinate (only from a host-supplied NaN RoD: toPixelEnclosing doesn't
+// create one) fails every comparison and gives nanValue in IEEE builds; this is
+// not a NaN test, and builds with -ffinite-math-only may give another flag.
 inline int
 pixelToIntClamped(double v,
                   int nanValue)
 {
-    if (v != v) { // NaN
-        return nanValue;
+    if ( (v > (double)kOfxFlagInfiniteMin) && (v < (double)kOfxFlagInfiniteMax) ) {
+        return (int)v;
     }
     if (v <= (double)kOfxFlagInfiniteMin) {
         return kOfxFlagInfiniteMin;
@@ -184,7 +187,7 @@ pixelToIntClamped(double v,
         return kOfxFlagInfiniteMax;
     }
 
-    return (int)v;
+    return nanValue;
 }
 
 inline void
@@ -199,11 +202,23 @@ toPixelEnclosing(const OfxRectD & regionOfInterest,
 
         return;
     }
+    // the OFX spec requires PAR > 0 and render scales in (0, 1]: a zero (or negative) one from a
+    // buggy host would give 0/0 or 0*inf = NaN below
+    if (par <= 0.) {
+        par = 1.;
+    }
+    OfxPointD rs = renderScale;
+    if (rs.x <= 0.) {
+        rs.x = 1.;
+    }
+    if (rs.y <= 0.) {
+        rs.y = 1.;
+    }
     // same arithmetic as before; only the int conversion is protected
-    rect->x1 = pixelToIntClamped(std::floor(regionOfInterest.x1 * renderScale.x / par), kOfxFlagInfiniteMin);
-    rect->y1 = pixelToIntClamped(std::floor(regionOfInterest.y1 * renderScale.y), kOfxFlagInfiniteMin);
-    rect->x2 = pixelToIntClamped(std::ceil(regionOfInterest.x2 * renderScale.x / par), kOfxFlagInfiniteMax);
-    rect->y2 = pixelToIntClamped(std::ceil(regionOfInterest.y2 * renderScale.y), kOfxFlagInfiniteMax);
+    rect->x1 = pixelToIntClamped(std::floor(regionOfInterest.x1 * rs.x / par), kOfxFlagInfiniteMin);
+    rect->y1 = pixelToIntClamped(std::floor(regionOfInterest.y1 * rs.y), kOfxFlagInfiniteMin);
+    rect->x2 = pixelToIntClamped(std::ceil(regionOfInterest.x2 * rs.x / par), kOfxFlagInfiniteMax);
+    rect->y2 = pixelToIntClamped(std::ceil(regionOfInterest.y2 * rs.y), kOfxFlagInfiniteMax);
 }
 
 inline void
