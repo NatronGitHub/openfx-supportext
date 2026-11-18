@@ -940,10 +940,13 @@ to_func_VLog(float v)
 /// h = [0,360], s = [0,1], v = [0,1]
 ///		if s == 0, then h = -1 (undefined)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
-void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b );
+/// wrapHue: wrap the hue into [0, OFXS_HUE_CIRCLE) first (new plug-in versions should set it;
+/// false keeps the old output, wrong for hues in [-1, -5/6) mod 1, see the implementation)
+void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b, bool wrapHue = false );
 
 void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l );
-void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b );
+/// wrapHue: as for hsv_to_rgb
+void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b, bool wrapHue = false );
 
 void rgb_to_hsi( float r, float g, float b, float *h, float *s, float *i );
 /// wrapHue: wrap a hue outside [0, OFXS_HUE_CIRCLE] into the circle (new plug-in versions

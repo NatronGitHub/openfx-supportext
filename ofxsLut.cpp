@@ -178,8 +178,18 @@ hsv_to_rgb(float h,
            float v,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
+    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
+        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
+        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
+        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        if (h >= OFXS_HUE_CIRCLE) {
+            h = 0.f; // rounding of a tiny negative hue
+        }
+    }
     if (s == 0) {
         // achromatic (grey)
         *r = *g = *b = v;
@@ -203,9 +213,7 @@ hsv_to_rgb(float h,
         h = 0.f; // NaN hue (input data): sector 0, f = 0
     }
     float f = h - i;          // factorial part of h
-    // take h modulo 360; a negative multiple of 6 gives sector 0 (it gave 6, i.e. the default
-    // case: magenta instead of red for h = -1, while h = 0 and h = 1 give red)
-    i = (i >= 0) ? (i % 6) : ( (i % 6) + 6 ) % 6;
+    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float p = v * ( 1 - s );
     float q = v * ( 1 - s * f );
     float t = v * ( 1 - s * ( 1 - f ) );
@@ -292,8 +300,18 @@ hsl_to_rgb(float h,
            float l,
            float *r,
            float *g,
-           float *b)
+           float *b,
+           bool wrapHue)
 {
+    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
+        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
+        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
+        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        if (h >= OFXS_HUE_CIRCLE) {
+            h = 0.f; // rounding of a tiny negative hue
+        }
+    }
     if (s == 0) {
         // achromatic (grey)
         *r = *g = *b = l;
@@ -317,9 +335,7 @@ hsl_to_rgb(float h,
         h = 0.f; // NaN hue (input data): sector 0, f = 0
     }
     float f = h - i;          // factorial part of h
-    // take h modulo 360; a negative multiple of 6 gives sector 0 (it gave 6, i.e. the default
-    // case: magenta instead of red for h = -1, while h = 0 and h = 1 give red)
-    i = (i >= 0) ? (i % 6) : ( (i % 6) + 6 ) % 6;
+    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
     // v == 0 (l == 0, or s == -1) would give 0/0 or x/0, then NaN in t or q
