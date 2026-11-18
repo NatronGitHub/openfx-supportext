@@ -753,7 +753,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
     bool redraw = _ds != newState;
     _ds = newState;
 
-    double multiplier = _controlDown ? 0 : 1;
+    double multiplier = ctrlDown() ? 0 : 1;
     if (_ms == eMouseStateDraggingInnerBtmLeft) {
         xi1 += delta.x;
         yi1 += delta.y;
@@ -861,7 +861,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         valuesChanged = true;
     } else if (_ms == eMouseStateDraggingOuterTopLeft) {
         xo1 += delta.x;
-        if (!_controlDown) {
+        if ( !ctrlDown() ) {
             yo1 -= delta.y;
         }
 
@@ -870,7 +870,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
 
         valuesChanged = true;
     } else if (_ms == eMouseStateDraggingOuterTopRight) {
-        if (!_controlDown) {
+        if ( !ctrlDown() ) {
             xo1 -= delta.x;
             yo1 -= delta.y;
         }
@@ -881,7 +881,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         valuesChanged = true;
     } else if (_ms == eMouseStateDraggingOuterBtmRight) {
         yo1 += delta.y;
-        if (!_controlDown) {
+        if ( !ctrlDown() ) {
             xo1 -= delta.x;
         }
 
@@ -890,7 +890,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
 
         valuesChanged = true;
     } else if (_ms == eMouseStateDraggingOuterTopMid) {
-        if (!_controlDown) {
+        if ( !ctrlDown() ) {
             yo1 -= delta.y;
         }
 
@@ -898,7 +898,7 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
 
         valuesChanged = true;
     } else if (_ms == eMouseStateDraggingOuterMidRight) {
-        if (!_controlDown) {
+        if ( !ctrlDown() ) {
             xo1 -= delta.x;
         }
 
@@ -1084,7 +1084,7 @@ TrackerRegionInteract::penDown(const PenArgs &args)
     MouseStateEnum newState = _ms;
     // test center first
     if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
-        if (_controlDown > 0) {
+        if ( ctrlDown() ) {
             newState = eMouseStateDraggingOffset;
         } else {
             newState = eMouseStateDraggingCenter;
@@ -1225,6 +1225,16 @@ TrackerRegionInteract::penUp(const PenArgs &args)
     requestRedraw();
 
     return true;
+}
+
+bool
+TrackerRegionInteract::ctrlDown() const
+{
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    return (getKeyModifiers() & kNatronOfxKeyModifierControl) != 0;
+#else
+    return _controlDown > 0;
+#endif
 }
 
 bool

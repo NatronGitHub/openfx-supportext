@@ -915,7 +915,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
         drawSkewBar(d, color, targetCenter, pscale, targetRadius.x, _mouseState == eDraggingSkewYBar || _drawState == eSkewYBarHoverered, flip - 90., l);
 
 
-        drawSquare(d, color, targetCenter, pscale, _mouseState == eDraggingTranslation || _mouseState == eDraggingCenter || _drawState == eCenterPointHovered, (!_translate || _modifierStateCtrl), l);
+        drawSquare(d, color, targetCenter, pscale, _mouseState == eDraggingTranslation || _mouseState == eDraggingCenter || _drawState == eCenterPointHovered, ctrlDown(), l);
         drawSquare(d, color, left, pscale, _mouseState == eDraggingLeftPoint || _drawState == eLeftPointHovered, false, l);
         drawSquare(d, color, right, pscale, _mouseState == eDraggingRightPoint || _drawState == eRightPointHovered, false, l);
         drawSquare(d, color, top, pscale, _mouseState == eDraggingTopPoint || _drawState == eTopPointHovered, false, l);
@@ -1343,7 +1343,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
-        if ( (_orientation == eOrientationNotSet) && (_modifierStateShift > 0) ) {
+        if ( (_orientation == eOrientationNotSet) && shiftDown() ) {
             _orientation = std::abs(dx) > std::abs(dy) ? eOrientationHorizontal : eOrientationVertical;
         }
 
@@ -1364,7 +1364,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
-        if ( (_orientation == eOrientationNotSet) && (_modifierStateShift > 0) ) {
+        if ( (_orientation == eOrientationNotSet) && shiftDown() ) {
             _orientation = std::abs(dx) > std::abs(dy) ? eOrientationHorizontal : eOrientationVertical;
         }
 
@@ -1580,8 +1580,8 @@ TransformInteractHelper::penDown(const PenArgs &args)
     bool didSomething = false;
     MouseStateEnum newState = _mouseState;
     if ( squareContains(transformedPos, centerPoint, pressToleranceX, pressToleranceY) ) {
-        newState = ( (!_translate || _modifierStateCtrl) ? eDraggingCenter : eDraggingTranslation );
-        if (_modifierStateShift > 0) {
+        newState = ( ctrlDown() ? eDraggingCenter : eDraggingTranslation );
+        if ( shiftDown() ) {
             _orientation = eOrientationNotSet;
         }
     } else if ( squareContains(transformedPos, leftPoint, pressToleranceX, pressToleranceY) ) {
@@ -1688,6 +1688,14 @@ TransformInteractHelper::keyDown(const KeyArgs &args)
             _orientation = eOrientationNotSet;
         }
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( ( _translate && ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) ) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         _interact->requestRedraw();
     }
@@ -1695,6 +1703,29 @@ TransformInteractHelper::keyDown(const KeyArgs &args)
 
     // modifiers are not "caught"
     return false;
+}
+
+bool
+TransformInteractHelper::ctrlDown() const
+{
+    if (!_translate) {
+        return true;
+    }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    return (_interact->getKeyModifiers() & kNatronOfxKeyModifierControl) != 0;
+#else
+    return _modifierStateCtrl > 0;
+#endif
+}
+
+bool
+TransformInteractHelper::shiftDown() const
+{
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    return (_interact->getKeyModifiers() & kNatronOfxKeyModifierShift) != 0;
+#else
+    return _modifierStateShift > 0;
+#endif
 }
 
 // keyUp just updates the modifier state
@@ -1720,10 +1751,23 @@ TransformInteractHelper::keyUp(const KeyArgs &args)
             --_modifierStateShift;
             mustRedraw = (_modifierStateShift == 0);
         }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+        // (the modifiers are already updated in keyUp: the other Shift key may still be down)
+        if ( !shiftDown() ) {
+#else
         if (_modifierStateShift == 0) {
+#endif
             _orientation = eOrientationAllDirections;
         }
     }
+#ifdef OFXS_HAVE_KEY_MODIFIERS
+    // the drawn state comes from Support's modifiers, which the counters may not follow (a
+    // modifier pressed before the overlay got the focus): redraw on every modifier event
+    if ( ( _translate && ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) ) ||
+         (args.keySymbol == kOfxKey_Shift_L) || (args.keySymbol == kOfxKey_Shift_R) ) {
+        mustRedraw = true;
+    }
+#endif
     if (mustRedraw) {
         _interact->requestRedraw();
     }
