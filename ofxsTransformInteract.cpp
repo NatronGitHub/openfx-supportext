@@ -476,7 +476,20 @@ getTargetRadius(const OfxPointD& scale,
             targetRadius->y = targetRadius->y >= 0 ? CIRCLE_RADIUS_MIN : -CIRCLE_RADIUS_MIN;
         }
         if (std::fabs(targetRadius->y) > CIRCLE_RADIUS_MAX) {
-            targetRadius->x *= std::fabs(CIRCLE_RADIUS_MAX / targetRadius->x);
+            targetRadius->x *= std::fabs(CIRCLE_RADIUS_MAX / targetRadius->y);
+            targetRadius->y = targetRadius->y > 0 ? CIRCLE_RADIUS_MAX : -CIRCLE_RADIUS_MAX;
+        }
+        // the ratio-preserving scalings above can push the other radius out of the bounds again
+        // (extreme aspect ratios, e.g. scale (1000, 1) or (0.01, 1)): keep both radii within
+        // [MIN, MAX], with their signs, so that the handles stay apart and on screen
+        if (std::fabs(targetRadius->x) < CIRCLE_RADIUS_MIN) {
+            targetRadius->x = targetRadius->x >= 0 ? CIRCLE_RADIUS_MIN : -CIRCLE_RADIUS_MIN;
+        } else if (std::fabs(targetRadius->x) > CIRCLE_RADIUS_MAX) {
+            targetRadius->x = targetRadius->x > 0 ? CIRCLE_RADIUS_MAX : -CIRCLE_RADIUS_MAX;
+        }
+        if (std::fabs(targetRadius->y) < CIRCLE_RADIUS_MIN) {
+            targetRadius->y = targetRadius->y >= 0 ? CIRCLE_RADIUS_MIN : -CIRCLE_RADIUS_MIN;
+        } else if (std::fabs(targetRadius->y) > CIRCLE_RADIUS_MAX) {
             targetRadius->y = targetRadius->y > 0 ? CIRCLE_RADIUS_MAX : -CIRCLE_RADIUS_MAX;
         }
     }
