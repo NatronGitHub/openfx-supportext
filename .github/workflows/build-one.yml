@@ -3,9 +3,9 @@ name: Build (one platform)
 # Reusable: the per-platform build used by ci.yml (per push / pull request) and
 # extended.yml (nightly macOS). Compiles every SupportExt source file in C++17
 # with warnings as failures, against openfx master and 2303ff8 (pre-OFX 1.5),
-# then loads and renders a few SupportExt-based openfx-misc plug-ins with
-# openfx's hostDemo (tests/hostdemo/run.sh). On Linux it also builds openfx-misc
-# with this SupportExt.
+# runs the CMake helper tests, then (Linux, macOS) builds openfx-misc with this
+# SupportExt and renders all its plug-ins with hostDemo (openfx-misc's
+# smoketest.sh).
 
 on:
   workflow_call:
@@ -95,21 +95,24 @@ jobs:
             *)
               echo "::notice::tests/cmake/oldpolicy skipped: CMake >= 4 rejects 3.1 policies" ;;
           esac
-      - name: Load and render plug-ins with hostDemo
-        # builds openfx's hostDemo and a bundle of openfx-misc plug-ins (Transform,
-        # Crop, Constant, Rectangle, Position) against this SupportExt, linked like
-        # the consumers' bundles, and renders each one: catches link, export,
-        # describe and render errors that compiling alone doesn't see
-        run: |
-          set -eo pipefail
-          git clone --depth 1 https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc-src"
-          CXXSTD=-std=c++17 tests/hostdemo/run.sh openfx "$RUNNER_TEMP/openfx-misc-src" "$RUNNER_TEMP/hostdemo"
-      - name: Build openfx-misc with this SupportExt
-        if: runner.os == 'Linux'
+      - name: Build openfx-misc with this SupportExt, and render all its plug-ins
+        # openfx-misc's own smoke test (.github/tools/smoketest.sh --supportext):
+        # builds openfx-misc with CMake (Release, hostDemo, tests) using THIS
+        # SupportExt's sources instead of its submodule, then describes and renders
+        # every plug-in with hostDemo; catches link, export, describe and render
+        # errors that compiling alone doesn't see. Linux and macOS (the script's
+        # platforms); on Windows, openfx-misc's own CI (loadtest.sh: every bundle is
+        # loaded and every plug-in described) is the backstop for link and load
+        # errors of SupportExt-based bundles; Windows renders are not tested. openfx-misc master is used, with
+        # its pinned openfx (the openfx master checkout above is compile-checked only)
+        # and its expectation lists (SKIP, XFAIL, PARAMS renders of Transform,
+        # Position and CornerPin, with motion blur).
+        if: runner.os != 'Windows'
         run: |
           set -eo pipefail
           git clone --depth 1 --recurse-submodules --shallow-submodules https://github.com/NatronGitHub/openfx-misc.git "$RUNNER_TEMP/openfx-misc"
-          rm -rf "$RUNNER_TEMP/openfx-misc/SupportExt"
-          mkdir "$RUNNER_TEMP/openfx-misc/SupportExt"
-          git archive HEAD | tar -x -C "$RUNNER_TEMP/openfx-misc/SupportExt"
-          make -C "$RUNNER_TEMP/openfx-misc" -j4 CONFIG=release
+          echo "openfx-misc $(git -C "$RUNNER_TEMP/openfx-misc" rev-parse HEAD), openfx $(git -C "$RUNNER_TEMP/openfx-misc/openfx" rev-parse HEAD)"
+          # SMOKETEST_XPASS_OK: a SupportExt PR that fixes a bug listed as XFAIL in
+          # openfx-misc (XPASS), or leaves a stale entry, is reported but doesn't fail
+          SMOKETEST_XPASS_OK=1 "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --supportext "$PWD" \
+            --build "$RUNNER_TEMP/openfx-misc-build" "$RUNNER_TEMP/openfx-misc-install"
