@@ -188,7 +188,14 @@ hsv_to_rgb(float h,
     }
 
     h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    int i = (int)std::floor(h);
+    // a huge or infinite hue (degenerate input, e.g. rgb_to_hsl of a pixel whose channels are
+    // all <= 0) made the int conversion below undefined: reduce it modulo the 6 sectors, and use
+    // sector 0 if it is still not finite. Hues within +-6e8 are unchanged.
+    if ( (std::fabs(h) >= 6e8f) && (std::fabs(h) <= FLT_MAX) ) {
+        h = std::fmod(h, 6.f);
+    }
+    const float hfloor = std::floor(h);
+    int i = ( (hfloor > -6e8f) && (hfloor < 6e8f) ) ? (int)hfloor : 0;
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float p = v * ( 1 - s );
@@ -287,7 +294,14 @@ hsl_to_rgb(float h,
     }
 
     h *= 6.f / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    int i = (int)std::floor(h);
+    // a huge or infinite hue (degenerate input, e.g. rgb_to_hsl of a pixel whose channels are
+    // all <= 0) made the int conversion below undefined: reduce it modulo the 6 sectors, and use
+    // sector 0 if it is still not finite. Hues within +-6e8 are unchanged.
+    if ( (std::fabs(h) >= 6e8f) && (std::fabs(h) <= FLT_MAX) ) {
+        h = std::fmod(h, 6.f);
+    }
+    const float hfloor = std::floor(h);
+    int i = ( (hfloor > -6e8f) && (hfloor < 6e8f) ) ? (int)hfloor : 0;
     float f = h - i;          // factorial part of h
     i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
