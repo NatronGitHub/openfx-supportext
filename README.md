@@ -1,6 +1,8 @@
 openfx-supportext
 =================
 
+[![CI](https://github.com/NatronGitHub/openfx-supportext/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/NatronGitHub/openfx-supportext/actions/workflows/ci.yml?query=branch%3Amaster)
+
 Extensions for the OpenFX Support library
 
 Building with CMake
