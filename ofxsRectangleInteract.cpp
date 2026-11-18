@@ -65,8 +65,9 @@ static double
 fround(double val,
        double pscale)
 {
-    if (pscale < FLT_MIN) {
-        // a zero, negative or denormal pixel scale (buggy host) would give log10(<= 0)
+    if ( (pscale < FLT_MIN) || (pscale > DBL_MAX) ) {
+        // a zero, negative, denormal or infinite pixel scale (buggy host) would give log10(<= 0),
+        // or inf*0
         return val;
     }
     double pscale10 = std::pow( 10., std::floor( std::log10(pscale) ) );
