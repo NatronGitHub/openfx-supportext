@@ -1294,7 +1294,7 @@ copyPixels(OFX::ImageEffect &instance,
     int srcRowBytes;
 
     getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
-    int srcPixelComponentCount = srcImg->getPixelComponentCount();
+    int srcPixelComponentCount = srcImg ? srcImg->getPixelComponentCount() : 0; // no source: black
 
     return copyPixels(instance, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
@@ -1522,7 +1522,7 @@ copyPixelsOpaque(OFX::ImageEffect &instance,
     int srcRowBytes;
 
     getImageData(srcImg, &srcPixelData, &srcBounds, &srcPixelComponents, &srcBitDepth, &srcRowBytes);
-    int srcPixelComponentCount = srcImg->getPixelComponentCount();
+    int srcPixelComponentCount = srcImg ? srcImg->getPixelComponentCount() : 0; // no source: black
 
     return copyPixelsOpaque(instance, renderWindow, renderScale, srcPixelData, srcBounds, srcPixelComponents, srcPixelComponentCount, srcBitDepth, srcRowBytes, dstPixelData, dstBounds, dstPixelComponents, dstPixelComponentCount, dstBitDepth, dstRowBytes);
 }
