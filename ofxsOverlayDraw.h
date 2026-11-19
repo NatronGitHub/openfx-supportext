@@ -61,6 +61,10 @@
  * - An overlay really registered as V2 that gets no draw context, or whose
  *   draw() was compiled without the DrawSuite backend, draws nothing:
  *   OverlayDraw::canDraw() is false, and draw() returns false.
+ * - With an openfx that also registers V2 overlays as V1, through a separate
+ *   OpenGL entry (OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY), each draw action
+ *   decides: one called through the V1 entry
+ *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL.
  * Whether the overlay is registered as V2 is the result of
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
@@ -396,15 +400,24 @@ public:
             _screenPixelRatio = args.screenPixelRatio;
         }
 #endif
+#ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
+        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry):
+        // a draw action called through that entry must use OpenGL ("If this is called via
+        // kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"), and
+        // gets drawContext == NULL. The per-call flag decides, not the registration.
+        if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
+            mode = eOverlayDrawSuiteFallback;
+        }
+#endif
 #if OFXS_OVERLAYDRAW_DS
         if (mode == eOverlayDrawSuite) {
             _ctx = args.drawContext;
-            // registered as V2: "drawing MUST use DrawSuite", never OpenGL
+            // called as V2: "drawing MUST use DrawSuite", never OpenGL
             _canDraw = (_ctx != NULL);
         }
 #else
         // compiled without the DrawSuite backend: OpenGL is not allowed for an
-        // overlay registered as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
+        // overlay called as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
         _canDraw = (mode != eOverlayDrawSuite);
 #endif
         if (_ctx) {
