@@ -64,7 +64,9 @@
  * - With an openfx that also registers V2 overlays as V1, through a separate
  *   OpenGL entry (OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY), each draw action
  *   decides: one called through the V1 entry
- *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL.
+ *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL, and with
+ *   OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK draws nothing if no OpenGL context is current
+ *   (that entry exists on DrawSuite hosts, which may have no OpenGL).
  * - V1 draws use OpenGL only, V2 draws the DrawSuite only ("If this is called via
  *   kOfxImageEffectPluginPropOverlayInteractV2, drawing MUST use DrawSuite. If this is
  *   called via kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"):
@@ -412,6 +414,14 @@ public:
         // The per-call flag decides, not the registration.
         if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
             mode = eOverlayDrawSuiteFallback;
+#ifdef OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK
+            // that entry only exists on hosts with the DrawSuite, which may have no OpenGL: the
+            // OpenGL calls need a current context (openfx: "test this first"), else draw
+            // nothing (never the DrawSuite in a V1 draw)
+            if ( !args.isOpenGLContextCurrent() ) {
+                _canDraw = false;
+            }
+#endif
         }
 #endif
 #if OFXS_OVERLAYDRAW_DS
@@ -423,15 +433,16 @@ public:
 #else
         // compiled without the DrawSuite backend: OpenGL is not allowed for an
         // overlay called as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
-        _canDraw = (mode != eOverlayDrawSuite);
+        _canDraw = _canDraw && (mode != eOverlayDrawSuite);
 #endif
         if (_ctx) {
             _stack.push_back( Mat4() );
         }
     }
 
-    /// false if the overlay must not draw at all (called as V2, but no draw
-    /// context): draw() should then return false.
+    /// false if the overlay must not draw at all (called as V2 but no draw context, or
+    /// through openfx's V1 entry without a current OpenGL context): draw() should then
+    /// return false.
     bool canDraw() const { return _canDraw; }
 
     /// Call with the overlay's screen pixel ratio, i.e. the factor of its OpenGL
