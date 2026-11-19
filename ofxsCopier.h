@@ -239,6 +239,9 @@ public:
     // and do some processing
     void multiThreadProcessImages(const OfxRectI& procWindow_, const OfxPointD& rs)
     {
+        // an empty source has no pixel to clamp to or repeat (Periodic would divide by zero):
+        // no boundary condition, every pixel takes the "no src pixel" path
+        const int srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : _srcBoundary;
         unused(rs);
         OfxRectI procWindow = procWindow_;
 
@@ -264,14 +267,14 @@ public:
 
             int srcy = dsty;
 
-            if (_srcBoundary == 1) {
+            if (srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (_srcBoundary == 2) {
+            } else if (srcBoundary == 2) {
                 if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
                     srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
@@ -287,14 +290,14 @@ public:
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
-                if (_srcBoundary == 1) {
+                if (srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (_srcBoundary == 2) {
+                } else if (srcBoundary == 2) {
                     if ( (srcx < _srcBounds.x1) || (_srcBounds.x2 <= srcx) ) {
                         srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
@@ -330,6 +333,9 @@ public:
     // and do some processing
     void multiThreadProcessImages(const OfxRectI& procWindow_, const OfxPointD& rs)
     {
+        // an empty source has no pixel to clamp to or repeat (Periodic would divide by zero):
+        // no boundary condition, every pixel takes the "no src pixel" path
+        const int srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : _srcBoundary;
         unused(rs);
         OfxRectI procWindow = procWindow_;
         assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
@@ -355,14 +361,14 @@ public:
 
             int srcy = dsty;
 
-            if (_srcBoundary == 1) {
+            if (srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (_srcBoundary == 2) {
+            } else if (srcBoundary == 2) {
                 if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
                     srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
@@ -378,14 +384,14 @@ public:
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
-                if (_srcBoundary == 1) {
+                if (srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (_srcBoundary == 2) {
+                } else if (srcBoundary == 2) {
                     if ( (srcx < _srcBounds.x1) || (_srcBounds.x2 <= srcx) ) {
                         srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
@@ -423,6 +429,9 @@ public:
     // and do some processing
     void multiThreadProcessImages(const OfxRectI& procWindow_, const OfxPointD& rs)
     {
+        // an empty source has no pixel to clamp to or repeat (Periodic would divide by zero):
+        // no boundary condition, every pixel takes the "no src pixel" path
+        const int srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : _srcBoundary;
         unused(rs);
         OfxRectI procWindow = procWindow_;
         assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
@@ -448,14 +457,14 @@ public:
 
             int srcy = dsty;
 
-            if (_srcBoundary == 1) {
+            if (srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (_srcBoundary == 2) {
+            } else if (srcBoundary == 2) {
                 if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
                     srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
@@ -471,14 +480,14 @@ public:
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
-                if (_srcBoundary == 1) {
+                if (srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (_srcBoundary == 2) {
+                } else if (srcBoundary == 2) {
                     if ( (srcx < _srcBounds.x1) || (_srcBounds.x2 <= srcx) ) {
                         srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
@@ -520,6 +529,9 @@ public:
     // and do some processing
     void multiThreadProcessImages(const OfxRectI& procWindow_, const OfxPointD& rs)
     {
+        // an empty source has no pixel to clamp to or repeat (Periodic would divide by zero):
+        // no boundary condition, every pixel takes the "no src pixel" path
+        const int srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : _srcBoundary;
         unused(rs);
         OfxRectI procWindow = procWindow_;
         assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
@@ -543,14 +555,14 @@ public:
 
             int srcy = dsty;
 
-            if (_srcBoundary == 1) {
+            if (srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (_srcBoundary == 2) {
+            } else if (srcBoundary == 2) {
                 if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
                     srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
@@ -566,14 +578,14 @@ public:
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
-                if (_srcBoundary == 1) {
+                if (srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (_srcBoundary == 2) {
+                } else if (srcBoundary == 2) {
                     if ( (srcx < _srcBounds.x1) || (_srcBounds.x2 <= srcx) ) {
                         srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
@@ -628,6 +640,9 @@ public:
     // and do some processing
     void multiThreadProcessImages(const OfxRectI& procWindow_, const OfxPointD& rs)
     {
+        // an empty source has no pixel to clamp to or repeat (Periodic would divide by zero):
+        // no boundary condition, every pixel takes the "no src pixel" path
+        const int srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : _srcBoundary;
         unused(rs);
         OfxRectI procWindow = procWindow_;
         assert(_dstBounds.x1 <= procWindow.x1 && procWindow.x2 <= _dstBounds.x2 && _dstBounds.y1 <= procWindow.y1 && procWindow.y2 <= _dstBounds.y2);
@@ -653,14 +668,14 @@ public:
 
             int srcy = dsty;
 
-            if (_srcBoundary == 1) {
+            if (srcBoundary == 1) {
                 if (_srcBounds.y2 <= srcy) {
                     srcy = _srcBounds.y2 - 1;
                 }
                 if (srcy < _srcBounds.y1) {
                     srcy = _srcBounds.y1;
                 }
-            } else if (_srcBoundary == 2) {
+            } else if (srcBoundary == 2) {
                 if ( (srcy < _srcBounds.y1) || (_srcBounds.y2 <= srcy) ) {
                     srcy = _srcBounds.y1 + positive_modulo(srcy - _srcBounds.y1, _srcBounds.y2 - _srcBounds.y1);
                 }
@@ -676,14 +691,14 @@ public:
             for (int dstx = procWindow.x1; dstx < procWindow.x2; ++dstx) {
                 int srcx = dstx;
 
-                if (_srcBoundary == 1) {
+                if (srcBoundary == 1) {
                     if (_srcBounds.x2 <= srcx) {
                         srcx = _srcBounds.x2 - 1;
                     }
                     if (srcx < _srcBounds.x1) {
                         srcx = _srcBounds.x1;
                     }
-                } else if (_srcBoundary == 2) {
+                } else if (srcBoundary == 2) {
                     if ( (srcx < _srcBounds.x1) || (_srcBounds.x2 <= srcx) ) {
                         srcx = _srcBounds.x1 + positive_modulo(srcx - _srcBounds.x1, _srcBounds.x2 - _srcBounds.x1);
                     }
