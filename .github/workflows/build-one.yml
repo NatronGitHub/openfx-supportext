@@ -119,8 +119,9 @@ jobs:
       - name: Render all openfx-misc plug-ins in an OFX 1.4-only host
         # The same installed bundles and hostDemo, run with --ofx14 (only the OFX 1.4 host
         # properties and suites, no OfxSetHost, no StrChoice or Bytes params, one view):
-        # every plug-in must still describe and render without the OFX 1.5 features and the
-        # host extensions (the report must say host.profile "ofx14"). No rebuild.
+        # the plug-ins must still describe and render without the OFX 1.5 features and the
+        # host extensions (openfx-misc's SKIP list and "ofx14:" XFAIL entries apply; the
+        # report must say host.profile "ofx14"). The plug-ins are not rebuilt.
         if: runner.os != 'Windows'
         run: |
           set -eo pipefail
