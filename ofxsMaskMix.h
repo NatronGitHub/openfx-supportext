@@ -25,7 +25,7 @@
 #ifndef Misc_ofxsMaskMix_h
 #define Misc_ofxsMaskMix_h
 
-#include <cfloat> // FLT_EPSILON
+#include <cfloat> // FLT_EPSILON, FLT_MAX
 #include <cmath> // copysign
 
 #include <ofxsImageEffect.h>
@@ -264,6 +264,28 @@ ofxsToRGBA(const PIX *srcPix,
     unpPix[3] = (nComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
 }
 
+// c / alpha for an alpha > 0, as the float division c / (float)alpha, except that a quotient
+// beyond the float range gives +-FLT_MAX instead of +-inf (a huge colour with a tiny alpha,
+// which then gave inf * 0 or inf - inf = NaN downstream; an infinite colour also gives
+// +-FLT_MAX). The quotient is computed in double and clamped before the conversion: the double
+// quotient of two floats rounded to float is the float quotient, so every finite result is
+// unchanged. Only comparisons, no NaN or inf test: a NaN colour falls through unchanged.
+inline float
+ofxsUnPremultValue(double c,
+                   double alpha)
+{
+    const double q = c / alpha;
+
+    if (q > FLT_MAX) {
+        return FLT_MAX;
+    }
+    if (q < -FLT_MAX) {
+        return -FLT_MAX;
+    }
+
+    return (float)q;
+}
+
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
 // unpremult by alpha <= 0 gives identity
@@ -315,9 +337,9 @@ ofxsUnPremult(const PIX *srcPix,
     assert(nComponents == 4);
     PIX alpha = srcPix[3];
     if ( alpha > (PIX)(FLT_EPSILON * maxValue) ) {
-        unpPix[0] = srcPix[0] / (float)alpha;
-        unpPix[1] = srcPix[1] / (float)alpha;
-        unpPix[2] = srcPix[2] / (float)alpha;
+        unpPix[0] = ofxsUnPremultValue(srcPix[0], alpha);
+        unpPix[1] = ofxsUnPremultValue(srcPix[1], alpha);
+        unpPix[2] = ofxsUnPremultValue(srcPix[2], alpha);
     } else {
         unpPix[0] = srcPix[0] / (float)maxValue;
         unpPix[1] = srcPix[1] / (float)maxValue;
