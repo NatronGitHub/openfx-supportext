@@ -208,7 +208,7 @@ namespace OFX {
 enum OverlayDrawModeEnum
 {
     eOverlayDrawOpenGL = 0, //< V1 descriptor: always OpenGL
-    eOverlayDrawSuiteFallback, //< V2 descriptor registered as V1 (no DrawSuite): OpenGL
+    eOverlayDrawSuiteFallback, //< V2 descriptor registered as V1 (no DrawSuite), or called through openfx's V1 entry: OpenGL
     eOverlayDrawSuite //< V2 descriptor registered as V2: DrawSuite only
 };
 
@@ -425,7 +425,7 @@ public:
         }
     }
 
-    /// false if the overlay must not draw at all (registered as V2, but no draw
+    /// false if the overlay must not draw at all (called as V2, but no draw
     /// context): draw() should then return false.
     bool canDraw() const { return _canDraw; }
 
