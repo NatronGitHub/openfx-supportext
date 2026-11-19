@@ -779,7 +779,7 @@ mergeAlphaUnion(PIX a,
     // float rounds an exact value to inf from 2^128 - 2^103 (halfway between FLT_MAX and 2^128)
     const double kOverflow = 340282356779733661637539395458142568448.;
     const double p = std::fabs( (double)a * (double)b ); // exact
-    const double s = std::fabs( (double)a + (double)b ); // exact
+    const double s = std::fabs( (double)a + (double)b ); // exact, or correctly rounded far from the threshold
 
     if ( !( (p >= kOverflow) || (s >= kOverflow) ) ) {
         return mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
