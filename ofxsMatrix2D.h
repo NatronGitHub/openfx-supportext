@@ -189,67 +189,141 @@ struct Point4D
     }
 };
 
-// Inverse of an N x N matrix whose cofactors or determinant may overflow (inf * 0 = NaN
-// entries; see ofxsMatrixProductsMayOverflow, only tested beyond 2^300 for 3x3, 2^250 for 4x4): invert
-// S = D1 * M * D2 instead, where D1 = diag(2^-re) and D2 = diag(2^-ce) are power-of-2 diagonal
-// matrices that bring every row and column maximum to about 1, then
-// inv(M) = D2 * inv(S) * D1. The exponents are computed first (re[r]: the largest exponent in
-// row r; ce[c]: the largest exponent of column c once the rows are scaled), and each entry is
-// scaled once, so that no intermediate value underflows. Every entry of S is below 1 in
-// magnitude. Matrices whose direct inverse cannot overflow never come here, so their inverse is
-// unchanged.
-template <int N, class MAT>
-bool
-ofxsInverseEquilibrated(const MAT &a,
-                        MAT* invOut)
+// A double with a separate int exponent (value = m * 2^e, m in [0.5, 1) or 0), whose products
+// and sums neither overflow nor underflow: used for the inverse of matrices whose cofactors or
+// determinant may overflow in double.
+struct OfxsWideDouble
 {
-    const int kNone = -100000; // exponent of a row or column of zeros
-    int ex[N * N];
-    int re[N], ce[N];
+    double m;
+    int e;
+};
 
-    for (int i = 0; i < N * N; ++i) {
-        ex[i] = kNone;
-        if (a.m[i] != 0.) {
-            int e = 0;
-            std::frexp(a.m[i], &e);
-            // the exponent is unspecified for inf and NaN: keep it bounded (no int overflow below)
-            ex[i] = (std::min)( (std::max)(e, -1100), 1100 );
-        }
+inline OfxsWideDouble
+ofxsWideNormalize(double m,
+                  int e)
+{
+    OfxsWideDouble r;
+    int de = 0;
+
+    r.m = std::frexp(m, &de);
+    // the exponent is unspecified for inf and NaN: keep it bounded (no int overflow)
+    de = (std::min)( (std::max)(de, -1100), 1100 );
+    r.e = (r.m == 0.) ? 0 : (std::min)( (std::max)(e + de, -1000000), 1000000 );
+
+    return r;
+}
+
+inline OfxsWideDouble
+ofxsWideFromDouble(double v)
+{
+    return ofxsWideNormalize(v, 0);
+}
+
+inline OfxsWideDouble
+ofxsWideMul(const OfxsWideDouble &a,
+            const OfxsWideDouble &b)
+{
+    return ofxsWideNormalize(a.m * b.m, a.e + b.e);
+}
+
+inline OfxsWideDouble
+ofxsWideAdd(const OfxsWideDouble &a,
+            const OfxsWideDouble &b)
+{
+    if (a.m == 0.) {
+        return b;
     }
-    for (int r = 0; r < N; ++r) {
-        re[r] = kNone;
-        for (int c = 0; c < N; ++c) {
-            re[r] = (std::max)(re[r], ex[r * N + c]);
-        }
-        if (re[r] == kNone) {
-            return false; // zero row: singular
-        }
+    if (b.m == 0.) {
+        return a;
     }
-    for (int c = 0; c < N; ++c) {
-        ce[c] = kNone;
-        for (int r = 0; r < N; ++r) {
-            if (ex[r * N + c] != kNone) {
-                ce[c] = (std::max)(ce[c], ex[r * N + c] - re[r]);
+    const OfxsWideDouble &big = (a.e >= b.e) ? a : b;
+    const OfxsWideDouble &small = (a.e >= b.e) ? b : a;
+    const int d = big.e - small.e;
+    if (d > 1100) {
+        return big; // small is below half an ulp of big
+    }
+
+    return ofxsWideNormalize(big.m + std::ldexp(small.m, -d), big.e);
+}
+
+// determinant of the k x k submatrix of the N x N matrix a made of the rows rows[0..k-1] and
+// the columns cols[0..k-1] (Laplace expansion along its first row)
+template <int N>
+OfxsWideDouble
+ofxsWideDeterminant(const OfxsWideDouble* a,
+                    const int* rows,
+                    const int* cols,
+                    int k)
+{
+    if (k == 1) {
+        return a[rows[0] * N + cols[0]];
+    }
+    OfxsWideDouble det = ofxsWideFromDouble(0.);
+    int subCols[N];
+    for (int j = 0; j < k; ++j) {
+        const OfxsWideDouble &x = a[rows[0] * N + cols[j]];
+        if (x.m == 0.) {
+            continue;
+        }
+        int n = 0;
+        for (int q = 0; q < k; ++q) {
+            if (q != j) {
+                subCols[n++] = cols[q];
             }
         }
-        if (ce[c] == kNone) {
-            return false; // zero column: singular
+        OfxsWideDouble t = ofxsWideMul( x, ofxsWideDeterminant<N>(a, rows + 1, subCols, k - 1) );
+        if (j % 2) {
+            t.m = -t.m;
         }
+        det = ofxsWideAdd(det, t);
     }
-    MAT sc;
-    for (int r = 0; r < N; ++r) {
-        for (int c = 0; c < N; ++c) {
-            sc.m[r * N + c] = std::ldexp(a.m[r * N + c], -re[r] - ce[c]);
-        }
+
+    return det;
+}
+
+// Inverse of an N x N matrix whose cofactors or determinant may overflow in double (inf * 0 =
+// NaN entries; see ofxsMatrixProductsMayOverflow, only tested beyond 2^300 for 3x3, 2^250 for
+// 4x4): the same cofactors / determinant, computed with OfxsWideDouble so that no intermediate
+// value overflows or underflows; only the final entries are rounded to double (and may
+// overflow if the true inverse is out of range). False if the determinant is 0. Matrices whose
+// direct inverse cannot overflow never come here, so their inverse is unchanged.
+template <int N, class MAT>
+bool
+ofxsInverseWideExponent(const MAT &mat,
+                        MAT* invOut)
+{
+    OfxsWideDouble a[N * N];
+
+    for (int i = 0; i < N * N; ++i) {
+        a[i] = ofxsWideFromDouble(mat.m[i]);
     }
-    MAT inv;
-    if ( !sc.inverseUnscaled(&inv) ) {
-        return false;
+    int all[N];
+    for (int i = 0; i < N; ++i) {
+        all[i] = i;
     }
-    // inv(M)[i][j] = 2^-ce[i] * inv(S)[i][j] * 2^-re[j]
+    const OfxsWideDouble det = ofxsWideDeterminant<N>(a, all, all, N);
+    if (det.m == 0.) {
+        return false; // singular
+    }
+    int rows[N], cols[N];
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
-            invOut->m[i * N + j] = std::ldexp(inv.m[i * N + j], -ce[i] - re[j]);
+            // inv[i][j] = (-1)^(i+j) det(minor without row j and column i) / det
+            int n = 0;
+            for (int q = 0; q < N; ++q) {
+                if (q != j) {
+                    rows[n++] = q;
+                }
+            }
+            n = 0;
+            for (int q = 0; q < N; ++q) {
+                if (q != i) {
+                    cols[n++] = q;
+                }
+            }
+            const OfxsWideDouble cof = ofxsWideDeterminant<N>(a, rows, cols, N - 1);
+            double v = std::ldexp( cof.m / det.m, (std::min)( (std::max)(cof.e - det.e, -3000), 3000 ) );
+            invOut->m[i * N + j] = ( (i + j) % 2 ) ? -v : v;
         }
     }
 
@@ -501,11 +575,7 @@ struct Matrix3x3
         // entries beyond 2^300: the cofactors or the determinant may overflow
         // (the product test is only run for large entries, to keep the common case fast)
         if ( ofxsMatrixHasEntryAbove(m, 9, 300) && ofxsMatrixProductsMayOverflow<3>(m) ) {
-            if ( ofxsInverseEquilibrated<3>(*this, invOut) ) {
-                return true;
-            }
-            // S looked singular (e.g. an entry tiny relative to its row and column maxima): the
-            // direct inverse, as before
+            return ofxsInverseWideExponent<3>(*this, invOut);
         }
 
         return inverseUnscaled(invOut);
@@ -829,11 +899,7 @@ struct Matrix4x4
         // entries beyond 2^250: the cofactors or the determinant may overflow
         // (the product test is only run for large entries, to keep the common case fast)
         if ( ofxsMatrixHasEntryAbove(m, 16, 250) && ofxsMatrixProductsMayOverflow<4>(m) ) {
-            if ( ofxsInverseEquilibrated<4>(*this, invOut) ) {
-                return true;
-            }
-            // S looked singular (e.g. an entry tiny relative to its row and column maxima): the
-            // direct inverse, as before
+            return ofxsInverseWideExponent<4>(*this, invOut);
         }
 
         return inverseUnscaled(invOut);
