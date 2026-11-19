@@ -189,14 +189,15 @@ struct Point4D
     }
 };
 
-// Inverse of an N x N matrix whose entries are so large (beyond 2^300 for 3x3, 2^250 for 4x4)
-// that the cofactors or the determinant may overflow (inf * 0 = NaN entries): invert
+// Inverse of an N x N matrix whose cofactors or determinant may overflow (inf * 0 = NaN
+// entries; see ofxsMatrixProductsMayOverflow, only tested beyond 2^300 for 3x3, 2^250 for 4x4): invert
 // S = D1 * M * D2 instead, where D1 = diag(2^-re) and D2 = diag(2^-ce) are power-of-2 diagonal
 // matrices that bring every row and column maximum to about 1, then
 // inv(M) = D2 * inv(S) * D1. The exponents are computed first (re[r]: the largest exponent in
 // row r; ce[c]: the largest exponent of column c once the rows are scaled), and each entry is
 // scaled once, so that no intermediate value underflows. Every entry of S is below 1 in
-// magnitude. Matrices with smaller entries never come here, so their inverse is unchanged.
+// magnitude. Matrices whose direct inverse cannot overflow never come here, so their inverse is
+// unchanged.
 template <int N, class MAT>
 bool
 ofxsInverseEquilibrated(const MAT &a,
@@ -253,6 +254,67 @@ ofxsInverseEquilibrated(const MAT &a,
     }
 
     return true;
+}
+
+// Can the direct inverse of the N x N matrix m overflow? Its cofactor and determinant terms
+// (and their partial products, whatever the evaluation order) are products of entries in
+// distinct rows and distinct columns: each is below 2^(sum of the entries' frexp exponents).
+// True if such a sum exceeds 1018, so that a sum of up to 24 terms may not stay below
+// DBL_MAX. Integer exponents only (clamped for inf and NaN, whose exponent is unspecified).
+template <int N>
+bool
+ofxsMatrixProductsMayOverflow(const double* m)
+{
+    const int kZero = -100000; // a zero entry: its products are 0
+    int ex[N * N];
+
+    for (int i = 0; i < N * N; ++i) {
+        ex[i] = kZero;
+        if (m[i] != 0.) {
+            int e = 0;
+            std::frexp(m[i], &e);
+            ex[i] = (std::min)( (std::max)(e, -1100), 1100 );
+        }
+    }
+    // depth-first over the rows: each row contributes no entry, or one in an unused column
+    int col[N + 1]; // col[r]: the column used by row r, -1 if none; col[N]: unused
+    int sum[N + 1]; // sum[r]: the exponent sum of rows 0..r-1
+    int count[N + 1]; // count[r]: the number of entries in rows 0..r-1
+    int r = 0;
+    col[0] = -2;
+    sum[0] = 0;
+    count[0] = 0;
+    while (r >= 0) {
+        // next choice for row r: -1 (no entry), then the columns 0..N-1
+        int c = col[r] + 1;
+        for (; c < N; ++c) {
+            bool used = false;
+            for (int q = 0; q < r; ++q) {
+                if (col[q] == c) {
+                    used = true;
+                }
+            }
+            if ( (c == -1) || ( !used && (ex[r * N + c] != kZero) ) ) {
+                break;
+            }
+        }
+        if (c >= N) {
+            --r; // no more choices for row r: backtrack
+            continue;
+        }
+        col[r] = c;
+        sum[r + 1] = sum[r] + ( (c >= 0) ? ex[r * N + c] : 0 );
+        count[r + 1] = count[r] + ( (c >= 0) ? 1 : 0 );
+        if ( (count[r + 1] >= 2) && (sum[r + 1] > 1018) ) {
+            return true;
+        }
+        if (r + 1 < N) {
+            ++r;
+            col[r] = -2;
+        }
+    }
+
+    return false;
 }
 
 // true if some entry of the N*N array m is above 2^e (NaN entries are ignored)
@@ -437,8 +499,13 @@ struct Matrix3x3
     bool inverse(Matrix3x3* invOut) const
     {
         // entries beyond 2^300: the cofactors or the determinant may overflow
-        if ( ofxsMatrixHasEntryAbove(m, 9, 300) ) {
-            return ofxsInverseEquilibrated<3>(*this, invOut);
+        // (the product test is only run for large entries, to keep the common case fast)
+        if ( ofxsMatrixHasEntryAbove(m, 9, 300) && ofxsMatrixProductsMayOverflow<3>(m) ) {
+            if ( ofxsInverseEquilibrated<3>(*this, invOut) ) {
+                return true;
+            }
+            // S looked singular (e.g. an entry tiny relative to its row and column maxima): the
+            // direct inverse, as before
         }
 
         return inverseUnscaled(invOut);
@@ -760,8 +827,13 @@ struct Matrix4x4
     bool inverse(Matrix4x4* invOut) const
     {
         // entries beyond 2^250: the cofactors or the determinant may overflow
-        if ( ofxsMatrixHasEntryAbove(m, 16, 250) ) {
-            return ofxsInverseEquilibrated<4>(*this, invOut);
+        // (the product test is only run for large entries, to keep the common case fast)
+        if ( ofxsMatrixHasEntryAbove(m, 16, 250) && ofxsMatrixProductsMayOverflow<4>(m) ) {
+            if ( ofxsInverseEquilibrated<4>(*this, invOut) ) {
+                return true;
+            }
+            // S looked singular (e.g. an entry tiny relative to its row and column maxima): the
+            // direct inverse, as before
         }
 
         return inverseUnscaled(invOut);
