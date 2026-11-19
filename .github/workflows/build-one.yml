@@ -5,7 +5,7 @@ name: Build (one platform)
 # with warnings as failures, against openfx master and 2303ff8 (pre-OFX 1.5),
 # runs the CMake helper tests, then (Linux, macOS) builds openfx-misc with this
 # SupportExt and renders all its plug-ins with hostDemo (openfx-misc's
-# smoketest.sh).
+# smoketest.sh), then again with hostDemo as an OFX 1.4-only host (--ofx14).
 
 on:
   workflow_call:
@@ -116,3 +116,14 @@ jobs:
           # openfx-misc (XPASS), or leaves a stale entry, is reported but doesn't fail
           SMOKETEST_XPASS_OK=1 "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --supportext "$PWD" \
             --build "$RUNNER_TEMP/openfx-misc-build" "$RUNNER_TEMP/openfx-misc-install"
+      - name: Render all openfx-misc plug-ins in an OFX 1.4-only host
+        # The same installed bundles and hostDemo, run with --ofx14 (only the OFX 1.4 host
+        # properties and suites, no OfxSetHost, no StrChoice or Bytes params, one view):
+        # the plug-ins must still describe and render without the OFX 1.5 features and the
+        # host extensions (openfx-misc's SKIP list and "ofx14:" XFAIL entries apply; the
+        # report must say host.profile "ofx14"). The plug-ins are not rebuilt.
+        if: runner.os != 'Windows'
+        run: |
+          set -eo pipefail
+          SMOKETEST_XPASS_OK=1 "$RUNNER_TEMP/openfx-misc/.github/tools/smoketest.sh" --quick --ofx14 \
+            "$RUNNER_TEMP/openfx-misc-install"
