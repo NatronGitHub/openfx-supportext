@@ -61,6 +61,13 @@
  * - An overlay really registered as V2 that gets no draw context, or whose
  *   draw() was compiled without the DrawSuite backend, draws nothing:
  *   OverlayDraw::canDraw() is false, and draw() returns false.
+ * - With an openfx that also registers V2 overlays as V1, through a separate
+ *   OpenGL entry (OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY), each draw action
+ *   decides: one called through the V1 entry
+ *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL, but with
+ *   OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK only if an OpenGL context is current
+ *   (DrawArgs::isOpenGLContextCurrent()); else it draws with the host's draw
+ *   context (DrawArgs::getHostDrawContext()) if it passed one, else nothing.
  * Whether the overlay is registered as V2 is the result of
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
@@ -187,6 +194,11 @@
 #else
 #define OFXS_OVERLAYDRAW_DS 0
 #endif
+// openfx#171: a V1-entry draw checks for a current OpenGL context, and may use the host's
+// draw context (see the OverlayDraw constructor)
+#if defined(OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY) && defined(OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK)
+#define OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK 1
+#endif
 #if OFXS_OVERLAYDRAW_DS && !defined(OFXS_SUPPORT_HAS_DRAWCONTEXT) && !defined(kOfxDrawSuite)
 #error "OFXS_HAVE_DRAWSUITE=1 needs a Support library with the OFX 1.5 DrawSuite API (OFX::DrawContext, NatronGitHub openfx 05c5a75d or later)"
 #endif
@@ -204,7 +216,7 @@ namespace OFX {
 enum OverlayDrawModeEnum
 {
     eOverlayDrawOpenGL = 0, //< V1 descriptor: always OpenGL
-    eOverlayDrawSuiteFallback, //< V2 descriptor registered as V1 (no DrawSuite): OpenGL
+    eOverlayDrawSuiteFallback, //< V2 descriptor registered as V1 (no DrawSuite), or called through openfx's V1 entry: OpenGL
     eOverlayDrawSuite //< V2 descriptor registered as V2: DrawSuite only
 };
 
@@ -396,23 +408,56 @@ public:
             _screenPixelRatio = args.screenPixelRatio;
         }
 #endif
+        bool useHostDrawContext = false; // a V1-entry call without OpenGL: the host's draw context
+#ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
+        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry):
+        // a draw action called through that entry should use OpenGL ("If this is called via
+        // kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"), and gets
+        // drawContext == NULL. The per-call flag decides, not the registration.
+        if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+            // A DrawSuite host may have no OpenGL: use it only if a context is current, else
+            // the host's draw context if it passed one ("Some existing plugins may use
+            // DrawSuite via kOfxImageEffectPluginPropOverlayInteractV1 if it's supported by
+            // the host"), else draw nothing. Never raw OpenGL calls without a context.
+            if ( args.isOpenGLContextCurrent() ) {
+                mode = eOverlayDrawSuiteFallback;
+            } else {
+                useHostDrawContext = true;
+            }
+#else
+            mode = eOverlayDrawSuiteFallback;
+#endif
+        }
+#endif
 #if OFXS_OVERLAYDRAW_DS
         if (mode == eOverlayDrawSuite) {
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+            if (useHostDrawContext) {
+                _hostCtx = DrawContext( args.getHostDrawContext() ); // draws nothing if NULL
+                _ctx = _hostCtx.usesDrawSuite() ? &_hostCtx : NULL;
+            } else {
+                _ctx = args.drawContext;
+            }
+#else
             _ctx = args.drawContext;
-            // registered as V2: "drawing MUST use DrawSuite", never OpenGL
+#endif
+            // called as V2 (or through the V1 entry without OpenGL): DrawSuite, never OpenGL
             _canDraw = (_ctx != NULL);
         }
 #else
         // compiled without the DrawSuite backend: OpenGL is not allowed for an
-        // overlay registered as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
+        // overlay called as V2, or through the V1 entry without a current OpenGL context
+        // (OFXS_HAVE_DRAWSUITE differs between translation units)
         _canDraw = (mode != eOverlayDrawSuite);
 #endif
+        (void)useHostDrawContext;
         if (_ctx) {
             _stack.push_back( Mat4() );
         }
     }
 
-    /// false if the overlay must not draw at all (registered as V2, but no draw
+    /// false if the overlay must not draw at all (called as V2, but no draw
     /// context): draw() should then return false.
     bool canDraw() const { return _canDraw; }
 
@@ -943,7 +988,10 @@ private:
     }
 
 #if OFXS_OVERLAYDRAW_DS
-    const DrawContext* _ctx;
+    const DrawContext* _ctx; // args.drawContext, or &_hostCtx
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+    DrawContext _hostCtx; // a V1-entry call without OpenGL: the host's draw context
+#endif
 #else
     const void* _ctx; // always NULL
 #endif
@@ -961,6 +1009,10 @@ private:
     bool _ctxColourSet;
     float _ctxLineWidth; // line width sent to the host, -1 if none yet
     int _ctxStipple; // OfxDrawLineStipplePattern sent to the host, -1 if none yet
+
+    // not copyable: _ctx may point to _hostCtx
+    OverlayDraw(const OverlayDraw &);
+    OverlayDraw& operator=(const OverlayDraw &);
 };
 #ifdef OFXS_OVERLAYDRAW_INLINE_NAMESPACE
 } // inline namespace
