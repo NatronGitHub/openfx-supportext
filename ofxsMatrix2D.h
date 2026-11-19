@@ -189,6 +189,89 @@ struct Point4D
     }
 };
 
+// Inverse of an N x N matrix whose entries are so large (beyond 2^300 for 3x3, 2^250 for 4x4)
+// that the cofactors or the determinant may overflow (inf * 0 = NaN entries): invert
+// S = D1 * M * D2 instead, where D1 = diag(2^-re) and D2 = diag(2^-ce) are power-of-2 diagonal
+// matrices that bring every row and column maximum to about 1, then
+// inv(M) = D2 * inv(S) * D1. The exponents are computed first (re[r]: the largest exponent in
+// row r; ce[c]: the largest exponent of column c once the rows are scaled), and each entry is
+// scaled once, so that no intermediate value underflows. Every entry of S is below 1 in
+// magnitude. Matrices with smaller entries never come here, so their inverse is unchanged.
+template <int N, class MAT>
+bool
+ofxsInverseEquilibrated(const MAT &a,
+                        MAT* invOut)
+{
+    const int kNone = -100000; // exponent of a row or column of zeros
+    int ex[N * N];
+    int re[N], ce[N];
+
+    for (int i = 0; i < N * N; ++i) {
+        ex[i] = kNone;
+        if (a.m[i] != 0.) {
+            int e = 0;
+            std::frexp(a.m[i], &e);
+            // the exponent is unspecified for inf and NaN: keep it bounded (no int overflow below)
+            ex[i] = (std::min)( (std::max)(e, -1100), 1100 );
+        }
+    }
+    for (int r = 0; r < N; ++r) {
+        re[r] = kNone;
+        for (int c = 0; c < N; ++c) {
+            re[r] = (std::max)(re[r], ex[r * N + c]);
+        }
+        if (re[r] == kNone) {
+            return false; // zero row: singular
+        }
+    }
+    for (int c = 0; c < N; ++c) {
+        ce[c] = kNone;
+        for (int r = 0; r < N; ++r) {
+            if (ex[r * N + c] != kNone) {
+                ce[c] = (std::max)(ce[c], ex[r * N + c] - re[r]);
+            }
+        }
+        if (ce[c] == kNone) {
+            return false; // zero column: singular
+        }
+    }
+    MAT sc;
+    for (int r = 0; r < N; ++r) {
+        for (int c = 0; c < N; ++c) {
+            sc.m[r * N + c] = std::ldexp(a.m[r * N + c], -re[r] - ce[c]);
+        }
+    }
+    MAT inv;
+    if ( !sc.inverseUnscaled(&inv) ) {
+        return false;
+    }
+    // inv(M)[i][j] = 2^-ce[i] * inv(S)[i][j] * 2^-re[j]
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            invOut->m[i * N + j] = std::ldexp(inv.m[i * N + j], -ce[i] - re[j]);
+        }
+    }
+
+    return true;
+}
+
+// true if some entry of the N*N array m is above 2^e (NaN entries are ignored)
+inline bool
+ofxsMatrixHasEntryAbove(const double* m,
+                        int n,
+                        int e)
+{
+    const double big = std::ldexp(1., e);
+
+    for (int i = 0; i < n; ++i) {
+        if (std::fabs(m[i]) > big) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 struct Matrix3x3
 {
     double m[3*3];
@@ -352,6 +435,17 @@ struct Matrix3x3
     }
 
     bool inverse(Matrix3x3* invOut) const
+    {
+        // entries beyond 2^300: the cofactors or the determinant may overflow
+        if ( ofxsMatrixHasEntryAbove(m, 9, 300) ) {
+            return ofxsInverseEquilibrated<3>(*this, invOut);
+        }
+
+        return inverseUnscaled(invOut);
+    }
+
+    /// the inverse, computed directly (see inverse())
+    bool inverseUnscaled(Matrix3x3* invOut) const
     {
         double inv[9], det;
         int i;
@@ -664,6 +758,17 @@ struct Matrix4x4
     }
 
     bool inverse(Matrix4x4* invOut) const
+    {
+        // entries beyond 2^250: the cofactors or the determinant may overflow
+        if ( ofxsMatrixHasEntryAbove(m, 16, 250) ) {
+            return ofxsInverseEquilibrated<4>(*this, invOut);
+        }
+
+        return inverseUnscaled(invOut);
+    }
+
+    /// the inverse, computed directly (see inverse())
+    bool inverseUnscaled(Matrix4x4* invOut) const
     {
         double inv[16], det;
         int i;
