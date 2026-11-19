@@ -364,7 +364,13 @@ ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
                                    EffectOverlayDescriptorV2* overlay)
 {
 #if OFXS_OVERLAYDRAW_DS
+#ifdef OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW
+    // the OverlayDraw overlays keep their OpenGL drawing: on a DrawSuite host, also register
+    // the V1 (OpenGL) entry, so that the host may call either
+    const bool v2 = desc.setOverlayInteractDescriptorV2(overlay, true); // takes ownership
+#else
     const bool v2 = desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
+#endif
 #else
     desc.setOverlayInteractDescriptor(overlay); // takes ownership
     const bool v2 = false;
