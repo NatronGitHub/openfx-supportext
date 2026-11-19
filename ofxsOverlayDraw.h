@@ -66,11 +66,11 @@
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
  * master also registers it as V1 when the host refuses
  * kOfxImageEffectPluginPropOverlayInteractV2. When nothing was recorded (the
- * host cached the plugin description and skipped describe, or the overlay was
- * registered with desc.setOverlayInteractDescriptorV2() directly), it is
- * decided like the Support library does: if, and only if,
- * getImageEffectHostDescription()->supportsDrawSuite (filled at kOfxActionLoad,
- * before describe and instance creation).
+ * overlay was registered with desc.setOverlayInteractDescriptorV2() directly),
+ * it is V2 if, and only if, getImageEffectHostDescription()->supportsDrawSuite
+ * (filled at kOfxActionLoad, before describe and instance creation), which is
+ * wrong only on a DrawSuite host that refuses the V2 property: prefer
+ * ofxsSetOverlayInteractDescriptorV2().
  *
  * Sizes: the OpenGL overlays multiply their line widths, point sizes and
  * pixel offsets by their screen pixel ratio, (hiDPI param ? 2 : 1) *
@@ -305,14 +305,24 @@ public:
     // host calls createInstance() on a static DESC (InteractMainEntry<DESC>), not on the
     // registered object. The host may refuse kOfxImageEffectPluginPropOverlayInteractV2 even
     // when it has the DrawSuite; the overlay is then registered as V1 and must use OpenGL.
+    // A descriptor class shared by several plug-ins (e.g. TransformOverlayDescriptorV2) and
+    // registered as V2 by any of them is V2, as in openfx's overlay registry: a V2 overlay
+    // "MUST use DrawSuite".
     virtual void setRegisteredAsV2(bool v2)
     {
-        registration() = v2 ? 1 : 0;
+        int &r = registration();
+
+        if (v2) {
+            r = 1;
+        } else if (r < 0) {
+            r = 0;
+        }
     }
 
-    /// Was this descriptor class registered as V2? If it was registered some other way
-    /// (desc.setOverlayInteractDescriptorV2() directly), use the same test as the Support
-    /// library: the host's DrawSuite support.
+    /// Was this descriptor class registered as V2? Without a record (it was registered with
+    /// desc.setOverlayInteractDescriptorV2() directly), use the host's DrawSuite support,
+    /// as before. That is wrong only if the host also refused the V2 property: use
+    /// ofxsSetOverlayInteractDescriptorV2().
     static bool isRegisteredAsV2()
     {
         const int r = registration();
