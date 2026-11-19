@@ -49,6 +49,16 @@ getImageData(OFX::Image* img,
              OFX::BitDepthEnum* bitDepth,
              int* rowBytes)
 {
+    if (!img) {
+        // no image: no pixels (as the const overload below)
+        *pixelData = 0;
+        bounds->x1 = bounds->x2 = bounds->y1 = bounds->y2 = 0;
+        *pixelComponents = ePixelComponentNone;
+        *bitDepth = eBitDepthNone;
+        *rowBytes = 0;
+
+        return;
+    }
     *pixelData = img->getPixelData();
     *bounds = img->getBounds();
     *pixelComponents = img->getPixelComponents();
@@ -202,6 +212,19 @@ public:
     /** @brief set the destination image */
     void setDstImg(OFX::Image *v)
     {
+        if (!v) {
+            // no image: as setDstImg(NULL, ...) (a NULL destination is allowed for multi-pass
+            // processors, see process(); getDstPixelAddress() returns NULL)
+            _dstPixelData = NULL;
+            _dstBounds.x1 = _dstBounds.x2 = _dstBounds.y1 = _dstBounds.y2 = 0;
+            _dstPixelComponents = ePixelComponentNone;
+            _dstPixelComponentCount = 0;
+            _dstBitDepth = eBitDepthNone;
+            _dstPixelBytes = 0;
+            _dstRowBytes = 0;
+
+            return;
+        }
         _dstPixelData = v->getPixelData();
         _dstBounds = v->getBounds();
         _dstPixelComponents = v->getPixelComponents();
@@ -356,6 +379,19 @@ public:
     void setSrcImg(const OFX::Image *v,
                    int srcBoundary = 0) //!< The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
     {
+        if (!v) {
+            // no source (e.g. a disconnected input): the processor reads black
+            _srcPixelData = NULL;
+            _srcBounds.x1 = _srcBounds.x2 = _srcBounds.y1 = _srcBounds.y2 = 0;
+            _srcPixelComponents = ePixelComponentNone;
+            _srcPixelComponentCount = 0;
+            _srcBitDepth = eBitDepthNone;
+            _srcPixelBytes = 0;
+            _srcRowBytes = 0;
+            _srcBoundary = srcBoundary;
+
+            return;
+        }
         _srcPixelData = v->getPixelData();
         _srcBounds = v->getBounds();
         _srcPixelComponents = v->getPixelComponents();
