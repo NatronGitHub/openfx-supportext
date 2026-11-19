@@ -69,8 +69,9 @@
  *   (DrawArgs::isOpenGLContextCurrent()); else it draws with the host's draw
  *   context (DrawArgs::getHostDrawContext()) if it passed one, else nothing.
  * - With OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK, the OpenGL mode on a host that has the
- *   DrawSuite does the same check (such a host may call a V1 draw without an OpenGL
- *   context). Hosts without the DrawSuite are not checked: they set the context.
+ *   DrawSuite and passed a draw context draws through it if no OpenGL context is current
+ *   (such a host may call a V1 draw without one). Otherwise it keeps OpenGL, as the V1
+ *   contract says, so that a false negative of the check never hides the overlay.
  * Whether the overlay is registered as V2 is the result of
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
@@ -412,6 +413,7 @@ public:
         }
 #endif
         bool useHostDrawContext = false; // a V1-entry call without OpenGL: the host's draw context
+        bool v1EntryChecked = false; // the V1-entry block below checked the OpenGL context
 #ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
         // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry):
         // a draw action called through that entry should use OpenGL ("If this is called via
@@ -419,6 +421,7 @@ public:
         // drawContext == NULL. The per-call flag decides, not the registration.
         if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
 #ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+            v1EntryChecked = true;
             // A DrawSuite host may have no OpenGL: use it only if a context is current, else
             // the host's draw context if it passed one ("Some existing plugins may use
             // DrawSuite via kOfxImageEffectPluginPropOverlayInteractV1 if it's supported by
@@ -436,11 +439,13 @@ public:
 #ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
         // OpenGL mode on a host that has the DrawSuite (a V1 overlay, or a V2 overlay registered
         // as V1 because the host refused the V2 property): such a host may call the V1 draw
-        // without a current OpenGL context, and the OpenGL calls would crash. Same as the V1
-        // entry above: the host's draw context if it passed one, else draw nothing. Hosts
-        // without the DrawSuite (OFX 1.4) always set the OpenGL context ("the openGL context
-        // for this interact has been set"): unchanged, no context check.
-        if ( (mode != eOverlayDrawSuite) && !useHostDrawContext ) {
+        // without a current OpenGL context, and the OpenGL calls would crash. If no context is
+        // current and the host passed a draw context, draw through it (DrawSuite via V1 is
+        // allowed). Otherwise keep OpenGL, as the V1 contract says ("the openGL context for this
+        // interact has been set"): a false negative of the run-time check (e.g. a Support
+        // library built with OFXS_DRAWCONTEXT_NO_OPENGL) never hides the overlay. Hosts without
+        // the DrawSuite (OFX 1.4) are not checked. The V1 entry of a V2 overlay was checked above.
+        if ( (mode != eOverlayDrawSuite) && !v1EntryChecked && args.getHostDrawContext() ) {
             const ImageEffectHostDescription* host = getImageEffectHostDescription();
             if ( host && host->supportsDrawSuite && !args.isOpenGLContextCurrent() ) {
                 mode = eOverlayDrawSuite;
@@ -470,6 +475,7 @@ public:
         _canDraw = (mode != eOverlayDrawSuite);
 #endif
         (void)useHostDrawContext;
+        (void)v1EntryChecked;
         if (_ctx) {
             _stack.push_back( Mat4() );
         }
