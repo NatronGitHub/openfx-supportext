@@ -64,7 +64,10 @@
  * - With an openfx that also registers V2 overlays as V1, through a separate
  *   OpenGL entry (OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY), each draw action
  *   decides: one called through the V1 entry
- *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL.
+ *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL, but with
+ *   OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK only if an OpenGL context is current
+ *   (DrawArgs::isOpenGLContextCurrent()); else it draws with the host's draw
+ *   context (DrawArgs::getHostDrawContext()) if it passed one, else nothing.
  * Whether the overlay is registered as V2 is the result of
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
@@ -400,26 +403,53 @@ public:
             _screenPixelRatio = args.screenPixelRatio;
         }
 #endif
+#if defined(OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY) && defined(OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK)
+#define OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK 1
+#endif
+        bool useHostDrawContext = false; // a V1-entry call without OpenGL: the host's draw context
 #ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
         // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry):
-        // a draw action called through that entry must use OpenGL ("If this is called via
-        // kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"), and
-        // gets drawContext == NULL. The per-call flag decides, not the registration.
+        // a draw action called through that entry should use OpenGL ("If this is called via
+        // kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"), and gets
+        // drawContext == NULL. The per-call flag decides, not the registration.
         if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+            // A DrawSuite host may have no OpenGL: use it only if a context is current, else
+            // the host's draw context if it passed one ("Some existing plugins may use
+            // DrawSuite via kOfxImageEffectPluginPropOverlayInteractV1 if it's supported by
+            // the host"), else draw nothing. Never raw OpenGL calls without a context.
+            if ( args.isOpenGLContextCurrent() ) {
+                mode = eOverlayDrawSuiteFallback;
+            } else {
+                useHostDrawContext = true;
+            }
+#else
             mode = eOverlayDrawSuiteFallback;
+#endif
         }
 #endif
 #if OFXS_OVERLAYDRAW_DS
         if (mode == eOverlayDrawSuite) {
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+            if (useHostDrawContext) {
+                _hostCtx = DrawContext( args.getHostDrawContext() ); // draws nothing if NULL
+                _ctx = _hostCtx.usesDrawSuite() ? &_hostCtx : NULL;
+            } else {
+                _ctx = args.drawContext;
+            }
+#else
             _ctx = args.drawContext;
-            // called as V2: "drawing MUST use DrawSuite", never OpenGL
+#endif
+            // called as V2 (or through the V1 entry without OpenGL): DrawSuite, never OpenGL
             _canDraw = (_ctx != NULL);
         }
 #else
         // compiled without the DrawSuite backend: OpenGL is not allowed for an
-        // overlay called as V2 (OFXS_HAVE_DRAWSUITE differs between translation units)
+        // overlay called as V2, or through the V1 entry without a current OpenGL context
+        // (OFXS_HAVE_DRAWSUITE differs between translation units)
         _canDraw = (mode != eOverlayDrawSuite);
 #endif
+        (void)useHostDrawContext;
         if (_ctx) {
             _stack.push_back( Mat4() );
         }
@@ -956,7 +986,10 @@ private:
     }
 
 #if OFXS_OVERLAYDRAW_DS
-    const DrawContext* _ctx;
+    const DrawContext* _ctx; // args.drawContext, or &_hostCtx
+#ifdef OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK
+    DrawContext _hostCtx; // a V1-entry call without OpenGL: the host's draw context
+#endif
 #else
     const void* _ctx; // always NULL
 #endif
@@ -974,6 +1007,10 @@ private:
     bool _ctxColourSet;
     float _ctxLineWidth; // line width sent to the host, -1 if none yet
     int _ctxStipple; // OfxDrawLineStipplePattern sent to the host, -1 if none yet
+
+    // not copyable: _ctx may point to _hostCtx
+    OverlayDraw(const OverlayDraw &);
+    OverlayDraw& operator=(const OverlayDraw &);
 };
 #ifdef OFXS_OVERLAYDRAW_INLINE_NAMESPACE
 } // inline namespace
