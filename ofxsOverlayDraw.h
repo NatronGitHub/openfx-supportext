@@ -61,12 +61,16 @@
  * - An overlay really registered as V2 that gets no draw context, or whose
  *   draw() was compiled without the DrawSuite backend, draws nothing:
  *   OverlayDraw::canDraw() is false, and draw() returns false.
- * Whether the overlay is registered as V2 is decided like the Support library
- * does in ImageEffectDescriptor::setOverlayInteractDescriptorV2(): if, and only
- * if, getImageEffectHostDescription()->supportsDrawSuite (filled at
- * kOfxActionLoad, before describe and instance creation, also when the host
- * cached the plugin description). So V2 descriptors may also be registered with
- * desc.setOverlayInteractDescriptorV2() directly.
+ * Whether the overlay is registered as V2 is the result of
+ * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
+ * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
+ * master also registers it as V1 when the host refuses
+ * kOfxImageEffectPluginPropOverlayInteractV2. When nothing was recorded (the
+ * host cached the plugin description and skipped describe, or the overlay was
+ * registered with desc.setOverlayInteractDescriptorV2() directly), it is
+ * decided like the Support library does: if, and only if,
+ * getImageEffectHostDescription()->supportsDrawSuite (filled at kOfxActionLoad,
+ * before describe and instance creation).
  *
  * Sizes: the OpenGL overlays multiply their line widths, point sizes and
  * pixel offsets by their screen pixel ratio, (hiDPI param ? 2 : 1) *
@@ -259,7 +263,8 @@ inline namespace OverlayDrawOpenGLOnly {
 #endif
 #endif
 /// Is an overlay registered with setOverlayInteractDescriptorV2() registered as
-/// V2? The same test as ImageEffectDescriptor::setOverlayInteractDescriptorV2().
+/// V2, when its registration was not recorded? The DrawSuite test of
+/// ImageEffectDescriptor::setOverlayInteractDescriptorV2().
 inline bool
 ofxsOverlayIsRegisteredAsV2()
 {
@@ -274,6 +279,9 @@ ofxsOverlayIsRegisteredAsV2()
 class EffectOverlayDescriptorV2
     : public EffectOverlayDescriptor
 {
+public:
+    /// Called by ofxsSetOverlayInteractDescriptorV2() with the registration's result.
+    virtual void setRegisteredAsV2(bool /*v2*/) {}
 };
 
 /// Overlay descriptor for overlays that draw through OverlayDraw: the interact
@@ -288,29 +296,62 @@ public:
     Interact* createInstance(OfxInteractHandle handle,
                              ImageEffect *effect)
     {
-        OverlayDrawConstructionScope scope(ofxsOverlayIsRegisteredAsV2() ? eOverlayDrawSuite : eOverlayDrawSuiteFallback);
+        OverlayDrawConstructionScope scope(isRegisteredAsV2() ? eOverlayDrawSuite : eOverlayDrawSuiteFallback);
 
         return new INSTANCE(handle, effect);
     }
 
+    // The registration is recorded per descriptor class (per overlay main entry), since the
+    // host calls createInstance() on a static DESC (InteractMainEntry<DESC>), not on the
+    // registered object. The host may refuse kOfxImageEffectPluginPropOverlayInteractV2 even
+    // when it has the DrawSuite; the overlay is then registered as V1 and must use OpenGL.
+    virtual void setRegisteredAsV2(bool v2)
+    {
+        registration() = v2 ? 1 : 0;
+    }
+
+    /// Was this descriptor class registered as V2? If it was registered some other way
+    /// (desc.setOverlayInteractDescriptorV2() directly), use the same test as the Support
+    /// library: the host's DrawSuite support.
+    static bool isRegisteredAsV2()
+    {
+        const int r = registration();
+
+        return (r >= 0) ? (r != 0) : ofxsOverlayIsRegisteredAsV2();
+    }
+
     virtual OfxPluginEntryPoint* getMainEntry() { return InteractMainEntry<DESC>::overlayInteractMainEntry; }
+
+private:
+    static int& registration() //< -1: unknown, 0: V1, 1: V2
+    {
+        static int r = -1;
+
+        return r;
+    }
 };
 
 /// Register an overlay as kOfxImageEffectPluginPropOverlayInteractV2 if the
-/// host and the Support library have the DrawSuite, else as
+/// host and the Support library have the DrawSuite (and, with openfx master,
+/// the host accepts the property), else as
 /// kOfxImageEffectPluginPropOverlayInteractV1. Returns true if it was
-/// registered as V2. Only V2 descriptors are accepted (see above).
+/// registered as V2, and records it for the descriptor class's instances.
+/// Only V2 descriptors are accepted (see above).
 inline bool
 ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
                                    EffectOverlayDescriptorV2* overlay)
 {
 #if OFXS_OVERLAYDRAW_DS
-    return desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
+    const bool v2 = desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
 #else
     desc.setOverlayInteractDescriptor(overlay); // takes ownership
-
-    return false;
+    const bool v2 = false;
 #endif
+    if (overlay) {
+        overlay->setRegisteredAsV2(v2); // desc owns overlay, which is still valid
+    }
+
+    return v2;
 }
 
 /// OpenGL 1.x immediate-mode subset, drawn with OpenGL or the DrawSuite.
