@@ -415,7 +415,8 @@ public:
         }
 #endif
 #ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
-        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry): a draw
+        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry; with
+        // OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW, because we pass hasOpenGLDraw): a draw
         // action called through that entry uses OpenGL only (it gets drawContext == NULL).
         // The per-call flag decides, not the registration.
         if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
