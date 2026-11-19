@@ -194,6 +194,11 @@
 #else
 #define OFXS_OVERLAYDRAW_DS 0
 #endif
+// openfx#171: a V1-entry draw checks for a current OpenGL context, and may use the host's
+// draw context (see the OverlayDraw constructor)
+#if defined(OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY) && defined(OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK)
+#define OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK 1
+#endif
 #if OFXS_OVERLAYDRAW_DS && !defined(OFXS_SUPPORT_HAS_DRAWCONTEXT) && !defined(kOfxDrawSuite)
 #error "OFXS_HAVE_DRAWSUITE=1 needs a Support library with the OFX 1.5 DrawSuite API (OFX::DrawContext, NatronGitHub openfx 05c5a75d or later)"
 #endif
@@ -402,9 +407,6 @@ public:
         if (args.screenPixelRatio > 0.) {
             _screenPixelRatio = args.screenPixelRatio;
         }
-#endif
-#if defined(OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY) && defined(OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK)
-#define OFXS_OVERLAYDRAW_V1_ENTRY_CONTEXT_CHECK 1
 #endif
         bool useHostDrawContext = false; // a V1-entry call without OpenGL: the host's draw context
 #ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
