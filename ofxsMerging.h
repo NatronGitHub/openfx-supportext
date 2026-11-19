@@ -743,8 +743,9 @@ plusFunc(PIX A,
 /**
  * @brief Convert a double result to PIX. For a floating-point PIX, a value beyond the float
  * range gives +-FLT_MAX: converting it to float was undefined behaviour (inf in practice), e.g.
- * HSL modes on a huge colour with a tiny alpha. Only comparisons: a NaN falls through, and
- * every value in range is converted exactly as before. Integer PIX are unchanged.
+ * HSL modes on a huge colour with a tiny alpha. An infinite result (from an infinite input, or
+ * a float overflow in the expression) also gives +-FLT_MAX. Only comparisons: a NaN falls
+ * through, and every value in range is converted exactly as before. Integer PIX are unchanged.
  **/
 template <typename PIX>
 inline PIX
@@ -760,6 +761,26 @@ mergeDoubleToPIX(double v)
     }
 
     return PIX(v);
+}
+
+/**
+ * @brief The alpha a + b - ab of the masked modes. In float, a * b and a + b overflow for alphas
+ * beyond about 2^64 (then inf - inf = NaN): alphas up to 2^63 use the original expression
+ * (unchanged results), larger ones are computed in double. Only comparisons: a NaN falls
+ * through.
+ **/
+template <typename PIX, int maxValue>
+inline PIX
+mergeAlphaUnion(PIX a,
+                PIX b)
+{
+    const double kMax = 9223372036854775808.; // 2^63: a * b and a + b stay below FLT_MAX
+
+    if ( (std::fabs( (double)a ) <= kMax) && (std::fabs( (double)b ) <= kMax) ) {
+        return mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
+    }
+
+    return mergeDoubleToPIX<PIX>( (double)a + (double)b - (double)a * (double)b / maxValue );
 }
 
 template <typename PIX, int maxValue>
@@ -826,7 +847,7 @@ geometricFunc(PIX A,
     if (sum == 0) {
         return 0;
     } else {
-        return 2 * A * B / sum;
+        return mergeDoubleToPIX<PIX>(2 * A * B / sum);
     }
 }
 
@@ -885,7 +906,7 @@ softLightFunc(PIX A,
         return mergeDoubleToPIX<PIX>( maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ) );
     } else if (4 * Bn <= 1) {
         // SVG Compositing 2009 version:
-        //return mergeDoubleToPIX<PIX>( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
+        //return PIX( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
         // SVG Compositing 2015 version (strictly equal to the SVG 2009 version, less multiplications):
         return mergeDoubleToPIX<PIX>( maxValue * ( Bn + (2 * An - 1) * (((16 * Bn - 12) * Bn + 4) * Bn - Bn) ) );
         // Proof (enter the following code in https://sagecell.sagemath.org):
@@ -1631,7 +1652,7 @@ mergePixel(bool doAlphaMasking,
             dst[i] = mergeDoubleToPIX<PIX>( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
         }
         if (nComponents == 4) {
-            dst[3] = mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
+            dst[3] = mergeAlphaUnion<PIX, maxValue>(a, b);
         }
 
         return;
@@ -1640,7 +1661,7 @@ mergePixel(bool doAlphaMasking,
     // separable modes
     if ( doAlphaMasking && (nComponents == 4) ) {
         maxComp = 3;
-        dst[3] = mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
+        dst[3] = mergeAlphaUnion<PIX, maxValue>(a, b);
     }
     for (int i = 0; i < maxComp; ++i) {
         switch (f) {
