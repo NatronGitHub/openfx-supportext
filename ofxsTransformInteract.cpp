@@ -761,14 +761,22 @@ TransformInteractHelper::draw(const DrawArgs &args)
     if ( !_interactOpen->getValueAtTime(args.time) ) {
         return false;
     }
-    const OfxPointD &pscale = args.pixelScale;
-    const double time = args.time;
 
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
         return false; // registered as V2 but no draw context: OpenGL is not allowed
     }
+
+    return drawOverlay(d, args);
+}
+
+bool
+TransformInteractHelper::drawOverlay(OverlayDraw &d,
+                                     const DrawArgs &args)
+{
+    const OfxPointD &pscale = args.pixelScale;
+    const double time = args.time;
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
     double screenPixelRatio = hiDPI ? 2 : 1;
@@ -948,7 +956,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
     //glPopAttrib();
 
     return true;
-} // TransformInteractHelper::draw
+} // TransformInteractHelper::drawOverlay
 
 static bool
 squareContains(const Point3D& pos,
