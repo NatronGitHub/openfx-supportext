@@ -364,7 +364,13 @@ ofxsSetOverlayInteractDescriptorV2(ImageEffectDescriptor &desc,
                                    EffectOverlayDescriptorV2* overlay)
 {
 #if OFXS_OVERLAYDRAW_DS
+#ifdef OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW
+    // the OverlayDraw overlays keep their OpenGL drawing: on a DrawSuite host, also register
+    // the V1 (OpenGL) entry, so that the host may call either
+    const bool v2 = desc.setOverlayInteractDescriptorV2(overlay, true); // takes ownership
+#else
     const bool v2 = desc.setOverlayInteractDescriptorV2(overlay); // takes ownership
+#endif
 #else
     desc.setOverlayInteractDescriptor(overlay); // takes ownership
     const bool v2 = false;
@@ -409,7 +415,8 @@ public:
         }
 #endif
 #ifdef OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY
-        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry): a draw
+        // openfx also registers a V2 overlay's class as V1 (a separate OpenGL entry; with
+        // OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW, because we pass hasOpenGLDraw): a draw
         // action called through that entry uses OpenGL only (it gets drawContext == NULL).
         // The per-call flag decides, not the registration.
         if ( (mode == eOverlayDrawSuite) && !args.calledViaOverlayInteractV2() ) {
