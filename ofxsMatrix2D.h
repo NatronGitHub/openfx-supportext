@@ -284,8 +284,9 @@ ofxsWideDeterminant(const OfxsWideDouble* a,
 // Inverse of an N x N matrix whose cofactors or determinant may overflow in double (inf * 0 =
 // NaN entries; see ofxsMatrixProductsMayOverflow, only tested beyond 2^300 for 3x3, 2^250 for
 // 4x4): the same cofactors / determinant, computed with OfxsWideDouble so that no intermediate
-// value overflows or underflows; only the final entries are rounded to double (and may
-// overflow if the true inverse is out of range). False if the determinant is 0. Matrices whose
+// value overflows or underflows; only the final entries are rounded to double. False if the
+// determinant is 0, or if an entry of the inverse is beyond the double range (as the direct
+// inverse returns false for a determinant below DBL_MIN). Matrices whose
 // direct inverse cannot overflow never come here, so their inverse is unchanged.
 template <int N, class MAT>
 bool
@@ -306,6 +307,7 @@ ofxsInverseWideExponent(const MAT &mat,
         return false; // singular
     }
     int rows[N], cols[N];
+    double inv[N * N];
     for (int i = 0; i < N; ++i) {
         for (int j = 0; j < N; ++j) {
             // inv[i][j] = (-1)^(i+j) det(minor without row j and column i) / det
@@ -322,9 +324,18 @@ ofxsInverseWideExponent(const MAT &mat,
                 }
             }
             const OfxsWideDouble cof = ofxsWideDeterminant<N>(a, rows, cols, N - 1);
-            double v = std::ldexp( cof.m / det.m, (std::min)( (std::max)(cof.e - det.e, -3000), 3000 ) );
-            invOut->m[i * N + j] = ( (i + j) % 2 ) ? -v : v;
+            int qe = 0;
+            const double q = std::frexp(cof.m / det.m, &qe); // in [0.5, 1) or 0
+            const int e = cof.e - det.e + ( (q == 0.) ? 0 : (std::min)( (std::max)(qe, -1100), 1100 ) );
+            if ( (q != 0.) && (e > 1024) ) {
+                return false; // an entry of the inverse is beyond the double range (invOut unchanged)
+            }
+            const double v = std::ldexp( q, (std::max)(e, -3000) );
+            inv[i * N + j] = ( (i + j) % 2 ) ? -v : v;
         }
+    }
+    for (int i = 0; i < N * N; ++i) {
+        invOut->m[i] = inv[i];
     }
 
     return true;
