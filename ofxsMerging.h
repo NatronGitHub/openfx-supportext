@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
+#include <limits>
 
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
@@ -739,6 +740,54 @@ plusFunc(PIX A,
     return A + B;
 }
 
+/**
+ * @brief Convert a double result to PIX. For a floating-point PIX, a value beyond the float
+ * range gives +-FLT_MAX: converting it to float was undefined behaviour (inf in practice), e.g.
+ * HSL modes on a huge colour with a tiny alpha. An infinite result (from an infinite input, or
+ * a float overflow in the expression) also gives +-FLT_MAX. Only comparisons: a NaN falls
+ * through, and every value in range is converted exactly as before. Integer PIX are unchanged.
+ **/
+template <typename PIX>
+inline PIX
+mergeDoubleToPIX(double v)
+{
+    if ( !std::numeric_limits<PIX>::is_integer ) {
+        if (v > FLT_MAX) {
+            return PIX(FLT_MAX);
+        }
+        if (v < -FLT_MAX) {
+            return PIX(-FLT_MAX);
+        }
+    }
+
+    return PIX(v);
+}
+
+/**
+ * @brief The alpha a + b - ab of the masked modes. In float, a * b overflows for huge alphas
+ * (giving -inf, or inf - inf = NaN if a + b overflows too): only then (tested on the exact
+ * double product and sum of the inputs against the float overflow threshold, with comparisons
+ * only) is it computed in double;
+ * otherwise the original expression is used, so every result that was finite is unchanged.
+ * A NaN falls through.
+ **/
+template <typename PIX, int maxValue>
+inline PIX
+mergeAlphaUnion(PIX a,
+                PIX b)
+{
+    // float rounds an exact value to inf from 2^128 - 2^103 (halfway between FLT_MAX and 2^128)
+    const double kOverflow = 340282356779733661637539395458142568448.;
+    const double p = std::fabs( (double)a * (double)b ); // exact
+    const double s = std::fabs( (double)a + (double)b ); // exact, or correctly rounded far from the threshold
+
+    if ( !( (p >= kOverflow) || (s >= kOverflow) ) ) {
+        return mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
+    }
+
+    return mergeDoubleToPIX<PIX>( (double)a + (double)b - (double)a * (double)b / maxValue );
+}
+
 template <typename PIX, int maxValue>
 PIX
 grainExtractFunc(PIX A,
@@ -782,7 +831,7 @@ PIX
 exclusionFunc(PIX A,
               PIX B)
 {
-    return PIX(A + B - 2 * A * B / (double)maxValue);
+    return mergeDoubleToPIX<PIX>(A + B - 2 * A * B / (double)maxValue);
 }
 
 template <typename PIX>
@@ -803,7 +852,7 @@ geometricFunc(PIX A,
     if (sum == 0) {
         return 0;
     } else {
-        return 2 * A * B / sum;
+        return mergeDoubleToPIX<PIX>(2 * A * B / sum);
     }
 }
 
@@ -816,7 +865,7 @@ multiplyFunc(PIX A,
     if ( (A < 0) && (B < 0) ) {
         return A;
     } else {
-        return PIX(A * B / (double)maxValue);
+        return mergeDoubleToPIX<PIX>(A * B / (double)maxValue);
     }
 }
 
@@ -827,7 +876,7 @@ screenFunc(PIX A,
            PIX B)
 {
     if ( (A <= maxValue) || (B <= maxValue) ) {
-        return PIX(A + B - A * B / (double)maxValue);
+        return mergeDoubleToPIX<PIX>(A + B - A * B / (double)maxValue);
     } else {
         return (std::max)(A, B);
     }
@@ -859,12 +908,12 @@ softLightFunc(PIX A,
     // Formula from SVG Compositing (2009): https://www.w3.org/TR/2009/WD-SVGCompositing-20090430/
     // Wrong formula, from SVG 1.2 (2004): https://www.w3.org/TR/2004/WD-SVG12-20041027/rendering.html
     if (2 * An <= 1) {
-        return PIX( maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ) );
+        return mergeDoubleToPIX<PIX>( maxValue * ( Bn - (1 - 2 * An) * Bn * (1 - Bn) ) );
     } else if (4 * Bn <= 1) {
         // SVG Compositing 2009 version:
         //return PIX( maxValue * ( Bn + (2 * An - 1) * (4 * Bn * (4 * Bn + 1) * (Bn - 1) + 7 * Bn) ) );
         // SVG Compositing 2015 version (strictly equal to the SVG 2009 version, less multiplications):
-        return PIX( maxValue * ( Bn + (2 * An - 1) * (((16 * Bn - 12) * Bn + 4) * Bn - Bn) ) );
+        return mergeDoubleToPIX<PIX>( maxValue * ( Bn + (2 * An - 1) * (((16 * Bn - 12) * Bn + 4) * Bn - Bn) ) );
         // Proof (enter the following code in https://sagecell.sagemath.org):
         /*
           Bn = PolynomialRing(RationalField(), 'Bn').gen()
@@ -875,7 +924,7 @@ softLightFunc(PIX A,
           print(f-g)
          */
     } else {
-        return PIX( maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ) );
+        return mergeDoubleToPIX<PIX>( maxValue * ( Bn + (2 * An - 1) * (sqrt(Bn) - Bn) ) );
     }
 }
 
@@ -884,7 +933,7 @@ PIX
 hypotFunc(PIX A,
           PIX B)
 {
-    return PIX( std::sqrt( (double)(A * A + B * B) ) );
+    return mergeDoubleToPIX<PIX>( std::sqrt( (double)(A * A + B * B) ) );
 }
 
 template <typename PIX>
@@ -931,7 +980,7 @@ colorDodgeFunc(PIX A,
     if (A >= maxValue) {
         return A;
     } else {
-        return PIX( maxValue * (std::min)( 1., B / (maxValue - (double)A) ) );
+        return mergeDoubleToPIX<PIX>( maxValue * (std::min)( 1., B / (maxValue - (double)A) ) );
     }
 }
 
@@ -944,7 +993,7 @@ colorBurnFunc(PIX A,
     if (A <= 0) {
         return A;
     } else {
-        return PIX( maxValue * ( 1. - (std::min)(1., (maxValue - B) / (double)A) ) );
+        return mergeDoubleToPIX<PIX>( maxValue * ( 1. - (std::min)(1., (maxValue - B) / (double)A) ) );
     }
 }
 
@@ -966,7 +1015,7 @@ reflectFunc(PIX A,
     if (B >= maxValue) {
         return maxValue;
     } else {
-        return PIX( (std::min)( (double)maxValue, A * A / (double)(maxValue - B) ) );
+        return mergeDoubleToPIX<PIX>( (std::min)( (double)maxValue, A * A / (double)(maxValue - B) ) );
     }
 }
 
@@ -981,7 +1030,7 @@ freezeFunc(PIX A,
         double An = A / (double)maxValue;
         double Bn = B / (double)maxValue;
 
-        return PIX( (std::max)( 0., maxValue * (1 - std::sqrt( (std::max)(0., 1. - An) ) / Bn) ) );
+        return mergeDoubleToPIX<PIX>( (std::max)( 0., maxValue * (1 - std::sqrt( (std::max)(0., 1. - An) ) / Bn) ) );
     }
 }
 
@@ -995,7 +1044,7 @@ interpolatedFunc(PIX A,
     double An = A / (double)maxValue;
     double Bn = B / (double)maxValue;
 
-    return PIX( maxValue * ( 0.5 - 0.25 * ( std::cos(OFXS_PI * An) - std::cos(OFXS_PI * Bn) ) ) );
+    return mergeDoubleToPIX<PIX>( maxValue * ( 0.5 - 0.25 * ( std::cos(OFXS_PI * An) - std::cos(OFXS_PI * Bn) ) ) );
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcatop
@@ -1006,7 +1055,7 @@ atopFunc(PIX A,
          PIX alphaA,
          PIX alphaB)
 {
-    return PIX( A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( A * alphaB / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
 template <typename PIX, int maxValue>
@@ -1021,7 +1070,7 @@ conjointOverFunc(PIX A,
     } else if (alphaB <= 0) {
         return A + B;
     } else {
-        return A + B * ( 1. - (alphaA / (double)alphaB) );
+        return mergeDoubleToPIX<PIX>(A + B * ( 1. - (alphaA / (double)alphaB) ));
     }
 }
 
@@ -1037,7 +1086,7 @@ disjointOverFunc(PIX A,
     } else if ( (alphaA + alphaB) < maxValue ) {
         return A + B;
     } else if (alphaB <= 0) {
-        return A + B * (1 - alphaA / (double)maxValue);
+        return mergeDoubleToPIX<PIX>(A + B * (1 - alphaA / (double)maxValue));
     } else {
         return A + B * (maxValue - alphaA) / alphaB;
     }
@@ -1051,7 +1100,7 @@ inFunc(PIX A,
        PIX /*alphaA*/,
        PIX alphaB)
 {
-    return PIX(A * alphaB / (double)maxValue);
+    return mergeDoubleToPIX<PIX>(A * alphaB / (double)maxValue);
 }
 
 template <typename PIX, int maxValue>
@@ -1061,7 +1110,7 @@ matteFunc(PIX A,
           PIX alphaA,
           PIX /*alphaB*/)
 {
-    return PIX( A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( A * alphaA / (double)maxValue + B * (1. - alphaA / (double)maxValue) );
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstin
@@ -1072,7 +1121,7 @@ maskFunc(PIX /*A*/,
          PIX alphaA,
          PIX /*alphaB*/)
 {
-    return PIX(B * alphaA / (double)maxValue);
+    return mergeDoubleToPIX<PIX>(B * alphaA / (double)maxValue);
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcout
@@ -1083,7 +1132,7 @@ outFunc(PIX A,
         PIX /*alphaA*/,
         PIX alphaB)
 {
-    return PIX( A * (1. - alphaB / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( A * (1. - alphaB / (double)maxValue) );
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_srcover
@@ -1094,7 +1143,7 @@ overFunc(PIX A,
          PIX alphaA,
          PIX /*alphaB*/)
 {
-    return PIX( A + B * (1 - alphaA / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( A + B * (1 - alphaA / (double)maxValue) );
 }
 
 template <typename PIX, int maxValue>
@@ -1104,7 +1153,7 @@ stencilFunc(PIX /*A*/,
             PIX alphaA,
             PIX /*alphaB*/)
 {
-    return PIX( B * (1 - alphaA / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( B * (1 - alphaA / (double)maxValue) );
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_dstover
@@ -1115,7 +1164,7 @@ underFunc(PIX A,
           PIX /*alphaA*/,
           PIX alphaB)
 {
-    return PIX(A * (1 - alphaB / (double)maxValue) + B);
+    return mergeDoubleToPIX<PIX>(A * (1 - alphaB / (double)maxValue) + B);
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_xor
@@ -1126,7 +1175,7 @@ xorFunc(PIX A,
         PIX alphaA,
         PIX alphaB)
 {
-    return PIX( A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue) );
+    return mergeDoubleToPIX<PIX>( A * (1 - alphaB / (double)maxValue) + B * (1 - alphaA / (double)maxValue) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -1605,10 +1654,10 @@ mergePixel(bool doAlphaMasking,
         }
         pixman_float_t R[3] = { res.r, res.g, res.b };
         for (int i = 0; i < (std::min)(nComponents, 3); ++i) {
-            dst[i] = PIX( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
+            dst[i] = mergeDoubleToPIX<PIX>( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
         }
         if (nComponents == 4) {
-            dst[3] = PIX(a + b - a * b / (double)maxValue);
+            dst[3] = mergeAlphaUnion<PIX, maxValue>(a, b);
         }
 
         return;
@@ -1617,7 +1666,7 @@ mergePixel(bool doAlphaMasking,
     // separable modes
     if ( doAlphaMasking && (nComponents == 4) ) {
         maxComp = 3;
-        dst[3] = PIX(a + b - a * b / (double)maxValue);
+        dst[3] = mergeAlphaUnion<PIX, maxValue>(a, b);
     }
     for (int i = 0; i < maxComp; ++i) {
         switch (f) {
