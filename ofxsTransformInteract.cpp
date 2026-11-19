@@ -835,12 +835,15 @@ TransformInteractHelper::draw(const DrawArgs &args)
     // Draw everything twice
     // l = 0: shadow
     // l = 1: drawing
-    for (int l = 0; l < 2; ++l) {
+    // with the DrawSuite, no shadow (the host's job): only the drawing pass
+    for (int l = d.usesDrawSuite() ? 1 : 0; l < 2; ++l) {
         // shadow (uses GL_PROJECTION)
         d.glMatrixMode(GL_PROJECTION);
         int direction = (l == 0) ? 1 : -1;
         // translate (1,-1) pixels
-        d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
+        if ( !d.usesDrawSuite() ) {
+            d.glTranslated(direction * shadow.x, -direction * shadow.y, 0);
+        }
         d.glMatrixMode(GL_MODELVIEW); // Modelview should be used on Nuke
 
         // First, draw the motion curve, based on the keyframes for the translate parameter.
