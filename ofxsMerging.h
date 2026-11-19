@@ -734,7 +734,7 @@ copyFunc(PIX A,
 /**
  * @brief An input (alpha or colour) made finite: for a floating-point PIX, +-inf gives +-FLT_MAX
  * (an infinite input gave inf - inf or inf * 0 = NaN in the operators). Only comparisons: a NaN
- * falls through, and every finite alpha is unchanged. Integer PIX are unchanged.
+ * falls through, and every finite input is unchanged. Integer PIX are unchanged.
  **/
 template <typename PIX>
 inline PIX
