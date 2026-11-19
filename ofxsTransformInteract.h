@@ -208,6 +208,14 @@ public:
 
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
 
+protected:
+    /// The drawing of draw(), which calls it with the OverlayDraw of this draw action once
+    /// d.canDraw() is true. A subclass that draws more, or changes the modelview matrix
+    /// around this drawing, overrides it and draws through d only (never with OpenGL
+    /// directly), so that the overlay keeps drawing with the DrawSuite only in V2 draws
+    /// and with OpenGL only in V1 draws, and draws no shadow if d.usesDrawSuite().
+    virtual bool drawOverlay(OFX::OverlayDraw &d, const OFX::DrawArgs &args);
+
 private:
     void getTransformParams(double time, TransformParams& tp);
 
