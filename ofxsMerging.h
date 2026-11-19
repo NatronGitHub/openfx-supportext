@@ -764,19 +764,21 @@ mergeDoubleToPIX(double v)
 }
 
 /**
- * @brief The alpha a + b - ab of the masked modes. In float, a * b and a + b overflow for alphas
- * beyond about 2^64 (then inf - inf = NaN): alphas up to 2^63 use the original expression
- * (unchanged results), larger ones are computed in double. Only comparisons: a NaN falls
- * through.
+ * @brief The alpha a + b - ab of the masked modes. In float, a * b overflows for huge alphas
+ * (giving -inf, or inf - inf = NaN if a + b overflows too): only then (tested on the exact
+ * double product and sum of the inputs, with comparisons only) is it computed in double;
+ * otherwise the original expression is used, so every result that was finite is unchanged.
+ * A NaN falls through.
  **/
 template <typename PIX, int maxValue>
 inline PIX
 mergeAlphaUnion(PIX a,
                 PIX b)
 {
-    const double kMax = 9223372036854775808.; // 2^63: a * b and a + b stay below FLT_MAX
+    const double fa = std::fabs( (double)a );
+    const double fb = std::fabs( (double)b );
 
-    if ( (std::fabs( (double)a ) <= kMax) && (std::fabs( (double)b ) <= kMax) ) {
+    if ( !( (fa * fb > FLT_MAX) || (fa + fb > FLT_MAX) ) ) {
         return mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
     }
 
