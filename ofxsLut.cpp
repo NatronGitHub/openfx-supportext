@@ -431,7 +431,8 @@ hsi_to_rgb(float h,
     if ( wrapHue && ( (h < 0) || (h > OFXS_HUE_CIRCLE) ) ) {
         // a hue outside the circle gave a non-periodic result, and a division by ~0 (inf) near
         // h = -1/12 and 13/12: wrap it. Opt-in, since it changes existing out-of-range outputs.
-        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        // A non-finite hue gives hue 0, as in hsv_to_rgb and hsl_to_rgb (inf - inf was NaN).
+        h = ( std::fabs(h) <= FLT_MAX ) ? ( h - OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE) ) : 0.f;
     }
 
     if ( h < (OFXS_HUE_CIRCLE / 3) ) {
