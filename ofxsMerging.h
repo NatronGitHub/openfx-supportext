@@ -731,13 +731,35 @@ copyFunc(PIX A,
     return A;
 }
 
+/**
+ * @brief An input (alpha or colour) made finite: for a floating-point PIX, +-inf gives +-FLT_MAX
+ * (an infinite input gave inf - inf or inf * 0 = NaN in the operators). Only comparisons: a NaN
+ * falls through, and every finite alpha is unchanged. Integer PIX are unchanged.
+ **/
+template <typename PIX>
+inline PIX
+mergeFiniteInput(PIX v)
+{
+    if ( !std::numeric_limits<PIX>::is_integer ) {
+        if (v > FLT_MAX) {
+            return PIX(FLT_MAX);
+        }
+        if (v < -FLT_MAX) {
+            return PIX(-FLT_MAX);
+        }
+    }
+
+    return v;
+}
+
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_plus
 template <typename PIX>
 PIX
 plusFunc(PIX A,
          PIX B)
 {
-    return A + B;
+    // also called directly (FrameBlend): inf + -inf would be NaN
+    return mergeFiniteInput<PIX>(A) + mergeFiniteInput<PIX>(B);
 }
 
 /**
@@ -761,27 +783,6 @@ mergeDoubleToPIX(double v)
     }
 
     return PIX(v);
-}
-
-/**
- * @brief An input (alpha or colour) made finite: for a floating-point PIX, +-inf gives +-FLT_MAX
- * (an infinite input gave inf - inf or inf * 0 = NaN in the operators). Only comparisons: a NaN
- * falls through, and every finite alpha is unchanged. Integer PIX are unchanged.
- **/
-template <typename PIX>
-inline PIX
-mergeFiniteAlpha(PIX v)
-{
-    if ( !std::numeric_limits<PIX>::is_integer ) {
-        if (v > FLT_MAX) {
-            return PIX(FLT_MAX);
-        }
-        if (v < -FLT_MAX) {
-            return PIX(-FLT_MAX);
-        }
-    }
-
-    return v;
 }
 
 /**
@@ -883,6 +884,9 @@ PIX
 multiplyFunc(PIX A,
              PIX B)
 {
+    // also called directly (FrameBlend): inf * 0 would be NaN
+    A = mergeFiniteInput<PIX>(A);
+    B = mergeFiniteInput<PIX>(B);
     if ( (A < 0) && (B < 0) ) {
         return A;
     } else {
@@ -1164,7 +1168,10 @@ overFunc(PIX A,
          PIX alphaA,
          PIX /*alphaB*/)
 {
-    alphaA = mergeFiniteAlpha<PIX>(alphaA); // also called directly (Roto, FrameBlend)
+    // also called directly (Roto, FrameBlend): inf * 0 or inf - inf would be NaN
+    A = mergeFiniteInput<PIX>(A);
+    B = mergeFiniteInput<PIX>(B);
+    alphaA = mergeFiniteInput<PIX>(alphaA);
 
     return mergeDoubleToPIX<PIX>( A + B * (1 - alphaA / (double)maxValue) );
 }
@@ -1598,13 +1605,13 @@ mergePixel(bool doAlphaMasking,
     // comparisons only (a NaN falls through, every finite input is unchanged)
     PIX Af[4], Bf[4];
     for (int i = 0; i < nComponents; ++i) {
-        Af[i] = mergeFiniteAlpha<PIX>(A[i]);
-        Bf[i] = mergeFiniteAlpha<PIX>(B[i]);
+        Af[i] = mergeFiniteInput<PIX>(A[i]);
+        Bf[i] = mergeFiniteInput<PIX>(B[i]);
     }
     A = Af;
     B = Bf;
-    a = mergeFiniteAlpha<PIX>(a);
-    b = mergeFiniteAlpha<PIX>(b);
+    a = mergeFiniteInput<PIX>(a);
+    b = mergeFiniteInput<PIX>(b);
     doAlphaMasking = (f == eMergeMatte) || (doAlphaMasking && isMaskable(f));
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphaA*alphaB
