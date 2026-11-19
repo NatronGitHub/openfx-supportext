@@ -764,6 +764,27 @@ mergeDoubleToPIX(double v)
 }
 
 /**
+ * @brief An input (alpha or colour) made finite: for a floating-point PIX, +-inf gives +-FLT_MAX
+ * (an infinite input gave inf - inf or inf * 0 = NaN in the operators). Only comparisons: a NaN
+ * falls through, and every finite alpha is unchanged. Integer PIX are unchanged.
+ **/
+template <typename PIX>
+inline PIX
+mergeFiniteAlpha(PIX v)
+{
+    if ( !std::numeric_limits<PIX>::is_integer ) {
+        if (v > FLT_MAX) {
+            return PIX(FLT_MAX);
+        }
+        if (v < -FLT_MAX) {
+            return PIX(-FLT_MAX);
+        }
+    }
+
+    return v;
+}
+
+/**
  * @brief The alpha a + b - ab of the masked modes. In float, a * b overflows for huge alphas
  * (giving -inf, or inf - inf = NaN if a + b overflows too): only then (tested on the exact
  * double product and sum of the inputs against the float overflow threshold, with comparisons
@@ -1143,6 +1164,8 @@ overFunc(PIX A,
          PIX alphaA,
          PIX /*alphaB*/)
 {
+    alphaA = mergeFiniteAlpha<PIX>(alphaA); // also called directly (Roto, FrameBlend)
+
     return mergeDoubleToPIX<PIX>( A + B * (1 - alphaA / (double)maxValue) );
 }
 
@@ -1571,6 +1594,17 @@ mergePixel(bool doAlphaMasking,
            PIX b,
            PIX* dst)
 {
+    // infinite inputs gave inf - inf or inf * 0 = NaN: make them finite (+-FLT_MAX), with
+    // comparisons only (a NaN falls through, every finite input is unchanged)
+    PIX Af[4], Bf[4];
+    for (int i = 0; i < nComponents; ++i) {
+        Af[i] = mergeFiniteAlpha<PIX>(A[i]);
+        Bf[i] = mergeFiniteAlpha<PIX>(B[i]);
+    }
+    A = Af;
+    B = Bf;
+    a = mergeFiniteAlpha<PIX>(a);
+    b = mergeFiniteAlpha<PIX>(b);
     doAlphaMasking = (f == eMergeMatte) || (doAlphaMasking && isMaskable(f));
 
     ///When doAlphaMasking is enabled and we're in RGBA the output alpha is set to alphaA+alphaB-alphaA*alphaB
