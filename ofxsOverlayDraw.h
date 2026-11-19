@@ -33,8 +33,8 @@
  *     (glPushMatrix, glTranslate, glRotate, glMultMatrix) and passed in
  *     canonical coordinates, like OpenGL overlay vertices.
  *   - Translations done in GL_PROJECTION mode are applied after the modelview
- *     matrix, in canonical coordinates (the overlays use them for the
- *     one-pixel shadow). glGetDoublev(GL_PROJECTION_MATRIX) and
+ *     matrix, in canonical coordinates (the OpenGL overlays use them for the
+ *     one-pixel shadow, which they don't draw with the DrawSuite). glGetDoublev(GL_PROJECTION_MATRIX) and
  *     glGetIntegerv(GL_VIEWPORT) return a projection for which one viewport
  *     pixel is args.pixelScale ("The size of a real screen pixel under the
  *     interact's canonical projection").
