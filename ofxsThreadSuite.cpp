@@ -78,6 +78,18 @@ namespace this_thread = tthread::this_thread;
 #include "ofxMultiThread.h"
 #include "ofxsImageEffect.h"
 
+#ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#include <process.h> // _beginthreadex
+#include <stdexcept>
+#endif
+
 using std::map;
 using std::vector;
 #ifdef DEBUG_STDOUT
@@ -98,8 +110,110 @@ const unsigned nprocs = thread::hardware_concurrency();
 mutex occupancyLock; // protects occupancy
 unsigned occupancy = 0;
 
+// The threads started by multiThread (the fallback when the host has no multithread suite).
+// On Windows they get an explicit stack size: std::thread and tinythread use the
+// executable's default, 1 MiB for MSVC-linked hosts (2 MiB with MinGW), which deep
+// recursion in a render overflows (seen with G'MIC filters, 0xC00000FD). They are
+// identified by their Win32 thread id there (std::thread::id is not that id with MinGW).
+#ifdef _WIN32
+typedef DWORD ThreadKey;
+
+static inline ThreadKey
+currentThreadKey()
+{
+    return GetCurrentThreadId();
+}
+
+class WorkerThread
+{
+public:
+    static const unsigned kStackSize = 8u << 20; // 8 MiB, reserved (committed as used)
+
+    WorkerThread(void (*func)(void*),
+                 void* arg)
+        : _func(func)
+        , _arg(arg)
+        , _handle(0)
+        , _key(0)
+    {
+        unsigned id = 0;
+        _handle = (HANDLE)_beginthreadex(NULL, kStackSize, &entry, this, STACK_SIZE_PARAM_IS_A_RESERVATION, &id);
+        if (!_handle) {
+            throw std::runtime_error("multiThread: cannot start a thread");
+        }
+        _key = id;
+    }
+
+    ~WorkerThread()
+    {
+        if (_handle) {
+            join();
+        }
+    }
+
+    void join()
+    {
+        WaitForSingleObject(_handle, INFINITE);
+        CloseHandle(_handle);
+        _handle = 0;
+    }
+
+    bool joinable() const { return _handle != 0; }
+
+    ThreadKey key() const { return _key; }
+
+private:
+    static unsigned __stdcall entry(void* p)
+    {
+        WorkerThread* t = (WorkerThread*)p;
+
+        t->_func(t->_arg);
+
+        return 0;
+    }
+
+    void (*_func)(void*);
+    void* _arg;
+    HANDLE _handle;
+    ThreadKey _key;
+
+    WorkerThread(const WorkerThread &);
+    WorkerThread& operator=(const WorkerThread &);
+};
+#else
+typedef thread::id ThreadKey;
+
+static inline ThreadKey
+currentThreadKey()
+{
+    return this_thread::get_id();
+}
+
+class WorkerThread
+{
+public:
+    WorkerThread(void (*func)(void*),
+                 void* arg)
+        : _thread(func, arg)
+    {
+    }
+
+    void join() { _thread.join(); }
+
+    bool joinable() const { return _thread.joinable(); }
+
+    ThreadKey key() const { return _thread.get_id(); }
+
+private:
+    thread _thread;
+
+    WorkerThread(const WorkerThread &);
+    WorkerThread& operator=(const WorkerThread &);
+};
+#endif
+
 mutex threadIndexesLock; // protects threadIndexes
-map<thread::id, unsigned int> threadIndexes;
+map<ThreadKey, unsigned int> threadIndexes;
 
 
 struct ThreadArgs
@@ -164,7 +278,7 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
     // check if this is a spawned thread, if yes return kOfxStatErrExists
     {
         lock_guard<mutex> guard(threadIndexesLock);
-        if ( threadIndexes.find( this_thread::get_id() ) != threadIndexes.end() ) {
+        if ( threadIndexes.find( currentThreadKey() ) != threadIndexes.end() ) {
             return kOfxStatErrExists;
         }
     }
@@ -202,8 +316,8 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
     }
 
     // at most maxConcurrentThread should be running at the same time
-    vector<thread*> threads(nThreads, NULL);
-    vector<thread::id> threadIDs(nThreads);
+    vector<WorkerThread*> threads(nThreads, NULL);
+    vector<ThreadKey> threadIDs(nThreads);
     vector<ThreadArgs> threadArgs(nThreads);
     for (unsigned int i = 0; i < nThreads; ++i) {
         threadArgs[i].func = func;
@@ -222,8 +336,8 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
             lock_guard<mutex> guard(threadIndexesLock);
 
             while (i < nThreads && running < maxConcurrentThread) {
-                threads[i] = new thread(threadFunction, &threadArgs[i]);
-                threadIDs[i] = threads[i]->get_id();
+                threads[i] = new WorkerThread(threadFunction, &threadArgs[i]);
+                threadIDs[i] = threads[i]->key();
                 assert( threadIndexes.find(threadIDs[i]) == threadIndexes.end() );
                 threadIndexes[threadIDs[i]] = threadArgs[i].threadIndex;
                 ++i;
@@ -243,7 +357,7 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
         assert( !threads[j]->joinable() );
         {
             lock_guard<mutex> guard(threadIndexesLock);
-            map<thread::id, unsigned int>::iterator it = threadIndexes.find(threadIDs[j]);
+            map<ThreadKey, unsigned int>::iterator it = threadIndexes.find(threadIDs[j]);
             assert( it != threadIndexes.end() );
             if ( it != threadIndexes.end() ) {
                 threadIndexes.erase(it);
@@ -251,7 +365,7 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
         }
         delete threads[j];
         threads[j] = NULL;
-        threadIDs[j] = thread::id();
+        threadIDs[j] = ThreadKey();
         ++j;
         --running;
 
@@ -315,7 +429,7 @@ OfxStatus multiThreadIndex(unsigned int *threadIndex)
     }
 
     lock_guard<mutex> guard(threadIndexesLock);
-    map<thread::id, unsigned int>::const_iterator it = threadIndexes.find( this_thread::get_id() );
+    map<ThreadKey, unsigned int>::const_iterator it = threadIndexes.find( currentThreadKey() );
     if ( it != threadIndexes.end() ) {
         *threadIndex = it->second;
     } else {
@@ -335,7 +449,7 @@ OfxStatus multiThreadIndex(unsigned int *threadIndex)
 int multiThreadIsSpawnedThread(void)
 {
     lock_guard<mutex> guard(threadIndexesLock);
-    return threadIndexes.find( this_thread::get_id() ) != threadIndexes.end();
+    return threadIndexes.find( currentThreadKey() ) != threadIndexes.end();
 }
 
 /** @brief Create a mutex
