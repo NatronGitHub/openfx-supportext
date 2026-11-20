@@ -8,7 +8,7 @@
 # Used as the top-level project, it builds a compile check of every source
 # (requires -DOPENFX_DIR=<openfx checkout>), which the CI's "Compile" steps run; the
 # consumer tests are in tests/cmake.
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21...3.31)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # macOS 14.0 deployment target, as the plug-in repositories (VFX Reference Platform CY2027,
   # openfx#160); a toolchain file, a cross build or MACOSX_DEPLOYMENT_TARGET take precedence
