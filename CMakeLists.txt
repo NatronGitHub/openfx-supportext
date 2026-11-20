@@ -10,6 +10,9 @@
 # consumer tests are in tests/cmake.
 cmake_minimum_required(VERSION 3.16)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  # standalone compile check: the CMake range of openfx's cmake/OpenFX.cmake (openfx#196);
+  # add_subdirectory(SupportExt) from a consumer keeps 3.16
+  cmake_minimum_required(VERSION 3.21...3.31)
   # macOS 14.0 deployment target, as the plug-in repositories (VFX Reference Platform CY2027,
   # openfx#160); a toolchain file, a cross build or MACOSX_DEPLOYMENT_TARGET take precedence
   if(CMAKE_HOST_APPLE AND NOT CMAKE_TOOLCHAIN_FILE AND (NOT CMAKE_SYSTEM_NAME OR CMAKE_SYSTEM_NAME STREQUAL "Darwin") AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET AND "$ENV{MACOSX_DEPLOYMENT_TARGET}" STREQUAL "")
