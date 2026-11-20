@@ -1,8 +1,9 @@
 name: Build (one platform)
 
 # Reusable: the per-platform build used by ci.yml (per push / pull request) and
-# extended.yml (nightly macOS). Compiles every SupportExt source file in C++17
-# with warnings as failures, against openfx master and 2303ff8 (pre-OFX 1.5),
+# extended.yml (nightly macOS). Compiles every SupportExt source file with CMake (the
+# top-level CMakeLists.txt compile check) in C++17 with warnings as errors, against
+# openfx master and 2303ff8 (pre-OFX 1.5),
 # runs the CMake helper tests, then (Linux, macOS) builds openfx-misc with this
 # SupportExt and renders all its plug-ins with hostDemo (openfx-misc's
 # smoketest.sh), then again with hostDemo as an OFX 1.4-only host (--ofx14).
@@ -65,22 +66,26 @@ jobs:
           set -eo pipefail
           c++ --version
       - name: Compile (openfx master, C++17)
+        # the top-level CMakeLists.txt: a compile check of every source, warnings as errors
         run: |
           set -eo pipefail
-          CXXSTD=-std=c++17 .github/scripts/compile.sh openfx
+          cmake -S . -B "$RUNNER_TEMP/supportext-check" -DOPENFX_DIR="$PWD/openfx" \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wno-unused-parameter" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build "$RUNNER_TEMP/supportext-check" --parallel
       - name: Compile (openfx 2303ff8, C++17)
         run: |
           set -eo pipefail
-          CXXSTD=-std=c++17 .github/scripts/compile.sh openfx-pre15
-      - name: CMake helper (compile check of every source, consumer tests)
+          cmake -S . -B "$RUNNER_TEMP/supportext-check-pre15" -DOPENFX_DIR="$PWD/openfx-pre15" \
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wno-unused-parameter" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build "$RUNNER_TEMP/supportext-check-pre15" --parallel
+      - name: CMake helper (consumer tests)
         # tests/cmake: add_subdirectory(SupportExt) then a call from the parent,
         # sibling includes, a STATIC library linked into a module, OPENGL modules
         # linked without undefined symbols, options inside COMPONENTS, calls from other
         # directories with consumer-created imported targets, old (3.1) policies
         run: |
           set -eo pipefail
-          cmake -S . -B "$RUNNER_TEMP/supportext-cmake" -DOPENFX_DIR="$PWD/openfx"
-          cmake --build "$RUNNER_TEMP/supportext-cmake" --parallel
+          # (the compile check of every source is the "Compile" steps above)
           cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx"
           cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel
           # calls from another directory with consumer-created imported targets

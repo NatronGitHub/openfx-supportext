@@ -82,28 +82,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libgl-dev libglu1-mesa-dev libegl-dev
       - name: Compile
-        run: CXXSTD=-std=${{ matrix.std }} .github/scripts/compile.sh openfx
-
-  # MSVC is not used by the consumers, but checks that the sources (e.g. the
-  # windows.h-before-GL/gl.h include order in ofxsOverlayDraw.h) compile with it.
-  # Errors fail; warnings are reported as annotations.
-  msvc:
-    name: Windows (MSVC) / openfx master / C++17
-    needs: changes
-    if: needs.changes.outputs.run == 'true'
-    runs-on: windows-2022
-    timeout-minutes: 30
-    steps:
-      - name: Checkout openfx-supportext
-        uses: actions/checkout@v4
-      - name: Checkout openfx
-        uses: actions/checkout@v4
-        with:
-          repository: NatronGitHub/openfx
-          ref: master
-          path: openfx
-      - name: MSVC developer environment
-        uses: ilammy/msvc-dev-cmd@v1
-      - name: Compile
-        shell: pwsh
-        run: .github/scripts/compile-msvc.ps1 openfx -Std c++17
+        # the top-level CMakeLists.txt compile check, warnings as errors
+        run: |
+          std='${{ matrix.std }}'
+          cmake -S . -B "$RUNNER_TEMP/supportext-check" -DOPENFX_DIR="$PWD/openfx" \
+            -DCMAKE_CXX_STANDARD="${std#c++}" -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wno-unused-parameter" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          cmake --build "$RUNNER_TEMP/supportext-check" --parallel
