@@ -329,14 +329,22 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
     unsigned int i = 0; // index of next thread to launch
     unsigned int running = 0; // number of running threads
     unsigned int j = 0; // index of first running thread. all threads before this one are finished running
+    bool launchFailed = false; // a thread could not be started: launch no more, join the started ones
     while (j < nThreads) {
         // have no more than maxConcurrentThread threads launched at the same time
         int threadsStarted = 0;
         {
             lock_guard<mutex> guard(threadIndexesLock);
 
-            while (i < nThreads && running < maxConcurrentThread) {
-                threads[i] = new WorkerThread(threadFunction, &threadArgs[i]);
+            while (!launchFailed && i < nThreads && running < maxConcurrentThread) {
+                try {
+                    threads[i] = new WorkerThread(threadFunction, &threadArgs[i]);
+                } catch (...) {
+                    // the threads already started use threadArgs: they must be joined before
+                    // returning ("kOfxStatFailed, the threading function failed to launch")
+                    launchFailed = true;
+                    break;
+                }
                 threadIDs[i] = threads[i]->key();
                 assert( threadIndexes.find(threadIDs[i]) == threadIndexes.end() );
                 threadIndexes[threadIDs[i]] = threadArgs[i].threadIndex;
@@ -352,6 +360,9 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
             occupancy += threadsStarted;
         }
 
+        if (j >= i) {
+            break; // nothing left to join (a launch failed)
+        }
         // now we've got at most maxConcurrentThread running. wait for each thread and launch a new one
         threads[j]->join();
         assert( !threads[j]->joinable() );
@@ -376,6 +387,9 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
         }
     }
     assert(running == 0);
+    if (launchFailed) {
+        return kOfxStatFailed;
+    }
 
     // check the return status of each thread, return the first error found
     for (unsigned int i = 0; i < nThreads; ++i) {
