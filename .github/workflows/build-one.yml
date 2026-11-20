@@ -1,8 +1,9 @@
 name: Build (one platform)
 
-# Reusable: the per-platform build used by ci.yml (per push / pull request) and
-# extended.yml (nightly macOS). Compiles every SupportExt source file with CMake (the
-# top-level CMakeLists.txt compile check) in C++17 with warnings as errors, against
+# Reusable: the per-platform build used by ci.yml (per push / pull request: Linux,
+# macOS) and extended.yml (nightly: macOS, Windows MSYS2 UCRT64). Compiles every
+# SupportExt source file with CMake (the top-level CMakeLists.txt compile check) in
+# C++17 with warnings as errors, against
 # openfx master and 2303ff8 (pre-OFX 1.5),
 # runs the CMake helper tests, then (Linux, macOS) builds openfx-misc with this
 # SupportExt and renders all its plug-ins with hostDemo (openfx-misc's

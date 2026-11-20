@@ -1,7 +1,8 @@
 name: Extended builds
 
 # Extra variants that are not run per push or pull request, plus the per-PR
-# macOS build: C++20 (RB-2.6 Qt6
+# macOS build and the Windows MSYS2 UCRT64 build (the per-PR Windows build is MSVC):
+# C++20 (RB-2.6 Qt6
 # builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
 # OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
 # cursors). Nightly (skipped if master didn't change in the last day), or on
@@ -38,6 +39,18 @@ jobs:
           else
             echo "run=false" >> "$GITHUB_OUTPUT"; echo "No commits on master in the last 25 hours: skipping."
           fi
+
+  # the Windows MSYS2 UCRT64 build (the toolchain of openfx-io and openfx-arena): the
+  # compile checks and the CMake consumer tests of build-one.yml (the openfx-misc smoke
+  # test is Linux and macOS only), nightly (the per-PR Windows build is MSVC)
+  windows-ucrt64:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/build-one.yml
+    with:
+      name: Windows (MSYS2 UCRT64)
+      os: windows-2022
+      shell: 'msys2 {0}'
 
   # the per-PR macOS build (also run per PR, after Linux and Windows)
   macos:
