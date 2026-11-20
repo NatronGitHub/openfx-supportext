@@ -29,8 +29,7 @@ permissions:
 jobs:
   # Linux and Windows first; macOS (arm64 runners are scarce) only runs when they
   # pass. Merging requires Linux and Windows (MSYS2 and MSVC); macOS is
-  # informative. The macOS
-  # build also runs nightly (extended.yml).
+  # informative. The macOS build also runs nightly (extended.yml).
   build:
     name: ${{ matrix.name }}
     # no CI on draft pull requests
