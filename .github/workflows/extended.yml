@@ -39,6 +39,17 @@ jobs:
             echo "run=false" >> "$GITHUB_OUTPUT"; echo "No commits on master in the last 25 hours: skipping."
           fi
 
+  # the Windows MSYS2 UCRT64 build (the toolchain of openfx-io and openfx-arena): the
+  # same steps as the per-PR Linux build, nightly (the per-PR Windows build is MSVC)
+  windows-ucrt64:
+    needs: changes
+    if: needs.changes.outputs.run == 'true'
+    uses: ./.github/workflows/build-one.yml
+    with:
+      name: Windows (MSYS2 UCRT64)
+      os: windows-2022
+      shell: 'msys2 {0}'
+
   # the per-PR macOS build (also run per PR, after Linux and Windows)
   macos:
     needs: changes
