@@ -1,7 +1,8 @@
 name: Extended builds
 
 # Extra variants that are not run per push or pull request, plus the per-PR
-# macOS build: C++20 (RB-2.6 Qt6
+# macOS build and the Windows MSYS2 UCRT64 build (the per-PR Windows build is MSVC):
+# C++20 (RB-2.6 Qt6
 # builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
 # OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
 # cursors). Nightly (skipped if master didn't change in the last day), or on
