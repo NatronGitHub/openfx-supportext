@@ -236,14 +236,14 @@ ofxsWideAdd(const OfxsWideDouble &a,
     if (b.m == 0.) {
         return a;
     }
-    const OfxsWideDouble &big = (a.e >= b.e) ? a : b;
-    const OfxsWideDouble &small = (a.e >= b.e) ? b : a;
-    const int d = big.e - small.e;
+    const OfxsWideDouble &hi = (a.e >= b.e) ? a : b;
+    const OfxsWideDouble &lo = (a.e >= b.e) ? b : a;
+    const int d = hi.e - lo.e;
     if (d > 1100) {
-        return big; // small is below half an ulp of big
+        return hi; // lo is below half an ulp of hi (not "small": a macro in <windows.h>)
     }
 
-    return ofxsWideNormalize(big.m + std::ldexp(small.m, -d), big.e);
+    return ofxsWideNormalize(hi.m + std::ldexp(lo.m, -d), hi.e);
 }
 
 // determinant of the k x k submatrix of the N x N matrix a made of the rows rows[0..k-1] and
