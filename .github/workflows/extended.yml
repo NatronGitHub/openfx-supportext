@@ -41,7 +41,8 @@ jobs:
           fi
 
   # the Windows MSYS2 UCRT64 build (the toolchain of openfx-io and openfx-arena): the
-  # same steps as the per-PR Linux build, nightly (the per-PR Windows build is MSVC)
+  # compile checks and the CMake consumer tests of build-one.yml (the openfx-misc smoke
+  # test is Linux and macOS only), nightly (the per-PR Windows build is MSVC)
   windows-ucrt64:
     needs: changes
     if: needs.changes.outputs.run == 'true'
