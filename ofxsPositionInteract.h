@@ -317,9 +317,11 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         d.glBegin(GL_POINTS);
         d.glVertex2d(pos.x, pos.y);
         d.glEnd();
-        // the label is pointSize() screen pixels above the point: convert to canonical units
-        // (args.pixelScale: the size of a screen pixel in canonical coordinates)
-        d.bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio * args.pixelScale.y, ParamName::name(), font );
+        // the label is pointSize() screen pixels above the point, in canonical units
+        // (kOfxInteractPropPixelScale: "The size of a real screen pixel under the interact's
+        // canonical projection"; the screen pixel ratio is for framebuffer sizes such as
+        // glPointSize, so it is not applied here, as for the handles)
+        d.bitmapString( pos.x, pos.y + pointSize() * args.pixelScale.y, ParamName::name(), font );
     }
 
     //glPopAttrib();

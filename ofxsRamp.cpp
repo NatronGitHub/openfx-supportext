@@ -274,7 +274,9 @@ RampInteractHelper::draw(const DrawArgs &args)
             d.glVertex2d(pline2[i].x, pline2[i].y);
             d.glEnd();
 
-            d.bitmapString(p[i].x, p[i].y + POINT_SIZE * screenPixelRatio, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label, font);
+            // the label is POINT_SIZE screen pixels above the point, in canonical units (the screen
+            // pixel ratio is for framebuffer sizes such as glPointSize)
+            d.bitmapString(p[i].x, p[i].y + POINT_SIZE * args.pixelScale.y, i == 0 ? kParamRampPoint0Label : kParamRampPoint1Label, font);
         }
     }
 
