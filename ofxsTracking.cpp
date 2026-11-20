@@ -589,7 +589,9 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
         string name;
         _name->getValue(name);
-        d.bitmapString(xc, yc + POINT_SIZE * screenPixelRatio, name.c_str(), font);
+        // the label is POINT_SIZE screen pixels above the centre, in canonical units (as the
+        // handles: the screen pixel ratio is for framebuffer sizes such as glPointSize)
+        d.bitmapString(xc, yc + POINT_SIZE * pscale.y, name.c_str(), font);
     }
 
     //glPopAttrib();
