@@ -1,7 +1,8 @@
 name: Continuous Integration
 
 # On pushes to master, RB-* and tags, and on non-draft pull requests: one build
-# per platform (Linux, Windows, then macOS), in C++17 (see build-one.yml).
+# per platform (Linux, Windows, then macOS), in C++17 (see build-one.yml), and an
+# MSVC compile check.
 # Extra variants (C++20, C++23, other openfx versions) are in extended.yml.
 
 on:
@@ -27,7 +28,8 @@ permissions:
 
 jobs:
   # Linux and Windows first; macOS (arm64 runners are scarce) only runs when they
-  # pass. Merging requires Linux and Windows; macOS is informative. The macOS
+  # pass. Merging requires Linux and Windows (MSYS2 and MSVC); macOS is
+  # informative. The macOS
   # build also runs nightly (extended.yml).
   build:
     name: ${{ matrix.name }}
@@ -54,3 +56,35 @@ jobs:
     with:
       name: macOS 15 arm64 (Xcode clang)
       os: macos-15
+
+  # MSVC is not used by the consumers, but checks that the sources compile with it
+  # (e.g. the windows.h-before-GL/gl.h include order in ofxsOverlayDraw.h, or an
+  # identifier that is a <windows.h> macro such as small, #92). Per pull request,
+  # in parallel with Linux and Windows MSYS2. Errors fail; warnings are printed.
+  msvc:
+    name: Windows (MSVC)
+    # no CI on draft pull requests
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Checkout openfx-supportext
+        uses: actions/checkout@v4
+      - name: Checkout openfx
+        uses: actions/checkout@v4
+        with:
+          repository: NatronGitHub/openfx
+          ref: master
+          path: openfx
+      - name: MSVC developer environment
+        uses: ilammy/msvc-dev-cmd@v1
+      - name: Compile
+        shell: pwsh
+        # the top-level CMakeLists.txt compile check (Ninja, cl from the developer
+        # environment); errors fail, warnings are printed
+        run: |
+          cmake -S . -B "$env:RUNNER_TEMP/supportext-check" -G Ninja -DOPENFX_DIR="$PWD/openfx" `
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_COMPILER=cl "-DCMAKE_CXX_FLAGS=/EHsc /W3"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          cmake --build "$env:RUNNER_TEMP/supportext-check" --parallel
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
