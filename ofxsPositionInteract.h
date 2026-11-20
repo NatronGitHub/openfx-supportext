@@ -317,7 +317,9 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
         d.glBegin(GL_POINTS);
         d.glVertex2d(pos.x, pos.y);
         d.glEnd();
-        d.bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio, ParamName::name(), font );
+        // the label is pointSize() screen pixels above the point: convert to canonical units
+        // (args.pixelScale: the size of a screen pixel in canonical coordinates)
+        d.bitmapString( pos.x, pos.y + pointSize() * screenPixelRatio * args.pixelScale.y, ParamName::name(), font );
     }
 
     //glPopAttrib();
