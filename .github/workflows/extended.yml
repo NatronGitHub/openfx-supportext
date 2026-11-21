@@ -5,12 +5,14 @@ name: Extended builds
 # C++20 (RB-2.6 Qt6
 # builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
 # OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
-# cursors). Nightly (skipped if master didn't change in the last day), or on
-# demand.
+# cursors). Weekly on Saturday at 03:17 UTC, or on demand. The weekly run is
+# never skipped: every job builds against a moving upstream (openfx master, and
+# openfx-misc master for the smoketest), so a run tests new upstream commits even
+# when SupportExt master didn't change.
 
 on:
   schedule:
-    - cron: '17 3 * * *'
+    - cron: '17 3 * * 6'
   workflow_dispatch:
 
 concurrency:
@@ -21,31 +23,10 @@ permissions:
   contents: read
 
 jobs:
-  # Skip the scheduled run if master didn't change since the previous one
-  changes:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    outputs:
-      run: ${{ steps.check.outputs.run }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 50
-      - id: check
-        shell: bash -eo pipefail {0}
-        run: |
-          if [ "${{ github.event_name }}" != schedule ] || [ -n "$(git log --since='25 hours ago' --format=%h -1)" ]; then
-            echo "run=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "run=false" >> "$GITHUB_OUTPUT"; echo "No commits on master in the last 25 hours: skipping."
-          fi
-
   # the Windows MSYS2 UCRT64 build (the toolchain of openfx-io and openfx-arena): the
   # compile checks and the CMake consumer tests of build-one.yml (the openfx-misc smoke
-  # test is Linux and macOS only), nightly (the per-PR Windows build is MSVC)
+  # test is Linux and macOS only), weekly (the per-PR Windows build is MSVC)
   windows-ucrt64:
-    needs: changes
-    if: needs.changes.outputs.run == 'true'
     uses: ./.github/workflows/build-one.yml
     with:
       name: Windows (MSYS2 UCRT64)
@@ -54,8 +35,6 @@ jobs:
 
   # the per-PR macOS build (also run per PR, after Linux and Windows)
   macos:
-    needs: changes
-    if: needs.changes.outputs.run == 'true'
     uses: ./.github/workflows/build-one.yml
     with:
       name: macOS 15 arm64 (Xcode clang) / per-PR build
@@ -63,8 +42,6 @@ jobs:
 
   compile:
     name: ${{ matrix.name }}
-    needs: changes
-    if: needs.changes.outputs.run == 'true'
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:

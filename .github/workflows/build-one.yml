@@ -1,7 +1,7 @@
 name: Build (one platform)
 
 # Reusable: the per-platform build used by ci.yml (per push / pull request: Linux,
-# macOS) and extended.yml (nightly: macOS, Windows MSYS2 UCRT64). Compiles every
+# macOS) and extended.yml (weekly: macOS, Windows MSYS2 UCRT64). Compiles every
 # SupportExt source file with CMake (the top-level CMakeLists.txt compile check) in
 # C++17 with warnings as errors, against
 # openfx master and 2303ff8 (pre-OFX 1.5),
