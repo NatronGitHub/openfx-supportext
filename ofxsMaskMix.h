@@ -514,7 +514,7 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha;
+                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // an inf mask gives alpha = +-FLT_MAX
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }
@@ -582,7 +582,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha;
+                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // an inf mask gives alpha = +-FLT_MAX
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }
