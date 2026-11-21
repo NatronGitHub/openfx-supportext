@@ -2,7 +2,7 @@ name: Continuous Integration
 
 # On pushes to master, RB-* and tags, and on non-draft pull requests: one build
 # per platform in C++17: Linux (see build-one.yml) and Windows (an MSVC x64 compile
-# check), then macOS. The Windows MSYS2 UCRT64 build is nightly (extended.yml),
+# check), then macOS. The Windows MSYS2 UCRT64 build is weekly (extended.yml),
 # following the maintainer's Windows policy (one fast C++17 Windows build per change).
 # Extra variants (C++20, C++23, other openfx versions) are in extended.yml.
 
@@ -30,7 +30,7 @@ permissions:
 jobs:
   # Linux and Windows first; macOS (arm64 runners are scarce) only runs when they
   # pass. Merging requires Linux and Windows (MSVC); macOS is informative. The
-  # macOS and Windows MSYS2 builds also run nightly (extended.yml).
+  # macOS and Windows MSYS2 builds also run weekly (extended.yml).
   build:
     name: ${{ matrix.name }}
     # no CI on draft pull requests
@@ -58,7 +58,7 @@ jobs:
 
   # The per-change Windows build: an MSVC x64 compile check (windows-2022 runners are
   # the fastest and most available Windows ones). openfx-misc's and openfx-gmic's
-  # nightlies are built with MSVC; it also catches <windows.h> macro clashes such as
+  # scheduled builds use MSVC; it also catches <windows.h> macro clashes such as
   # small (#92). Errors fail; warnings are printed.
   msvc:
     name: Windows (MSVC)
