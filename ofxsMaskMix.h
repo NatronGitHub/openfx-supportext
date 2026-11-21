@@ -468,6 +468,8 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
+                    // +-FLT_MAX samples may round the sum to +-inf: keep it finite (comparisons only)
+                    v = (v > FLT_MAX) ? FLT_MAX : ( (v < -FLT_MAX) ? -FLT_MAX : v );
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             } else {
@@ -510,6 +512,9 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                 maskScale = maskInvert ? 1.f : 0.f;
             } else {
                 maskScale = *maskPix / float(maxValue);
+                // the mask is a weight in [0, 1]: a NaN, infinite, huge or out-of-range sample gave
+                // inf * 0 or inf - inf = NaN, or extrapolated. Comparisons only: NaN gives 0.
+                maskScale = (maskScale > 0.f) ? ( (maskScale < 1.f) ? maskScale : 1.f ) : 0.f;
                 if (maskInvert) {
                     maskScale = 1.f - maskScale;
                 }
@@ -534,6 +539,8 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
                     float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
+                    // +-FLT_MAX samples may round the sum to +-inf: keep it finite (comparisons only)
+                    v = (v > FLT_MAX) ? FLT_MAX : ( (v < -FLT_MAX) ? -FLT_MAX : v );
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             } else {
