@@ -437,6 +437,48 @@ ofxsPremultPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
 }
 
 
+// A value made finite, with comparisons only: NaN gives 0, beyond the float range gives +-FLT_MAX,
+// every finite float is unchanged.
+inline float
+ofxsFiniteFloat(double v)
+{
+    if ( (v >= -FLT_MAX) && (v <= FLT_MAX) ) {
+        return (float)v;
+    }
+    if (v > 0.) {
+        return FLT_MAX;
+    }
+    if (v < 0.) {
+        return -FLT_MAX;
+    }
+
+    return 0.f; // NaN
+}
+
+// tmp * alpha + (1 - alpha) * src, the mix of ofxsMixPix and ofxsMaskMixPix, kept finite. The original
+// float expression gives the result unless both products round to infinity in float (exact products,
+// tested in double, at least 2^128 - 2^103): only then was the old result inf - inf = NaN or +-inf,
+// whether or not the compiler fuses one product into an FMA, and it is computed in double instead. A
+// result beyond the float range gives +-FLT_MAX, and NaN (from a NaN input) gives 0. So every finite
+// result is unchanged.
+inline float
+ofxsMixValue(float tmp,
+             float src,
+             float alpha)
+{
+    // float rounds an exact value to inf from 2^128 - 2^103 (halfway between FLT_MAX and 2^128)
+    const double kOverflow = 340282356779733661637539395458142568448.;
+    const float beta = 1.f - alpha;
+    const double p1 = std::fabs( (double)tmp * (double)alpha ); // exact
+    const double p2 = std::fabs( (double)src * (double)beta ); // exact
+    if ( (p1 >= kOverflow) && (p2 >= kOverflow) ) {
+        return ofxsFiniteFloat( (double)tmp * alpha + (double)beta * src );
+    }
+    float v = tmp * alpha + (1.f - alpha) * src;
+
+    return ofxsFiniteFloat(v);
+}
+
 // tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
 template <class PIX, int nComponents, int maxValue>
 void
@@ -467,9 +509,7 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
         } else {
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                    // +-FLT_MAX samples may round the sum to +-inf: keep it finite (comparisons only)
-                    v = (v > FLT_MAX) ? FLT_MAX : ( (v < -FLT_MAX) ? -FLT_MAX : v );
+                    float v = ofxsMixValue(tmpPix[c], srcPix[c], alpha);
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             } else {
@@ -511,10 +551,9 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             if (maskPix == 0) {
                 maskScale = maskInvert ? 1.f : 0.f;
             } else {
-                maskScale = *maskPix / float(maxValue);
-                // the mask is a weight in [0, 1]: a NaN, infinite, huge or out-of-range sample gave
-                // inf * 0 or inf - inf = NaN, or extrapolated. Comparisons only: NaN gives 0.
-                maskScale = (maskScale > 0.f) ? ( (maskScale < 1.f) ? maskScale : 1.f ) : 0.f;
+                // a NaN or infinite mask sample gave inf * 0 or inf - inf = NaN: make it finite
+                // (NaN gives 0, +-inf gives +-FLT_MAX); every finite mask, also outside [0, 1], is unchanged
+                maskScale = ofxsFiniteFloat(*maskPix / float(maxValue));
                 if (maskInvert) {
                     maskScale = 1.f - maskScale;
                 }
@@ -538,9 +577,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
         } else {
             if (srcPix) {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = tmpPix[c] * alpha + (1.f - alpha) * srcPix[c];
-                    // +-FLT_MAX samples may round the sum to +-inf: keep it finite (comparisons only)
-                    v = (v > FLT_MAX) ? FLT_MAX : ( (v < -FLT_MAX) ? -FLT_MAX : v );
+                    float v = ofxsMixValue(tmpPix[c], srcPix[c], alpha);
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             } else {
