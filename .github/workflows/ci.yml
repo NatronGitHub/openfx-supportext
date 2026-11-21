@@ -58,7 +58,7 @@ jobs:
 
   # The per-change Windows build: an MSVC x64 compile check (windows-2022 runners are
   # the fastest and most available Windows ones). openfx-misc's and openfx-gmic's
-  # nightlies are built with MSVC; it also catches <windows.h> macro clashes such as
+  # scheduled builds use MSVC; it also catches <windows.h> macro clashes such as
   # small (#92). Errors fail; warnings are printed.
   msvc:
     name: Windows (MSVC)
