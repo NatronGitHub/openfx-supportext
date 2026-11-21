@@ -514,7 +514,7 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // an inf mask gives alpha = +-FLT_MAX
+                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // a huge mix value could overflow
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }
