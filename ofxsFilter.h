@@ -216,7 +216,7 @@ ofxsFilterLinear(double Ic,
     return Ic + d * (In - Ic);
 }
 
-static inline
+inline
 double
 ofxsFilterCubic(double Ic,
                 double In,

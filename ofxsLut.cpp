@@ -25,12 +25,9 @@
 #include "ofxsLut.h"
 
 #include <algorithm>
-#ifdef _WIN32
-typedef unsigned __int32 uint32_t;
-typedef unsigned char uint8_t;
-#else
-#include <stdint.h>
-#endif
+#include <cassert>
+#include <cstdint>
+#include <cstring> // std::memcpy
 #include <limits>
 #include <cmath>
 
@@ -38,62 +35,23 @@ typedef unsigned char uint8_t;
 
 namespace OFX {
 namespace Color {
-// compile-time endianness checking found on:
-// http://stackoverflow.com/questions/2100331/c-macro-definition-to-determine-big-endian-or-little-endian-machine
-// if(O32_HOST_ORDER == O32_BIG_ENDIAN) will always be optimized by gcc -O2
-enum
-{
-    O32_LITTLE_ENDIAN = 0x03020100ul,
-    O32_BIG_ENDIAN = 0x00010203ul,
-    O32_PDP_ENDIAN = 0x01000302ul
-};
+// The 16-bit LUT index of a float is the high half of its IEEE-754 bit pattern. The bits are
+// copied with std::memcpy (reading the inactive member of a union is undefined behaviour in C++,
+// C.183) and split with shifts, which act on values, so no endianness test is needed.
+static_assert(sizeof(float) == sizeof(std::uint32_t), "float must be 32 bits");
 
-union o32_host_order_t
-{
-    uint8_t bytes[4];
-    uint32_t value;
-};
-
-static const o32_host_order_t o32_host_order = {
-    { 0, 1, 2, 3 }
-};
-#define O32_HOST_ORDER (o32_host_order.value)
 unsigned short
 Lut::hipart(const float f)
 {
-    union
-    {
-        float f;
-        unsigned short us[2];
-    }
+    std::uint32_t bits;
+    std::memcpy( &bits, &f, sizeof(bits) );
 
-    tmp;
-
-    tmp.us[0] = tmp.us[1] = 0;
-    tmp.f = f;
-
-    if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
-        return tmp.us[0];
-    } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
-        return tmp.us[1];
-    } else {
-        assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
-
-        return 0;
-    }
+    return static_cast<unsigned short>(bits >> 16);
 }
 
 float
 Lut::index_to_float(const unsigned short i)
 {
-    union
-    {
-        float f;
-        unsigned short us[2];
-    }
-
-    tmp;
-
     /* positive and negative zeros, and all gradual underflow, turn into zero: */
     if ( ( i < 0x80) || ( ( i >= 0x8000) && ( i < 0x8080) ) ) {
         return 0;
@@ -105,17 +63,12 @@ Lut::index_to_float(const unsigned short i)
     if (i >= 0xff80) {
         return -(std::numeric_limits<float>::max)();
     }
-    if (O32_HOST_ORDER == O32_BIG_ENDIAN) {
-        tmp.us[0] = i;
-        tmp.us[1] = 0x8000;
-    } else if (O32_HOST_ORDER == O32_LITTLE_ENDIAN) {
-        tmp.us[0] = 0x8000;
-        tmp.us[1] = i;
-    } else {
-        assert( (O32_HOST_ORDER == O32_LITTLE_ENDIAN) || (O32_HOST_ORDER == O32_BIG_ENDIAN) );
-    }
+    // the middle of the bucket: high half i, low half 0x8000
+    const std::uint32_t bits = (static_cast<std::uint32_t>(i) << 16) | 0x8000u;
+    float f;
+    std::memcpy( &f, &bits, sizeof(f) );
 
-    return tmp.f;
+    return f;
 }
 
 // r,g,b values are linear values from 0 to 1

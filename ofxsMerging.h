@@ -1428,7 +1428,7 @@ clip_color (pixman_rgb_t *color,
     }
 }
 
-static void
+inline void
 set_lum (pixman_rgb_t *color,
          pixman_float_t sa,
          pixman_float_t l)
