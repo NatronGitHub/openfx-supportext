@@ -28,6 +28,7 @@
 #include <cmath>
 #include <cassert>
 #include <algorithm>
+#include <cstddef> // std::ptrdiff_t
 
 #include "ofxsImageEffect.h"
 
@@ -412,13 +413,16 @@ ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
 /// @brief Compute the mean of the signal contained in l, seen as piecewise constant, in the rectangular area delimited by x1, x2, y1, y2.
 /// x = 0 corresponds to the left of the first pixel, x = 1 corresponds to the right of the first pixel / left of the second pixel
 ///
+/// Strides are in PIX units. The x stride is positive (OFX pixel bytes are); the y stride is signed, since OFX row
+/// bytes may be negative (kOfxImagePropRowBytes), and must not be 0 unless there is a single line.
+///
 template <class PIX>
 void
-ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
+ofxsFilterIntegrate2d(const PIX* a, // pointer to the first sample of line 0 (not the lowest address if aystride < 0)
                       const size_t awidth,  // width of the array
                       const size_t aheight,  // height of the array
                       const size_t axstride, // increment from one data point to the next (must be >= depth)
-                      const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
+                      const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0 unless aheight == 1)
                       const size_t depth, // dimension of each sample, also the dimension of result vector v
                       const OfxRectD& area,
                       const bool zeroOutside, // if true, outside of the data is zero. If false, use Neumann boundary conditions (outside is the closest data point)
@@ -457,7 +461,7 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
     for (size_t j = 0; j < depth; ++j) {
         p[j] = 0.;
     }
-    ofxsFilterIntegrate1d(&a[ifirst * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
+    ofxsFilterIntegrate1d(&a[static_cast<std::ptrdiff_t>(ifirst) * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
     // start border condition
     if (y1 < ifirst && !zeroOutside) {
         for (size_t j = 0; j < depth; ++j) {
@@ -478,14 +482,14 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
     // all lines except first and last
     for (size_t i = ifirst + 1; i < ilast; ++i) {
         // (results accumulates in v)
-        ofxsFilterIntegrate1d(&a[i * aystride], awidth, axstride, depth, x1, x2, zeroOutside, v);
+        ofxsFilterIntegrate1d(&a[static_cast<std::ptrdiff_t>(i) * aystride], awidth, axstride, depth, x1, x2, zeroOutside, v);
     }
     // last line
     if (ilast > ifirst) { // (if equal, the result is already in p)
         for (size_t j = 0; j < depth; ++j) {
             p[j] = 0.;
         }
-        ofxsFilterIntegrate1d(&a[ilast * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
+        ofxsFilterIntegrate1d(&a[static_cast<std::ptrdiff_t>(ilast) * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
         for (size_t j = 0; j < depth; ++j) {
             v[j] += p[j];
         }
@@ -510,19 +514,19 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to data start
 /// The @param to may be partially outside of b.
 template <class PIX>
 void
-ofxsFilterResize2d(const PIX* a, // pointer to data start
+ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not the lowest address if aystride < 0)
                    const size_t awidth,  // number of samples in the line
                    const size_t aheight,  // number of samples in the line
                    const size_t axstride, // increment from one data point to the next (must be >= depth)
-                   const size_t aystride, // increment from one data line to the next (usually awidth * axstride)
+                   const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0 unless aheight == 1)
                    const size_t depth, // dimension of each sample, also the dimension of result vector v
                    const OfxRectD& from,
                    const bool zeroOutside, // if true, outside of the data is zero (Dirichlet boundary conditions). If false, outside is the closest data point (Neumann boundary conditions).
-                   float* b, // pointer to output start
+                   float* b, // pointer to the first sample of output line 0 (not the lowest address if bystride < 0)
                    const size_t bwidth,  // number of samples in the line
                    const size_t bheight,  // number of samples in the line
-                   const size_t bxstride, // inscrement from one data point to the next (must be >= depth)
-                   const size_t bystride,
+                   const size_t bxstride, // increment from one data point to the next (must be >= depth)
+                   const std::ptrdiff_t bystride, // increment from one output line to the next (may be negative, but not 0 unless bheight == 1)
                    const OfxRectI& to)
 
 {
@@ -532,8 +536,8 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
         // give 0/0 below, and out-of-bounds reads
         return;
     }
-    assert(axstride > 0 && aystride > 0 && depth > 0);
-    assert(bxstride > 0 && bystride > 0);
+    assert(axstride > 0 && (aystride != 0 || aheight == 1) && depth > 0);
+    assert(bxstride > 0 && (bystride != 0 || bheight == 1));
     double x1 = from.x1;
     double y1 = from.y1;
     double x2 = from.x2;
@@ -590,7 +594,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to data start
             area.x1 = x1 + (i - ox1) * vwidth;
             area.x2 = area.x1 + vwidth;
             // compute one pixel of the resized image
-            float *v = &b[j * bystride + i * bxstride];
+            float *v = &b[j * bystride + i * static_cast<std::ptrdiff_t>(bxstride)]; // signed: bystride may be negative
             // zero the result, since integrate_2d accumulates
             for (size_t k = 0; k < depth; ++k) {
                 v[k] = 0.;
@@ -1158,7 +1162,7 @@ ofxsFilterInterpolate2DSuper(double fx,
         x2 -= srcBounds.x1;
         y2 -= srcBounds.y1;
         const size_t axstride = srcImg->getPixelBytes() / sizeof(PIX);
-        const size_t aystride = srcImg->getRowBytes() / sizeof(PIX);
+        const std::ptrdiff_t aystride = srcImg->getRowBytes() / static_cast<std::ptrdiff_t>( sizeof(PIX) ); // signed: row bytes may be negative
         float p[nComponents];
         OfxRectD area = { x1, y1, x2, y2 };
         ofxsFilterIntegrate2d(a, awidth, aheight, axstride, aystride, nComponents,
