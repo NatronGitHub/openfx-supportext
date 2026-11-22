@@ -30,10 +30,21 @@
  * - In describe, call ofxsSetDefaultCoordinateSystemNormalised(param) instead of
  *   param.setDefaultCoordinateSystem(eCoordinatesNormalised): it also records whether the host
  *   ignores the property.
- * - In the effect's constructor, call ofxsDenormaliseUntouchedDefault() for each such param: on
- *   those hosts only, a value that still equals its normalised default (a new instance, or an old
- *   project's untouched default) is converted to canonical coordinates. Edited values are kept,
- *   and the conversion is idempotent (a converted value no longer equals the default).
+ * - Last in the effect's constructor (after fetching every member that changedParam() uses: a
+ *   host may send kOfxActionInstanceChanged from setValue), call ofxsDenormaliseUntouchedDefault()
+ *   for each such param. On those hosts only, a value that still equals its normalised default (a
+ *   new instance, or an old project's untouched default: "if the values are being loaded from an
+ *   old setup, that load should have taken place before the create instance action is called")
+ *   is converted to canonical coordinates as the spec says ("you use the project size and
+ *   offset": size * value for a size, size * value + offset for a position). Edited values are
+ *   kept. A value the user set to exactly the default can't be told apart from an untouched one;
+ *   for a rectangle, convert its size only if its corner was untouched too (see below).
+ *   Converting again is a no-op, and a value that the conversion leaves unchanged (e.g. a (0, 0)
+ *   position with a (0, 0) offset) is not set.
+ * - Setting a value in the constructor (kOfxActionCreateInstance) goes beyond ofxParam.h's
+ *   "paramSetValue should only be called from within a kOfxActionInstanceChanged or interact
+ *   action", as ofxsGenerator.cpp and several plug-ins already do: it is the only time an
+ *   untouched default can be recognised.
  */
 
 #ifndef openfx_supportext_ofxsNormalisedDefaults_h
@@ -42,9 +53,11 @@
 #include "ofxsImageEffect.h"
 
 namespace OFX {
-// Whether the host ignores kOfxParamPropDefaultCoordinateSystem. Written in describe, read when
-// creating instances, which the host does after describing the plug-in (the same rule as the
-// other describe-time host capabilities; no multithread there).
+// Whether the host ignores kOfxParamPropDefaultCoordinateSystem: a host property, so one flag is
+// shared by all the plug-ins of a binary (e.g. a combined bundle). Written in describe (which
+// always comes before creating instances, in every process that loads the binary) and read when
+// creating instances; it only goes from false to true. Like the other describe-time host
+// capabilities, it is global state.
 inline bool&
 ofxsHostIgnoresNormalisedDefaults()
 {
@@ -64,27 +77,35 @@ ofxsSetDefaultCoordinateSystemNormalised(BaseDoubleParamDescriptor& param)
     }
 }
 
-// Instance (in the effect's constructor): on a host that ignores normalised defaults, convert a
-// value that still equals its normalised default to canonical coordinates, using the project
-// extent (and offset, for a position). Returns whether it converted the value. Animated params
-// (with keys) are left alone.
+// Instance (last in the effect's constructor): on a host that ignores normalised defaults, convert
+// a value that still equals its normalised default to canonical coordinates: project size *
+// value, plus the project offset if isPosition. Animated params (with keys) are left alone.
+// Returns true if the value was its untouched default on such a host (whether or not the
+// conversion changed it), so that a rectangle's size can be converted only if its corner was:
+//     if ( ofxsDenormaliseUntouchedDefault(*this, *_btmLeft, /*isPosition=*/true) ) {
+//         ofxsDenormaliseUntouchedDefault(*this, *_size, /*isPosition=*/false);
+//     }
 inline bool
 ofxsDenormaliseUntouchedDefault(const ImageEffect& effect,
-                                Double2DParam* param,
+                                Double2DParam& param,
                                 bool isPosition)
 {
-    if ( !param || !ofxsHostIgnoresNormalisedDefaults() || (param->getNumKeys() > 0) ) {
+    if ( !ofxsHostIgnoresNormalisedDefaults() || (param.getNumKeys() > 0) ) {
         return false;
     }
     double dx, dy;
-    param->getDefault(dx, dy);
-    const OfxPointD v = param->getValue();
+    param.getDefault(dx, dy);
+    const OfxPointD v = param.getValue();
     if ( (v.x != dx) || (v.y != dy) ) {
         return false; // edited, or already converted
     }
-    const OfxPointD extent = effect.getProjectExtent();
+    const OfxPointD size = effect.getProjectSize();
     const OfxPointD offset = isPosition ? effect.getProjectOffset() : OfxPointD{0., 0.};
-    param->setValue(v.x * extent.x + offset.x, v.y * extent.y + offset.y);
+    const double x = v.x * size.x + offset.x;
+    const double y = v.y * size.y + offset.y;
+    if ( (x != v.x) || (y != v.y) ) {
+        param.setValue(x, y);
+    }
 
     return true;
 }
