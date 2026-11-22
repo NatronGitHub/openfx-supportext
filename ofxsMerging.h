@@ -25,6 +25,7 @@
 #ifndef Misc_Merging_helper_h
 #define Misc_Merging_helper_h
 
+#include <cassert>
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
@@ -205,6 +206,12 @@ isIdentityForBOnly(MergingFunctionEnum operation)
 
         return false;
     } // switch
+
+    // not reached for a valid operation (the switch above has no default, so that the
+    // compiler warns about a new operator); an unchecked cast from a choice value may get here
+    assert(false);
+
+    return false;
 } // isIdentityForBOnly
 
 // is the operator separable for R,G,B components, or do they have to be processed simultaneously?
@@ -257,8 +264,13 @@ isSeparable(MergingFunctionEnum operation)
     //default: // do not enable the default case, so that we can catch warnings when adding a new operator
 
         return true;
-    }
-}
+    } // switch
+
+    // not reached for a valid operation (see isIdentityForBOnly)
+    assert(false);
+
+    return true;
+} // isSeparable
 
 inline std::string
 getOperationString(MergingFunctionEnum operation)
@@ -686,7 +698,7 @@ getOperationGroupString(MergingFunctionEnum operation)
     case eMergeMin:
     case eMergeMax:
 
-        return "HSL";
+        return "Arithmetic";
 
     // Hue, saturation, luminosity
     case eMergeHue:
