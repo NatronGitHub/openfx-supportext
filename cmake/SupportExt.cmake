@@ -10,7 +10,7 @@
 # The selected SupportExt sources are added to <target> (target_sources PRIVATE),
 # so they are compiled with the target's own compile definitions. This matters:
 # OFX_EXTENSIONS_*, OFX_SUPPORTS_OPENGLRENDER and the DrawSuite support
-# (OFXS_HAVE_DRAWSUITE / OFXS_SUPPORT_HAS_DRAWCONTEXT) change class layouts, so
+# (OFXS_HAVE_DRAWSUITE) change class layouts, so
 # SupportExt must not be compiled separately with other values (One Definition
 # Rule). Set those definitions on <target>, as for the plug-in's own sources (or
 # link openfx::Support, whose usage requirements carry them).
