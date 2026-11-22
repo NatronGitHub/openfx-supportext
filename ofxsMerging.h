@@ -208,7 +208,8 @@ isIdentityForBOnly(MergingFunctionEnum operation)
     } // switch
 
     // not reached for a valid operation (the switch above has no default, so that the
-    // compiler warns about a new operator); an unchecked cast from a choice value may get here
+    // compiler warns about a new operator): a value outside the enum is a caller bug, e.g. an
+    // unchecked cast of a corrupt choice value. Answer "not an identity", the cautious result.
     assert(false);
 
     return false;
@@ -266,7 +267,8 @@ isSeparable(MergingFunctionEnum operation)
         return true;
     } // switch
 
-    // not reached for a valid operation (see isIdentityForBOnly)
+    // not reached for a valid operation (see isIdentityForBOnly). Answer "separable": mergePixel()
+    // then reaches the per-channel switch, whose default gives 0, not the HSL one, which has none.
     assert(false);
 
     return true;
