@@ -422,7 +422,7 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to the first sample of line 0 (no
                       const size_t awidth,  // width of the array
                       const size_t aheight,  // height of the array
                       const size_t axstride, // increment from one data point to the next (must be >= depth)
-                      const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0)
+                      const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0 unless aheight == 1)
                       const size_t depth, // dimension of each sample, also the dimension of result vector v
                       const OfxRectD& area,
                       const bool zeroOutside, // if true, outside of the data is zero. If false, use Neumann boundary conditions (outside is the closest data point)
@@ -518,7 +518,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
                    const size_t awidth,  // number of samples in the line
                    const size_t aheight,  // number of samples in the line
                    const size_t axstride, // increment from one data point to the next (must be >= depth)
-                   const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0)
+                   const std::ptrdiff_t aystride, // increment from one data line to the next (usually awidth * axstride; may be negative, as kOfxImagePropRowBytes, but not 0 unless aheight == 1)
                    const size_t depth, // dimension of each sample, also the dimension of result vector v
                    const OfxRectD& from,
                    const bool zeroOutside, // if true, outside of the data is zero (Dirichlet boundary conditions). If false, outside is the closest data point (Neumann boundary conditions).
@@ -526,7 +526,7 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
                    const size_t bwidth,  // number of samples in the line
                    const size_t bheight,  // number of samples in the line
                    const size_t bxstride, // increment from one data point to the next (must be >= depth)
-                   const std::ptrdiff_t bystride, // increment from one output line to the next (may be negative, but not 0)
+                   const std::ptrdiff_t bystride, // increment from one output line to the next (may be negative, but not 0 unless bheight == 1)
                    const OfxRectI& to)
 
 {
@@ -536,8 +536,8 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
         // give 0/0 below, and out-of-bounds reads
         return;
     }
-    assert(axstride > 0 && aystride != 0 && depth > 0);
-    assert(bxstride > 0 && bystride != 0);
+    assert(axstride > 0 && (aystride != 0 || aheight == 1) && depth > 0);
+    assert(bxstride > 0 && (bystride != 0 || bheight == 1));
     double x1 = from.x1;
     double y1 = from.y1;
     double x2 = from.x2;
