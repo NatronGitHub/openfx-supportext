@@ -25,6 +25,7 @@
 #ifndef openfx_supportext_ofxsLut_h
 #define openfx_supportext_ofxsLut_h
 
+#include <algorithm> // std::max (luminance)
 #include <string>
 #include <map>
 #include <cmath>
@@ -43,6 +44,17 @@
 
 #define OFXS_HUE_CIRCLE 1.f // if hue should be between 0 and 1
 //#define OFXS_HUE_CIRCLE 360.f // if hue should be in degrees
+
+// the Luminance Math choice parameter (see OFX::luminance())
+#define kParamLuminanceMath "luminanceMath"
+#define kParamLuminanceMathLabel "Luminance Math"
+#define kParamLuminanceMathOptionRec709 "Rec. 709", "Use Rec. 709 (0.2126r + 0.7152g + 0.0722b).", "rec709"
+#define kParamLuminanceMathOptionRec2020 "Rec. 2020", "Use Rec. 2020 (0.2627r + 0.6780g + 0.0593b).", "rec2020"
+#define kParamLuminanceMathOptionACESAP0 "ACES AP0", "Use ACES AP0 (0.3439664498r + 0.7281660966g + -0.0721325464b).", "acesap0"
+#define kParamLuminanceMathOptionACESAP1 "ACES AP1", "Use ACES AP1 (0.2722287168r +  0.6740817658g +  0.0536895174b).", "acesap1"
+#define kParamLuminanceMathOptionCcir601 "CCIR 601", "Use CCIR 601 (0.2989r + 0.5866g + 0.1145b).", "ccir601"
+#define kParamLuminanceMathOptionAverage "Average", "Use average of r, g, b.", "average"
+#define kParamLuminanceMathOptionMaximum "Max", "Use max of r, g, b.", "max"
 
 namespace OFX {
 namespace Color {
@@ -1322,6 +1334,54 @@ private:
 };
 
 }         //namespace Color
+
+// Luminance formulas shared by the openfx-misc color plugins (ColorCorrect, ColorLookup,
+// ColorSuppress, HueCorrect, Saturation), for their Luminance Math parameter.
+enum LuminanceMathEnum
+{
+    eLuminanceMathRec709,
+    eLuminanceMathRec2020,
+    eLuminanceMathACESAP0,
+    eLuminanceMathACESAP1,
+    eLuminanceMathCcir601,
+    eLuminanceMathAverage,
+    eLuminanceMathMaximum,
+};
+
+// The luminance of (r, g, b) with the formula selected by the Luminance Math parameter.
+template<typename T>
+T
+luminance(T r,
+          T g,
+          T b,
+          LuminanceMathEnum luminanceMath)
+{
+    switch (luminanceMath) {
+    case eLuminanceMathRec709:
+    default:
+
+        return Color::rgb709_to_y(r, g, b);
+
+    case eLuminanceMathRec2020:     // https://www.itu.int/dms_pubrec/itu-r/rec/bt/R-REC-BT.2087-0-201510-I!!PDF-E.pdf
+
+        return Color::rgb2020_to_y(r, g, b);
+    case eLuminanceMathACESAP0:     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+
+        return Color::rgbACESAP0_to_y(r, g, b);
+    case eLuminanceMathACESAP1:     // https://en.wikipedia.org/wiki/Academy_Color_Encoding_System#Converting_ACES_RGB_values_to_CIE_XYZ_values
+
+        return Color::rgbACESAP1_to_y(r, g, b);
+    case eLuminanceMathCcir601:
+
+        return (T)(0.2989f * r + 0.5866f * g + 0.1145f * b);
+    case eLuminanceMathAverage:
+
+        return (r + g + b) / 3;
+    case eLuminanceMathMaximum:
+
+        return (std::max)((std::max)(r, g), b);
+    }
+}
 }     //namespace OFX
 
 /*
