@@ -25,7 +25,6 @@
 #include "ofxsLut.h"
 
 #include <algorithm>
-#include <cassert>
 #include <cstdint>
 #include <cstring> // std::memcpy
 #include <limits>
@@ -38,7 +37,7 @@ namespace Color {
 // The 16-bit LUT index of a float is the high half of its IEEE-754 bit pattern. The bits are
 // copied with std::memcpy (reading the inactive member of a union is undefined behaviour in C++,
 // C.183) and split with shifts, which act on values, so no endianness test is needed.
-static_assert(sizeof(float) == sizeof(std::uint32_t), "float must be 32 bits");
+static_assert(sizeof(float) == sizeof(std::uint32_t) && std::numeric_limits<float>::is_iec559, "IEEE-754 binary32 float required");
 
 unsigned short
 Lut::hipart(const float f)
