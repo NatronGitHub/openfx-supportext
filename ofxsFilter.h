@@ -362,7 +362,7 @@ ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
         if (!zeroOutside) {
             const PIX* edge = (x2 < 0.) ? l : &l[(nsamples - 1) * stride];
             for (size_t j = 0; j < depth; ++j) {
-                v[j] += edge[j] * (float)(x2 - x1);
+                v[j] += edge[j] * static_cast<float>(x2 - x1);
             }
         }
 
@@ -455,7 +455,7 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to the first sample of line 0 (no
             }
             ofxsFilterIntegrate1d(&a[static_cast<std::ptrdiff_t>(iedge) * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
             for (size_t j = 0; j < depth; ++j) {
-                v[j] += p[j] * (float)(y2 - y1);
+                v[j] += p[j] * static_cast<float>(y2 - y1);
             }
         }
 
