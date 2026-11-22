@@ -181,7 +181,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         return;
     }
     // checked in release builds too: the processors read the images with the depth and
-    // components of the dst clip, so a mismatched image would be read out of bounds
+    // components of the dst clip, so a mismatched image would be read or written out of bounds
     BitDepthEnum dstBitDepth    = dst->getPixelDepth();
     PixelComponentEnum dstComponents  = dst->getPixelComponents();
     if ( ( dstBitDepth != _dstClip->getPixelDepth() ) ||
@@ -227,6 +227,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
         BitDepthEnum srcBitDepth      = src->getPixelDepth();
         PixelComponentEnum srcComponents = src->getPixelComponents();
         if ( (srcBitDepth != dstBitDepth) || (srcComponents != dstComponents) ) {
+            setPersistentMessage(Message::eMessageError, "", "OFX Host gave image with wrong depth or components");
             throwSuiteStatusException(kOfxStatFailed);
 
             return;
