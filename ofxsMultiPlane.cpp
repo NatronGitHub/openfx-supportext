@@ -53,6 +53,17 @@ static const char* motionComps[2] = {"U", "V"};
 static const char* disparityComps[2] = {"X", "Y"};
 static const char* xyComps[2] = {"X", "Y"};
 
+// Is optionID "<clipName>.<rest>"? (a plain prefix test would attribute "AB.x" to clip "A",
+// and an option equal to a clip name would make substr(clipName.size() + 1) throw)
+static bool
+hasClipPrefix(const std::string& optionID,
+              const std::string& clipName)
+{
+    return optionID.size() > clipName.size() &&
+           optionID.compare(0, clipName.size(), clipName) == 0 &&
+           optionID[clipName.size()] == '.';
+}
+
 namespace OFX {
 namespace MultiPlane {
 
@@ -1056,7 +1067,7 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
     } else {
         for (std::size_t c = 0; c < param.clipNames.size(); ++c) {
             const std::string& clipName = param.clipNames[c];
-            if (selectedOptionID.substr(0, clipName.size()) == clipName) {
+            if ( hasClipPrefix(selectedOptionID, clipName) ) {
                 *clip = param.clips[c];
                 optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
                 break;
@@ -1259,7 +1270,7 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
     } else {
         for (std::size_t c = 0; c < found->second.clipNames.size(); ++c) {
             const std::string& clipName = found->second.clipNames[c];
-            if (selectedOptionID.substr(0, clipName.size()) == clipName) {
+            if ( hasClipPrefix(selectedOptionID, clipName) ) {
                 retClip = found->second.clips[c];
                 optionWithoutClipPrefix = selectedOptionID.substr(clipName.size() + 1); // + 1 to skip the dot
                 break;
