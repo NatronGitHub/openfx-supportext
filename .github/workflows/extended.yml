@@ -3,13 +3,9 @@ name: Extended builds
 # Extra variants that are not run per push or pull request, plus the per-PR
 # macOS build and the Windows MSYS2 UCRT64 build (the per-PR Windows build is MSVC):
 # C++20 (RB-2.6 Qt6
-# builds and RB-2.7), C++23, and the openfx version used by openfx-io (05c5a75:
-# OFX 1.5 Support API, but neither OFXS_SUPPORT_HAS_DRAWCONTEXT nor interact
-# cursors). Weekly on Saturday at 03:17 UTC, or on demand. Every job builds
-# against a moving upstream (openfx master, and openfx-misc master for the
-# smoketest) and runs every week, except the two pinned openfx 05c5a75 compile
-# checks: the weekly run skips them if master is the commit the last weekly run
-# tested (see the changes job).
+# builds and RB-2.7) and C++23. Weekly on Saturday at 03:17 UTC, or on demand.
+# Every job builds against a moving upstream (openfx master, and openfx-misc master
+# for the smoketest), so the weekly run is never skipped.
 
 on:
   schedule:
@@ -25,45 +21,6 @@ permissions:
   contents: read
 
 jobs:
-  # The pinned compile checks (openfx 05c5a75) only change when SupportExt does: the
-  # weekly run skips them if the last weekly run that wasn't cancelled tested the same
-  # master commit and succeeded. After a failed run they are built again, so a later
-  # green run can't hide a broken pinned check. Manual runs, and a failed or missing
-  # lookup, build them. Every other job builds against a moving upstream and always
-  # runs.
-  changes:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    permissions:
-      actions: read
-    outputs:
-      matrix: ${{ steps.check.outputs.matrix }}
-    steps:
-      - id: check
-        shell: bash -eo pipefail {0}
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          last=
-          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
-            last=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/extended.yml/runs?event=schedule&status=completed&per_page=20" \
-                     --jq '[.workflow_runs[] | select(.conclusion != "cancelled" and .conclusion != "skipped")][0] | select(.conclusion == "success") | .head_sha' || true)
-          fi
-          mac='macOS 15 (Xcode clang)' linux='Ubuntu 24.04 (GCC)' pin=05c5a75dd48c8afcd7c010dc301080ac0360b2f2
-          entries=()
-          for std in c++20 c++23; do
-            entries+=("$mac|macos-15|master|$std" "$linux|ubuntu-24.04|master|$std")
-          done
-          if [ -n "$last" ] && [ "$last" = "$GITHUB_SHA" ]; then
-            echo "master is $last, as in the last weekly run: skipping the pinned openfx 05c5a75 compile checks."
-          else
-            entries+=("$mac|macos-15|$pin|c++17" "$linux|ubuntu-24.04|$pin|c++17")
-          fi
-          printf '%s\n' "${entries[@]}" | jq -R -s -c '[split("\n")[] | select(length > 0) | split("|")
-            | {os: .[1], ofx: .[2], std: .[3],
-               name: "\(.[0]) / openfx \(if .[2] == "master" then "master" else .[2][0:7] end) / C++\(.[3] | ltrimstr("c++"))"}]
-            | {include: .}' | sed 's/^/matrix=/' >> "$GITHUB_OUTPUT"
-
   # the Windows MSYS2 UCRT64 build (the toolchain of openfx-io and openfx-arena): the
   # compile checks and the CMake consumer tests of build-one.yml (the openfx-misc smoke
   # test is Linux and macOS only), weekly (the per-PR Windows build is MSVC)
@@ -81,27 +38,30 @@ jobs:
       name: macOS 15 arm64 (Xcode clang) / per-PR build
       os: macos-15
 
-  # compile checks: against openfx master every week, against the pinned openfx 05c5a75
-  # unless changes skips them (the matrix comes from the changes job)
+  # compile checks against openfx master in C++20 and C++23
   compile:
     name: ${{ matrix.name }}
-    needs: changes
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.changes.outputs.matrix) }}
+      matrix:
+        include:
+          - { name: macOS 15 (Xcode clang) / openfx master / C++20, os: macos-15, std: c++20 }
+          - { name: Ubuntu 24.04 (GCC) / openfx master / C++20, os: ubuntu-24.04, std: c++20 }
+          - { name: macOS 15 (Xcode clang) / openfx master / C++23, os: macos-15, std: c++23 }
+          - { name: Ubuntu 24.04 (GCC) / openfx master / C++23, os: ubuntu-24.04, std: c++23 }
     defaults:
       run:
         shell: bash -eo pipefail {0}
     steps:
       - name: Checkout openfx-supportext
         uses: actions/checkout@v4
-      - name: Checkout openfx
+      - name: Checkout openfx master
         uses: actions/checkout@v4
         with:
           repository: NatronGitHub/openfx
-          ref: ${{ matrix.ofx }}
+          ref: master
           path: openfx
       - name: Install Ubuntu packages
         if: runner.os == 'Linux'
