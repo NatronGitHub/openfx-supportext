@@ -61,8 +61,9 @@
  * - An overlay really registered as V2 that gets no draw context, or whose
  *   draw() was compiled without the DrawSuite backend, draws nothing:
  *   OverlayDraw::canDraw() is false, and draw() returns false.
- * - openfx also registers V2 overlays as V1, through a separate OpenGL entry, so
- *   each draw action decides: one called through the V1 entry
+ * - openfx also registers V2 overlays as V1, through a separate OpenGL entry (since
+ *   ofxsSetOverlayInteractDescriptorV2 passes hasOpenGLDraw = true), so each draw
+ *   action decides: one called through the V1 entry
  *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL, and draws nothing
  *   if no OpenGL context is current (that entry exists on DrawSuite hosts, which may
  *   have no OpenGL).
@@ -113,11 +114,11 @@
  * the spec discourages), or draw nothing on hosts that pass no draw context to
  * V1 overlays.
  *
- * The DrawSuite backend: it needs the NatronGitHub openfx Support library from
- * c24ef9db (2026-11-19) on, which defines OFXS_SUPPORT_HAS_DRAWCONTEXT,
+ * Enabling the DrawSuite backend: SupportExt needs the NatronGitHub openfx Support
+ * library from a61684fe (2026-11-19) on, which defines OFXS_SUPPORT_HAS_DRAWCONTEXT,
  * OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY, OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW
- * and OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK (an older Support library is an error).
- * It is enabled by default; -DOFXS_HAVE_DRAWSUITE=0 disables it, and an empty value
+ * and OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK (an older Support library is an error,
+ * with or without the DrawSuite backend). The backend is enabled by default; -DOFXS_HAVE_DRAWSUITE=0 disables it, and an empty value
  * (-DOFXS_HAVE_DRAWSUITE=) is an error. Without it, everything draws with OpenGL and
  * ofxsSetOverlayInteractDescriptorV2 registers V1 overlays.
  * OFXS_HAVE_DRAWSUITE must be a global compiler flag with the same value for
@@ -196,7 +197,7 @@
 #endif
 #if !defined(OFXS_SUPPORT_HAS_DRAWCONTEXT) || !defined(OFXS_SUPPORT_HAS_OVERLAY_INTERACT_V1_ENTRY) || \
     !defined(OFXS_SUPPORT_HAS_OVERLAY_HAS_OPENGL_DRAW) || !defined(OFXS_SUPPORT_HAS_OPENGL_CONTEXT_CHECK)
-#error "SupportExt needs the NatronGitHub openfx Support library from c24ef9db (2026-11-19) on"
+#error "SupportExt needs the NatronGitHub openfx Support library from a61684fe (2026-11-19) on"
 #endif
 
 #if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
