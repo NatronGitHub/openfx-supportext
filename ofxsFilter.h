@@ -356,6 +356,18 @@ ofxsFilterIntegrate1d(const PIX* l, // pointer to data start
 {
     assert(x2 >= x1);
     assert(stride >= depth);
+    // an interval wholly outside the data: zero, or the closest data point times its length
+    // (the code below would add a whole edge pixel, and the Neumann border from the data's end)
+    if ( (x2 < 0.) || (nsamples <= x1) ) {
+        if (!zeroOutside) {
+            const PIX* edge = (x2 < 0.) ? l : &l[(nsamples - 1) * stride];
+            for (size_t j = 0; j < depth; ++j) {
+                v[j] += edge[j] * static_cast<float>(x2 - x1);
+            }
+        }
+
+        return;
+    }
     size_t ifirst, ilast; // index of the first/last pixel
     double fracfirst, fraclast; // fraction to remove from the first/last pixel
     if (x1 < 0.) {
@@ -434,6 +446,21 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to the first sample of line 0 (no
     double x2 = area.x2;
     double y2 = area.y2;
     assert(y2 >= y1);
+    // an area wholly above or below the data: zero, or the closest line times its height
+    if ( (y2 < 0.) || (aheight <= y1) ) {
+        if (!zeroOutside) {
+            const size_t iedge = (y2 < 0.) ? 0 : aheight - 1;
+            for (size_t j = 0; j < depth; ++j) {
+                p[j] = 0.;
+            }
+            ofxsFilterIntegrate1d(&a[static_cast<std::ptrdiff_t>(iedge) * aystride], awidth, axstride, depth, x1, x2, zeroOutside, p);
+            for (size_t j = 0; j < depth; ++j) {
+                v[j] += p[j] * static_cast<float>(y2 - y1);
+            }
+        }
+
+        return;
+    }
     size_t ifirst, ilast; // index of the first/last line
     double fracfirst, fraclast; // fraction to remove from the first/last line
     if (y1 < 0.) {
