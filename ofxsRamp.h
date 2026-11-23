@@ -142,7 +142,7 @@ public:
         if ( effect->paramExists(kParamHiDPI) ) {
             _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
             assert(_hiDPI);
-            // TODO: cannot addParamToSlaveTo(_hiDPI);
+            // not slaved yet: the HiDPI rework is deferred (#100)
         }
         _interactOpen = _effect->fetchBooleanParam(kParamRampInteractOpen);
         assert(_point0 && _point1 && _type && _interactOpen && _interactive);
