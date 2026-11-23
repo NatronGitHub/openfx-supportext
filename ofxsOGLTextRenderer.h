@@ -70,10 +70,10 @@ enum Font
 void bitmapString(const char *string, TextRenderer::Font font = FONT_HELVETICA_12);
 
 /**
- *@brief Same as strokeString() but translates the OpenGL matrix to the (x,y) position before drawing.
+ *@brief Same as bitmapString(string, font) but translates the OpenGL matrix to the (x,y) position before drawing.
  **/
 void bitmapString(double x, double y, const char*string, TextRenderer::Font font = FONT_HELVETICA_12);
-} // TextRendered
+} // TextRenderer
 } // OFX
 
 

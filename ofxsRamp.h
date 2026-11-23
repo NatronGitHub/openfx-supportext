@@ -19,8 +19,8 @@
  * ***** END LICENSE BLOCK ***** */
 
 /*
- * OFX generic rectangle interact with 4 corner points + center point and 4 mid-points.
- * You can use it to define any rectangle in an image resizable by the user.
+ * Ramp helpers: the parameters of a two-point ramp (positions, colours, ramp type),
+ * the ramp functions (ofxsRampFunc), and an overlay interact to drag the two points.
  */
 
 #ifndef openfx_supportext_ofxsRamp_h

@@ -57,8 +57,10 @@
 
 namespace OFX {
 /**
- * @brief In order to work the plug-in using this interact must have 2 parameters named after
- * the defines above.
+ * @brief The plug-in using this interact must have the kParamRectangleInteractBtmLeft and
+ * kParamRectangleInteractSize parameters. kParamRectangleInteractInteractive and
+ * kParamRectangleInteractEnable are optional, and the angle parameter is passed by name
+ * to the constructor.
  *
  **/
 class RectangleInteract
@@ -168,7 +170,7 @@ protected:
     }
 
     /**
-     * @brif These can be overriden to disallow interaction with a point.
+     * @brief These can be overridden to disallow interaction with a point.
      **/
     virtual bool allowTopLeftInteraction() const
     {
