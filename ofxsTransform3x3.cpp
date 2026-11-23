@@ -496,6 +496,18 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
 
     if (hasmotionblur && !directionalBlur) {
         shutterRange(time, shutter, shutteroffset, shuttercustomoffset, &range);
+        // The loop below samples every quarter frame. A shutter longer than this
+        // (possible on hosts that don't clamp to the param's range), infinite or NaN
+        // gives an infinite region, as when the transform can't be computed.
+        const double kMaxRoDShutterFrames = 10000.;
+        if ( !(range.max - range.min <= kMaxRoDShutterFrames) ) {
+            rectTo->x1 = kOfxFlagInfiniteMin;
+            rectTo->x2 = kOfxFlagInfiniteMax;
+            rectTo->y1 = kOfxFlagInfiniteMin;
+            rectTo->y2 = kOfxFlagInfiniteMax;
+
+            return;
+        }
     } else {
         ///if is identity return the input rod instead of transforming
         if (isIdentity) {
