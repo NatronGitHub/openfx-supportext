@@ -987,16 +987,9 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         roundMovingSide(&btmLeft.x, &size.x, sideX, centered, pscale.x);
         roundMovingSide(&btmLeft.y, &size.y, sideY, centered, pscale.y);
     }
-    // set only the params that change: one undo step, and no keyframe on an unchanged param
-    const OfxPointD oldBtmLeft = _btmLeft->getValue();
-    const OfxPointD oldSize = _size->getValue();
-    const bool setBtmLeft = (btmLeft.x != oldBtmLeft.x) || (btmLeft.y != oldBtmLeft.y);
-    const bool setSize = (size.x != oldSize.x) || (size.y != oldSize.y);
-    ImageEffect::EditBlock eb(*_effect, "setRectangle", setBtmLeft && setSize);
-    if (setBtmLeft) {
-        _btmLeft->setValue(btmLeft.x, btmLeft.y);
-    }
-    if (setSize) {
-        _size->setValue(size.x, size.y);
-    }
+    // both params are set (some plug-ins, e.g. ImageStatistics, react to the size, set last), in
+    // one undo step
+    ImageEffect::EditBlock eb(*_effect, "setRectangle");
+    _btmLeft->setValue(btmLeft.x, btmLeft.y);
+    _size->setValue(size.x, size.y);
 } // setValue
