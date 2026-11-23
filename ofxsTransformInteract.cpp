@@ -1673,18 +1673,39 @@ TransformInteractHelper::penUp(const PenArgs &args)
     bool ret = _mouseState != eReleased;
 
     if ( !_interactiveDrag && ret ) {
+        // set only the params that the drag changed, as penMotion does with interactive update
+        // (setting an unchanged animated param would add a keyframe to it)
         const TransformParams& tp = _tpDrag;
         OfxPointD scale;
         ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
-        ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        _center->setValue(tp.center.x, tp.center.y);
-        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
+        TransformParams cur;
+        getTransformParams(args.time, cur);
+        const bool centerChanged = (cur.center.x != tp.center.x) || (cur.center.y != tp.center.y);
+        const bool translateChanged = _translate && ( (cur.translate.x != tp.translate.x) || (cur.translate.y != tp.translate.y) );
+        const bool scaleChanged = (cur.scale.x != scale.x) || (cur.scale.y != scale.y);
+        const bool rotateChanged = (cur.rotate != tp.rotate);
+        const bool skewXChanged = (cur.skewX != tp.skewX);
+        const bool skewYChanged = (cur.skewY != tp.skewY);
+        const bool editBlockNecessary = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
+        ImageEffect::EditBlock eb(*_effect, "Set Transform", editBlockNecessary);
+        if (centerChanged) {
+            _center->setValue(tp.center.x, tp.center.y);
+        }
+        if (translateChanged) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
             _translate->setValue(tp.translate.x, tp.translate.y);
         }
-        _scale->setValue(scale.x, scale.y);
-        _rotate->setValue(tp.rotate);
-        _skewX->setValue(tp.skewX);
-        _skewY->setValue(tp.skewY);
+        if (scaleChanged) {
+            _scale->setValue(scale.x, scale.y);
+        }
+        if (rotateChanged) {
+            _rotate->setValue(tp.rotate);
+        }
+        if (skewXChanged) {
+            _skewX->setValue(tp.skewX);
+        }
+        if (skewYChanged) {
+            _skewY->setValue(tp.skewY);
+        }
     }
     
     if (ret) {
