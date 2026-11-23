@@ -1100,7 +1100,7 @@ TrackerRegionInteract::penDown(const PenArgs &args)
         } else {
             newState = eMouseStateDraggingCenter;
         }
-    } else if ( (xoff != 0) && (yoff != 0) && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale) ) {
+    } else if ( ( (xoff != 0) || (yoff != 0) ) && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale) ) {
         newState = eMouseStateDraggingOffset;
     } else if ( isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale) ) {
         newState = eMouseStateDraggingInnerBtmLeft;
