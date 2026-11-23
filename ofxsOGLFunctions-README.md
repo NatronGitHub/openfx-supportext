@@ -2,7 +2,7 @@ Here are the rules to use OpenGL in your plug-in:
 
 - If your plug-in is going to use OSMesa to handle CPU rendering, you need to ensure you are not going to call regular OpenGL functions but the one provided by mesa. In that case, it's very simple, just:
         
-    #include <ofxsGLFunctions.h>
+    #include <ofxsOGLFunctions.h>
 
 and then in the code prefix every gl function call by either **GL_CPU** to use OSMesa or **GL_GPU** to use regular OpenGL, e.g:
 
@@ -40,6 +40,12 @@ The function *ofxsLoadOpenGLOnce()* is thread-safe and will do the work only onc
 
 Note that in that case you don't need to prefix your gl calls by **GL_GPU** you will directly use the functions loaded by GLAD. Using the **GL_GPU** prefix would just require 1 function pointer dereference which is slower than calling the function directly.
 
+When using **GL_GPU**, call *ofxsLoadOpenGLOnce()* successfully before the
+first **GL_GPU::** call. **GL_GPU** copies the GLAD function pointers on its
+first use and does not refresh them. If GLAD has not been initialized yet,
+those copied pointers remain NULL even after a later call to
+*ofxsLoadOpenGLOnce()*.
 
-Warning: It is very important that you DO NOT mix environments with glad.h functions or ofxsGLFunctions.h or directly by including gl.h. Make sure that only one of them is included in your code.
+
+Warning: It is very important that you DO NOT mix environments with glad.h functions or ofxsOGLFunctions.h or directly by including gl.h. Make sure that only one of them is included in your code.
 
