@@ -621,9 +621,10 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         return true;
     }
 
+    // mix applies with or without a mask (the render blends with the source whenever mix != 1)
     double mix = 1.;
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-    if (doMasking && _mix) {
+    if (_masked && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
@@ -687,8 +688,8 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
-    if ( doMasking && ( (mix != 1.) || _maskClip->isConnected() ) ) {
-        // for masking or mixing, we also need the source image.
+    if ( _masked && ( doMasking || (mix != 1.) ) ) {
+        // for masking or mixing, the output also contains the source image:
         // compute the union of both RODs
         Coords::rectBoundingBox(rod, srcRoD, &rod);
     }
@@ -713,9 +714,10 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
     const double time = args.time;
     const OfxRectD roi = args.regionOfInterest;
     OfxRectD srcRoI;
+    // mix applies with or without a mask (the render blends with the source whenever mix != 1)
     double mix = 1.;
     bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-    if (doMasking && _mix) {
+    if (_masked && _mix) {
         _mix->getValueAtTime(time, mix);
         if (mix == 0.) {
             // identity transform
@@ -791,8 +793,8 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
         Coords::rectBoundingBox(srcRoI, projectRoD, &srcRoI);
     }
 
-    if ( _masked && (mix != 1.) ) {
-        // compute the bounding box with the default ROI
+    if ( _masked && ( doMasking || (mix != 1.) ) ) {
+        // masking or mixing also reads the source under the output: compute the bounding box with the default ROI
         Coords::rectBoundingBox(srcRoI, args.regionOfInterest, &srcRoI);
     }
 
