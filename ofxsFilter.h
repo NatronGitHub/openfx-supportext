@@ -587,13 +587,10 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
         ox1 = 0;
     }
     if (ox2 > (int)bwidth) {
-        x2 -= vwidth * ((int)bwidth - ox2);
         ox2 = (int)bwidth;
     }
-    assert(x2 >= x1);
-    assert(ox2 >= ox1);
     if (ox2 <= ox1) {
-        // nothing to draw
+        // nothing to draw: the target is wholly outside b (the doc above allows it)
         return;
     }
     if (oy1 < 0) {
@@ -601,13 +598,10 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
         oy1 = 0;
     }
     if (oy2 > (int)bheight) {
-        y2 -= vheight * ((int)bheight - oy2);
         oy2 = (int)bheight;
     }
-    assert(y2 >= y1);
-    assert(oy2 >= oy1);
     if (oy2 <= oy1) {
-        // nothing to draw
+        // nothing to draw: the target is wholly outside b (the doc above allows it)
         return;
     }
 
