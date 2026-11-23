@@ -273,7 +273,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
 
             invtransformsize = getInverseTransforms(time, view, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
-        } else if (directionalBlur) {
+        } else if (directionalBlur && (motionblur != 0.)) {
             invtransformsizealloc = kTransform3x3MotionBlurCount;
             invtransform.resize(invtransformsizealloc);
             invtransformalpha.resize(invtransformsizealloc);
@@ -296,7 +296,10 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             invtransformsizealloc = 1;
             invtransform.resize(invtransformsizealloc);
             invtransformsize = 1;
-            bool success = getInverseTransformCanonical(time, view, 1., invert, &invtransform[0]); // virtual function
+            // with directional blur and no blur (Motion Blur = 0), the full directional-blur amount, as the RoD
+            // (sampling the blur would give 0.999 of it, and compute kTransform3x3MotionBlurCount transforms)
+            const double amount = directionalBlur ? amountTo : 1.;
+            bool success = getInverseTransformCanonical(time, view, amount, invert, &invtransform[0]); // virtual function
             if (!success) {
                 invtransform[0].setNullTransform();
             } else {
