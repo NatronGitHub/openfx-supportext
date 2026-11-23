@@ -1682,7 +1682,9 @@ TransformInteractHelper::penUp(const PenArgs &args)
         getTransformParams(args.time, cur);
         const bool centerChanged = (cur.center.x != tp.center.x) || (cur.center.y != tp.center.y);
         const bool translateChanged = _translate && ( (cur.translate.x != tp.translate.x) || (cur.translate.y != tp.translate.y) );
-        const bool scaleChanged = (cur.scale.x != scale.x) || (cur.scale.y != scale.y);
+        // compare the raw values, as penMotion does (with Uniform Scale, the stored y may differ from
+        // the merged scale), and write the merged, clamped scale as before
+        const bool scaleChanged = (cur.scale.x != tp.scale.x) || (cur.scale.y != tp.scale.y);
         const bool rotateChanged = (cur.rotate != tp.rotate);
         const bool skewXChanged = (cur.skewX != tp.skewX);
         const bool skewYChanged = (cur.skewY != tp.skewY);
