@@ -96,7 +96,7 @@ ofxsLoadOpenGLOnce()
         glad_glGenerateMipmap = glad_glGenerateMipmapEXT;
     }
 
-    if (glLoaded && GLAD_GL_APPLE_vertex_array_object && !GLAD_GL_ARB_vertex_buffer_object) {
+    if (glLoaded && GLAD_GL_APPLE_vertex_array_object && !GLAD_GL_ARB_vertex_array_object) {
         glad_glBindVertexArray = glad_glBindVertexArrayAPPLE;
         glad_glDeleteVertexArrays = glad_glDeleteVertexArraysAPPLE;
         glad_glGenVertexArrays = glad_glGenVertexArraysAPPLE;
