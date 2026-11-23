@@ -142,6 +142,8 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
         }
         if (masked) {
             _mix = fetchDoubleParam(kParamMix);
+            // the "Mask" checkbox, on hosts where a mask clip always looks connected (e.g. Resolve)
+            _maskApply = ( ofxsMaskIsAlwaysConnected( OFX::getImageEffectHostDescription() ) && paramExists(kParamMaskApply) ) ? fetchBooleanParam(kParamMaskApply) : 0;
             _maskInvert = fetchBooleanParam(kParamMaskInvert);
             assert(_mix && _maskInvert);
         }
