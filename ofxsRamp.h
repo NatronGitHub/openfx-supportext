@@ -142,13 +142,18 @@ public:
         if ( effect->paramExists(kParamHiDPI) ) {
             _hiDPI = effect->fetchBooleanParam(kParamHiDPI);
             assert(_hiDPI);
-            // TODO: cannot addParamToSlaveTo(_hiDPI);
+            // not slaved yet: the HiDPI rework is deferred (#100)
         }
         _interactOpen = _effect->fetchBooleanParam(kParamRampInteractOpen);
         assert(_point0 && _point1 && _type && _interactOpen && _interactive);
         assert(_effect && _interact);
         _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
         assert(_dstClip);
+        // redraw the overlay when these change from the parameter panel (or an animation)
+        _interact->addParamToSlaveTo(_point0);
+        _interact->addParamToSlaveTo(_point1);
+        _interact->addParamToSlaveTo(_type);
+        _interact->addParamToSlaveTo(_interactOpen);
     }
 
     /** @brief virtual destructor */
