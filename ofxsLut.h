@@ -32,7 +32,7 @@
 #include <cfloat> // FLT_MIN
 #include <cassert>
 #include <cstring> // for memcpy
-#include <memory> // for auto_ptr
+#include <memory>
 
 #include "ofxCore.h"
 #include "ofxsImageEffect.h"
