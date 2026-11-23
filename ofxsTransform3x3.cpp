@@ -523,7 +523,7 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
         // compute transformed positions
         OfxRectD thisRoD;
         Matrix3x3 transform;
-        bool success = getInverseTransformCanonical(t, view, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // RoD is computed using the *DIRECT* transform, which is why we use !invert
+        bool success = getInverseTransformCanonical(t, view, amountFrom + amount * (amountTo - amountFrom), invert, &transform); // getRegionOfDefinition passes !invert, to get the *DIRECT* transform; getRegionsOfInterest passes invert, to get the inverse
         if (!success) {
             // return infinite region
             rectTo->x1 = kOfxFlagInfiniteMin;
