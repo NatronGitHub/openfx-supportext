@@ -63,6 +63,12 @@ jobs:
           repository: NatronGitHub/openfx
           ref: master
           path: openfx
+      - name: macOS deployment target (the runner's macOS)
+        # CI builds are not shipped: target the runner's macOS (e.g. 15 on macos-15); release
+        # bundles target 14.0 (the CMake default when MACOSX_DEPLOYMENT_TARGET is not set)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: echo "MACOSX_DEPLOYMENT_TARGET=$(sw_vers -productVersion | cut -d. -f1).0" >> "$GITHUB_ENV"
       - name: Install Ubuntu packages
         if: runner.os == 'Linux'
         run: |
