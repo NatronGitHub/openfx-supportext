@@ -826,14 +826,12 @@ fillBlackNT(const OfxRectI & renderWindow,
         // coverity[dead_error_line]
         return;
     }
-# ifndef NDEBUG
-    // do the rendering
+    // an unsupported depth is an error in every build (not a silent no-op)
     if ( (dstBitDepth != OFX::eBitDepthUByte) && (dstBitDepth != OFX::eBitDepthUShort) && (dstBitDepth != OFX::eBitDepthHalf) && (dstBitDepth != OFX::eBitDepthFloat) ) {
         OFX::throwSuiteStatusException(kOfxStatErrFormat);
 
         return;
     }
-# endif
     if (dstBitDepth == OFX::eBitDepthUByte) {
         fillBlackNTForDepth<unsigned char>(renderWindow, renderScale,
                                            dstPixelData, dstBounds, dstPixelComponentCount, dstRowBytes);
@@ -1064,6 +1062,9 @@ copyPixelsNTForDepthAndComponents(OFX::ImageEffect &instance,
     int x2 = (std::min)( renderWindow.x2, (std::min)(dstBounds.x2, srcBounds.x2) );
     int y1 = (std::max)( renderWindow.y1, (std::max)(dstBounds.y1, srcBounds.y1) );
     int y2 = (std::min)( renderWindow.y2, (std::min)(dstBounds.y2, srcBounds.y2) );
+    if ( (x2 <= x1) || (y2 <= y1) ) {
+        return; // nothing to copy (a negative width would give a huge memcpy)
+    }
     const PIX* srcPixels = srcPixelData + (size_t)(y1 - srcBounds.y1) * srcRowElements + (x1 - srcBounds.x1) * nComponents;
     unsigned int dstRowElements = dstRowBytes / sizeof(PIX);
     PIX* dstPixels = dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * nComponents;
