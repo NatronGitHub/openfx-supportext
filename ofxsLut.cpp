@@ -449,7 +449,7 @@ ycbcr_to_rgb601(float y,
     *r = 1.164f * (y - 16 / 255.f) + 1.596f * (cr - 128 / 255.f);
     *g = 1.164f * (y - 16 / 255.f) - 0.813f * (cr - 128 / 255.f) - 0.392f * (cb - 128 / 255.f);
     *b = 1.164f * (y - 16 / 255.f) + 2.017f * (cb - 128 / 255.f);
-} // ycbcr_to_rgb
+} // ycbcr_to_rgb601
 
 // R'G'B' in the range 0-1 to Y'CbCr in the video range
 // (Y' = 16/255 to 235/255, CbCr = 16/255 to 240/255)
@@ -486,7 +486,7 @@ ycbcr_to_rgb709(float y,
     *r = 1.164f * (y - 16 / 255.f) + 1.793f * (cr - 128 / 255.f);
     *g = 1.164f * (y - 16 / 255.f) - 0.533f * (cr - 128 / 255.f) - 0.213f * (cb - 128 / 255.f);
     *b = 1.164f * (y - 16 / 255.f) + 2.112f * (cb - 128 / 255.f);
-} // ycbcr_to_rgb
+} // ycbcr_to_rgb709
 
 // R'G'B' in the range 0-1 to Y'CbCr Analog (Y' in the range 0-1, PbPr in the range -0.5 - 0.5)
 void

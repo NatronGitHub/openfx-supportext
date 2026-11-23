@@ -623,7 +623,7 @@ public:
     } // multiThreadProcessImages
 };
 
-// _srcBoundarys The border condition type { 0=zero |  1=nearest (Neumann) | 2=periodic }.
+// srcBoundary The border condition type { 0=zero |  1=nearest (Neumann) | 2=periodic }.
 // template to do the RGBA processing
 template <class SRCPIX, int srcNComponents, int srcMaxValue, class DSTPIX, int dstNComponents, int dstMaxValue>
 class PixelCopierPremultMaskMix

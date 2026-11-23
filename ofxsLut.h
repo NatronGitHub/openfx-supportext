@@ -947,7 +947,7 @@ to_func_VLog(float v)
 
 /// convert RGB to HSV
 /// In Nuke's viewer, sRGB values are used (apply to_func_srgb to linear
-/// RGB values before calling this fuunction)
+/// RGB values before calling this function)
 // r,g,b values are from 0 to 1
 /// h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 ///		if s == 0, then h = 0 (undefined)
