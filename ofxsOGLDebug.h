@@ -589,14 +589,17 @@ using OFX::glGetEnumString;
 #include <iostream>
 
 
+// do { } while (0): a single statement, as the release ( (void)0 ), so that
+// "if (c) glCheckError(); else ..." compiles the same in both builds
 #define glCheckError()                                                  \
-    {                                                                   \
+    do {                                                                \
         GLenum _glerror_ = glGetError();                                \
         if (_glerror_ != GL_NO_ERROR) {                                 \
-            std::cout << "GL_ERROR: " << __FILE__ << ":" << __LINE__ << " " << OFX::glErrorString(_glerror_) << std::endl; \
+            const char* _glerrorstr_ = OFX::glErrorString(_glerror_);   \
+            std::cout << "GL_ERROR: " << __FILE__ << ":" << __LINE__ << " " << (_glerrorstr_ ? _glerrorstr_ : "<unknown>") << std::endl; \
             OFX::glError();                                             \
         }                                                               \
-    }
+    } while (0)
 
 #endif // ifndef DEBUG
 
