@@ -178,9 +178,9 @@ isIdentityForBOnly(MergingFunctionEnum operation)
     case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
     case eMergeCopy: // "A (a.k.a. src)";
     case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
-    case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+    case eMergeDisjointOver: // "A+B(1-a)/b, A if a >= 1, A+B if a+b < 1";
     case eMergeDivide: // "A/B, 0 if B <= 0";
-    case eMergeFreeze: // "1-sqrt(1-A)/B";
+    case eMergeFreeze: // "max(0, 1-sqrt(1-A)/B), 0 if B <= 0";
     case eMergeFrom: // "B-A (a.k.a. subtract)";
     case eMergeGeometric: // "2AB/(A+B)";
     case eMergeGrainExtract: // "B - A + 0.5";
@@ -198,8 +198,8 @@ isIdentityForBOnly(MergingFunctionEnum operation)
     case eMergeMultiply: // "AB, A if A < 0 and B < 0";
     case eMergeOut: // "A(1-b) (a.k.a. src-out)";
     case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
-    case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
-    case eMergeReflect: // "A*A / (1 - B)";
+    case eMergePinLight: // "max(B, 2*A - 1) if A >= 0.5, min(B, 2*A) otherwise";
+    case eMergeReflect: // "min(1, A*A / (1 - B)), 1 if B >= 1";
     case eMergeSaturation: // "SetLum(SetSat(B, Sat(A)), Lum(B))";
     case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
     //default: // do not enable the default case, so that we can catch warnings when adding a new operator
@@ -234,10 +234,10 @@ isSeparable(MergingFunctionEnum operation)
     case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
     case eMergeCopy: // "A (a.k.a. src)";
     case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
-    case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+    case eMergeDisjointOver: // "A+B(1-a)/b, A if a >= 1, A+B if a+b < 1";
     case eMergeDivide: // "A/B, 0 if B <= 0";
     case eMergeExclusion: //"A+B-2AB";
-    case eMergeFreeze: // "1-sqrt(1-A)/B";
+    case eMergeFreeze: // "max(0, 1-sqrt(1-A)/B), 0 if B <= 0";
     case eMergeFrom: // "B-A (a.k.a. subtract)";
     case eMergeGeometric: // "2AB/(A+B)";
     case eMergeGrainExtract: // "B - A + 0.5";
@@ -254,9 +254,9 @@ isSeparable(MergingFunctionEnum operation)
     case eMergeOut: // "A(1-b) (a.k.a. src-out)";
     case eMergeOver: //"A+B(1-a) (a.k.a. src-over)";
     case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
-    case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+    case eMergePinLight: // "max(B, 2*A - 1) if A >= 0.5, min(B, 2*A) otherwise";
     case eMergePlus: //"A+B (a.k.a. add)";
-    case eMergeReflect: // "A*A / (1 - B)";
+    case eMergeReflect: // "min(1, A*A / (1 - B)), 1 if B >= 1";
     case eMergeScreen: //"A+B-AB if A or B <= 1, otherwise max(A, B)";
     case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
     case eMergeStencil: //"B(1-a) (a.k.a. dst-out)";
@@ -479,7 +479,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeDisjointOver:
 
-        return "A+B(1-a)/b, A+B if a+b < 1";
+        return "A+B(1-a)/b, A if a >= 1, A+B if a+b < 1";
 
     case eMergeDivide:
 
@@ -491,7 +491,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeFreeze:
 
-        return "1-sqrt(1-A)/B";
+        return "max(0, 1-sqrt(1-A)/B), 0 if B <= 0";
 
     case eMergeFrom:
 
@@ -570,7 +570,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergePinLight:
 
-        return "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+        return "max(B, 2*A - 1) if A >= 0.5, min(B, 2*A) otherwise";
 
     case eMergePlus:
 
@@ -578,7 +578,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeReflect:
 
-        return "A*A / (1 - B)";
+        return "min(1, A*A / (1 - B)), 1 if B >= 1";
 
     case eMergeSaturation:
 
@@ -1674,10 +1674,10 @@ mergePixel(bool doAlphaMasking,
         case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
         case eMergeCopy: // "A (a.k.a. src)";
         case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
-        case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
+        case eMergeDisjointOver: // "A+B(1-a)/b, A if a >= 1, A+B if a+b < 1";
         case eMergeDivide: // "A/B, 0 if B <= 0";
         case eMergeExclusion: //"A+B-2AB";
-        case eMergeFreeze: // "1-sqrt(1-A)/B";
+        case eMergeFreeze: // "max(0, 1-sqrt(1-A)/B), 0 if B <= 0";
         case eMergeFrom: // "B-A (a.k.a. subtract)";
         case eMergeGeometric: // "2AB/(A+B)";
         case eMergeGrainExtract: // "B - A + 0.5";
@@ -1694,9 +1694,9 @@ mergePixel(bool doAlphaMasking,
         case eMergeOut: // "A(1-b) (a.k.a. src-out)";
         case eMergeOver: //"A+B(1-a) (a.k.a. src-over)";
         case eMergeOverlay: // "multiply(A, 2*B) if B < 0.5, screen(A, 2*B - 1) if B > 0.5";
-        case eMergePinLight: // "if B >= 0.5 then max(A, 2*B - 1), min(A, B * 2) else";
+        case eMergePinLight: // "max(B, 2*A - 1) if A >= 0.5, min(B, 2*A) otherwise";
         case eMergePlus: //"A+B (a.k.a. add)";
-        case eMergeReflect: // "A*A / (1 - B)";
+        case eMergeReflect: // "min(1, A*A / (1 - B)), 1 if B >= 1";
         case eMergeScreen: //"A+B-AB if A or B <= 1, otherwise max(A, B)";
         case eMergeSoftLight: // "burn-in if A < 0.5, lighten if A > 0.5";
         case eMergeStencil: //"B(1-a) (a.k.a. dst-out)";
