@@ -568,8 +568,10 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
                 amount = 1. - dirBlurIter / (double)dirBlurIterMax;
                 last = dirBlurIter == dirBlurIterMax;
             } else {
-                t = std::floor(t * 4 + 1) / 4; // next quarter-frame
-                if (t >= range.max) {
+                const double tNext = std::floor(t * 4 + 1) / 4; // next quarter-frame
+                // !(tNext > t): no progress for huge |t|, or NaN; finish with range.max
+                t = (tNext > t) ? tNext : range.max;
+                if ( !(t < range.max) ) {
                     // last iteration should be done with range.max
                     t = range.max;
                     last = true;
