@@ -58,9 +58,9 @@
 namespace OFX {
 /**
  * @brief The plug-in using this interact must have the kParamRectangleInteractBtmLeft and
- * kParamRectangleInteractSize parameters. kParamRectangleInteractInteractive and
- * kParamRectangleInteractEnable are optional, and the angle parameter is passed by name
- * to the constructor.
+ * kParamRectangleInteractSize parameters. kParamRectangleInteractInteractive,
+ * kParamRectangleInteractEnable and kParamHiDPI are optional, and the optional angle
+ * parameter is passed by name to the constructor.
  *
  **/
 class RectangleInteract

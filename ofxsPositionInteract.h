@@ -130,12 +130,13 @@ drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
    }
 
    // the describe() function should include the declaration of the interact.
-   // Prefer V2, which draws with the DrawSuite when the host has one, and falls back to V1:
+   // Prefer V2, which draws with the DrawSuite when the host has one and always keeps an
+   // OpenGL (V1) entry:
    OFX::ofxsSetOverlayInteractDescriptorV2(desc, new PositionOverlayDescriptorV2<MyPositionInteractParam>);
    // or, OpenGL only:
    desc.setOverlayInteractDescriptor(new PositionOverlayDescriptor<MyPositionInteractParam>);
 
-   // The position param should be defined is describeInContext() as follows:
+   // The position param should be defined in describeInContext() as follows:
    Double2DParamDescriptor* position = desc.defineDouble2DParam(kMyName);
    position->setLabel(kMyLabel, kMyLabel, kMyLabel);
    position->setHint(kMyHint);
