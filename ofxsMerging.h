@@ -175,11 +175,11 @@ isIdentityForBOnly(MergingFunctionEnum operation)
     case eMergeColor: // "SetLum(A, Lum(B))";
     case eMergeColorBurn: // "darken B towards A";
     case eMergeColorDodge: // "brighten B towards A";
-    case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+    case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
     case eMergeCopy: // "A (a.k.a. src)";
     case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
     case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
-    case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+    case eMergeDivide: // "A/B, 0 if B <= 0";
     case eMergeFreeze: // "1-sqrt(1-A)/B";
     case eMergeFrom: // "B-A (a.k.a. subtract)";
     case eMergeGeometric: // "2AB/(A+B)";
@@ -231,11 +231,11 @@ isSeparable(MergingFunctionEnum operation)
     case eMergeAverage: // "(A + B) / 2";
     case eMergeColorBurn: // "darken B towards A";
     case eMergeColorDodge: // "brighten B towards A";
-    case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+    case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
     case eMergeCopy: // "A (a.k.a. src)";
     case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
     case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
-    case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+    case eMergeDivide: // "A/B, 0 if B <= 0";
     case eMergeExclusion: //"A+B-2AB";
     case eMergeFreeze: // "1-sqrt(1-A)/B";
     case eMergeFrom: // "B-A (a.k.a. subtract)";
@@ -467,7 +467,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeConjointOver:
 
-        return "A + B(1-a)/b, A if a > b";
+        return "A + B(1-a/b), A if a > b";
 
     case eMergeCopy:
 
@@ -483,7 +483,7 @@ getOperationDescription(MergingFunctionEnum operation)
 
     case eMergeDivide:
 
-        return "A/B, 0 if A < 0 and B < 0";
+        return "A/B, 0 if B <= 0";
 
     case eMergeExclusion:
 
@@ -1671,11 +1671,11 @@ mergePixel(bool doAlphaMasking,
         case eMergeAverage: // "(A + B) / 2";
         case eMergeColorBurn: // "darken B towards A";
         case eMergeColorDodge: // "brighten B towards A";
-        case eMergeConjointOver: // "A + B(1-a)/b, A if a > b";
+        case eMergeConjointOver: // "A + B(1-a/b), A if a > b";
         case eMergeCopy: // "A (a.k.a. src)";
         case eMergeDifference: // "abs(A-B) (a.k.a. absminus)";
         case eMergeDisjointOver: // "A+B(1-a)/b, A+B if a+b < 1";
-        case eMergeDivide: // "A/B, 0 if A < 0 and B < 0";
+        case eMergeDivide: // "A/B, 0 if B <= 0";
         case eMergeExclusion: //"A+B-2AB";
         case eMergeFreeze: // "1-sqrt(1-A)/B";
         case eMergeFrom: // "B-A (a.k.a. subtract)";
