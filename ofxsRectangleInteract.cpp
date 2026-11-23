@@ -876,49 +876,87 @@ RectangleInteract::getBtmLeft(OfxTime time) const
     return ret;
 }
 
+// Which sides of the rectangle a handle moves: -1 the left (bottom) side, +1 the right (top)
+// side, 0 neither (the width, or height, doesn't change).
+static void
+draggedSides(int mouseState,
+             int* sideX,
+             int* sideY)
+{
+    *sideX = 0;
+    *sideY = 0;
+    switch (mouseState) {
+    case RectangleInteract::eMouseStateDraggingTopLeft:
+        *sideX = -1; *sideY = +1;
+        break;
+    case RectangleInteract::eMouseStateDraggingTopRight:
+        *sideX = +1; *sideY = +1;
+        break;
+    case RectangleInteract::eMouseStateDraggingBtmLeft:
+        *sideX = -1; *sideY = -1;
+        break;
+    case RectangleInteract::eMouseStateDraggingBtmRight:
+        *sideX = +1; *sideY = -1;
+        break;
+    case RectangleInteract::eMouseStateDraggingTopMid:
+        *sideY = +1;
+        break;
+    case RectangleInteract::eMouseStateDraggingBtmMid:
+        *sideY = -1;
+        break;
+    case RectangleInteract::eMouseStateDraggingMidRight:
+        *sideX = +1;
+        break;
+    case RectangleInteract::eMouseStateDraggingMidLeft:
+        *sideX = -1;
+        break;
+    default:
+        break;
+    }
+}
+
+// Unrotated rectangle, one axis: round the side that moves to the grid and keep the other one
+// where it is (or, centered, round the extent and keep the center), with the 1-unit minimum.
+static void
+roundMovingSide(double* origin,
+                double* extent,
+                int side,
+                bool centered,
+                double pscale)
+{
+    if (side == 0) {
+        return;
+    }
+    if (centered) {
+        const double w = froundSize(*extent, pscale);
+        *origin -= (w - *extent) / 2;
+        *extent = w;
+    } else if (side < 0) {
+        const double end = *origin + *extent; // fixed
+        double o = fround(*origin, pscale);
+        if (end - o < 1.) {
+            o = end - 1.;
+        }
+        *origin = o;
+        *extent = end - o;
+    } else {
+        const double e = fround(*origin + *extent, pscale) - *origin; // origin is fixed
+        *extent = (e < 1.) ? 1. : e;
+    }
+}
+
 void
 RectangleInteract::setValue(OfxPointD btmLeft,
                             OfxPointD size,
                             const OfxPointD &pscale)
 {
-    bool setBtmLeft = false;
-    bool setSize = false;
+    const bool centered = ctrlDown();
+    int sideX, sideY;
+    draggedSides(_mouseState, &sideX, &sideY);
     if (_angleDrag != 0.) {
         // Rotated: btmLeft is not an edge position on screen, so rounding it would move the
         // side that must stay fixed. Round the size instead, in the rectangle frame, and move
         // btmLeft so that the fixed side (or the center, with Ctrl) stays in place.
-        const bool centered = ctrlDown();
-        int sideX = 0; // -1: the left side moves, +1: the right side moves, 0: width unchanged
-        int sideY = 0; // -1: the bottom side moves, +1: the top side moves, 0: height unchanged
-        switch (_mouseState) {
-        case eMouseStateDraggingTopLeft:
-            sideX = -1; sideY = +1;
-            break;
-        case eMouseStateDraggingTopRight:
-            sideX = +1; sideY = +1;
-            break;
-        case eMouseStateDraggingBtmLeft:
-            sideX = -1; sideY = -1;
-            break;
-        case eMouseStateDraggingBtmRight:
-            sideX = +1; sideY = -1;
-            break;
-        case eMouseStateDraggingTopMid:
-            sideY = +1;
-            break;
-        case eMouseStateDraggingBtmMid:
-            sideY = -1;
-            break;
-        case eMouseStateDraggingMidRight:
-            sideX = +1;
-            break;
-        case eMouseStateDraggingMidLeft:
-            sideX = -1;
-            break;
-        case eMouseStateDraggingCenter:
-        case eMouseStateIdle:
-            break;
-        }
         if (sideX != 0) {
             double w = froundSize(size.x, pscale.x);
             btmLeft.x -= centered ? (w - size.x) / 2 : (sideX < 0 ? w - size.x : 0.);
@@ -940,61 +978,25 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         double sina = std::sin(a);
         btmLeft.x += d.x - (cosa * d.x - sina * d.y);
         btmLeft.y += d.y - (sina * d.x + cosa * d.y);
-        setBtmLeft = setSize = true;
+    } else if (_mouseState == eMouseStateDraggingCenter) {
+        // round newx/y to the closest int, 1/10 int, etc: this makes parameter editing easier
+        btmLeft.x = fround(btmLeft.x, pscale.x);
+        btmLeft.y = fround(btmLeft.y, pscale.y);
     } else {
-        // round newx/y to the closest int, 1/10 int, etc
-        // this make parameter editing easier
-        switch (_mouseState) {
-        case eMouseStateIdle:
-            break;
-        case eMouseStateDraggingTopLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            size.x = froundSize(size.x, pscale.x);
-            size.y = froundSize(size.y, pscale.y);
-            setBtmLeft = setSize = true;
-            break;
-        case eMouseStateDraggingTopRight:
-            size.x = froundSize(size.x, pscale.x);
-            size.y = froundSize(size.y, pscale.y);
-            setSize = true;
-            break;
-        case eMouseStateDraggingBtmLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            size.x = froundSize(size.x, pscale.x);
-            size.y = froundSize(size.y, pscale.y);
-            setBtmLeft = setSize = true;
-            break;
-        case eMouseStateDraggingBtmRight:
-            size.x = froundSize(size.x, pscale.x);
-            size.y = froundSize(size.y, pscale.y);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            setBtmLeft = setSize = true;
-            break;
-        case eMouseStateDraggingCenter:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            setBtmLeft = true;
-            break;
-        case eMouseStateDraggingTopMid:
-            size.y = froundSize(size.y, pscale.y);
-            setSize = true;
-            break;
-        case eMouseStateDraggingMidRight:
-            size.x = froundSize(size.x, pscale.x);
-            setSize = true;
-            break;
-        case eMouseStateDraggingBtmMid:
-            btmLeft.y = fround(btmLeft.y, pscale.y);
-            setBtmLeft = true;
-            break;
-        case eMouseStateDraggingMidLeft:
-            btmLeft.x = fround(btmLeft.x, pscale.x);
-            setBtmLeft = true;
-            break;
-        }
+        // round the side that moves, so that the opposite side stays exactly where it was
+        roundMovingSide(&btmLeft.x, &size.x, sideX, centered, pscale.x);
+        roundMovingSide(&btmLeft.y, &size.y, sideY, centered, pscale.y);
     }
-    ImageEffect::EditBlock eb(*_effect, "setRectangle", setBtmLeft + setSize > 1);
-    _btmLeft->setValue(btmLeft.x, btmLeft.y);
-    _size->setValue(size.x, size.y);
-} // penDown
+    // set only the params that change: one undo step, and no keyframe on an unchanged param
+    const OfxPointD oldBtmLeft = _btmLeft->getValue();
+    const OfxPointD oldSize = _size->getValue();
+    const bool setBtmLeft = (btmLeft.x != oldBtmLeft.x) || (btmLeft.y != oldBtmLeft.y);
+    const bool setSize = (size.x != oldSize.x) || (size.y != oldSize.y);
+    ImageEffect::EditBlock eb(*_effect, "setRectangle", setBtmLeft && setSize);
+    if (setBtmLeft) {
+        _btmLeft->setValue(btmLeft.x, btmLeft.y);
+    }
+    if (setSize) {
+        _size->setValue(size.x, size.y);
+    }
+} // setValue
