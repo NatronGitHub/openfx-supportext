@@ -149,6 +149,11 @@ public:
         assert(_effect && _interact);
         _dstClip = _effect->fetchClip(kOfxImageEffectOutputClipName);
         assert(_dstClip);
+        // redraw the overlay when these change from the parameter panel (or an animation)
+        _interact->addParamToSlaveTo(_point0);
+        _interact->addParamToSlaveTo(_point1);
+        _interact->addParamToSlaveTo(_type);
+        _interact->addParamToSlaveTo(_interactOpen);
     }
 
     /** @brief virtual destructor */
