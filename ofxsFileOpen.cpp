@@ -31,7 +31,9 @@
 #include <share.h> // _SH_DENYNO
 #endif
 
-#include <fstream>
+#ifndef _WIN32
+#include <unistd.h> // access
+#endif
 
 using std::string;
 using std::wstring;
@@ -73,8 +75,9 @@ exists_utf8(const char* path_utf8)
     return ::_waccess ( wpath.c_str(), 0 ) != -1;
 #else
 
-    // on Unix platforms passing in UTF-8 works
-    return !!std::ifstream(path_utf8);
+    // on Unix platforms passing in UTF-8 works; F_OK tests existence, as _waccess(path, 0) does
+    // on Windows (an ifstream would test readability)
+    return ::access(path_utf8, F_OK) == 0;
 #endif
 }
 
