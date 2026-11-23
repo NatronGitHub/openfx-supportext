@@ -241,6 +241,35 @@ threadFunction(void *_args)
     }
 }
 
+// Registers the calling thread in threadIndexes while multiThread runs the tasks itself (one
+// thread), and unregisters it on exit, also if a task throws.
+class SerialThreadIndex
+{
+public:
+    SerialThreadIndex()
+        : _key( currentThreadKey() )
+    {
+    }
+
+    ~SerialThreadIndex()
+    {
+        lock_guard<mutex> guard(threadIndexesLock);
+        threadIndexes.erase(_key);
+    }
+
+    void set(unsigned int index)
+    {
+        lock_guard<mutex> guard(threadIndexesLock);
+        threadIndexes[_key] = index;
+    }
+
+private:
+    SerialThreadIndex(const SerialThreadIndex&); // non-copyable
+    SerialThreadIndex& operator=(const SerialThreadIndex&);
+
+    const ThreadKey _key;
+};
+
 /**@brief Function to spawn SMP threads
 
  \arg func The function to call in each thread.
@@ -300,7 +329,12 @@ OfxStatus multiThread(OfxThreadFunctionV1 func,
             ++occupancy;
         }
         try {
+            // the calling thread runs every task: during task i, multiThreadIndex() gives i and
+            // multiThreadIsSpawnedThread() 1, as in a spawned thread (and a nested multiThread
+            // fails with kOfxStatErrExists), so register it for the duration of the loop
+            SerialThreadIndex index;
             for (unsigned int i = 0; i < nThreads; ++i) {
+                index.set(i);
                 func(i, nThreads, customArg);
             }
 
