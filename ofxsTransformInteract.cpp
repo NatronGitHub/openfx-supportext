@@ -1506,10 +1506,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
 
-        // As in Nuke: a drag sets translate, rotate, scale, skew and center together (so that, with
-        // animated params, they all get a key at the current time), not skew order or invert.
-        // (This replaces the 2022/11/12 rule "Only setValue on parameters that make sense";
-        // penUp already sets all six.)
+        // As in Nuke, and as penUp does: a drag sets translate, rotate, scale, skew and center
+        // together (so that, with animated params, they all get a key at the current time), not
+        // skew order or invert.
         ImageEffect::EditBlock eb(*_effect, "Set Transform");
         _center->setValue(tp.center.x, tp.center.y);
         if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
