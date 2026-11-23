@@ -33,7 +33,7 @@
 #include <cassert>
 #include <cstring> // for memcpy
 #include <cstdlib> // for rand
-#include <memory>
+#include <memory> // for auto_ptr
 
 #include "ofxCore.h"
 #include "ofxsImageEffect.h"
@@ -949,7 +949,7 @@ to_func_VLog(float v)
 /// In Nuke's viewer, sRGB values are used (apply to_func_srgb to linear
 /// RGB values before calling this fuunction)
 // r,g,b values are from 0 to 1
-/// h = [0,OFXS_HUE_CIRCLE), s = [0,1], v = [0,1]
+/// h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 ///		if s == 0, then h = 0 (undefined)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
 /// wrapHue: wrap the hue into [0, OFXS_HUE_CIRCLE) first (new plug-in versions should set it;

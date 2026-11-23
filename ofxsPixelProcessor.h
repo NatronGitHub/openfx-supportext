@@ -344,7 +344,7 @@ protected:
     OFX::BitDepthEnum _srcBitDepth;
     int _srcPixelBytes;
     int _srcRowBytes;
-    int _srcBoundary; // Boundary conditions 0: Black/Dirichlet 1:Nearest/Neymann 2:Repeat/Periodic
+    int _srcBoundary; // Boundary conditions 0: Black/Dirichlet 1:Nearest/Neumann 2:Repeat/Periodic
     const OFX::Image *_origImg;
     const OFX::Image *_maskImg;
     bool _premult;
