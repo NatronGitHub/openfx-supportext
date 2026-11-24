@@ -33,20 +33,13 @@
 #include "ofxsMacros.h" // OFXS_PI
 
 namespace OFX {
-// NEVER define a variable/constant in a header (said it 100 times already)
-// an inline function is OK
+// an inline function rather than a constant: headers must also compile as
+// C++11, which has no inline variables (C++17 "inline constexpr")
 inline double
 ofxsPi()
 {
     return OFXS_PI;
 }
-
-/**
- * @brief A simple 3 * 3 matrix class layed out as such:
- *  a b c
- *  d e f
- *  g h i
- **/
 
 inline double
 ofxsToDegrees(double rad)
@@ -419,6 +412,12 @@ ofxsMatrixHasEntryAbove(const double* m,
     return false;
 }
 
+/**
+ * @brief A simple 3 * 3 matrix class laid out as such:
+ *  a b c
+ *  d e f
+ *  g h i
+ **/
 struct Matrix3x3
 {
     double m[3*3];
@@ -1180,12 +1179,14 @@ ofxsMatInverseTransformCanonical(double translateX,
                                  double centerX,
                                  double centerY)
 {
+    /// The forward transform (see ofxsMatTransformCanonical) is:
     ///1) We translate to the center of the transform.
     ///2) We scale
     ///3) We apply skewX and skewY in the right order
     ///4) We rotate
     ///5) We apply the global translation
-    ///5) We translate back to the origin
+    ///6) We translate back to the origin
+    /// This function applies the inverse of each step, in reverse order.
 
     // avoid division by zero (use FLT_MIN instead of DBL_MIN in case there are further casts to float)
     if (std::fabs(scaleX) < FLT_MIN ) {
@@ -1194,7 +1195,7 @@ ofxsMatInverseTransformCanonical(double translateX,
     if (std::fabs(scaleY) < FLT_MIN ) {
       scaleY = scaleY > 0 ? FLT_MIN : -FLT_MIN;
     }
-    // since this is the inverse, oerations are in reverse order
+    // since this is the inverse, operations are in reverse order
     return ofxsMatTranslation(centerX, centerY) *
            ofxsMatScale(1. / scaleX, 1. / scaleY) *
            ofxsMatSkewXY(-skewX, -skewY, !skewOrderYX) *
@@ -1221,7 +1222,7 @@ ofxsMatTransformCanonical(double translateX,
     ///3) We apply skewX and skewY in the right order
     ///4) We rotate
     ///5) We apply the global translation
-    ///5) We translate back to the origin
+    ///6) We translate back to the origin
 
     return ofxsMatTranslation(centerX, centerY) *
            ofxsMatTranslation(translateX, translateY) *
@@ -1321,6 +1322,6 @@ ofxsMatTransformPixel(double pixelaspectratio, //!< 1.067 for PAL, where 720x576
            ofxsMatTransformCanonical(translateX, translateY, scaleX, scaleY, skewX, skewY, skewOrderYX, rads, centerX, centerY) *
            ofxsMatPixelToCanonical(pixelaspectratio, renderscaleX, renderscaleY, fielded);
 }
-};
+} // namespace OFX
 
 #endif // openfx_supportext_ofxsMatrix2D_h

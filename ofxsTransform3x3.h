@@ -94,13 +94,13 @@ public:
     virtual bool isIdentity(double /*time*/)
     {
         return false;
-    };
+    }
 
     /** @brief recover a transform matrix from an effect */
     virtual bool getInverseTransformCanonical(double time, int view, double amount, bool invert, OFX::Matrix3x3* invtransform) const = 0;
 
 
-    // The following functions override those is OFX::ImageEffect
+    // The following functions override those in OFX::ImageEffect
 
     // override the rod call (not final, since overriden by Reformat)
     virtual bool getRegionOfDefinition(const OFX::RegionOfDefinitionArguments &args, OfxRectD &rod) OVERRIDE;
