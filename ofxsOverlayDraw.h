@@ -245,7 +245,7 @@ private:
 };
 
 // Everything below depends on OFXS_OVERLAYDRAW_DS: put it in an inline namespace
-// named after the value (C++11), and let MSVC check that all the object files
+// named after the value, and let MSVC check that all the object files
 // agree. This limits the damage of mixed values, which are not allowed (see
 // "Enabling the DrawSuite backend").
 #ifdef _MSC_VER

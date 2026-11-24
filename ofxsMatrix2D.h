@@ -34,7 +34,7 @@
 
 namespace OFX {
 // pi (OFXS_PI), as a function for the existing callers
-inline constexpr double
+constexpr double
 ofxsPi()
 {
     return OFXS_PI;
