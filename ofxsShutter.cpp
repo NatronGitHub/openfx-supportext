@@ -27,6 +27,9 @@
 using namespace OFX;
 
 namespace OFX {
+// maximum shutter length and custom offset, in frames
+static const double kShutterMax = 1000.;
+
 void
 shutterDescribeInContext(ImageEffectDescriptor &desc,
                          ContextEnum /*context*/,
@@ -39,7 +42,9 @@ shutterDescribeInContext(ImageEffectDescriptor &desc,
         param->setHint(kParamShutterHint);
         param->setDefault(0.5);
         param->setIncrement(0.01);
-        param->setRange(0., 2.);
+        // Hard range: generous but finite. Transform3x3Plugin::transformRegion samples the
+        // shutter range every quarter frame, so its cost grows with the shutter length.
+        param->setRange(0., kShutterMax);
         param->setDisplayRange(0., 2.);
         if (page) {
             page->addChild(*param);
@@ -73,7 +78,7 @@ shutterDescribeInContext(ImageEffectDescriptor &desc,
         param->setHint(kParamShutterCustomOffsetHint);
         param->setDefault(0.);
         param->setIncrement(0.1);
-        param->setRange(-1., 1.);
+        param->setRange(-kShutterMax, kShutterMax);
         param->setDisplayRange(-1., 1.);
         if (page) {
             page->addChild(*param);
