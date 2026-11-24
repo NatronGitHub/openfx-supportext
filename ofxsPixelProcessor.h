@@ -344,7 +344,7 @@ protected:
     OFX::BitDepthEnum _srcBitDepth;
     int _srcPixelBytes;
     int _srcRowBytes;
-    int _srcBoundary; // Boundary conditions 0: Black/Dirichlet 1:Nearest/Neymann 2:Repeat/Periodic
+    int _srcBoundary; // Boundary conditions 0: Black/Dirichlet 1:Nearest/Neumann 2:Repeat/Periodic
     const OFX::Image *_origImg;
     const OFX::Image *_maskImg;
     bool _premult;
@@ -377,7 +377,7 @@ public:
 
     /** @brief set the src image */
     void setSrcImg(const OFX::Image *v,
-                   int srcBoundary = 0) //!< The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
+                   int srcBoundary = 0) //!< The border condition type { 0=zero |  1=nearest (Neumann) | 2=periodic }.
     {
         if (!v) {
             // no source (e.g. a disconnected input): the processor reads black
@@ -409,7 +409,7 @@ public:
                    int srcPixelComponentCount,
                    OFX::BitDepthEnum srcPixelDepth,
                    int srcRowBytes,
-                   int srcBoundary) //!< The border condition type { 0=zero |  1=dirichlet | 2=periodic }.
+                   int srcBoundary) //!< The border condition type { 0=zero |  1=nearest (Neumann) | 2=periodic }.
     {
         _srcPixelData = srcPixelData;
         _srcBounds = srcBounds;

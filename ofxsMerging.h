@@ -606,7 +606,7 @@ getOperationDescription(MergingFunctionEnum operation)
     } // switch
 
     return "unknown";
-} // getOperationString
+} // getOperationDescription
 
 inline std::string
 getOperationHelp(MergingFunctionEnum operation, bool markdown)
@@ -1603,7 +1603,7 @@ blend_hsl_luminosity (pixman_rgb_t *res,
 
 /**
  * @brief Global wrapper templated by the blending operator.
- * A and B are respectively the color of the image A and B and is assumed to of size nComponents, 
+ * A and B are respectively the color of the image A and B and is assumed to be of size nComponents, 
  * nComponents being at most 4
  **/
 template <MergingFunctionEnum f, typename PIX, int nComponents, int maxValue>

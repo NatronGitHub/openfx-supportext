@@ -67,7 +67,7 @@ intToFloat(int value)
     return value * ( 1.f / (numvals - 1) );
 }
 
-/// maps °.-1. to 0-(numvals-1)
+/// maps 0.-1. to 0-(numvals-1)
 template<int numvals>
 int
 floatToInt(float value)
@@ -615,10 +615,10 @@ to_func_VLog(float v)
 
 /// convert RGB to HSV
 /// In Nuke's viewer, sRGB values are used (apply to_func_srgb to linear
-/// RGB values before calling this fuunction)
+/// RGB values before calling this function)
 // r,g,b values are from 0 to 1
-/// h = [0,360], s = [0,1], v = [0,1]
-///		if s == 0, then h = -1 (undefined)
+/// h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
+///		if s == 0, then h = 0 (undefined)
 void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
 /// wrapHue: wrap the hue into [0, OFXS_HUE_CIRCLE) first (new plug-in versions should set it;
 /// false keeps the old output, wrong for hues in [-1, -5/6) mod 1, see the implementation)

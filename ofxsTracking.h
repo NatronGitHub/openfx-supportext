@@ -95,9 +95,9 @@ namespace OFX {
 struct TrackArguments
 {
     ///first is not necesserarily lesser than last.
-    OfxTime first;     //<! the first frame to track *from*
-    OfxTime last;     //<! the last frame to track *from* (can be the same as first)
-    bool forward;     //<! tracking direction
+    OfxTime first;     //!< the first frame to track *from*
+    OfxTime last;     //!< the last frame to track *from* (can be the same as first)
+    bool forward;     //!< tracking direction
     InstanceChangeReason reason;
     OfxPointD renderScale;
 };

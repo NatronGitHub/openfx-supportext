@@ -289,7 +289,7 @@ ofxsUnPremultValue(double c,
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
 // unpremult by alpha <= 0 gives identity
-// premult(unpremult(p)) or premult(unpremult(p)) is thus not identity for alpha <= 0
+// premult(unpremult(p)) or unpremult(premult(p)) is thus not identity for alpha <= 0
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsUnPremult(const PIX *srcPix,
@@ -352,7 +352,7 @@ ofxsUnPremult(const PIX *srcPix,
 // premultiply and denormalize in [0, maxValue]
 // if premult is false, just denormalize
 // premult by alpha <= 0 gives 0
-// premult(unpremult(p)) or premult(unpremult(p)) is thus not identity for alpha <= 0
+// premult(unpremult(p)) or unpremult(premult(p)) is thus not identity for alpha <= 0
 template <class PIX, int nComponents, int maxValue>
 void
 ofxsPremult(const float unpPix[4],
@@ -418,7 +418,7 @@ ofxsPix(const float *tmpPix, //!< interpolated pixel
     for (int c = 0; c < nComponents; ++c) {
         dstPix[c] = ofxsClampIfInt<PIX, maxValue>(tmpPix[c], 0, maxValue);
     }
-} // ofxsMixPix
+} // ofxsPix
 
 // unpPix is normalized between [0,1]
 template <class PIX, int nComponents, int maxValue>
@@ -532,7 +532,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                bool domask, //!< apply the mask?
                const OFX::Image *maskImg, //!< the mask image (ignored if masked=false or domask=false), which must be Alpha
                float mix, //!< mix factor between the output and bkImg
-               bool maskInvert, //<! invert mask behavior
+               bool maskInvert, //!< invert mask behavior
                PIX *dstPix) //!< destination pixel
 {
     // For a multi-planar effect, the mask image may have any components
@@ -602,7 +602,7 @@ ofxsPremultMaskMixPix(const float unpPix[4], //!< interpolated unpremultiplied p
                       bool domask, //!< apply the mask?
                       const OFX::Image *maskImg, //!< the mask image (ignored if masked=false or domask=false)
                       float mix, //!< mix factor between the output and bkImg
-                      bool maskInvert, //<! invert mask behavior
+                      bool maskInvert, //!< invert mask behavior
                       PIX *dstPix) //!< destination pixel
 {
     assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
@@ -642,7 +642,7 @@ ofxsMaskMix(const float *tmpPix, //!< interpolated pixel
             bool domask, //!< apply the mask?
             const OFX::Image *maskImg, //!< the mask image (ignored if masked=false or domask=false)
             float mix, //!< mix factor between the output and bkImg
-            bool maskInvert, //<! invert mask behavior
+            bool maskInvert, //!< invert mask behavior
             PIX *dstPix) //!< destination pixel
 {
     assert(!domask || !maskImg || maskImg->getPixelComponents() == ePixelComponentAlpha);
