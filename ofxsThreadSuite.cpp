@@ -42,37 +42,16 @@
 #define DBG(x) (void)0
 #endif
 
-#if __cplusplus > 199711L || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) // C++11 (MSVC reports 199711L without /Zc:__cplusplus)
 #include <thread>
 #include <mutex>
-// use our version of fast_mutex.h, which has bug fixes
-//#include "fast_mutex.h"
 
 using std::thread;
 using std::mutex;
 using std::recursive_mutex;
 namespace this_thread = std::this_thread;
 
-// TODO: replace with our own implementation using std::atomic_flag
-//using fast_mutex = tthread::fast_mutex;
-
 template<class Mutex>
 using lock_guard = std::unique_lock<Mutex>;
-
-#else
-// use TinyThread 1.2 from https://gitorious.org/tinythread/tinythreadpp
-// for portable C++11-like threads
-#include "tinythread.h"
-// use our version of fast_mutex.h, which has bug fixes
-//#include "fast_mutex.h"
-
-using tthread::thread;
-using tthread::mutex;
-//using tthread::fast_mutex;
-using tthread::recursive_mutex;
-using tthread::lock_guard;
-namespace this_thread = tthread::this_thread;
-#endif
 
 #include "ofxCore.h"
 #include "ofxMultiThread.h"
@@ -111,7 +90,7 @@ mutex occupancyLock; // protects occupancy
 unsigned occupancy = 0;
 
 // The threads started by multiThread (the fallback when the host has no multithread suite).
-// On Windows they get an explicit stack size: std::thread and tinythread use the
+// On Windows they get an explicit stack size: std::thread uses the
 // executable's default, 1 MiB for MSVC-linked hosts (2 MiB with MinGW), which deep
 // recursion in a render overflows (seen with G'MIC filters, 0xC00000FD). They are
 // identified by their Win32 thread id there (std::thread::id is not that id with MinGW).

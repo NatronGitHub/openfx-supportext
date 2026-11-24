@@ -200,14 +200,6 @@
 #error "SupportExt needs the NatronGitHub openfx Support library from a61684fe (2026-11-19) on"
 #endif
 
-#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
-#define OFXS_OVERLAYDRAW_THREAD_LOCAL thread_local
-#elif defined(_MSC_VER)
-#define OFXS_OVERLAYDRAW_THREAD_LOCAL __declspec(thread)
-#else
-#define OFXS_OVERLAYDRAW_THREAD_LOCAL __thread
-#endif
-
 namespace OFX {
 /// How an interact draws, decided by the descriptor that created it.
 enum OverlayDrawModeEnum
@@ -222,7 +214,7 @@ enum OverlayDrawModeEnum
 inline OverlayDrawModeEnum&
 ofxsOverlayDrawConstructionMode()
 {
-    static OFXS_OVERLAYDRAW_THREAD_LOCAL OverlayDrawModeEnum mode = eOverlayDrawOpenGL;
+    static thread_local OverlayDrawModeEnum mode = eOverlayDrawOpenGL;
 
     return mode;
 }
@@ -253,7 +245,7 @@ private:
 };
 
 // Everything below depends on OFXS_OVERLAYDRAW_DS: put it in an inline namespace
-// named after the value (C++11), and let MSVC check that all the object files
+// named after the value, and let MSVC check that all the object files
 // agree. This limits the damage of mixed values, which are not allowed (see
 // "Enabling the DrawSuite backend").
 #ifdef _MSC_VER
@@ -263,13 +255,10 @@ private:
 #pragma detect_mismatch("OFXS_OVERLAYDRAW_DS", "0")
 #endif
 #endif
-#if __cplusplus >= 201103L || (defined(_MSC_VER) && _MSC_VER >= 1900)
-#define OFXS_OVERLAYDRAW_INLINE_NAMESPACE 1
 #if OFXS_OVERLAYDRAW_DS
 inline namespace OverlayDrawWithDrawSuite {
 #else
 inline namespace OverlayDrawOpenGLOnly {
-#endif
 #endif
 /// Is an overlay registered with setOverlayInteractDescriptorV2() registered as
 /// V2, when its registration was not recorded? The DrawSuite test of
@@ -986,9 +975,7 @@ private:
     float _ctxLineWidth; // line width sent to the host, -1 if none yet
     int _ctxStipple; // OfxDrawLineStipplePattern sent to the host, -1 if none yet
 };
-#ifdef OFXS_OVERLAYDRAW_INLINE_NAMESPACE
 } // inline namespace
-#endif
 } // namespace OFX
 
 #endif // openfx_supportext_ofxsOverlayDraw_h

@@ -16,7 +16,7 @@
 # link openfx::Support, whose usage requirements carry them).
 #
 # Components (dependencies are added automatically):
-#   THREADS             tinythread.cpp ofxsThreadSuite.cpp (links Threads::Threads)
+#   THREADS             ofxsThreadSuite.cpp (links Threads::Threads)
 #   FILEOPEN            ofxsFileOpen.cpp
 #   LUT                 ofxsLut.cpp
 #   MULTIPLANE          ofxsMultiPlane.cpp
@@ -211,7 +211,7 @@ function(supportext_add_sources TARGET)
       POSITION_INTERACT TRANSFORM_INTERACT RECTANGLE_INTERACT GENERATOR RAMP TRACKING
       OGL_FUNCTIONS EGL)
   set(_internal GLAD OPENGL OSMESA)
-  set(_THREADS_SOURCES            tinythread.cpp ofxsThreadSuite.cpp)
+  set(_THREADS_SOURCES            ofxsThreadSuite.cpp)
   set(_FILEOPEN_SOURCES           ofxsFileOpen.cpp)
   set(_LUT_SOURCES                ofxsLut.cpp)
   set(_MULTIPLANE_SOURCES         ofxsMultiPlane.cpp)
