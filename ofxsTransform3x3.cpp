@@ -269,6 +269,14 @@ Transform3x3Plugin::getRenderInverseTransforms(double time,
             invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
         }
     }
+    if (invtransformsize == 0) {
+        // getInverseTransformsBlur() found no valid transform: render one null transform (black), as
+        // the single-transform case does when the transform can't be computed
+        invtransform.resize(1);
+        invtransform[0].setNullTransform();
+        invtransformalpha.clear();
+        invtransformsize = 1;
+    }
     if (invtransformsize == 1) {
         motionblur  = 0.;
     }
