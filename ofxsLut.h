@@ -624,7 +624,10 @@ void rgb_to_hsv( float r, float g, float b, float *h, float *s, float *v );
 /// false keeps the old output, wrong for hues in [-1, -5/6) mod 1, see the implementation)
 void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b, bool wrapHue = false );
 
-void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l );
+/// fixedOutOfRange: compute the hue from the unclamped channels (new plug-in versions should set it;
+/// false keeps the old output, with a wrong hue and saturation when a channel is outside [0,1], see
+/// the implementation). The saturation is that of the colour clamped to [0,1].
+void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l, bool fixedOutOfRange = false );
 /// wrapHue: as for hsv_to_rgb
 void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b, bool wrapHue = false );
 

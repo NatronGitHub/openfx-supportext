@@ -210,19 +210,34 @@ rgb_to_hsl( float r,
             float b,
             float *h,
             float *s,
-            float *l )
+            float *l,
+            bool fixedOutOfRange )
 {
     float minv = (std::min)((std::min)(r, g), b);
     float maxv = (std::max)((std::max)(r, g), b);
 
     *l = (minv + maxv) / 2;
 
-    minv = (std::max)(0.f, minv);
-    maxv = (std::min)(1.f, maxv);
+    // the hue is computed from the unclamped channels (with fixedOutOfRange)
+    const float minu = minv;
+    const float maxu = maxv;
+    const float deltau = maxu - minu;
+
+    if (fixedOutOfRange) {
+        // the saturation is that of the colour clamped to [0,1]: clamp both ends to [0,1]
+        minv = (std::min)( 1.f, (std::max)(0.f, minv) );
+        maxv = (std::min)( 1.f, (std::max)(0.f, maxv) );
+    } else {
+        // old output: comparing the unclamped channels with the clamped maxv below gives a
+        // wrong hue when a channel is outside [0,1] (e.g. (2, 0.5, 0) or (0.5, -1, 0)), and
+        // a wrong saturation when all are above 1
+        minv = (std::max)(0.f, minv);
+        maxv = (std::min)(1.f, maxv);
+    }
 
     float delta = maxv - minv;
 
-    if (delta == 0.) {
+    if ( fixedOutOfRange ? (deltau == 0.f) : (delta == 0.) ) {
         *h = 0.f;                 // gray
         *s = 0.f;
 
@@ -231,14 +246,24 @@ rgb_to_hsl( float r,
     // s = delta/(1-abs(2L-1)); near white, 2 - (maxv + minv) can round to 0 (e.g. (1, 1, 0.99999994)),
     // which gave inf, then NaN in hsl_to_rgb: the saturation is then 1
     const float sden = (*l <= 0.5) ? (maxv + minv) : ( 2 - (maxv + minv) );
-    *s = (sden != 0.f) ? (delta / sden) : 1.f;
-
-    if (r == maxv) {
-        *h = (g - b) / delta;                       // between yellow & magenta
-    } else if (g == maxv) {
-        *h = 2 + (b - r) / delta;                   // between cyan & yellow
+    if (fixedOutOfRange) {
+        // the lightness of the clamped colour decides the formula; delta is 0 when all the
+        // channels are on the same side of [0,1]
+        const float lc = (minv + maxv) / 2;
+        const float sdenc = (lc <= 0.5f) ? (maxv + minv) : ( 2 - (maxv + minv) );
+        *s = (delta == 0.f) ? 0.f : ( (sdenc != 0.f) ? (std::min)(1.f, delta / sdenc) : 1.f );
     } else {
-        *h = 4 + (r - g) / delta;                   // between magenta & cyan
+        *s = (sden != 0.f) ? (delta / sden) : 1.f;
+    }
+
+    const float hmax = fixedOutOfRange ? maxu : maxv;
+    const float hdelta = fixedOutOfRange ? deltau : delta;
+    if (r == hmax) {
+        *h = (g - b) / hdelta;                       // between yellow & magenta
+    } else if (g == hmax) {
+        *h = 2 + (b - r) / hdelta;                   // between cyan & yellow
+    } else {
+        *h = 4 + (r - g) / hdelta;                   // between magenta & cyan
     }
     *h *= OFXS_HUE_CIRCLE / 6;
     if (*h < 0) {
