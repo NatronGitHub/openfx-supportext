@@ -1645,6 +1645,13 @@ TransformInteractHelper::penUp(const PenArgs &args)
         return false;
     }
     bool ret = _mouseState != eReleased;
+    // Leave the drag state when this function exits, even if a setValue below throws
+    // (OFX::Exception::Suite): otherwise the next hover would keep dragging.
+    struct ResetMouseState
+    {
+        MouseStateEnum& state;
+        ~ResetMouseState() { state = eReleased; }
+    } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && ret ) {
         const TransformParams& tp = _tpDrag;
@@ -1666,7 +1673,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
         _interact->requestRedraw();
     }
 
-    _mouseState = eReleased;
+    _mouseState = eReleased; // now, for penMotion below
     _lastMousePos = args.penPosition;
 
     if (ret) {
