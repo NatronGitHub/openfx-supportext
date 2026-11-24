@@ -1,6 +1,7 @@
 name: Continuous Integration
 
-# On pushes to master, RB-* and tags, and on non-draft pull requests: one build
+# On pushes to master, RB-* and tags, on non-draft pull requests, and on demand for a
+# draft's branch (`gh workflow run ci.yml --ref <branch>`, Linux and Windows only): one build
 # per platform in C++17: Linux (see build-one.yml) and Windows (an MSVC x64 compile
 # check), then macOS. The Windows MSYS2 UCRT64 build is weekly (extended.yml),
 # following the maintainer's Windows policy (one fast C++17 Windows build per change).
@@ -18,6 +19,8 @@ on:
     paths-ignore:
       - LICENSE
       - '**.md'
+  # on demand, e.g. for a draft pull request (CI doesn't run on drafts): Linux and Windows
+  workflow_dispatch:
 
 # Cancel superseded runs (but never tag builds)
 concurrency:
@@ -49,7 +52,8 @@ jobs:
   macos:
     name: macOS 15 arm64 (Xcode clang)
     needs: [build, msvc]
-    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
+    # not on demand: arm64 runners are scarce, and merging only requires Linux and Windows
+    if: (github.event_name != 'pull_request' || !github.event.pull_request.draft) && github.event_name != 'workflow_dispatch'
     # system (Xcode) clang; no MacPorts or Homebrew dependency is needed
     uses: ./.github/workflows/build-one.yml
     with:
