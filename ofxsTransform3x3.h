@@ -28,6 +28,8 @@
 
 #include <memory>
 
+#include <vector>
+
 #include "ofxsImageEffect.h"
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsShutter.h"
@@ -157,6 +159,12 @@ protected:
                                     double* amount,
                                     size_t invtransformsizealloc) const;
 
+    // the inverse transforms of the render, in pixel coordinates (see the .cpp)
+    double getRenderInverseTransforms(double time, int view, const OfxPointD& renderScale, bool fielded,
+                                      double srcpixelAspectRatio, double dstpixelAspectRatio,
+                                      std::vector<OFX::Matrix3x3>* invtransform,
+                                      std::vector<double>* invtransformalpha) const;
+
 private:
     /* internal render function */
     template <class PIX, int nComponents, int maxValue, bool masked>
@@ -192,6 +200,7 @@ protected:
     OFX::ChoiceParam* _filter;
     OFX::BooleanParam* _clamp;
     OFX::BooleanParam* _blackOutside;
+    OFX::BooleanParam* _prefilter; // may be NULL (kParamFilterPrefilter, appended)
     OFX::DoubleParam* _motionblur;
     OFX::DoubleParam* _dirBlurAmount; // DirBlur only
     OFX::BooleanParam* _dirBlurCentered; // DirBlur only
@@ -210,6 +219,16 @@ void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
 
-void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType);
+// Which filtering parameters Transform3x3DescribeInContextEnd() defines: the default keeps the parameters
+// of the previous versions; a plug-in opts in to the sinc-based filters (Lanczos4, Lanczos6, Sinc4,
+// appended to Filter) and the Prefilter Downscaling checkbox (appended) with a new plug-in version.
+enum Transform3x3FilteringEnum
+{
+    eTransform3x3FilteringCubic = 0, // Impulse to Notch, supersampling when scaling down
+    eTransform3x3FilteringSincPrefilter, // also Lanczos4, Lanczos6, Sinc4 and Prefilter Downscaling
+};
+
+void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType,
+                                      Transform3x3FilteringEnum filtering = eTransform3x3FilteringCubic);
 } // namespace OFX
 #endif /* defined(openfx_supportext_ofxsTransform3x3_h) */

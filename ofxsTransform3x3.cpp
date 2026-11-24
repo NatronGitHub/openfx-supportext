@@ -98,6 +98,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _filter(NULL)
     , _clamp(NULL)
     , _blackOutside(NULL)
+    , _prefilter(NULL)
     , _motionblur(NULL)
     , _dirBlurAmount(NULL)
     , _dirBlurCentered(NULL)
@@ -121,6 +122,10 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
         assert(!_maskClip || !_maskClip->isConnected() || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
+    // Prefilter Downscaling (appended): also in Reformat, which fetches its own filter parameters
+    if ( paramExists(kParamFilterPrefilter) ) {
+        _prefilter = fetchBooleanParam(kParamFilterPrefilter);
+    }
     if ( paramExists(kParamTransform3x3Invert) ) {
         // Transform3x3-GENERIC
         _invert = fetchBooleanParam(kParamTransform3x3Invert);
@@ -168,6 +173,121 @@ Transform3x3Plugin::~Transform3x3Plugin()
 ////////////////////////////////////////////////////////////////////////////////
 // basic plugin render function, just a skelington to instantiate templates from
 
+// The inverse transforms of the render, in pixel coordinates (from the output to the source) at this
+// render scale and field, with their weights (empty: uniform). Returns the motion blur quality (0 for a
+// single transform). setupAndProcess() renders with them, and getRegionsOfInterest() bounds the
+// prefilter widths with them.
+double
+Transform3x3Plugin::getRenderInverseTransforms(double time,
+                                               int view,
+                                               const OfxPointD& renderScale,
+                                               bool fielded,
+                                               double srcpixelAspectRatio,
+                                               double dstpixelAspectRatio,
+                                               std::vector<Matrix3x3>* invtransformOut,
+                                               std::vector<double>* invtransformalphaOut) const
+{
+    std::vector<Matrix3x3>& invtransform = *invtransformOut;
+    std::vector<double>& invtransformalpha = *invtransformalphaOut;
+    size_t invtransformsizealloc = 0;
+    size_t invtransformsize = 0;
+    double motionblur = 0.;
+    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
+    double amountFrom = 0.;
+    double amountTo = 1.;
+    if (_dirBlurAmount) {
+        _dirBlurAmount->getValueAtTime(time, amountTo);
+    }
+    if (_dirBlurCentered) {
+        bool centered;
+        _dirBlurCentered->getValueAtTime(time, centered);
+        if (centered) {
+            amountFrom = -amountTo;
+        }
+    }
+    bool invert = false;
+    if (_invert) {
+        _invert->getValueAtTime(time, invert);
+    }
+
+    if (_motionblur) {
+        _motionblur->getValueAtTime(time, motionblur);
+    }
+    if (_directionalBlur) {
+        _directionalBlur->getValueAtTime(time, directionalBlur);
+    }
+    double shutter = 0.;
+    if (!directionalBlur) {
+        if (_shutter) {
+            _shutter->getValueAtTime(time, shutter);
+        }
+    }
+    if ( (shutter != 0.) && (motionblur != 0.) ) {
+        invtransformsizealloc = kTransform3x3MotionBlurCount;
+        invtransform.resize(invtransformsizealloc);
+        assert(_shutteroffset);
+        ShutterOffsetEnum shutteroffset = (ShutterOffsetEnum)_shutteroffset->getValueAtTime(time);
+        double shuttercustomoffset;
+        assert(_shuttercustomoffset);
+        _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
+
+        invtransformsize = getInverseTransforms(time, view, renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
+    } else if (directionalBlur && (motionblur != 0.)) {
+        invtransformsizealloc = kTransform3x3MotionBlurCount;
+        invtransform.resize(invtransformsizealloc);
+        invtransformalpha.resize(invtransformsizealloc);
+        invtransformsize = getInverseTransformsBlur(time, view, renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
+        // normalize alpha, and apply gamma
+        double fading = 0.;
+        if (_dirBlurFading) {
+            _dirBlurFading->getValueAtTime(time, fading);
+        }
+        // amountTo == 0: every sample has amount 0, and the fading formula
+        // would give 0/0 = NaN weights (isIdentity normally avoids rendering)
+        if ( (fading <= 0.) || (amountTo == 0.) ) {
+            std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
+        } else {
+            for (size_t i = 0; i < invtransformalpha.size(); ++i) {
+                invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i]) / amountTo, fading);
+            }
+        }
+    } else {
+        invtransformsizealloc = 1;
+        invtransform.resize(invtransformsizealloc);
+        invtransformsize = 1;
+        // with directional blur and no blur (Motion Blur = 0), the full directional-blur amount, as the RoD
+        // (sampling the blur would give 0.999 of it, and compute kTransform3x3MotionBlurCount transforms)
+        const double amount = directionalBlur ? amountTo : 1.;
+        bool success = getInverseTransformCanonical(time, view, amount, invert, &invtransform[0]); // virtual function
+        if (!success) {
+            invtransform[0].setNullTransform();
+        } else {
+            Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, renderScale.x,
+                                                                 renderScale.y, fielded);
+            Matrix3x3 pixelToCanonical = ofxsMatPixelToCanonical(dstpixelAspectRatio,  renderScale.x,
+                                                                 renderScale.y, fielded);
+            invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
+        }
+    }
+    if (invtransformsize == 0) {
+        // getInverseTransformsBlur() found no valid transform: render one null transform (black), as
+        // the single-transform case does when the transform can't be computed
+        invtransform.resize(1);
+        invtransform[0].setNullTransform();
+        invtransformalpha.clear();
+        invtransformsize = 1;
+    }
+    if (invtransformsize == 1) {
+        motionblur  = 0.;
+    }
+    invtransform.resize(invtransformsize);
+    if ( !invtransformalpha.empty() ) {
+        invtransformalpha.resize(invtransformsize);
+    }
+
+    return motionblur;
+} // getRenderInverseTransforms
+
 /* set up and run a processor */
 void
 Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
@@ -198,31 +318,16 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 # endif
     auto_ptr<const Image> src( ( _srcClip && _srcClip->isConnected() ) ?
                                     _srcClip->fetchImage(args.time) : 0 );
-    size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     std::vector<Matrix3x3> invtransform;
     std::vector<double> invtransformalpha;
     double motionblur = 0.;
-    bool directionalBlur = (_paramsType != eTransform3x3ParamsTypeNone);
-    double amountFrom = 0.;
-    double amountTo = 1.;
-    if (_dirBlurAmount) {
-        _dirBlurAmount->getValueAtTime(time, amountTo);
-    }
-    if (_dirBlurCentered) {
-        bool centered;
-        _dirBlurCentered->getValueAtTime(time, centered);
-        if (centered) {
-            amountFrom = -amountTo;
-        }
-    }
     bool blackOutside = false;
     double mix = 1.;
 
     if ( !src.get() ) {
         // no source image, use a dummy transform
-        invtransformsizealloc = 1;
-        invtransform.resize(invtransformsizealloc);
+        invtransform.resize(1);
         invtransformsize = 1;
         invtransform[0].setNullTransform();
     } else {
@@ -235,86 +340,20 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
             return;
         }
 
-        bool invert = false;
-        if (_invert) {
-            _invert->getValueAtTime(time, invert);
-        }
-
         if (_blackOutside) {
             _blackOutside->getValueAtTime(time, blackOutside);
         }
         if (_masked && _mix) {
             _mix->getValueAtTime(time, mix);
         }
-        if (_motionblur) {
-            _motionblur->getValueAtTime(time, motionblur);
-        }
-        if (_directionalBlur) {
-            _directionalBlur->getValueAtTime(time, directionalBlur);
-        }
-        double shutter = 0.;
-        if (!directionalBlur) {
-            if (_shutter) {
-                _shutter->getValueAtTime(time, shutter);
-            }
-        }
         const bool fielded = args.fieldToRender == eFieldLower || args.fieldToRender == eFieldUpper;
-        const double srcpixelAspectRatio = src->getPixelAspectRatio();
-        const double dstpixelAspectRatio = _dstClip->getPixelAspectRatio();
         int view = 0;
 #if defined(OFX_EXTENSIONS_VEGAS) || defined(OFX_EXTENSIONS_NUKE)
         view = args.renderView;
 #endif
-        if ( (shutter != 0.) && (motionblur != 0.) ) {
-            invtransformsizealloc = kTransform3x3MotionBlurCount;
-            invtransform.resize(invtransformsizealloc);
-            assert(_shutteroffset);
-            ShutterOffsetEnum shutteroffset = (ShutterOffsetEnum)_shutteroffset->getValueAtTime(time);
-            double shuttercustomoffset;
-            assert(_shuttercustomoffset);
-            _shuttercustomoffset->getValueAtTime(time, shuttercustomoffset);
-
-            invtransformsize = getInverseTransforms(time, view, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, shutter, shutteroffset, shuttercustomoffset, &invtransform.front(), invtransformsizealloc);
-        } else if (directionalBlur && (motionblur != 0.)) {
-            invtransformsizealloc = kTransform3x3MotionBlurCount;
-            invtransform.resize(invtransformsizealloc);
-            invtransformalpha.resize(invtransformsizealloc);
-            invtransformsize = getInverseTransformsBlur(time, view, args.renderScale, fielded, srcpixelAspectRatio, dstpixelAspectRatio, invert, amountFrom, amountTo, &invtransform.front(), &invtransformalpha.front(), invtransformsizealloc);
-            // normalize alpha, and apply gamma
-            double fading = 0.;
-            if (_dirBlurFading) {
-                _dirBlurFading->getValueAtTime(time, fading);
-            }
-            // amountTo == 0: every sample has amount 0, and the fading formula
-            // would give 0/0 = NaN weights (isIdentity normally avoids rendering)
-            if ( (fading <= 0.) || (amountTo == 0.) ) {
-                std::fill(invtransformalpha.begin(), invtransformalpha.end(), 1.);
-            } else {
-                for (size_t i = 0; i < invtransformalpha.size(); ++i) {
-                    invtransformalpha[i] = std::pow(1. - std::abs(invtransformalpha[i]) / amountTo, fading);
-                }
-            }
-        } else {
-            invtransformsizealloc = 1;
-            invtransform.resize(invtransformsizealloc);
-            invtransformsize = 1;
-            // with directional blur and no blur (Motion Blur = 0), the full directional-blur amount, as the RoD
-            // (sampling the blur would give 0.999 of it, and compute kTransform3x3MotionBlurCount transforms)
-            const double amount = directionalBlur ? amountTo : 1.;
-            bool success = getInverseTransformCanonical(time, view, amount, invert, &invtransform[0]); // virtual function
-            if (!success) {
-                invtransform[0].setNullTransform();
-            } else {
-                Matrix3x3 canonicalToPixel = ofxsMatCanonicalToPixel(srcpixelAspectRatio, args.renderScale.x,
-                                                                     args.renderScale.y, fielded);
-                Matrix3x3 pixelToCanonical = ofxsMatPixelToCanonical(dstpixelAspectRatio,  args.renderScale.x,
-                                                                     args.renderScale.y, fielded);
-                invtransform[0] = canonicalToPixel * invtransform[0] * pixelToCanonical;
-            }
-        }
-        if (invtransformsize == 1) {
-            motionblur  = 0.;
-        }
+        motionblur = getRenderInverseTransforms(time, view, args.renderScale, fielded, src->getPixelAspectRatio(),
+                                                _dstClip->getPixelAspectRatio(), &invtransform, &invtransformalpha);
+        invtransformsize = invtransform.size();
 #ifdef OFX_EXTENSIONS_NUKE
         // compose with the input transform
         if ( !src->getTransformIsIdentity() ) {
@@ -369,6 +408,7 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
                         blackOutside,
                         motionblur,
                         mix);
+    processor.setPrefilter( _prefilter && !args.renderQualityDraft && _prefilter->getValueAtTime(time) );
 
     // Call the base class process member, this will call the derived templated process code
     processor.process();
@@ -796,6 +836,48 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
+    // prefilter: the kernel of radius R is widened by the derivative of the transform, up to
+    // kOfxsFilterPrefilterMaxWidth (ofxsFilterInterpolate2DPrefilter): expand srcRoI by R * (width - 1)
+    // source pixels more. The widths are bounded over the inverse transforms of the render, in the same
+    // pixel coordinates (PAR, render scale), for both an unfielded and a fielded render (the field is not
+    // known here): exact for an affine transform, the cap for a projective one (the largest derivative of
+    // a homography over a rectangle is not always at its corners).
+    const int prefilterRadius = ofxsFilterRadius(filter);
+    if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
+        const double srcPar = _srcClip->getPixelAspectRatio();
+        const double dstPar = _dstClip->getPixelAspectRatio();
+        double ex = 0.;
+        double ey = 0.;
+        bool useCap = false;
+#if defined(OFX_EXTENSIONS_NUKE) && defined(ENABLE_HOST_TRANSFORM)
+        // A host that concatenates transforms may attach one to the source image (setupAndProcess()
+        // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
+        // CornerPin), the bound below would be too small, so use the cap.
+        useCap = getImageEffectHostDescription()->canTransform;
+#endif
+        if (useCap) {
+            ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / args.renderScale.x;
+            ey = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * 2. / args.renderScale.y;
+        }
+        for (int f = 0; f < 2 && !useCap; ++f) {
+            const bool fielded = (f == 1);
+            std::vector<Matrix3x3> invtransforms;
+            std::vector<double> alphas;
+            getRenderInverseTransforms(time, view, args.renderScale, fielded, srcPar, dstPar, &invtransforms, &alphas);
+            double wx = 1.;
+            double wy = 1.;
+            for (size_t t = 0; t < invtransforms.size(); ++t) {
+                const OfxPointD w = ofxsFilterPrefilterWidthsBound(invtransforms[t]);
+                wx = (std::max)(wx, w.x);
+                wy = (std::max)(wy, w.y);
+            }
+            // source pixels to canonical coordinates (ofxsMatPixelToCanonical: a field line is 2 lines)
+            ex = (std::max)( ex, prefilterRadius * (wx - 1.) * srcPar / args.renderScale.x );
+            ey = (std::max)( ey, prefilterRadius * (wy - 1.) * (fielded ? 2. : 1.) / args.renderScale.y );
+        }
+        ofxsFilterExpandRect(ex, ey, &srcRoI);
+    }
+
     ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, filter, doMasking, mix, &srcRoI);
 
     if ( Coords::rectIsInfinite(srcRoI) ) {
@@ -907,6 +989,33 @@ Transform3x3Plugin::renderInternalForBitDepth(const RenderArguments &args)
         setupAndProcess(fred, args);
         break;
     }
+    case eFilterLanczos4:
+        if (clamp) {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterLanczos4, true> fred(*this);
+            setupAndProcess(fred, args);
+        } else {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterLanczos4, false> fred(*this);
+            setupAndProcess(fred, args);
+        }
+        break;
+    case eFilterLanczos6:
+        if (clamp) {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterLanczos6, true> fred(*this);
+            setupAndProcess(fred, args);
+        } else {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterLanczos6, false> fred(*this);
+            setupAndProcess(fred, args);
+        }
+        break;
+    case eFilterSinc4:
+        if (clamp) {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterSinc4, true> fred(*this);
+            setupAndProcess(fred, args);
+        } else {
+            Transform3x3Processor<PIX, nComponents, maxValue, masked, eFilterSinc4, false> fred(*this);
+            setupAndProcess(fred, args);
+        }
+        break;
     } // switch
 } // renderInternalForBitDepth
 
@@ -1372,7 +1481,8 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
                                  ContextEnum context,
                                  PageParamDescriptor* page,
                                  bool masked,
-                                 Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType)
+                                 Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType,
+                                 Transform3x3FilteringEnum filtering)
 {
     // invert
     {
@@ -1388,7 +1498,8 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
     // GENERIC PARAMETERS
     //
 
-    ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur);
+    ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur,
+                                          (filtering == eTransform3x3FilteringSincPrefilter) ? eFilterSetSinc : eFilterSetCubic);
 
     // motionBlur
     {
@@ -1460,6 +1571,11 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
         // GENERIC (MASKED)
         //
         ofxsMaskMixDescribeParams(desc, page);
+    }
+
+    if (filtering == eTransform3x3FilteringSincPrefilter) {
+        // appended after the other parameters (off: the supersampling of the previous versions)
+        ofxsFilterDescribeParamPrefilter(desc, page);
     }
 } // Transform3x3DescribeInContextEnd
 } // namespace OFX
