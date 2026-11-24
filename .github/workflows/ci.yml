@@ -24,7 +24,8 @@ on:
 
 # Cancel superseded runs (but never tag builds)
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # per event too, so that a manual run on master and a push to master don't cancel each other
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name }}
   cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 permissions:
