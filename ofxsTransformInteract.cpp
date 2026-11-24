@@ -862,7 +862,7 @@ TransformInteractHelper::drawOverlay(OverlayDraw &d,
 
             int numKeys = _translate->getNumKeys();
 
-            // Try to draw one point per frame, but no more thankDrawPointTrajectoryMaxPoints
+            // Try to draw one point per frame, but no more than kDrawPointTrajectoryMaxPoints
             // in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
             if (numKeys > 0) {
                 OfxPointD targetCenter;

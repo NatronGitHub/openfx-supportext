@@ -51,7 +51,7 @@
 namespace OFX {
 
 // Before calling this function: make sure the OpenGL props are correctly set.
-// Try to draw one point per frame, but no more thankDrawPointTrajectoryMaxPoints
+// Try to draw one point per frame, but no more than kDrawPointTrajectoryMaxPoints
 // in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
 // DRAW is OverlayDraw, or OverlayDrawGLDirect for plain OpenGL.
 template <class DRAW>
@@ -117,18 +117,26 @@ drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
 
 /// template for a generic position interact.
 /*
-   The PositionInteractParam class must define a static name() function, returning the OFX parameter name.
-   (using const char* directly as template parameter is not reliable) :
+   The ParamName class must define two static functions (using const char* directly
+   as template parameter is not reliable):
+   - name() returns the OFX name of the position parameter;
+   - interactiveName() returns the name of a boolean "Interactive Update" parameter,
+     or NULL if there is none.
    namespace {
    struct MyPositionInteractParam {
      static const char *name() { return kMyName; }
+     static const char *interactiveName() { return kParamInteractive; } // or NULL
    };
    }
 
-   // the describe() function should include the declaration of the interact:
+   // the describe() function should include the declaration of the interact.
+   // Prefer V2, which draws with the DrawSuite when the host has one and always keeps an
+   // OpenGL (V1) entry:
+   OFX::ofxsSetOverlayInteractDescriptorV2(desc, new PositionOverlayDescriptorV2<MyPositionInteractParam>);
+   // or, OpenGL only:
    desc.setOverlayInteractDescriptor(new PositionOverlayDescriptor<MyPositionInteractParam>);
 
-   // The position param should be defined is describeInContext() as follows:
+   // The position param should be defined in describeInContext() as follows:
    Double2DParamDescriptor* position = desc.defineDouble2DParam(kMyName);
    position->setLabel(kMyLabel, kMyLabel, kMyLabel);
    position->setHint(kMyHint);
@@ -139,7 +147,7 @@ drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
        page->addChild(*position);
    }
  */
-template<typename PositionInteractParam>
+template<typename ParamName>
 class PositionInteract
     : public OFX::OverlayInteract
 {
@@ -155,11 +163,11 @@ public:
         , _hasNativeHostPositionHandle(false)
         , _drawMode( OFX::ofxsOverlayDrawModeForNewInteract() )
     {
-        _position = effect->fetchDouble2DParam( PositionInteractParam::name() );
+        _position = effect->fetchDouble2DParam( ParamName::name() );
         assert(_position);
         addParamToSlaveTo(_position);
-        if ( PositionInteractParam::interactiveName() ) {
-            _interactive = effect->fetchBooleanParam( PositionInteractParam::interactiveName() );
+        if ( ParamName::interactiveName() ) {
+            _interactive = effect->fetchBooleanParam( ParamName::interactiveName() );
             assert(_interactive);
         }
         if ( effect->paramExists(kParamHiDPI) ) {
