@@ -24,7 +24,7 @@
 namespace OFX {
 /**
  * @brief Loads OpenGL functions using GLAD so that they are available if using glad.h or ofxsOGLFunctions.h
- * Note: this function will loads them once only, subsequent calls to this function do nothing.
+ * Note: once loading succeeds, subsequent calls to this function do nothing (a failed load is retried).
  * This is thread-safe (protected by a mutex).
  * An OpenGL context MUST be bound when calling this function. A good place to call it is in the
  * draw function of an interact (if you only use interacts) or in the contextAttached action of your
@@ -71,15 +71,14 @@ bool getOpenGLSupportFramebuffer();
 
 /**
  * @brief Returns whether the OpenGL driver of the client support the GL_ARB_pixel_buffer_object extension.
- * Note that if it is unsupported but GLAD_GL_APPLE_vertex_array_object is supported this function will return true
- * and all functions of the GLAD_GL_ARB_vertex_array_object extension will be in fact using the functions of
- * GLAD_GL_APPLE_vertex_array_object.
  * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
  **/
 bool getOpenGLSupportPixelbuffer();
 
 /**
  * @brief Returns whether the OpenGL driver of the client support the GL_ARB_vertex_array_object extension.
+ * If only GL_APPLE_vertex_array_object is supported, this returns true as well, and the
+ * GL_ARB_vertex_array_object functions (glBindVertexArray...) call the APPLE ones.
  * Note: ofxsLoadOpenGLOnce() must have been called at least once prior to calling this function.
  **/
 bool getOpenGLSupportVertexArray();
