@@ -51,7 +51,7 @@ namespace OFX {
 #define kParamFilterPrefilterHint "When the transform scales the image down, widen the filter by the inverse of the scale " \
     "(in each direction of the source image, up to 1/16), so that it also blurs the details that are too small for the output " \
     "and would alias. When unchecked, the image is supersampled with the bilinear filter instead. Impulse and Box are not " \
-    "affected. Slower when the scale is small."
+    "affected. Slower when the scale is small, and with motion blur, whose cost is multiplied by the number of samples."
 
 enum FilterEnum
 {

@@ -848,7 +848,18 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
         const double dstPar = _dstClip->getPixelAspectRatio();
         double ex = 0.;
         double ey = 0.;
-        for (int f = 0; f < 2; ++f) {
+        bool useCap = false;
+#if defined(OFX_EXTENSIONS_NUKE) && defined(ENABLE_HOST_TRANSFORM)
+        // A host that concatenates transforms may attach one to the source image (setupAndProcess()
+        // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
+        // CornerPin), the bound below would be too small, so use the cap.
+        useCap = getImageEffectHostDescription()->canTransform;
+#endif
+        if (useCap) {
+            ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / args.renderScale.x;
+            ey = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * 2. / args.renderScale.y;
+        }
+        for (int f = 0; f < 2 && !useCap; ++f) {
             const bool fielded = (f == 1);
             std::vector<Matrix3x3> invtransforms;
             std::vector<double> alphas;
