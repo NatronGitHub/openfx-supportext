@@ -538,7 +538,7 @@ ofxsFilterIntegrate2d(const PIX* a, // pointer to the first sample of line 0 (no
 /// @brief resize the area from image a indicated by from and put it in image b at to.
 /// If @param from is partially outside of a, pixels are considered to be black and transparent if zeroOutside is true,
 /// else they take the value of the closest pixel in a.
-/// The @param to may be partially outside of b.
+/// The @param to may be partially or wholly outside of b (nothing is drawn outside b).
 template <class PIX>
 void
 ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not the lowest address if aystride < 0)
@@ -587,13 +587,10 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
         ox1 = 0;
     }
     if (ox2 > (int)bwidth) {
-        x2 -= vwidth * ((int)bwidth - ox2);
         ox2 = (int)bwidth;
     }
-    assert(x2 >= x1);
-    assert(ox2 >= ox1);
     if (ox2 <= ox1) {
-        // nothing to draw
+        // nothing to draw: the target is wholly outside b
         return;
     }
     if (oy1 < 0) {
@@ -601,13 +598,10 @@ ofxsFilterResize2d(const PIX* a, // pointer to the first sample of line 0 (not t
         oy1 = 0;
     }
     if (oy2 > (int)bheight) {
-        y2 -= vheight * ((int)bheight - oy2);
         oy2 = (int)bheight;
     }
-    assert(y2 >= y1);
-    assert(oy2 >= oy1);
     if (oy2 <= oy1) {
-        // nothing to draw
+        // nothing to draw: the target is wholly outside b
         return;
     }
 
