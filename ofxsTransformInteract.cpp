@@ -1306,26 +1306,27 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     if (_mouseState == eReleased) {
         // we are not axis-aligned
-        double meanPixelScale = (pscale.x + pscale.y) / 2.;
-        double hoverTolerance = (POINT_SIZE / 2.) * meanPixelScale;
+        // the same tolerances as penDown, so that a highlighted handle is the one a click grabs
+        const double toleranceX = 5 * pscale.x;
+        const double toleranceY = 5 * pscale.y;
         DrawStateEnum newState = _drawState;
-        if ( squareContains(transformedPos, centerPoint) ) {
+        if ( squareContains(transformedPos, centerPoint, toleranceX, toleranceY) ) {
             newState = eCenterPointHovered;
-        } else if ( squareContains(transformedPos, leftPoint) ) {
+        } else if ( squareContains(transformedPos, leftPoint, toleranceX, toleranceY) ) {
             newState = eLeftPointHovered;
-        } else if ( squareContains(transformedPos, rightPoint) ) {
+        } else if ( squareContains(transformedPos, rightPoint, toleranceX, toleranceY) ) {
             newState = eRightPointHovered;
-        } else if ( squareContains(transformedPos, topPoint) ) {
+        } else if ( squareContains(transformedPos, topPoint, toleranceX, toleranceY) ) {
             newState = eTopPointHovered;
-        } else if ( squareContains(transformedPos, bottomPoint) ) {
+        } else if ( squareContains(transformedPos, bottomPoint, toleranceX, toleranceY) ) {
             newState = eBottomPointHovered;
         } else if ( isOnEllipseBorder(transformedPos, targetRadius, targetCenter) ) {
             newState = eCircleHovered;
-        } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, hoverTolerance) ) {
+        } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, toleranceY) ) {
             newState = eRotationBarHovered;
-        } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, hoverTolerance) ) {
+        } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, toleranceY) ) {
             newState = eSkewXBarHoverered;
-        } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, hoverTolerance) ) {
+        } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, toleranceX) ) {
             newState = eSkewYBarHoverered;
         } else {
             newState = eInActive;
@@ -1343,8 +1344,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         if (prevDistSq != 0.) {
             const double distSq = (targetCenter.x - currentPos.x) * (targetCenter.x - currentPos.x) + (targetCenter.y - currentPos.y) * (targetCenter.y - currentPos.y);
             const double distRatio = std::sqrt( (std::max)(distSq / prevDistSq, 0.) );
-            scale.x *= distRatio;
-            scale.y *= distRatio;
+            // within the scale param's range, as the other scale handles
+            scale.x = (std::max)( minX, (std::min)(scale.x * distRatio, maxX) );
+            scale.y = (std::max)( minY, (std::min)(scale.y * distRatio, maxY) );
             tp.scale = scale;
             scaleChanged = true;
         }
