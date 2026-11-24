@@ -42,7 +42,6 @@
 #define DBG(x) (void)0
 #endif
 
-#if __cplusplus > 199711L || (defined(_MSVC_LANG) && _MSVC_LANG > 199711L) // C++11 (MSVC reports 199711L without /Zc:__cplusplus)
 #include <thread>
 #include <mutex>
 // use our version of fast_mutex.h, which has bug fixes
@@ -59,20 +58,6 @@ namespace this_thread = std::this_thread;
 template<class Mutex>
 using lock_guard = std::unique_lock<Mutex>;
 
-#else
-// use TinyThread 1.2 from https://gitorious.org/tinythread/tinythreadpp
-// for portable C++11-like threads
-#include "tinythread.h"
-// use our version of fast_mutex.h, which has bug fixes
-//#include "fast_mutex.h"
-
-using tthread::thread;
-using tthread::mutex;
-//using tthread::fast_mutex;
-using tthread::recursive_mutex;
-using tthread::lock_guard;
-namespace this_thread = tthread::this_thread;
-#endif
 
 #include "ofxCore.h"
 #include "ofxMultiThread.h"

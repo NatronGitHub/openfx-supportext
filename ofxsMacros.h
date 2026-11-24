@@ -271,19 +271,9 @@
 
 /* OVERRIDE and FINAL */
 
-#if COMPILER_SUPPORTS(CXX_OVERRIDE_CONTROL) &&  !COMPILER(MSVC) //< patch so msvc 2010 ignores the override and final keywords.
+// standard C++ keywords; the macros are kept for the code that uses them
 #define OVERRIDE override
-
-#if COMPILER_QUIRK(FINAL_IS_CALLED_SEALED)
-#define FINAL sealed
-#else
 #define FINAL final
-#endif
-
-#else
-#define OVERRIDE
-#define FINAL
-#endif
 
 /* REFERENCED_FROM_ASM */
 
@@ -353,12 +343,6 @@
    CLANG_DIAG_OFF(unused-parameter)
    CLANG_DIAG_OFF(uninitialized)
  */
-
-#if COMPILER_SUPPORTS(CXX_OVERRIDE_CONTROL)
-// we want to use override & final, and get no warnings even if not compiling in c++11 mode
-CLANG_DIAG_OFF(c++11-extensions)
-//GCC_DIAG_OFF(c++11-extensions) // no corresponding GCC warning option?
-#endif
 
 /* *INDENT-ON* */
 

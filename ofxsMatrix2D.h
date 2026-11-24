@@ -33,9 +33,8 @@
 #include "ofxsMacros.h" // OFXS_PI
 
 namespace OFX {
-// an inline function rather than a constant: headers must also compile as
-// C++11, which has no inline variables (C++17 "inline constexpr")
-inline double
+// pi (OFXS_PI), as a function for the existing callers
+inline constexpr double
 ofxsPi()
 {
     return OFXS_PI;
