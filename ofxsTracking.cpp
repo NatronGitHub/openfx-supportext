@@ -1196,6 +1196,13 @@ TrackerRegionInteract::penUp(const PenArgs &args)
     if (_ms == eMouseStateIdle) {
         return false;
     }
+    // Leave the drag state when this function exits, even if a setValue below throws
+    // (OFX::Exception::Suite): otherwise the next hover would keep dragging.
+    struct ResetMouseState
+    {
+        MouseStateEnum& state;
+        ~ResetMouseState() { state = eMouseStateIdle; }
+    } resetMouseState = { _ms };
 
     const OfxPointD &center = _centerDragPos;
     const OfxPointD &offset = _offsetDragPos;
@@ -1231,7 +1238,7 @@ TrackerRegionInteract::penUp(const PenArgs &args)
         _offset->setValueAtTime(args.time, _offsetDragPos.x, _offsetDragPos.y);
     }
 
-    _ms = eMouseStateIdle;
+    _ms = eMouseStateIdle; // now, before the redraw and the end of the edit block
 
     requestRedraw();
 

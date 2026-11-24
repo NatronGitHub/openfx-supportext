@@ -734,6 +734,14 @@ RectangleInteract::penUp(const PenArgs &args)
     }
 
     bool didSmthing = false;
+    // Leave the drag state when this function exits, even if setValue throws
+    // (OFX::Exception::Suite): otherwise the next hover would keep dragging.
+    // setValue reads _mouseState, so it is reset at exit rather than before.
+    struct ResetMouseState
+    {
+        MouseStateEnum& state;
+        ~ResetMouseState() { state = eMouseStateIdle; }
+    } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && (_mouseState != eMouseStateIdle) ) {
         // no need to redraw overlay since it is slave to the paramaters
@@ -742,7 +750,6 @@ RectangleInteract::penUp(const PenArgs &args)
     } else if (_mouseState != eMouseStateIdle) {
         requestRedraw();
     }
-    _mouseState = eMouseStateIdle;
 
     return didSmthing;
 } // penUp
