@@ -200,7 +200,7 @@ protected:
     OFX::ChoiceParam* _filter;
     OFX::BooleanParam* _clamp;
     OFX::BooleanParam* _blackOutside;
-    OFX::BooleanParam* _prefilter; // may be NULL (kParamFilterPrefilter, appended)
+    OFX::BooleanParam* _prefilter; // may be NULL (kParamFilterPrefilter, optional)
     OFX::DoubleParam* _motionblur;
     OFX::DoubleParam* _dirBlurAmount; // DirBlur only
     OFX::BooleanParam* _dirBlurCentered; // DirBlur only
@@ -221,7 +221,9 @@ OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDe
 
 // Which filtering parameters Transform3x3DescribeInContextEnd() defines: the default keeps the parameters
 // of the previous versions; a plug-in opts in to the sinc-based filters (Lanczos4, Lanczos6, Sinc4,
-// appended to Filter) and the Prefilter Downscaling checkbox (appended) with a new plug-in version.
+// appended to Filter) and the Prefilter Downscaling checkbox, right after Black Outside, so that the
+// parameters that Nuke also has keep its order. OFX hosts identify parameters by name, so a parameter
+// added in the middle doesn't affect saved projects.
 enum Transform3x3FilteringEnum
 {
     eTransform3x3FilteringCubic = 0, // Impulse to Notch, supersampling when scaling down

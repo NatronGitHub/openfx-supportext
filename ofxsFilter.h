@@ -172,8 +172,9 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
     }
 } // ofxsFilterDescribeParamsInterpolate2D
 
-// The Prefilter Downscaling checkbox (kParamFilterPrefilter), off by default: append it after the other
-// parameters of the plug-ins whose render uses ofxsFilterInterpolate2DPrefilter().
+// The Prefilter Downscaling checkbox (kParamFilterPrefilter), off by default, for the plug-ins whose render
+// uses ofxsFilterInterpolate2DPrefilter(): define it right after ofxsFilterDescribeParamsInterpolate2D()
+// (after Black Outside), so that the parameters that Nuke also has keep its order (Nuke has no such knob).
 inline
 void
 ofxsFilterDescribeParamPrefilter(OFX::ImageEffectDescriptor &desc,
