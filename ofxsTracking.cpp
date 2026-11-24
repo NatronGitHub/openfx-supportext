@@ -1238,6 +1238,8 @@ TrackerRegionInteract::penUp(const PenArgs &args)
         _offset->setValueAtTime(args.time, _offsetDragPos.x, _offsetDragPos.y);
     }
 
+    _ms = eMouseStateIdle; // now, before the redraw and the end of the edit block
+
     requestRedraw();
 
     return true;
