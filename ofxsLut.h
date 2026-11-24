@@ -626,7 +626,9 @@ void hsv_to_rgb( float h, float s, float v, float *r, float *g, float *b, bool w
 
 /// fixedOutOfRange: compute the hue from the unclamped channels (new plug-in versions should set it;
 /// false keeps the old output, with a wrong hue and saturation when a channel is outside [0,1], see
-/// the implementation). The saturation is that of the colour clamped to [0,1].
+/// the implementation). With it, the saturation is that of the colour clamped to [0,1], and a
+/// non-finite grey (e.g. all channels inf) gives h = s = 0; other non-finite colours may give a
+/// non-finite hue, as without it.
 void rgb_to_hsl( float r, float g, float b, float *h, float *s, float *l, bool fixedOutOfRange = false );
 /// wrapHue: as for hsv_to_rgb
 void hsl_to_rgb( float h, float s, float l, float *r, float *g, float *b, bool wrapHue = false );

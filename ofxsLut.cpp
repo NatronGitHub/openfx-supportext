@@ -237,7 +237,7 @@ rgb_to_hsl( float r,
 
     float delta = maxv - minv;
 
-    if ( fixedOutOfRange ? (deltau == 0.f) : (delta == 0.) ) {
+    if ( fixedOutOfRange ? !(deltau > 0.f) : (delta == 0.) ) { // with fixedOutOfRange, NaN (e.g. inf - inf) is a grey too
         *h = 0.f;                 // gray
         *s = 0.f;
 
