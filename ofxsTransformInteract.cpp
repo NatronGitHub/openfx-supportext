@@ -1221,14 +1221,10 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     }
     const OfxPointD &pscale = args.pixelScale;
     const double time = args.time;
-    TransformParams tpCurrent;
-    bool tpCurrentSet = false;
     TransformParams tp;
 
     if (_mouseState == eReleased) {
-        getTransformParams(time, tpCurrent);
-        tpCurrentSet = true;
-        tp = tpCurrent;
+        getTransformParams(time, tp);
     }
     else {
         tp = _tpDrag;
@@ -1510,42 +1506,18 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
 
-        // Change from 2021/06/01:
-        // Value changes from the interact should set a keyframe on all keyframed values, for more clarity.
-        // see https://github.com/NatronGitHub/Natron/issues/630#issuecomment-852301906
-        // Change from 2022/11/12:
-        // Only setValue on parameters that make sense (eg setValue would actually change their value)
-        if (!tpCurrentSet) {
-            getTransformParams(time, tpCurrent);
-            tpCurrentSet = true;
-        }
-        centerChanged = centerChanged && (tpCurrent.center.x != tp.center.x || tpCurrent.center.y != tp.center.y);
-        translateChanged = translateChanged && (tpCurrent.translate.x != tp.translate.x || tpCurrent.translate.y != tp.translate.y);
-        scaleChanged = scaleChanged && (tpCurrent.scale.x != tp.scale.x || tpCurrent.scale.y != tp.scale.y);
-        rotateChanged = rotateChanged && (tpCurrent.rotate != tp.rotate);
-        skewXChanged = skewXChanged && (tpCurrent.skewX != tp.skewX);
-        skewYChanged = skewYChanged && (tpCurrent.skewY != tp.skewY);
-        
-        bool editBlockNecessary = (centerChanged + translateChanged + scaleChanged + rotateChanged + skewXChanged + skewYChanged) > 1;
-        ImageEffect::EditBlock eb(*_effect, "Set Transform", editBlockNecessary);
-        if (centerChanged) {
-            _center->setValue(tp.center.x, tp.center.y);
-        }
-        if (translateChanged) {
+        // As in Nuke, and as penUp does: a drag sets translate, rotate, scale, skew and center
+        // together (so that, with animated params, they all get a key at the current time), not
+        // skew order or invert.
+        ImageEffect::EditBlock eb(*_effect, "Set Transform");
+        _center->setValue(tp.center.x, tp.center.y);
+        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
             _translate->setValue(tp.translate.x, tp.translate.y);
         }
-        if (scaleChanged) {
-            _scale->setValue(tp.scale.x, tp.scale.y);
-        }
-        if (rotateChanged) {
-            _rotate->setValue(tp.rotate);
-        }
-        if (skewXChanged) {
-            _skewX->setValue(tp.skewX);
-        }
-        if (skewYChanged) {
-            _skewY->setValue(tp.skewY);
-        }
+        _scale->setValue(tp.scale.x, tp.scale.y);
+        _rotate->setValue(tp.rotate);
+        _skewX->setValue(tp.skewX);
+        _skewY->setValue(tp.skewY);
     } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
     }
