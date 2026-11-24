@@ -122,7 +122,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
         assert(!_maskClip || !_maskClip->isConnected() || _maskClip->getPixelComponents() == ePixelComponentAlpha);
     }
 
-    // Prefilter Downscaling (appended): also in Reformat, which fetches its own filter parameters
+    // Prefilter Downscaling: also in Reformat, which describes its own filter parameters
     if ( paramExists(kParamFilterPrefilter) ) {
         _prefilter = fetchBooleanParam(kParamFilterPrefilter);
     }
@@ -1500,6 +1500,11 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
 
     ofxsFilterDescribeParamsInterpolate2D(desc, page, paramsType == Transform3x3Plugin::eTransform3x3ParamsTypeMotionBlur,
                                           (filtering == eTransform3x3FilteringSincPrefilter) ? eFilterSetSinc : eFilterSetCubic);
+    if (filtering == eTransform3x3FilteringSincPrefilter) {
+        // with the filtering parameters, after Black Outside: the other parameters keep Nuke's order
+        // (Nuke has no such knob)
+        ofxsFilterDescribeParamPrefilter(desc, page);
+    }
 
     // motionBlur
     {
@@ -1571,11 +1576,6 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
         // GENERIC (MASKED)
         //
         ofxsMaskMixDescribeParams(desc, page);
-    }
-
-    if (filtering == eTransform3x3FilteringSincPrefilter) {
-        // appended after the other parameters (off: the supersampling of the previous versions)
-        ofxsFilterDescribeParamPrefilter(desc, page);
     }
 } // Transform3x3DescribeInContextEnd
 } // namespace OFX
