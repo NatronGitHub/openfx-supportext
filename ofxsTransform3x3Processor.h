@@ -55,6 +55,7 @@ protected:
     bool _domask;
     double _mix;
     bool _maskInvert;
+    bool _prefilter; // prefilter when scaling down, instead of supersampling
 
 public:
 
@@ -70,6 +71,7 @@ public:
         , _domask(false)
         , _mix(1.0)
         , _maskInvert(false)
+        , _prefilter(false)
     {
     }
 
@@ -93,6 +95,12 @@ public:
     void doMasking(bool v)
     {
         _domask = v;
+    }
+
+    // Prefilter when scaling down (ofxsFilterInterpolate2DPrefilter), instead of supersampling (default)
+    void setPrefilter(bool v)
+    {
+        _prefilter = v;
     }
 
     void setValues(const OFX::Matrix3x3* invtransform, //!< non-generic - must be in PIXEL coords
@@ -204,7 +212,11 @@ private:
                         double Jxy = (xinside && zz != 0.) ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / zz : 0.;
                         double Jyx = (yinside && zz != 0.) ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / zz : 0;
                         double Jyy = (yinside && zz != 0.) ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / zz : 0.;
-                        ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                        if (_prefilter) {
+                            ofxsFilterInterpolate2DPrefilter<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                        } else {
+                            ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                        }
                     }
                 }
 
@@ -296,7 +308,11 @@ private:
                                 double Jxy = (xinside && zz != 0.) ? (H(0,1) * transformed.z - transformed.x * H(2,1)) / zz : 0.;
                                 double Jyx = (yinside && zz != 0.) ? (H(1,0) * transformed.z - transformed.y * H(2,0)) / zz : 0;
                                 double Jyy = (yinside && zz != 0.) ? (H(1,1) * transformed.z - transformed.y * H(2,1)) / zz : 0.;
-                                ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                                if (_prefilter) {
+                                    ofxsFilterInterpolate2DPrefilter<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                                } else {
+                                    ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, _srcImg, _blackOutside, tmpPix);
+                                }
                             }
                         }
                         if (!_invtransformalpha) {

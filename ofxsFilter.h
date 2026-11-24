@@ -29,8 +29,11 @@
 #include <cassert>
 #include <algorithm>
 #include <cstddef> // std::ptrdiff_t
+#include <climits> // INT_MIN, INT_MAX
 
 #include "ofxsImageEffect.h"
+#include "ofxsMacros.h" // OFXS_PI
+#include "ofxsMatrix2D.h" // Matrix3x3
 
 namespace OFX {
 // GENERIC
@@ -43,6 +46,12 @@ namespace OFX {
 #define kParamFilterBlackOutside "black_outside"
 #define kParamFilterBlackOutsideLabel "Black outside"
 #define kParamFilterBlackOutsideHint "Fill the area outside the source image with black"
+#define kParamFilterPrefilter "prefilter"
+#define kParamFilterPrefilterLabel "Prefilter Downscaling"
+#define kParamFilterPrefilterHint "When the transform scales the image down, widen the filter by the inverse of the scale " \
+    "(in each direction of the source image, up to 1/16), so that it also blurs the details that are too small for the output " \
+    "and would alias. When unchecked, the image is supersampled with the bilinear filter instead. Impulse and Box are not " \
+    "affected. Slower when the scale is small."
 
 enum FilterEnum
 {
@@ -56,6 +65,17 @@ enum FilterEnum
     eFilterMitchell,
     eFilterParzen,
     eFilterNotch,
+    eFilterLanczos4, // appended: Lanczos, 4 taps (a = 2)
+    eFilterLanczos6, // Lanczos, 6 taps (a = 3)
+    eFilterSinc4, // sinc, 4 taps
+};
+
+// Which filters a Filter parameter lists (ofxsFilterDescribeParamsInterpolate2D): the sinc-based ones
+// are appended to the list of the plug-ins that render them.
+enum FilterSetEnum
+{
+    eFilterSetCubic = 0, // Impulse to Notch
+    eFilterSetSinc, // Impulse to Notch, then Lanczos4, Lanczos6 and Sinc4
 };
 
 #define kFilterImpulse "Impulse", "(nearest neighbor / box) Use original values.", "impulse"
@@ -68,12 +88,16 @@ enum FilterEnum
 #define kFilterMitchell "Mitchell", "Some smoothing, plus blurring to hide pixelation (*)(+).", "mitchell"
 #define kFilterParzen "Parzen", "(cubic B-spline) Greatest smoothing of all filters (+).", "parzen"
 #define kFilterNotch "Notch", "Flat smoothing (which tends to hide moire' patterns) (+).", "notch"
+#define kFilterLanczos4 "Lanczos4", "(Lanczos, 4 taps) Some sharpening, useful when scaling down (*).", "lanczos4"
+#define kFilterLanczos6 "Lanczos6", "(Lanczos, 6 taps) More sharpening than Lanczos4, useful when scaling down (*).", "lanczos6"
+#define kFilterSinc4 "Sinc4", "(sinc, 4 taps) Greatest sharpening of all filters, useful when scaling down (*).", "sinc4"
 
 inline
 void
 ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
                                       OFX::PageParamDescriptor *page,
-                                      bool blackOutsideDefault = true)
+                                      bool blackOutsideDefault = true,
+                                      FilterSetEnum filterSet = eFilterSetCubic)
 {
     // GENERIC PARAMETERS
     //
@@ -102,6 +126,14 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         param->appendOption(kFilterParzen);
         assert(param->getNOptions() == eFilterNotch);
         param->appendOption(kFilterNotch);
+        if (filterSet == eFilterSetSinc) {
+            assert(param->getNOptions() == eFilterLanczos4);
+            param->appendOption(kFilterLanczos4);
+            assert(param->getNOptions() == eFilterLanczos6);
+            param->appendOption(kFilterLanczos6);
+            assert(param->getNOptions() == eFilterSinc4);
+            param->appendOption(kFilterSinc4);
+        }
         param->setDefault(eFilterCubic);
         param->setAnimates(true);
 #ifdef OFX_EXTENSIONS_NUKE
@@ -139,6 +171,23 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
         }
     }
 } // ofxsFilterDescribeParamsInterpolate2D
+
+// The Prefilter Downscaling checkbox (kParamFilterPrefilter), off by default: append it after the other
+// parameters of the plug-ins whose render uses ofxsFilterInterpolate2DPrefilter().
+inline
+void
+ofxsFilterDescribeParamPrefilter(OFX::ImageEffectDescriptor &desc,
+                                 OFX::PageParamDescriptor *page)
+{
+    OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterPrefilter);
+    param->setLabel(kParamFilterPrefilterLabel);
+    param->setHint(kParamFilterPrefilterHint);
+    param->setDefault(false);
+    param->setAnimates(true);
+    if (page) {
+        page->addChild(*param);
+    }
+}
 
 /*
    Maple code to compute the filters.
@@ -333,6 +382,138 @@ ofxsFilterNotch(double Ip,
 
     // clamp is not necessary for Notch
     return I;
+}
+
+/////////////////////////////////////////////////
+// 1D KERNELS
+/////////////////////////////////////////////////
+
+// The radius of the 1D kernel of a filter (its support is (-radius, radius)), in pixels, at scale 1.
+// Impulse and Box are not kernel filters (0).
+inline int
+ofxsFilterRadius(FilterEnum filter)
+{
+    switch (filter) {
+    case eFilterImpulse:
+    case eFilterBox:
+        return 0;
+    case eFilterBilinear:
+    case eFilterCubic:
+        return 1;
+    case eFilterKeys:
+    case eFilterSimon:
+    case eFilterRifman:
+    case eFilterMitchell:
+    case eFilterParzen:
+    case eFilterNotch:
+    case eFilterLanczos4:
+    case eFilterSinc4:
+        return 2;
+    case eFilterLanczos6:
+        return 3;
+    }
+
+    return 0;
+}
+
+// sin(pi x) / (pi x)
+inline double
+ofxsFilterSinc(double x)
+{
+    if (x == 0.) {
+        return 1.;
+    }
+    const double px = OFXS_PI * x;
+
+    return std::sin(px) / px;
+}
+
+// The Mitchell-Netravali (B, C) cubic, of radius 2 (see the Maple code above).
+inline double
+ofxsFilterBCKernel(double B,
+                   double C,
+                   double x)
+{
+    const double ax = std::abs(x);
+
+    if (ax < 1.) {
+        return ( (12. - 9. * B - 6. * C) * ax * ax * ax + (-18. + 12. * B + 6. * C) * ax * ax + (6. - 2. * B) ) / 6.;
+    }
+    if (ax < 2.) {
+        return ( (-B - 6. * C) * ax * ax * ax + (6. * B + 30. * C) * ax * ax + (-12. * B - 48. * C) * ax + (8. * B + 24. * C) ) / 6.;
+    }
+
+    return 0.;
+}
+
+// The weight of a filter's 1D kernel at the distance x (in pixels, at scale 1) from the sample position:
+// the same weights as the interpolation formulas above (ofxsFilterLinear() to ofxsFilterNotch()), and
+// the sinc-based filters.
+inline double
+ofxsFilterKernel(FilterEnum filter,
+                 double x)
+{
+    const double ax = std::abs(x);
+
+    switch (filter) {
+    case eFilterImpulse:
+    case eFilterBox:
+        return (ax < 0.5) ? 1. : 0.;
+    case eFilterBilinear:
+        return (ax < 1.) ? 1. - ax : 0.;
+    case eFilterCubic:
+        return (ax < 1.) ? 1. + ax * ax * (-3. + 2. * ax) : 0.;
+    case eFilterKeys:
+        return ofxsFilterBCKernel(0., 0.5, ax);
+    case eFilterSimon:
+        return ofxsFilterBCKernel(0., 0.75, ax);
+    case eFilterRifman:
+        return ofxsFilterBCKernel(0., 1., ax);
+    case eFilterMitchell:
+        return ofxsFilterBCKernel(1. / 3., 1. / 3., ax);
+    case eFilterParzen:
+        return ofxsFilterBCKernel(1., 0., ax);
+    case eFilterNotch:
+        return ofxsFilterBCKernel(1.5, -0.25, ax);
+    case eFilterLanczos4:
+        return (ax < 2.) ? ofxsFilterSinc(ax) * ofxsFilterSinc(ax / 2.) : 0.;
+    case eFilterLanczos6:
+        return (ax < 3.) ? ofxsFilterSinc(ax) * ofxsFilterSinc(ax / 3.) : 0.;
+    case eFilterSinc4:
+        return (ax < 2.) ? ofxsFilterSinc(ax) : 0.;
+    }
+
+    return 0.;
+}
+
+// The radius of the sinc-based filters, as a constant expression (array sizes).
+constexpr int
+ofxsFilterSincRadius(FilterEnum filter)
+{
+    return (filter == eFilterLanczos6) ? 3 : 2;
+}
+
+// The 2R weights of a sinc-based filter (R = ofxsFilterSincRadius(filter)) at the taps c-R+1 ... c+R,
+// for a sample at c + d (0 <= d <= 1, in pixels from the centre of the tap c). The truncated kernels do
+// not sum to 1: the weights are divided by their sum, as in ofxsFilterInterpolate2DPrefilter(), so that a
+// constant image is unchanged. This is continuous and symmetric in d, and at an integer position (d = 0 or
+// 1) the weights stay 1 and 0 (no change without movement).
+template <FilterEnum filter>
+void
+ofxsFilterSincWeights(double d,
+                      double w[2 * ofxsFilterSincRadius(filter)])
+{
+    constexpr int R = ofxsFilterSincRadius(filter);
+    double sum = 0.;
+
+    for (int k = 0; k < 2 * R; ++k) {
+        w[k] = ofxsFilterKernel(filter, d - (k - (R - 1)));
+        sum += w[k];
+    }
+    // sum > 0: the two nearest taps have weights > 0.6 and the others sum to more than -0.4
+    for (int k = 0; k < 2 * R; ++k) {
+        w[k] /= sum;
+    }
 }
 
 
@@ -708,6 +889,86 @@ ofxsFloorToPixel(double v)
     Ipn, Icn, Inn, Ian, \
     Ipa, Ica, Ina, Iaa
 
+// The sinc-based filters (Lanczos4, Lanczos6, Sinc4), separable, on 2R x 2R pixels
+// (R = ofxsFilterSincRadius(filter)). With clamp, each 1D interpolation is clamped to the two nearest
+// values, as for the cubic filters.
+// note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
+template <class PIX, int nComponents, FilterEnum filter, bool clamp>
+bool
+ofxsFilterInterpolate2DSinc(double fx,
+                            double fy,            //!< coordinates of the pixel to be interpolated in srcImg in pixel coordinates
+                            const OFX::Image *srcImg, //!< image to be transformed (not NULL)
+                            bool blackOutside,
+                            float *tmpPix) //!< destination pixel in float format
+{
+    constexpr int R = ofxsFilterSincRadius(filter);
+    constexpr int N = 2 * R;
+    const int cx = ofxsFloorToPixel(fx - 0.5);
+    const int cy = ofxsFloorToPixel(fy - 0.5);
+    const double dx = (std::max)( 0., (std::min)(fx - 0.5 - cx, 1.) );
+    const double dy = (std::max)( 0., (std::min)(fy - 0.5 - cy, 1.) );
+    double wx[N];
+    double wy[N];
+
+    ofxsFilterSincWeights<filter>(dx, wx);
+    ofxsFilterSincWeights<filter>(dy, wy);
+
+    // the taps (cx - R + 1 ... cx + R), clamped to the image without Black Outside. ofxsFloorToPixel()
+    // only leaves room for the taps -1 ... +2 in int, so compute them in 64 bits (ES.103) and clamp them
+    // to the image (no Black Outside) or to the int range (outside any image: black)
+    const OfxRectI& bounds = srcImg->getBounds();
+    int tx[N];
+    int ty[N];
+    for (int k = 0; k < N; ++k) {
+        long long x = (long long)cx + k - (R - 1);
+        long long y = (long long)cy + k - (R - 1);
+        if (!blackOutside) {
+            x = (std::max)( (long long)bounds.x1, (std::min)(x, (long long)bounds.x2 - 1) );
+            y = (std::max)( (long long)bounds.y1, (std::min)(y, (long long)bounds.y2 - 1) );
+        }
+        tx[k] = (int)(std::max)( (long long)INT_MIN, (std::min)(x, (long long)INT_MAX) );
+        ty[k] = (int)(std::max)( (long long)INT_MIN, (std::min)(y, (long long)INT_MAX) );
+    }
+    const PIX* P[N][N];
+    bool any = false;
+    for (int j = 0; j < N; ++j) {
+        for (int i = 0; i < N; ++i) {
+            P[j][i] = (const PIX*)srcImg->getPixelAddress(tx[i], ty[j]);
+            any = any || P[j][i];
+        }
+    }
+    if (!any) {
+        for (int c = 0; c < nComponents; ++c) {
+            tmpPix[c] = 0;
+        }
+
+        return false;
+    }
+    for (int c = 0; c < nComponents; ++c) {
+        double row[N];
+        for (int j = 0; j < N; ++j) {
+            double I = 0.;
+            for (int i = 0; i < N; ++i) {
+                I += wx[i] * ofxsGetPixComp(P[j][i], c);
+            }
+            if (clamp) {
+                I = ofxsFilterClampVal(I, ofxsGetPixComp(P[j][R - 1], c), ofxsGetPixComp(P[j][R], c));
+            }
+            row[j] = I;
+        }
+        double I = 0.;
+        for (int j = 0; j < N; ++j) {
+            I += wy[j] * row[j];
+        }
+        if (clamp) {
+            I = ofxsFilterClampVal(I, row[R - 1], row[R]);
+        }
+        tmpPix[c] = (float)I;
+    }
+
+    return true;
+} // ofxsFilterInterpolate2DSinc
+
 // note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
 template <class PIX, int nComponents, FilterEnum filter, bool clamp>
 bool
@@ -856,6 +1117,13 @@ ofxsFilterInterpolate2D(double fx,
         }
         break;
     }
+
+    // sinc-based filters
+    case eFilterLanczos4:
+    case eFilterLanczos6:
+    case eFilterSinc4:
+        inside = ofxsFilterInterpolate2DSinc<PIX, nComponents, filter, clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+        break;
 
     default:
         assert(0);
@@ -1269,6 +1537,169 @@ ofxsFilterInterpolate2DSuper(double fx,
 #endif
 } // ofxsFilterInterpolate2DSuper
 
+// The largest widening of the kernel by ofxsFilterInterpolate2DPrefilter() (a scale of 1/16): at most
+// 2 * 3 * 16 + 1 taps in each direction (Lanczos6).
+constexpr double kOfxsFilterPrefilterMaxWidth = 16.;
+
+// An upper bound of the widths of ofxsFilterInterpolate2DPrefilter() for the inverse transform H (in
+// pixel coordinates, from the output to the source) over the whole output: exact for an affine H (the
+// derivative is constant), kOfxsFilterPrefilterMaxWidth for a projective one, in [1, the cap].
+inline OfxPointD
+ofxsFilterPrefilterWidthsBound(const OFX::Matrix3x3& H)
+{
+    OfxPointD w = { kOfxsFilterPrefilterMaxWidth, kOfxsFilterPrefilterMaxWidth };
+
+    if ( (H(2,0) == 0.) && (H(2,1) == 0.) && (H(2,2) != 0.) ) {
+        // the same derivatives as the render, (H(0,0) z - x H(2,0)) / z^2 etc. with z = H(2,2)
+        const double Jxx = H(0,0) / H(2,2);
+        const double Jxy = H(0,1) / H(2,2);
+        const double Jyx = H(1,0) / H(2,2);
+        const double Jyy = H(1,1) / H(2,2);
+        const double wx = std::sqrt(Jxx * Jxx + Jxy * Jxy);
+        const double wy = std::sqrt(Jyx * Jyx + Jyy * Jyy);
+        // NaN: the cap
+        w.x = (wx <= kOfxsFilterPrefilterMaxWidth) ? (std::max)(wx, 1.) : kOfxsFilterPrefilterMaxWidth;
+        w.y = (wy <= kOfxsFilterPrefilterMaxWidth) ? (std::max)(wy, 1.) : kOfxsFilterPrefilterMaxWidth;
+    }
+
+    return w;
+}
+
+// Expand a rectangle by ex in x and ey in y on each side, keeping its infinite sides infinite.
+inline void
+ofxsFilterExpandRect(double ex,
+                     double ey,
+                     OfxRectD *rect)
+{
+    if (rect->x1 > kOfxFlagInfiniteMin) {
+        rect->x1 -= ex;
+    }
+    if (rect->x2 < kOfxFlagInfiniteMax) {
+        rect->x2 += ex;
+    }
+    if (rect->y1 > kOfxFlagInfiniteMin) {
+        rect->y1 -= ey;
+    }
+    if (rect->y2 < kOfxFlagInfiniteMax) {
+        rect->y2 += ey;
+    }
+}
+
+// Interpolation using the given filter, with its kernel widened by the inverse of the scale where the
+// transform scales the image down (prefiltering), instead of the bilinear supersampling of
+// ofxsFilterInterpolate2DSuper(): the output pixel is the weighted mean of the source pixels under the
+// widened kernel, separable along the axes of the source image. The width in x is the derivative of fx
+// (the norm of (Jxx, Jxy)), in y the one of fy, clamped to [1, kOfxsFilterPrefilterMaxWidth]; where the
+// transform does not scale down (both widths are 1), this is ofxsFilterInterpolate2D().
+// Impulse and Box are not kernel filters: they use ofxsFilterInterpolate2DSuper().
+// With clamp, the result is clamped to the range of the source pixels under the kernel.
+// note that the center of pixel (0,0) has pixel coordinates (0.5,0.5)
+template <class PIX, int nComponents, FilterEnum filter, bool clamp>
+void
+ofxsFilterInterpolate2DPrefilter(double fx,
+                                 double fy,            //!< coordinates of the pixel to be interpolated in srcImg in pixel coordinates
+                                 double Jxx, //!< derivative of fx over x
+                                 double Jxy, //!< derivative of fx over y
+                                 double Jyx, //!< derivative of fy over x
+                                 double Jyy, //!< derivative of fy over y
+                                 const OFX::Image *srcImg, //!< image to be transformed
+                                 bool blackOutside,
+                                 float *tmpPix) //!< destination pixel in float format
+{
+    if ( (filter == eFilterImpulse) || (filter == eFilterBox) || !srcImg || !srcImg->getPixelData() ) {
+        ofxsFilterInterpolate2DSuper<PIX, nComponents, filter, clamp>(fx, fy, Jxx, Jxy, Jyx, Jyy, srcImg, blackOutside, tmpPix);
+
+        return;
+    }
+    double wx = std::sqrt(Jxx * Jxx + Jxy * Jxy);
+    double wy = std::sqrt(Jyx * Jyx + Jyy * Jyy);
+    if ( !(wx > 1.) && !(wy > 1.) ) {
+        // no downscaling (or a NaN derivative)
+        ofxsFilterInterpolate2D<PIX, nComponents, filter, clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+
+        return;
+    }
+    wx = (wx > 1.) ? (std::min)(wx, kOfxsFilterPrefilterMaxWidth) : 1.;
+    wy = (wy > 1.) ? (std::min)(wy, kOfxsFilterPrefilterMaxWidth) : 1.;
+
+    constexpr int kMaxTaps = 2 * 3 * (int)kOfxsFilterPrefilterMaxWidth + 2;
+    const double radius = ofxsFilterRadius(filter);
+    // the taps: the pixels whose centre (i + 0.5) is within radius * w of the sample position
+    const int ix1 = ofxsFloorToPixel(fx - 0.5 - radius * wx) + 1;
+    const int iy1 = ofxsFloorToPixel(fy - 0.5 - radius * wy) + 1;
+    const int nx = (std::min)( ofxsFloorToPixel(fx - 0.5 + radius * wx) - ix1 + 1, kMaxTaps );
+    const int ny = (std::min)( ofxsFloorToPixel(fy - 0.5 + radius * wy) - iy1 + 1, kMaxTaps );
+    double kx[kMaxTaps];
+    double ky[kMaxTaps];
+    double sumx = 0.;
+    double sumy = 0.;
+    for (int i = 0; i < nx; ++i) {
+        kx[i] = ofxsFilterKernel(filter, (ix1 + i + 0.5 - fx) / wx);
+        sumx += kx[i];
+    }
+    for (int j = 0; j < ny; ++j) {
+        ky[j] = ofxsFilterKernel(filter, (iy1 + j + 0.5 - fy) / wy);
+        sumy += ky[j];
+    }
+    if ( (nx <= 0) || (ny <= 0) || (sumx == 0.) || (sumy == 0.) ) {
+        // no tap (e.g. near the int range limits)
+        ofxsFilterInterpolate2D<PIX, nComponents, filter, clamp>(fx, fy, srcImg, blackOutside, tmpPix);
+
+        return;
+    }
+
+    const OfxRectI& bounds = srcImg->getBounds();
+    double acc[nComponents];
+    double vmin[nComponents];
+    double vmax[nComponents];
+    for (int c = 0; c < nComponents; ++c) {
+        acc[c] = 0.;
+        vmin[c] = HUGE_VAL;
+        vmax[c] = -HUGE_VAL;
+    }
+    bool any = false;
+    for (int j = 0; j < ny; ++j) {
+        int y = iy1 + j;
+        if (!blackOutside) {
+            y = (std::max)( bounds.y1, (std::min)(y, bounds.y2 - 1) );
+        }
+        const double wj = ky[j] / sumy;
+        for (int i = 0; i < nx; ++i) {
+            int x = ix1 + i;
+            if (!blackOutside) {
+                x = (std::max)( bounds.x1, (std::min)(x, bounds.x2 - 1) );
+            }
+            const PIX* p = (const PIX*)srcImg->getPixelAddress(x, y);
+            if (!p) {
+                // black outside: a zero sample
+                if (clamp) {
+                    for (int c = 0; c < nComponents; ++c) {
+                        vmin[c] = (std::min)(vmin[c], 0.);
+                        vmax[c] = (std::max)(vmax[c], 0.);
+                    }
+                }
+                continue;
+            }
+            any = true;
+            const double w = wj * kx[i] / sumx;
+            for (int c = 0; c < nComponents; ++c) {
+                acc[c] += w * p[c];
+                if (clamp) {
+                    vmin[c] = (std::min)(vmin[c], (double)p[c]);
+                    vmax[c] = (std::max)(vmax[c], (double)p[c]);
+                }
+            }
+        }
+    }
+    for (int c = 0; c < nComponents; ++c) {
+        double I = any ? acc[c] : 0.;
+        if (clamp && any) {
+            I = (std::max)( vmin[c], (std::min)(I, vmax[c]) );
+        }
+        tmpPix[c] = (float)I;
+    }
+} // ofxsFilterInterpolate2DPrefilter
+
 #undef OFXS_CLAMPXY
 #undef OFXS_GETPIX
 #undef OFXS_GETI
@@ -1406,6 +1837,14 @@ ofxsFilterExpandRoI(const OfxRectD &roi,
             srcRoI->y2 += 1.5 * pixelSizeY;
         }
         break;
+    case eFilterLanczos4:
+    case eFilterLanczos6:
+    case eFilterSinc4: {
+        // 2R taps, expand by R - 0.5 pixels
+        const double r = ofxsFilterRadius(filter) - 0.5;
+        ofxsFilterExpandRect(r * pixelSizeX, r * pixelSizeY, srcRoI);
+        break;
+    }
     }
     if ( doMasking || (mix != 1.) ) {
         // for masking or mixing, we also need the source image for that same roi.
