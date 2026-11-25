@@ -624,14 +624,10 @@ generatorDescribe(ImageEffectDescriptor &desc,
 }
 
 void
-generatorDescribeInContext(PageParamDescriptor *page,
-                           ImageEffectDescriptor &desc,
-                           ClipDescriptor &dstClip,
-                           GeneratorExtentEnum defaultType,
-                           PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
-                           bool useOutputComponentsAndDepth,
-                           ContextEnum context,
-                           bool reformat)
+generatorDescribeFormat(PageParamDescriptor *page,
+                        ImageEffectDescriptor &desc,
+                        GeneratorExtentEnum defaultType,
+                        bool reformat)
 {
     // extent
     {
@@ -767,7 +763,12 @@ generatorDescribeInContext(PageParamDescriptor *page,
             }
         }
     }
+} // generatorDescribeFormat
 
+void
+generatorDescribeArea(PageParamDescriptor *page,
+                      ImageEffectDescriptor &desc)
+{
     // btmLeft
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractBtmLeft);
@@ -833,8 +834,14 @@ generatorDescribeInContext(PageParamDescriptor *page,
 
     // HiDPI
     hiDPIDescribeParams(desc, NULL, page);
+} // generatorDescribeArea
 
-    // range
+void
+generatorDescribeFrameRange(PageParamDescriptor *page,
+                            ImageEffectDescriptor &desc,
+                            ContextEnum context)
+{
+    // range (general context only)
     if (context == eContextGeneral) {
         Int2DParamDescriptor *param = desc.defineInt2DParam(kParamGeneratorRange);
         param->setLabel(kParamGeneratorRangeLabel);
@@ -846,201 +853,210 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
+} // generatorDescribeFrameRange
 
-    if (useOutputComponentsAndDepth) {
-        bool supportsByte  = false;
-        bool supportsUShort = false;
-        bool supportsHalf = false;
-        bool supportsFloat = false;
-        BitDepthEnum outputBitDepthMap[10];
-        const PropertySet &effectProps = desc.getPropertySet();
-        int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
-        for (int i = 0; i < numPixelDepths; ++i) {
-            BitDepthEnum pixelDepth = mapStrToBitDepthEnum( effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i) );
-            bool supported = getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
-            switch (pixelDepth) {
-            case eBitDepthUByte:
-                supportsByte  = supported;
+void
+generatorDescribeOutputComponents(PageParamDescriptor *page,
+                                  ImageEffectDescriptor &desc,
+                                  ClipDescriptor &dstClip,
+                                  PixelComponentEnum defaultComponents)
+{
+    bool supportsByte  = false;
+    bool supportsUShort = false;
+    bool supportsHalf = false;
+    bool supportsFloat = false;
+    BitDepthEnum outputBitDepthMap[10];
+    const PropertySet &effectProps = desc.getPropertySet();
+    int numPixelDepths = effectProps.propGetDimension(kOfxImageEffectPropSupportedPixelDepths);
+    for (int i = 0; i < numPixelDepths; ++i) {
+        BitDepthEnum pixelDepth = mapStrToBitDepthEnum( effectProps.propGetString(kOfxImageEffectPropSupportedPixelDepths, i) );
+        bool supported = getImageEffectHostDescription()->supportsBitDepth(pixelDepth);
+        switch (pixelDepth) {
+        case eBitDepthUByte:
+            supportsByte  = supported;
+            break;
+        case eBitDepthUShort:
+            supportsUShort = supported;
+            break;
+        case eBitDepthHalf:
+            supportsHalf = supported;
+            break;
+        case eBitDepthFloat:
+            supportsFloat = supported;
+            break;
+        default:
+            // other bitdepths are not supported by this plugin
+            break;
+        }
+    }
+    {
+        int i = 0;
+        if (supportsFloat) {
+            outputBitDepthMap[i] = eBitDepthFloat;
+            ++i;
+        }
+        if (supportsHalf) {
+            outputBitDepthMap[i] = eBitDepthHalf;
+            ++i;
+        }
+        if (supportsUShort) {
+            outputBitDepthMap[i] = eBitDepthUShort;
+            ++i;
+        }
+        if (supportsByte) {
+            outputBitDepthMap[i] = eBitDepthUByte;
+            ++i;
+        }
+        outputBitDepthMap[i] = eBitDepthNone;
+    }
+
+    {
+        bool supportsRGBA   = false;
+        bool supportsRGB    = false;
+        bool supportsXY     = false;
+        bool supportsAlpha  = false;
+        PixelComponentEnum outputComponentsMap[10];
+        const PropertySet &dstClipProps = dstClip.getPropertySet();
+        int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
+        for (int i = 0; i < numComponents; ++i) {
+            PixelComponentEnum pixelComponents = mapStrToPixelComponentEnum( dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i) );
+            bool supported = getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
+            switch (pixelComponents) {
+            case ePixelComponentRGBA:
+                supportsRGBA  = supported;
                 break;
-            case eBitDepthUShort:
-                supportsUShort = supported;
+            case ePixelComponentRGB:
+                supportsRGB = supported;
                 break;
-            case eBitDepthHalf:
-                supportsHalf = supported;
+#ifdef OFX_EXTENSIONS_NATRON
+            case ePixelComponentXY:
+                supportsXY = supported;
                 break;
-            case eBitDepthFloat:
-                supportsFloat = supported;
+#endif
+            case ePixelComponentAlpha:
+                supportsAlpha = supported;
                 break;
             default:
-                // other bitdepths are not supported by this plugin
+                // other components are not supported by this plugin
                 break;
             }
         }
         {
             int i = 0;
-            if (supportsFloat) {
-                outputBitDepthMap[i] = eBitDepthFloat;
+            if (supportsRGBA) {
+                outputComponentsMap[i] = ePixelComponentRGBA;
                 ++i;
             }
-            if (supportsHalf) {
-                outputBitDepthMap[i] = eBitDepthHalf;
+            if (supportsRGB) {
+                outputComponentsMap[i] = ePixelComponentRGB;
                 ++i;
             }
-            if (supportsUShort) {
-                outputBitDepthMap[i] = eBitDepthUShort;
+            if (supportsXY) {
+                outputComponentsMap[i] = ePixelComponentXY;
                 ++i;
             }
-            if (supportsByte) {
-                outputBitDepthMap[i] = eBitDepthUByte;
+            if (supportsAlpha) {
+                outputComponentsMap[i] = ePixelComponentAlpha;
                 ++i;
             }
-            outputBitDepthMap[i] = eBitDepthNone;
+            outputComponentsMap[i] = ePixelComponentNone;
         }
 
+        // outputComponents
         {
-            bool supportsRGBA   = false;
-            bool supportsRGB    = false;
-            bool supportsXY     = false;
-            bool supportsAlpha  = false;
-            PixelComponentEnum outputComponentsMap[10];
-            const PropertySet &dstClipProps = dstClip.getPropertySet();
-            int numComponents = dstClipProps.propGetDimension(kOfxImageEffectPropSupportedComponents);
-            for (int i = 0; i < numComponents; ++i) {
-                PixelComponentEnum pixelComponents = mapStrToPixelComponentEnum( dstClipProps.propGetString(kOfxImageEffectPropSupportedComponents, i) );
-                bool supported = getImageEffectHostDescription()->supportsPixelComponent(pixelComponents);
-                switch (pixelComponents) {
-                case ePixelComponentRGBA:
-                    supportsRGBA  = supported;
-                    break;
-                case ePixelComponentRGB:
-                    supportsRGB = supported;
-                    break;
-#ifdef OFX_EXTENSIONS_NATRON
-                case ePixelComponentXY:
-                    supportsXY = supported;
-                    break;
-#endif
-                case ePixelComponentAlpha:
-                    supportsAlpha = supported;
-                    break;
-                default:
-                    // other components are not supported by this plugin
-                    break;
-                }
-            }
-            {
-                int i = 0;
-                if (supportsRGBA) {
-                    outputComponentsMap[i] = ePixelComponentRGBA;
-                    ++i;
-                }
-                if (supportsRGB) {
-                    outputComponentsMap[i] = ePixelComponentRGB;
-                    ++i;
-                }
-                if (supportsXY) {
-                    outputComponentsMap[i] = ePixelComponentXY;
-                    ++i;
-                }
-                if (supportsAlpha) {
-                    outputComponentsMap[i] = ePixelComponentAlpha;
-                    ++i;
-                }
-                outputComponentsMap[i] = ePixelComponentNone;
-            }
-
-            // outputComponents
-            {
-                ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
-                param->setLabel(kParamGeneratorOutputComponentsLabel);
-                param->setHint(kParamGeneratorOutputComponentsHint);
-                // the following must be in the same order as in describe(), so that the map works
-                int defIndex = 0;
-                int nOptions = 0;
-                if (supportsRGBA) {
-                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
-                    param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
-                    if (defaultComponents == ePixelComponentRGBA) {
-                        defIndex = nOptions;
-                    }
-                    ++nOptions;
-                }
-                if (supportsRGB) {
-                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
-                    param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
-                    if (defaultComponents == ePixelComponentRGB) {
-                        defIndex = nOptions;
-                    }
-                    ++nOptions;
-                }
-                if (supportsXY) {
-#ifdef OFX_EXTENSIONS_NATRON
-                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentXY);
-                    param->appendOption(kParamGeneratorOutputComponentsOptionXY);
-                    if (defaultComponents == ePixelComponentXY) {
-                        defIndex = nOptions;
-                    }
-                    ++nOptions;
-#endif
-                }
-                if (supportsAlpha) {
-                    assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
-                    param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
-                    if (defaultComponents == ePixelComponentAlpha) {
-                        defIndex = nOptions;
-                    }
-                    ++nOptions;
-                }
-                param->setDefault(defIndex);
-                param->setAnimates(false);
-                desc.addClipPreferencesSlaveParam(*param);
-                if (page) {
-                    page->addChild(*param);
-                }
-            }
-        }
-
-        // outputBitDepth
-        if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
-            ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
-            param->setLabel(kParamGeneratorOutputBitDepthLabel);
-            param->setHint(kParamGeneratorOutputBitDepthHint);
+            ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputComponents);
+            param->setLabel(kParamGeneratorOutputComponentsLabel);
+            param->setHint(kParamGeneratorOutputComponentsHint);
             // the following must be in the same order as in describe(), so that the map works
-            if (supportsFloat) {
-                // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
-                param->appendOption(kParamGeneratorOutputBitDepthOptionFloat);
+            int defIndex = 0;
+            int nOptions = 0;
+            if (supportsRGBA) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGBA);
+                param->appendOption(kParamGeneratorOutputComponentsOptionRGBA);
+                if (defaultComponents == ePixelComponentRGBA) {
+                    defIndex = nOptions;
+                }
+                ++nOptions;
             }
-            if (supportsHalf) {
-                // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthHalf);
-                param->appendOption(kParamGeneratorOutputBitDepthOptionHalf);
+            if (supportsRGB) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentRGB);
+                param->appendOption(kParamGeneratorOutputComponentsOptionRGB);
+                if (defaultComponents == ePixelComponentRGB) {
+                    defIndex = nOptions;
+                }
+                ++nOptions;
             }
-            if (supportsUShort) {
-                // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
-                param->appendOption(kParamGeneratorOutputBitDepthOptionShort);
-            }
-            if (supportsByte) {
-                // coverity[check_return]
-                assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
-                param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
-            }
-            param->setDefault(0);
-#ifndef DEBUG
-            // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
-            // Disable it for now (in the future, there may be colorspace conversion options)
-            param->setIsSecretAndDisabled(true); // always secret
+            if (supportsXY) {
+#ifdef OFX_EXTENSIONS_NATRON
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentXY);
+                param->appendOption(kParamGeneratorOutputComponentsOptionXY);
+                if (defaultComponents == ePixelComponentXY) {
+                    defIndex = nOptions;
+                }
+                ++nOptions;
 #endif
+            }
+            if (supportsAlpha) {
+                assert(outputComponentsMap[param->getNOptions()] == ePixelComponentAlpha);
+                param->appendOption(kParamGeneratorOutputComponentsOptionAlpha);
+                if (defaultComponents == ePixelComponentAlpha) {
+                    defIndex = nOptions;
+                }
+                ++nOptions;
+            }
+            param->setDefault(defIndex);
             param->setAnimates(false);
             desc.addClipPreferencesSlaveParam(*param);
             if (page) {
                 page->addChild(*param);
             }
         }
-    } // useOutputComponentsAndDepth
+    }
 
+    // outputBitDepth
+    if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
+        ChoiceParamDescriptor *param = desc.defineChoiceParam(kParamGeneratorOutputBitDepth);
+        param->setLabel(kParamGeneratorOutputBitDepthLabel);
+        param->setHint(kParamGeneratorOutputBitDepthHint);
+        // the following must be in the same order as in describe(), so that the map works
+        if (supportsFloat) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthFloat);
+            param->appendOption(kParamGeneratorOutputBitDepthOptionFloat);
+        }
+        if (supportsHalf) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthHalf);
+            param->appendOption(kParamGeneratorOutputBitDepthOptionHalf);
+        }
+        if (supportsUShort) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUShort);
+            param->appendOption(kParamGeneratorOutputBitDepthOptionShort);
+        }
+        if (supportsByte) {
+            // coverity[check_return]
+            assert(0 <= param->getNOptions() && param->getNOptions() < 10 && outputBitDepthMap[param->getNOptions()] == eBitDepthUByte);
+            param->appendOption(kParamGeneratorOutputBitDepthOptionByte);
+        }
+        param->setDefault(0);
+#ifndef DEBUG
+        // Shuffle only does linear conversion, which is useless for 8-bits and 16-bits formats.
+        // Disable it for now (in the future, there may be colorspace conversion options)
+        param->setIsSecretAndDisabled(true); // always secret
+#endif
+        param->setAnimates(false);
+        desc.addClipPreferencesSlaveParam(*param);
+        if (page) {
+            page->addChild(*param);
+        }
+    }
+} // generatorDescribeOutputComponents
 
+void
+generatorDescribeEnd(PageParamDescriptor *page,
+                     ImageEffectDescriptor &desc)
+{
     // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
     if (!gHostSupportsDefaultCoordinateSystem) {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamDefaultsNormalised);
@@ -1053,5 +1069,24 @@ generatorDescribeInContext(PageParamDescriptor *page,
             page->addChild(*param);
         }
     }
+} // generatorDescribeEnd
+
+void
+generatorDescribeInContext(PageParamDescriptor *page,
+                           ImageEffectDescriptor &desc,
+                           ClipDescriptor &dstClip,
+                           GeneratorExtentEnum defaultType,
+                           PixelComponentEnum defaultComponents, // either RGBA, RGB, XY or Alpha
+                           bool useOutputComponentsAndDepth,
+                           ContextEnum context,
+                           bool reformat)
+{
+    generatorDescribeFormat(page, desc, defaultType, reformat);
+    generatorDescribeArea(page, desc);
+    generatorDescribeFrameRange(page, desc, context);
+    if (useOutputComponentsAndDepth) {
+        generatorDescribeOutputComponents(page, desc, dstClip, defaultComponents);
+    }
+    generatorDescribeEnd(page, desc);
 } // generatorDescribeInContext
 } // OFX

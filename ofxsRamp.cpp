@@ -461,12 +461,11 @@ RampInteractHelper::loseFocus(const FocusArgs & /*args*/)
 }
 
 void
-ofxsRampDescribeParams(ImageEffectDescriptor &desc,
-                       PageParamDescriptor *page,
-                       GroupParamDescriptor *group,
-                       RampTypeEnum defaultType,
-                       bool isOpen,
-                       bool oldParams)
+ofxsRampDescribeParamType(ImageEffectDescriptor &desc,
+                          PageParamDescriptor *page,
+                          GroupParamDescriptor *group,
+                          RampTypeEnum defaultType,
+                          bool oldParams)
 {
     // type
     {
@@ -493,7 +492,14 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+} // ofxsRampDescribeParamType
 
+void
+ofxsRampDescribeParamPoint0(ImageEffectDescriptor &desc,
+                            PageParamDescriptor *page,
+                            GroupParamDescriptor *group,
+                            bool oldParams)
+{
     // point0
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint0Old : kParamRampPoint0);
@@ -511,8 +517,14 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+} // ofxsRampDescribeParamPoint0
 
-
+void
+ofxsRampDescribeParamColor0(ImageEffectDescriptor &desc,
+                            PageParamDescriptor *page,
+                            GroupParamDescriptor *group,
+                            bool oldParams)
+{
     // color0
     {
         RGBAParamDescriptor* param = desc.defineRGBAParam(oldParams ? kParamRampColor0Old : kParamRampColor0);
@@ -525,7 +537,14 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+} // ofxsRampDescribeParamColor0
 
+void
+ofxsRampDescribeParamPoint1(ImageEffectDescriptor &desc,
+                            PageParamDescriptor *page,
+                            GroupParamDescriptor *group,
+                            bool oldParams)
+{
     // point1
     {
         Double2DParamDescriptor* param = desc.defineDouble2DParam(oldParams ? kParamRampPoint1Old : kParamRampPoint1);
@@ -543,7 +562,14 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+} // ofxsRampDescribeParamPoint1
 
+void
+ofxsRampDescribeParamColor1(ImageEffectDescriptor &desc,
+                            PageParamDescriptor *page,
+                            GroupParamDescriptor *group,
+                            bool oldParams)
+{
     // color1
     {
         RGBAParamDescriptor* param = desc.defineRGBAParam(oldParams ? kParamRampColor1Old : kParamRampColor1);
@@ -556,7 +582,15 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
             page->addChild(*param);
         }
     }
+} // ofxsRampDescribeParamColor1
 
+void
+ofxsRampDescribeParamsInteract(ImageEffectDescriptor &desc,
+                               PageParamDescriptor *page,
+                               GroupParamDescriptor *group,
+                               bool isOpen,
+                               bool oldParams)
+{
     // interactOpen
     {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamRampInteractOpen);
@@ -588,5 +622,21 @@ ofxsRampDescribeParams(ImageEffectDescriptor &desc,
 
     // HiDPI
     hiDPIDescribeParams(desc, group, page);
+} // ofxsRampDescribeParamsInteract
+
+void
+ofxsRampDescribeParams(ImageEffectDescriptor &desc,
+                       PageParamDescriptor *page,
+                       GroupParamDescriptor *group,
+                       RampTypeEnum defaultType,
+                       bool isOpen,
+                       bool oldParams)
+{
+    ofxsRampDescribeParamType(desc, page, group, defaultType, oldParams);
+    ofxsRampDescribeParamPoint0(desc, page, group, oldParams);
+    ofxsRampDescribeParamColor0(desc, page, group, oldParams);
+    ofxsRampDescribeParamPoint1(desc, page, group, oldParams);
+    ofxsRampDescribeParamColor1(desc, page, group, oldParams);
+    ofxsRampDescribeParamsInteract(desc, page, group, isOpen, oldParams);
 } // ofxsRampDescribeParams
 } // namespace OFX
