@@ -388,7 +388,7 @@ public:
             _srcBitDepth = eBitDepthNone;
             _srcPixelBytes = 0;
             _srcRowBytes = 0;
-            _srcBoundary = srcBoundary;
+            _srcBoundary = 0; // no pixel to clamp to or repeat (see setSrcBoundary)
 
             return;
         }
@@ -399,7 +399,7 @@ public:
         _srcBitDepth = v->getPixelDepth();
         _srcPixelBytes = _srcPixelComponentCount * getComponentBytes(_srcBitDepth);
         _srcRowBytes = v->getRowBytes();
-        _srcBoundary = srcBoundary;
+        setSrcBoundary(srcBoundary);
     }
 
     /** @brief set the src image */
@@ -418,7 +418,7 @@ public:
         _srcBitDepth = srcPixelDepth;
         _srcPixelBytes = _srcPixelComponentCount * getComponentBytes(_srcBitDepth);
         _srcRowBytes = srcRowBytes;
-        _srcBoundary = srcBoundary;
+        setSrcBoundary(srcBoundary);
     }
 
     void setOrigImg(const OFX::Image *v)
@@ -448,6 +448,13 @@ public:
     }
 
 protected:
+    // An empty source has no pixel to clamp to or repeat (Periodic would divide by zero): it gets no
+    // boundary condition, and every pixel takes the "no src pixel" path. Call after setting _srcBounds.
+    void setSrcBoundary(int srcBoundary)
+    {
+        _srcBoundary = ( (_srcBounds.x2 <= _srcBounds.x1) || (_srcBounds.y2 <= _srcBounds.y1) ) ? 0 : srcBoundary;
+    }
+
     const void* getSrcPixelAddress(int x,
                                    int y) const
     {
