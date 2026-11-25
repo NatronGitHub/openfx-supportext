@@ -72,7 +72,6 @@
 
 #ifdef OFX_EXTENSIONS_NUKE
 #include "nuke/fnOfxExtensions.h"
-
 #endif
 
 #define kSupportsTiles 1
@@ -1168,7 +1167,6 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
         }
 
         // effect is identity if the render window doesn't intersect the (non-inverted) mask RoD
-        // (_maskInvert is always fetched when _masked)
         if ( ofxsMaskRoDExcludesRenderWindow(args, _maskClip, _maskApply, _maskInvert) ) {
             identityClip = _srcClip;
 
