@@ -44,9 +44,11 @@
 namespace OFX {
 /// Keep the OpenMP runtime loaded once the plug-in is unloaded (see above). Returns false if it
 /// could not be pinned (a warning is printed once), true otherwise, including when there is
-/// nothing to do. Once per plug-in binary. Needs ofxsOpenMP.cpp in the plug-in (the OPENMP
-/// component of cmake/SupportExt.cmake), or the link fails, compiled with the plug-in's OpenMP
-/// flags, or it does nothing.
+/// nothing to do. Once per plug-in binary.
+/// Two requirements:
+/// - ofxsOpenMP.cpp is compiled into the plug-in (the OPENMP component of
+///   cmake/SupportExt.cmake), or the link fails;
+/// - it is compiled with the plug-in's OpenMP flags, or the function does nothing.
 bool ofxsPinOpenMPRuntime();
 } // namespace OFX
 
