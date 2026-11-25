@@ -32,7 +32,6 @@
 #include <cfloat> // FLT_MIN
 #include <cassert>
 #include <cstring> // for memcpy
-#include <memory>
 
 #include "ofxCore.h"
 #include "ofxsImageEffect.h"
@@ -246,85 +245,12 @@ public:
         return toFunc_hipart_to_uint8xx[hipart(v)];
     }
 
-    // the following only works for increasing LUTs
-
-    /* @brief Converts a float ranging in [0 - 1.f] in linear color-space using the look-up tables.
-     * @return An unsigned short in [0 - 65535] in the destination color-space.
-     * This function uses localluy linear approximations of the transfer function.
-     */
-    unsigned short toColorSpaceUint16FromLinearFloatFast(float v) const WARN_UNUSED_RETURN
-    {
-        // algorithm:
-        // - convert to 8 bits -> val8u
-        // - convert val8u-1, val8u and val8u+1 to float
-        // - interpolate linearly in the right interval
-        unsigned char v8u = toColorSpaceUint8FromLinearFloatFast(v);
-        unsigned char v8u_next, v8u_prev;
-        float v32f_next, v32f_prev;
-        if (v8u == 0) {
-            v8u_prev = 0;
-            v8u_next = 1;
-            v32f_prev = fromColorSpaceUint8ToLinearFloatFast(0);
-            v32f_next = fromColorSpaceUint8ToLinearFloatFast(1);
-        } else if (v8u == 255) {
-            v8u_prev = 254;
-            v8u_next = 255;
-            v32f_prev = fromColorSpaceUint8ToLinearFloatFast(254);
-            v32f_next = fromColorSpaceUint8ToLinearFloatFast(255);
-        } else {
-            float v32f = fromColorSpaceUint8ToLinearFloatFast(v8u);
-            // we suppose the LUT is an increasing func
-            if (v < v32f) {
-                v8u_prev = v8u - 1;
-                v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
-                v8u_next = v8u;
-                v32f_next = v32f;
-            } else {
-                v8u_prev = v8u;
-                v32f_prev = v32f;
-                v8u_next = v8u + 1;
-                v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
-            }
-        }
-
-        // interpolate linearly: 8-bit value k is 16-bit value 257 * k. The result is clamped to
-        // [0, 65535] before the int conversion (it used a wrong slope, 256 + next + prev, and an
-        // overflowing (short) conversion); a NaN v gives 0.
-        float r = v8u_prev * 257.f + 0.5f;
-        const float dv = v32f_next - v32f_prev;
-        if (dv > 0.f) {
-            r += (v - v32f_prev) * ( 257.f * (v8u_next - v8u_prev) ) / dv;
-        }
-        if ( (r > 0.f) && (r < 65535.f) ) {
-            return (unsigned short)(int)r;
-        }
-
-        return (r >= 65535.f) ? 65535 : 0;
-    }
-
     /* @brief Converts a byte ranging in [0 - 255] in the destination color-space using the look-up tables.
      * @return A float in [0 - 1.f] in linear color-space.
      */
     float fromColorSpaceUint8ToLinearFloatFast(unsigned char v) const WARN_UNUSED_RETURN
     {
         return fromFunc_uint8_to_float[v];
-    }
-
-    /* @brief Converts a short ranging in [0 - 65535] in the destination color-space using the look-up tables.
-     * @return A float in [0 - 1.f] in linear color-space.
-     */
-    float fromColorSpaceUint16ToLinearFloatFast(unsigned short v) const WARN_UNUSED_RETURN
-    {
-        // the following is from ImageMagick's quantum.h
-        unsigned char v8u_prev = ( v - (v >> 8) ) >> 8;
-        unsigned char v8u_next = v8u_prev + 1;
-        unsigned short v16u_prev = (v8u_prev << 8) + v8u_prev;
-        unsigned short v16u_next = (v8u_next << 8) + v8u_next;
-        float v32f_prev = fromColorSpaceUint8ToLinearFloatFast(v8u_prev);
-        float v32f_next = fromColorSpaceUint8ToLinearFloatFast(v8u_next);
-
-        // interpolate linearly
-        return v32f_prev + (v - v16u_prev) * (v32f_next - v32f_prev) / (v16u_next - v16u_prev);
     }
 
 private:
