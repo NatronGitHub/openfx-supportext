@@ -587,11 +587,11 @@ struct Matrix3x3
             return ofxsInverseWideExponent<3>(*this, invOut);
         }
 
-        return inverseUnscaled(invOut);
+        return inverseDirect(invOut);
     }
 
     /// the inverse, computed directly (see inverse())
-    bool inverseUnscaled(Matrix3x3* invOut) const
+    bool inverseDirect(Matrix3x3* invOut) const
     {
         double inv[9], det;
         int i;
@@ -911,11 +911,11 @@ struct Matrix4x4
             return ofxsInverseWideExponent<4>(*this, invOut);
         }
 
-        return inverseUnscaled(invOut);
+        return inverseDirect(invOut);
     }
 
     /// the inverse, computed directly (see inverse())
-    bool inverseUnscaled(Matrix4x4* invOut) const
+    bool inverseDirect(Matrix4x4* invOut) const
     {
         double inv[16], det;
         int i;
