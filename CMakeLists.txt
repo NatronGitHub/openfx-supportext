@@ -41,4 +41,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # ofxsOGLFunctions_mesa.cpp (the OSMESA option) needs an OSMesa::OSMesa target:
   # compile it without HAVE_OSMESA, which at least checks it is a valid file
   target_sources(SupportExtCheck PRIVATE "${CMAKE_CURRENT_LIST_DIR}/ofxsOGLFunctions_mesa.cpp")
+  # ofxsOpenMP.h only does something with OpenMP: compile it with OpenMP where CMake finds it
+  find_package(OpenMP COMPONENTS CXX QUIET)
+  if(OpenMP_CXX_FOUND)
+    add_library(SupportExtOpenMPCheck OBJECT "${CMAKE_CURRENT_LIST_DIR}/tests/openmp_check.cpp")
+    target_include_directories(SupportExtOpenMPCheck PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
+    target_link_libraries(SupportExtOpenMPCheck PRIVATE OpenMP::OpenMP_CXX)
+  endif()
 endif()
