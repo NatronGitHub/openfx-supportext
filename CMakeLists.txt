@@ -44,8 +44,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   # ofxsOpenMP.h only does something with OpenMP: compile it with OpenMP where CMake finds it
   find_package(OpenMP COMPONENTS CXX QUIET)
   if(OpenMP_CXX_FOUND)
-    add_library(SupportExtOpenMPCheck OBJECT "${CMAKE_CURRENT_LIST_DIR}/tests/openmp_check.cpp"
-      "${CMAKE_CURRENT_LIST_DIR}/ofxsOpenMP.cpp")
+    add_library(SupportExtOpenMPCheck OBJECT "${CMAKE_CURRENT_LIST_DIR}/ofxsOpenMP.cpp")
     target_include_directories(SupportExtOpenMPCheck PRIVATE "${CMAKE_CURRENT_LIST_DIR}")
     target_link_libraries(SupportExtOpenMPCheck PRIVATE OpenMP::OpenMP_CXX)
   endif()
