@@ -1,9 +1,9 @@
 name: Continuous Integration
 
-# On pushes to master, RB-* and tags, on pull requests (drafts too), and on demand
-# (`gh workflow run ci.yml --ref <branch>`): one build per platform in C++17: Linux (see
-# build-one.yml) and Windows (an MSVC x64 compile check), then macOS, which waits until a
-# pull request is ready and doesn't run on demand. The Windows MSYS2 UCRT64 build is weekly (extended.yml),
+# On pushes to master, RB-* and tags, on ready (non-draft) pull requests, and on demand
+# (`gh workflow run ci.yml --ref <branch>`, e.g. a draft's rebased branch before it is marked
+# ready): one build per platform in C++17: Linux (see build-one.yml) and Windows (an MSVC x64
+# compile check), then macOS, which doesn't run on demand. The Windows MSYS2 UCRT64 build is weekly (extended.yml),
 # following the maintainer's Windows policy (one fast C++17 Windows build per change).
 # Extra variants (C++20, C++23, other openfx versions) are in extended.yml.
 
@@ -37,6 +37,8 @@ jobs:
   # macOS and Windows MSYS2 builds also run weekly (extended.yml).
   build:
     name: ${{ matrix.name }}
+    # no CI on draft pull requests (run it on demand instead)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       fail-fast: false
       matrix:
@@ -65,6 +67,8 @@ jobs:
   # small (#92). Errors fail; warnings are printed.
   msvc:
     name: Windows (MSVC)
+    # no CI on draft pull requests (run it on demand instead)
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: windows-2022
     timeout-minutes: 30
     steps:
