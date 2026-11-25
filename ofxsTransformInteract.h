@@ -31,6 +31,7 @@
 #include "ofxsMacros.h"
 #include "ofxsInteractCursor.h"
 #include "ofxsOverlayDraw.h"
+#include "ofxsNormalisedDefaults.h"
 
 #define kParamTransformTranslate "transformTranslate"
 #define kParamTransformTranslateLabel "Translate"
@@ -128,6 +129,23 @@ ofxsTransformGetScale(const OfxPointD &scaleParam,
 
 /// add Transform params. page and group are optional
 void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page, OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams, bool hasAmount, bool noTranslate);
+
+/// Call it last in the constructor of an effect whose parameters come from
+/// ofxsTransformDescribeParams(): on a host that ignores normalised defaults (OFX 1.1 hosts, e.g.
+/// VEGAS Pro), the untouched default center (0.5, 0.5) is converted to the project centre. The
+/// translate default (0, 0) is the same in both coordinate systems.
+inline void
+ofxsTransformDenormaliseDefaults(OFX::ImageEffect &effect,
+                                 bool oldParams = false)
+{
+    const char* name = oldParams ? kParamTransformCenterOld : kParamTransformCenter;
+    if ( effect.paramExists(name) ) {
+        OFX::Double2DParam* center = effect.fetchDouble2DParam(name);
+        if (center) {
+            OFX::ofxsDenormaliseUntouchedDefault(effect, *center, /*isPosition=*/true);
+        }
+    }
+}
 
 class TransformInteractHelper
     : private OFX::InteractAbstract
