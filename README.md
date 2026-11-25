@@ -28,7 +28,8 @@ directories to `<target>`. The arguments may come in any order, and `OPENGL`,
 
 - `OpenGL::GL` for the components that draw (`TEXT`, the overlays and
   interacts, `OPENGL`, `OGL_FUNCTIONS`), `${CMAKE_DL_LIBS}` for the GL and EGL
-  loaders, `Threads::Threads` for `THREADS`;
+  loaders and `OPENMP` (`ofxsOpenMP.cpp`, compiled with the plug-in's OpenMP flags),
+  `Threads::Threads` for `THREADS`;
 - `openfx::Support`, if that target exists when the function is called (so
   add or find openfx first), otherwise the consumer compiles the openfx Support
   library itself.
