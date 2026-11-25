@@ -230,6 +230,11 @@ enum GeneratorOverlayDrawEnum
 void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool hasAngle, GeneratorOverlayDrawEnum overlayDraw);
 void generatorDescribe(OFX::ImageEffectDescriptor &desc, GeneratorOverlayDrawEnum overlayDraw);
 
+/// The generator parameters, in this order. A plug-in that needs another order (e.g. to follow
+/// the Nuke node's knob order) calls the parts below instead, in any order, except that
+/// generatorDescribeArea() must come before generatorDescribeEnd() (it detects whether the host
+/// supports normalised defaults), and generatorDescribeEnd() must be called once, last.
+/// Hosts identify parameters by name, so the order only changes the GUI.
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
                                 OFX::ClipDescriptor &dstClip,
@@ -238,6 +243,21 @@ void generatorDescribeInContext(PageParamDescriptor *page,
                                 bool useOutputComponentsAndDepth,
                                 ContextEnum context,
                                 bool reformat = true);
+
+/// Extent, Center, Reformat (Natron), Format and the custom format size and PAR.
+void generatorDescribeFormat(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc,
+                             GeneratorExtentEnum defaultType, bool reformat = true);
+/// Bottom Left, Size, Interactive Update and the hidden HiDPI parameter (the area overlay).
+void generatorDescribeArea(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc);
+/// Frame Range (general context only).
+void generatorDescribeFrameRange(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc,
+                                 ContextEnum context);
+/// Output Components and Output Bit Depth (with the components and depths the host supports).
+void generatorDescribeOutputComponents(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc,
+                                       OFX::ClipDescriptor &dstClip,
+                                       PixelComponentEnum defaultComponents); // either RGBA, RGB, XY or Alpha
+/// The hidden parameters: call it once, after all the other generator parts.
+void generatorDescribeEnd(PageParamDescriptor *page, OFX::ImageEffectDescriptor &desc);
 } // OFX
 
 #endif // ifndef openfx_supportext_ofxsGenerator_h

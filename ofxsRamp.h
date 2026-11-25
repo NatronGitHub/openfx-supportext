@@ -365,12 +365,30 @@ ofxsRampFunc(const OfxPointD& p0,
     return t;
 }
 
+/// The ramp parameters: Type, Point 0, Color 0, Point 1, Color 1, then the overlay parameters
+/// (interactOpen, Interactive Update, the hidden HiDPI). A plug-in that needs another order (e.g. to
+/// follow the Nuke node's knob order: Point 0, Point 1, Type, then the colours) calls the parts below
+/// instead, each once, in any order. Hosts identify parameters by name, so the order only changes
+/// the GUI.
 void ofxsRampDescribeParams(OFX::ImageEffectDescriptor &desc,
                             OFX::PageParamDescriptor *page,
                             OFX::GroupParamDescriptor *group,
                             RampTypeEnum defaultType,
                             bool isOpen,
                             bool oldParams);
+void ofxsRampDescribeParamType(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                               OFX::GroupParamDescriptor *group, RampTypeEnum defaultType, bool oldParams);
+void ofxsRampDescribeParamPoint0(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                                 OFX::GroupParamDescriptor *group, bool oldParams);
+void ofxsRampDescribeParamColor0(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                                 OFX::GroupParamDescriptor *group, bool oldParams);
+void ofxsRampDescribeParamPoint1(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                                 OFX::GroupParamDescriptor *group, bool oldParams);
+void ofxsRampDescribeParamColor1(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                                 OFX::GroupParamDescriptor *group, bool oldParams);
+/// interactOpen, Interactive Update and the hidden HiDPI parameter (the ramp overlay)
+void ofxsRampDescribeParamsInteract(OFX::ImageEffectDescriptor &desc, OFX::PageParamDescriptor *page,
+                                    OFX::GroupParamDescriptor *group, bool isOpen, bool oldParams);
 } // namespace OFX
 
 #endif /* defined(openfx_supportext_ofxsRamp_h) */
