@@ -38,7 +38,9 @@
 
 #define kSupportsTiles 1
 #define kSupportsMultiResolution 1
-#define kSupportsRenderScale 0 // we need full-res images
+// the tracking needs full-resolution images; the render is a pass-through, at any scale (the host
+// may render at any scale: OFX has no property to refuse one, and e.g. VEGAS Pro's Auto preview
+// renders at 0.25)
 #define kRenderThreadSafety eRenderFullySafe
 
 #define POINT_SIZE 5
@@ -83,12 +85,6 @@ GenericTrackerPlugin::isIdentity(const IsIdentityArguments &args,
                                  Clip * &identityClip,
                                  double &identityTime, int& /*view*/, std::string& /*plane*/)
 {
-    if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        throwSuiteStatusException(kOfxStatFailed);
-
-        return false;
-    }
-
     identityClip = _srcClip;
     identityTime = args.time;
 
@@ -99,8 +95,11 @@ void
 GenericTrackerPlugin::changedParam(const InstanceChangedArgs &args,
                                    const string &paramName)
 {
-    if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        throwSuiteStatusException(kOfxStatFailed);
+    if ( ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) &&
+         ( (paramName == kParamTrackingBackward) || (paramName == kParamTrackingPrevious) ||
+           (paramName == kParamTrackingNext) || (paramName == kParamTrackingForward) ) ) {
+        // the images fetched here would be at this scale: track only at full resolution
+        sendMessage(Message::eMessageError, "", "Tracking needs full-resolution images: set the viewer or preview to full resolution.");
 
         return;
     }
@@ -146,10 +145,6 @@ bool
 GenericTrackerPlugin::getRegionOfDefinition(const RegionOfDefinitionArguments &args,
                                             OfxRectD & /*rod*/)
 {
-    if ( !kSupportsRenderScale && ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) ) {
-        throwSuiteStatusException(kOfxStatFailed);
-    }
-
     return false;
 }
 
