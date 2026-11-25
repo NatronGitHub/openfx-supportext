@@ -70,6 +70,49 @@ Lut::index_to_float(const unsigned short i)
     return f;
 }
 
+// The wrapHue option of hsv_to_rgb and hsl_to_rgb: wrap a finite hue into [0, OFXS_HUE_CIRCLE).
+// Without it, a hue in [-1, -5/6) (mod 1), e.g. after a hue rotation of -360 to -300 degrees, gave
+// the sector 5 formula (pink/magenta) instead of sector 0 (red to yellow). Opt-in, since it changes
+// existing outputs. (hsi_to_rgb wraps differently, see there.)
+static inline void
+wrapHueToCircle(float* hue)
+{
+    float h = *hue;
+
+    if ( ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
+        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
+        if (h >= OFXS_HUE_CIRCLE) {
+            h = 0.f; // rounding of a tiny negative hue
+        }
+        *hue = h;
+    }
+}
+
+// The sector (0 to 5) of h, a hue times 6 / OFXS_HUE_CIRCLE, taken modulo 6, and its fractional
+// part *f, for hsv_to_rgb and hsl_to_rgb.
+// A huge or infinite sector value (degenerate input, e.g. rgb_to_hsl of a pixel whose channels are
+// all <= 0) made the int conversion undefined: it is reduced modulo the 6 sectors, and gives hue 0
+// if it is not finite. Unchanged wherever the int conversion was defined (|floor| < 2^31; -2^31
+// gives the same sector either way).
+static inline int
+hueSector(float h,
+          float* f)
+{
+    if (std::fabs(h) >= 2147483648.f) {
+        h = (std::fabs(h) <= FLT_MAX) ? std::fmod(h, 6.f) : 0.f;
+    }
+    const float hfloor = std::floor(h);
+    int i = 0;
+    if ( (hfloor >= -2147483648.f) && (hfloor < 2147483648.f) ) {
+        i = (int)hfloor;
+    } else {
+        h = 0.f; // NaN hue (input data): sector 0, f = 0
+    }
+    *f = h - i;
+
+    return (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+}
+
 // r,g,b values are linear values from 0 to 1
 // h = [0,OFXS_HUE_CIRCLE], s = [0,1], v = [0,1]
 //		if s == 0, then h = 0 (undefined)
@@ -133,14 +176,8 @@ hsv_to_rgb(float h,
            float *b,
            bool wrapHue)
 {
-    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
-        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
-        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
-        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
-        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
-        if (h >= OFXS_HUE_CIRCLE) {
-            h = 0.f; // rounding of a tiny negative hue
-        }
+    if (wrapHue) {
+        wrapHueToCircle(&h);
     }
     if (s == 0) {
         // achromatic (grey)
@@ -150,22 +187,8 @@ hsv_to_rgb(float h,
     }
 
     h *= 6. / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    // a huge or infinite sector value (degenerate input, e.g. rgb_to_hsl of a pixel whose
-    // channels are all <= 0) made the int conversion below undefined: reduce it modulo the 6
-    // sectors, and use hue 0 if it is not finite. Unchanged wherever the int conversion was
-    // defined (|floor| < 2^31; -2^31 gives the same sector either way).
-    if (std::fabs(h) >= 2147483648.f) {
-        h = (std::fabs(h) <= FLT_MAX) ? std::fmod(h, 6.f) : 0.f;
-    }
-    const float hfloor = std::floor(h);
-    int i = 0;
-    if ( (hfloor >= -2147483648.f) && (hfloor < 2147483648.f) ) {
-        i = (int)hfloor;
-    } else {
-        h = 0.f; // NaN hue (input data): sector 0, f = 0
-    }
-    float f = h - i;          // factorial part of h
-    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+    float f;          // factorial part of h
+    int i = hueSector(h, &f);
     float p = v * ( 1 - s );
     float q = v * ( 1 - s * f );
     float t = v * ( 1 - s * ( 1 - f ) );
@@ -204,6 +227,32 @@ hsv_to_rgb(float h,
     }
 } // hsv_to_rgb
 
+// The hue of rgb_to_hsl, in [0, OFXS_HUE_CIRCLE), from the channel maxv that is the largest one and
+// the difference delta (> 0) between the largest and the smallest one.
+static inline float
+hslHue(float r,
+       float g,
+       float b,
+       float maxv,
+       float delta)
+{
+    float h;
+
+    if (r == maxv) {
+        h = (g - b) / delta;                       // between yellow & magenta
+    } else if (g == maxv) {
+        h = 2 + (b - r) / delta;                   // between cyan & yellow
+    } else {
+        h = 4 + (r - g) / delta;                   // between magenta & cyan
+    }
+    h *= OFXS_HUE_CIRCLE / 6;
+    if (h < 0) {
+        h += OFXS_HUE_CIRCLE;
+    }
+
+    return h;
+}
+
 void
 rgb_to_hsl( float r,
             float g,
@@ -218,26 +267,38 @@ rgb_to_hsl( float r,
 
     *l = (minv + maxv) / 2;
 
-    // the hue is computed from the unclamped channels (with fixedOutOfRange)
-    const float minu = minv;
-    const float maxu = maxv;
-    const float deltau = maxu - minu;
-
     if (fixedOutOfRange) {
-        // the saturation is that of the colour clamped to [0,1]: clamp both ends to [0,1]
-        minv = (std::min)( 1.f, (std::max)(0.f, minv) );
-        maxv = (std::min)( 1.f, (std::max)(0.f, maxv) );
-    } else {
-        // old output: comparing the unclamped channels with the clamped maxv below gives a
-        // wrong hue when a channel is outside [0,1] (e.g. (2, 0.5, 0) or (0.5, -1, 0)), and
-        // a wrong saturation when all are above 1
-        minv = (std::max)(0.f, minv);
-        maxv = (std::min)(1.f, maxv);
+        // the hue is computed from the unclamped channels
+        const float delta = maxv - minv;
+        if ( !(delta > 0.f) ) { // NaN (e.g. inf - inf) is a grey too
+            *h = 0.f;                 // gray
+            *s = 0.f;
+
+            return;
+        }
+        // the saturation is that of the colour clamped to [0,1] (clamp both ends to [0,1]), and the
+        // lightness of the clamped colour decides the formula; deltac is 0 when all the channels are on
+        // the same side of [0,1]. s = delta/(1-abs(2L-1)), 1 if the denominator rounds to 0 (see below).
+        const float minc = (std::min)( 1.f, (std::max)(0.f, minv) );
+        const float maxc = (std::min)( 1.f, (std::max)(0.f, maxv) );
+        const float deltac = maxc - minc;
+        const float lc = (minc + maxc) / 2;
+        const float sdenc = (lc <= 0.5f) ? (maxc + minc) : ( 2 - (maxc + minc) );
+        *s = (deltac == 0.f) ? 0.f : ( (sdenc != 0.f) ? (std::min)(1.f, deltac / sdenc) : 1.f );
+        *h = hslHue(r, g, b, maxv, delta);
+
+        return;
     }
 
-    float delta = maxv - minv;
+    // old output: comparing the unclamped channels with the clamped maxv below gives a
+    // wrong hue when a channel is outside [0,1] (e.g. (2, 0.5, 0) or (0.5, -1, 0)), and
+    // a wrong saturation when all are above 1
+    minv = (std::max)(0.f, minv);
+    maxv = (std::min)(1.f, maxv);
 
-    if ( fixedOutOfRange ? !(deltau > 0.f) : (delta == 0.) ) { // with fixedOutOfRange, NaN (e.g. inf - inf) is a grey too
+    const float delta = maxv - minv;
+
+    if (delta == 0.) {
         *h = 0.f;                 // gray
         *s = 0.f;
 
@@ -246,29 +307,8 @@ rgb_to_hsl( float r,
     // s = delta/(1-abs(2L-1)); near white, 2 - (maxv + minv) can round to 0 (e.g. (1, 1, 0.99999994)),
     // which gave inf, then NaN in hsl_to_rgb: the saturation is then 1
     const float sden = (*l <= 0.5) ? (maxv + minv) : ( 2 - (maxv + minv) );
-    if (fixedOutOfRange) {
-        // the lightness of the clamped colour decides the formula; delta is 0 when all the
-        // channels are on the same side of [0,1]
-        const float lc = (minv + maxv) / 2;
-        const float sdenc = (lc <= 0.5f) ? (maxv + minv) : ( 2 - (maxv + minv) );
-        *s = (delta == 0.f) ? 0.f : ( (sdenc != 0.f) ? (std::min)(1.f, delta / sdenc) : 1.f );
-    } else {
-        *s = (sden != 0.f) ? (delta / sden) : 1.f;
-    }
-
-    const float hmax = fixedOutOfRange ? maxu : maxv;
-    const float hdelta = fixedOutOfRange ? deltau : delta;
-    if (r == hmax) {
-        *h = (g - b) / hdelta;                       // between yellow & magenta
-    } else if (g == hmax) {
-        *h = 2 + (b - r) / hdelta;                   // between cyan & yellow
-    } else {
-        *h = 4 + (r - g) / hdelta;                   // between magenta & cyan
-    }
-    *h *= OFXS_HUE_CIRCLE / 6;
-    if (*h < 0) {
-        *h += OFXS_HUE_CIRCLE;
-    }
+    *s = (sden != 0.f) ? (delta / sden) : 1.f;
+    *h = hslHue(r, g, b, maxv, delta);
 }
 
 void
@@ -280,14 +320,8 @@ hsl_to_rgb(float h,
            float *b,
            bool wrapHue)
 {
-    if ( wrapHue && ( (h < 0) || (h >= OFXS_HUE_CIRCLE) ) && (std::fabs(h) <= FLT_MAX) ) {
-        // wrap the hue into [0, OFXS_HUE_CIRCLE): a hue in [-1, -5/6) (mod 1), e.g. after a
-        // hue rotation of -360 to -300 degrees, gave the sector 5 formula (pink/magenta)
-        // instead of sector 0 (red to yellow). Opt-in, since it changes existing outputs.
-        h -= OFXS_HUE_CIRCLE * std::floor(h / OFXS_HUE_CIRCLE);
-        if (h >= OFXS_HUE_CIRCLE) {
-            h = 0.f; // rounding of a tiny negative hue
-        }
+    if (wrapHue) {
+        wrapHueToCircle(&h);
     }
     if (s == 0) {
         // achromatic (grey)
@@ -297,22 +331,8 @@ hsl_to_rgb(float h,
     }
 
     h *= 6.f / OFXS_HUE_CIRCLE;            // sector 0 to 5
-    // a huge or infinite sector value (degenerate input, e.g. rgb_to_hsl of a pixel whose
-    // channels are all <= 0) made the int conversion below undefined: reduce it modulo the 6
-    // sectors, and use hue 0 if it is not finite. Unchanged wherever the int conversion was
-    // defined (|floor| < 2^31; -2^31 gives the same sector either way).
-    if (std::fabs(h) >= 2147483648.f) {
-        h = (std::fabs(h) <= FLT_MAX) ? std::fmod(h, 6.f) : 0.f;
-    }
-    const float hfloor = std::floor(h);
-    int i = 0;
-    if ( (hfloor >= -2147483648.f) && (hfloor < 2147483648.f) ) {
-        i = (int)hfloor;
-    } else {
-        h = 0.f; // NaN hue (input data): sector 0, f = 0
-    }
-    float f = h - i;          // factorial part of h
-    i = (i >= 0) ? (i % 6) : (i % 6) + 6; // take h modulo 360
+    float f;          // factorial part of h
+    int i = hueSector(h, &f);
     float v = (l <= 0.5f) ? ( l * (1.0f + s) ) : (l + s - l * s);
     float p = l + l - v;
     // v == 0 (l == 0, or s == -1) would give 0/0 or x/0, then NaN in t or q
