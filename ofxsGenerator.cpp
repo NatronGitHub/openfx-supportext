@@ -33,6 +33,11 @@
 #include "ofxsCoords.h"
 #include "ofxsNormalisedDefaults.h"
 
+// the parameter ranges and default coordinate systems left to Support (DaVinci Resolve clamps params without a range)
+#ifndef OFXS_SUPPORT_HAS_SPEC_PARAM_DEFAULTS
+#error "SupportExt needs the NatronGitHub openfx Support library that sets the spec param defaults (openfx #354)"
+#endif
+
 // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
 #define kParamDefaultsNormalised "defaultsNormalisedGenerator"
 
@@ -775,7 +780,6 @@ generatorDescribeArea(PageParamDescriptor *page,
         param->setDoubleType(eDoubleTypeXYAbsolute);
         ofxsSetDefaultCoordinateSystemNormalised(*param); // else kParamDefaultsNormalised converts it
         param->setDefault(0., 0.);
-        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
         param->setLayoutHint(eLayoutHintNoNewLine);
