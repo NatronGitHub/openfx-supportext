@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "ofxsImageEffect.h"
+#include "ofxsFilter.h" // FilterSetEnum
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsShutter.h"
 #include "ofxsMacros.h"
@@ -219,18 +220,12 @@ void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);
 
 OFX::PageParamDescriptor * Transform3x3DescribeInContextBegin(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, bool masked);
 
-// Which filtering parameters Transform3x3DescribeInContextEnd() defines: the default keeps the parameters
-// of the previous versions; a plug-in opts in to the sinc-based filters (Lanczos4, Lanczos6, Sinc4,
-// appended to Filter) and the Prefilter Downscaling checkbox, right after Black Outside, so that the
+// filterSet: which filters the Filter parameter lists. The default keeps the parameters of the previous
+// versions; with eFilterSetSinc, a plug-in opts in to the sinc-based filters (Lanczos4, Lanczos6, Sinc4,
+// appended to Filter) and to the Prefilter Downscaling checkbox, right after Black Outside, so that the
 // parameters that Nuke also has keep its order. OFX hosts identify parameters by name, so a parameter
 // added in the middle doesn't affect saved projects.
-enum Transform3x3FilteringEnum
-{
-    eTransform3x3FilteringCubic = 0, // Impulse to Notch, supersampling when scaling down
-    eTransform3x3FilteringSincPrefilter, // also Lanczos4, Lanczos6, Sinc4 and Prefilter Downscaling
-};
-
 void Transform3x3DescribeInContextEnd(OFX::ImageEffectDescriptor &desc, OFX::ContextEnum context, OFX::PageParamDescriptor* page, bool masked, OFX::Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType,
-                                      Transform3x3FilteringEnum filtering = eTransform3x3FilteringCubic);
+                                      OFX::FilterSetEnum filterSet = OFX::eFilterSetCubic);
 } // namespace OFX
 #endif /* defined(openfx_supportext_ofxsTransform3x3_h) */
