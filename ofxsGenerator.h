@@ -231,9 +231,13 @@ void generatorDescribe(OFX::ImageEffectDescriptor &desc, bool hasAngle, Generato
 void generatorDescribe(OFX::ImageEffectDescriptor &desc, GeneratorOverlayDrawEnum overlayDraw);
 
 /// The generator parameters, in this order. A plug-in that needs another order (e.g. to follow
-/// the Nuke node's knob order) calls the parts below instead, in any order, except that
-/// generatorDescribeArea() must come before generatorDescribeEnd() (it detects whether the host
-/// supports normalised defaults), and generatorDescribeEnd() must be called once, last.
+/// the Nuke node's knob order) calls the parts below instead, in any order, with these rules:
+/// - generatorDescribeFormat(), generatorDescribeArea() and generatorDescribeFrameRange() are each
+///   called exactly once (GeneratorPlugin fetches their parameters);
+/// - generatorDescribeOutputComponents() is called exactly once if and only if the plug-in
+///   constructs GeneratorPlugin with useOutputComponentsAndDepth = true;
+/// - generatorDescribeArea() comes before generatorDescribeEnd() (it detects whether the host
+///   supports normalised defaults), and generatorDescribeEnd() is called once, last.
 /// Hosts identify parameters by name, so the order only changes the GUI.
 void generatorDescribeInContext(PageParamDescriptor *page,
                                 OFX::ImageEffectDescriptor &desc,
