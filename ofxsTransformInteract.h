@@ -134,6 +134,12 @@ void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PagePara
 /// ofxsTransformDescribeParams(): on a host that ignores normalised defaults (OFX 1.1 hosts, e.g.
 /// VEGAS Pro), the untouched default center (0.5, 0.5) is converted to the project centre. The
 /// translate default (0, 0) is the same in both coordinate systems.
+/// - Don't call it if the plug-in overrides the center default with a canonical value (e.g.
+///   openfx-arena ReadSVG's (0, 0)).
+/// - The conversion uses setValue(), and the host may send instanceChanged for it (a plug-in
+///   edit): a plug-in whose changedParam() records that the user moved the center (e.g. Transform's
+///   "center changed" flag, which stops the re-centring on a new source) saves that flag before
+///   the call and restores it after.
 inline void
 ofxsTransformDenormaliseDefaults(OFX::ImageEffect &effect,
                                  bool oldParams = false)

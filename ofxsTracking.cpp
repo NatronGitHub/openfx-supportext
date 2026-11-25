@@ -38,8 +38,9 @@
 
 #define kSupportsTiles 1
 #define kSupportsMultiResolution 1
-// the tracking needs full-resolution images; the render is a pass-through, at any scale (OFX 1.1
-// hosts, e.g. VEGAS Pro, may render at a scale even though the plug-in doesn't support it)
+// the tracking needs full-resolution images; the render is a pass-through, at any scale (the host
+// may render at any scale: OFX has no property to refuse one, and e.g. VEGAS Pro's Auto preview
+// renders at 0.25)
 #define kRenderThreadSafety eRenderFullySafe
 
 #define POINT_SIZE 5
