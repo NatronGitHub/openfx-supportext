@@ -23,69 +23,30 @@
  *
  * When the host unloads (dlcloses) a plug-in binary, an OpenMP runtime whose only user is that
  * plug-in (e.g. libgomp) is unmapped too, while its pool threads, created by parallel regions run
- * in the host's render threads, may still be in its code: the host crashes. Call
- * ofxsPinOpenMPRuntime() before the first parallel region (at render entry, or right before a
- * parallel region); it is cheap and idempotent, and pins the runtime the first time.
- * - ELF (Linux, BSD): dlopen(RTLD_NOLOAD | RTLD_NODELETE) of the runtime that holds
- *   omp_get_max_threads.
- * - Windows: GetModuleHandleExW(FROM_ADDRESS | PIN) of the module that holds omp_get_max_threads
- *   (with MSVC's import thunk, that is the plug-in itself, which is then never unloaded: also safe).
+ * in the host's render threads, may still be in its code: the host crashes (openfx-gmic #213).
+ * Call ofxsPinOpenMPRuntime() before the first parallel region (at render entry, or right before
+ * a parallel region): it is cheap and idempotent, and pins the runtime the first time.
+ * - ELF (Linux, the BSDs): dlopen(RTLD_NOLOAD | RTLD_NODELETE) of the object that holds
+ *   omp_get_max_threads: libgomp, or the plug-in itself if the runtime is linked statically.
+ * - Windows: GetModuleHandleExW(FROM_ADDRESS | PIN) of the module that holds
+ *   omp_get_max_threads: vcomp with MSVC (dllimport); with MinGW's libgomp (no dllimport) the
+ *   address is an import thunk in the plug-in, which is then never unloaded (also safe).
  * - macOS: nothing (libomp joins its threads when it is unloaded; pinning would move that teardown
  *   to exit, see https://reviews.llvm.org/D159324).
- * Without OpenMP (_OPENMP undefined), it does nothing. From openfx-gmic #213.
+ * - Without OpenMP (_OPENMP undefined): nothing.
+ * The code is in ofxsOpenMP.cpp (cmake/SupportExt.cmake component OPENMP), compiled with the
+ * plug-in's OpenMP flags, so that <windows.h> and <dlfcn.h> don't leak into the includer.
  */
 
 #ifndef openfx_supportext_ofxsOpenMP_h
 #define openfx_supportext_ofxsOpenMP_h
 
-#if defined(_OPENMP) && !defined(__APPLE__)
-#include <omp.h>
-#include <cstdio>
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#include <windows.h>
-#else
-#include <dlfcn.h>
-#endif
-#endif
-
 namespace OFX {
 /// Keep the OpenMP runtime loaded once the plug-in is unloaded (see above). Returns false if it
 /// could not be pinned (a warning is printed once), true otherwise, including when there is
-/// nothing to do.
-inline bool
-ofxsPinOpenMPRuntime()
-{
-#if defined(_OPENMP) && !defined(__APPLE__)
-    static const bool pinned = [] {
-#ifdef _WIN32
-        HMODULE h = NULL;
-        const bool ok = GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
-                                           reinterpret_cast<LPCWSTR>(&omp_get_max_threads), &h) != 0;
-#else
-        Dl_info info;
-        const bool ok = ( dladdr(reinterpret_cast<void*>(&omp_get_max_threads), &info) != 0 ) && info.dli_fname &&
-                        *info.dli_fname &&
-                        ( dlopen(info.dli_fname, RTLD_LAZY | RTLD_NOLOAD | RTLD_NODELETE) != nullptr );
-#endif
-        if (!ok) {
-            std::fprintf(stderr, "openfx-supportext: warning: could not keep the OpenMP runtime loaded: the host may crash when it unloads the plug-in\n");
-        }
-
-        return ok;
-    }();
-
-    return pinned;
-#else
-
-    return true;
-#endif
-}
+/// nothing to do. Once per plug-in binary (with default symbol visibility on ELF, GCC may make
+/// the guard variable process-wide, which also keeps the plug-in loaded: harmless).
+bool ofxsPinOpenMPRuntime();
 } // namespace OFX
 
 #endif // openfx_supportext_ofxsOpenMP_h
