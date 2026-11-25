@@ -70,7 +70,7 @@ foreach(_c THREADS OPENGL EGL TEXT FILEOPEN GLAD)
     message(FATAL_ERROR "sx_mixed: component ${_c} missing (got ${_sx_mixed})")
   endif()
 endforeach()
-# OPENMP: ofxsOpenMP.cpp (a no-op without OpenMP), recorded and linked with the dl libraries
+# OPENMP: ofxsOpenMP.cpp (a no-op without OpenMP), recorded as a component
 sx_test_module(sx_openmp empty.cpp)
 supportext_add_sources(sx_openmp COMPONENTS OPENMP)
 get_property(_sx_openmp TARGET sx_openmp PROPERTY SUPPORTEXT_COMPONENTS)
