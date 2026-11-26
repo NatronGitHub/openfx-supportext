@@ -247,10 +247,11 @@ protected:
     /// one is a first change again); it is always false for an abandoned drag.
     /// The drag state is already reset when dragEnd is true.
     ///
-    /// One undo step per drag REQUIRES an override that wraps the value change (and the
-    /// plug-in's bookkeeping, on the first and the last change) in an edit block, opened and
-    /// closed here: Natron puts a write made by an interact action outside an edit block on
-    /// the undo stack as one command per dimension, and a write inside a block as one command.
+    /// Natron puts a write made by an interact action outside an edit block on the undo stack
+    /// as one command per dimension, and the writes inside a block as one command. To group a
+    /// change (for example the value and the plug-in's bookkeeping), an override wraps it in
+    /// an edit block, opened and closed here. The example below groups only the first and the
+    /// last change; with updateWhileDragging, the changes in between stay outside a block.
     /// Never open an edit block over the whole drag, which spans several actions (the host
     /// closes a plug-in's open blocks when its outermost action returns). The block's end must
     /// not throw (destructors are noexcept):
