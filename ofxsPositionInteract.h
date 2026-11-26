@@ -56,10 +56,9 @@ namespace OFX {
 // Before calling this function: make sure the OpenGL props are correctly set.
 // Try to draw one point per frame, but no more than kDrawPointTrajectoryMaxPoints
 // in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
-// DRAW is OverlayDraw, or OverlayDrawGLDirect for plain OpenGL.
-template <class DRAW>
+// Draws with OpenGL or the DrawSuite.
 inline void
-drawPointTrajectoryT(DRAW& d, Double2DParam* p)
+drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
 {
     int numKeys = p->getNumKeys();
 
@@ -93,29 +92,6 @@ drawPointTrajectoryT(DRAW& d, Double2DParam* p)
 }
 
 
-/// forwards to OpenGL, for drawPointTrajectory(Double2DParam*)
-struct OverlayDrawGLDirect
-{
-    void glBegin(GLenum mode) { ::glBegin(mode); }
-    void glVertex2d(GLdouble x, GLdouble y) { ::glVertex2d(x, y); }
-    void glEnd() { ::glEnd(); }
-};
-
-// draw with OpenGL
-inline void
-drawPointTrajectory(Double2DParam* p)
-{
-    OverlayDrawGLDirect d;
-
-    drawPointTrajectoryT(d, p);
-}
-
-// draw with OpenGL or the DrawSuite
-inline void
-drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
-{
-    drawPointTrajectoryT(d, p);
-}
 
 
 /// One point handle of a PointsInteract.
