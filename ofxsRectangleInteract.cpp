@@ -439,11 +439,13 @@ RectangleInteract::penMotion(const PenArgs &args)
         double r2 = _sizeDrag.x * _sizeDrag.x + _sizeDrag.y * _sizeDrag.y;
         if ( (_mouseState == eMouseStateDraggingTopRight) ||
              ( _mouseState == eMouseStateDraggingBtmLeft) ) {
-            double dotprod = (delta.x * _sizeDrag.y + delta.y * _sizeDrag.x) / r2;
+            // project the pen motion onto the diagonal (sx, sy)
+            double dotprod = (delta.x * _sizeDrag.x + delta.y * _sizeDrag.y) / r2;
             delta.x = _sizeDrag.x * dotprod;
             delta.y = _sizeDrag.y * dotprod;
         } else {
-            double dotprod = (delta.x * _sizeDrag.y - delta.y * _sizeDrag.x) / r2;
+            // project the pen motion onto the diagonal (sx, -sy)
+            double dotprod = (delta.x * _sizeDrag.x - delta.y * _sizeDrag.y) / r2;
             delta.x = _sizeDrag.x * dotprod;
             delta.y = -_sizeDrag.y * dotprod;
         }

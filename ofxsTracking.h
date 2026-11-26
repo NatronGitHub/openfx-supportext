@@ -213,7 +213,9 @@ class TrackerRegionInteract
         eDrawStateHoveringOuterTopMid,
         eDrawStateHoveringOuterMidRight,
         eDrawStateHoveringOuterBtmMid,
-        eDrawStateHoveringOuterMidLeft
+        eDrawStateHoveringOuterMidLeft,
+
+        eDrawStateHoveringOffset
     };
 
 public:
