@@ -165,7 +165,9 @@ inline namespace OverlayDrawOpenGLOnly {
 /// with a one-pixel shadow on OpenGL (no shadow with the DrawSuite), and dragged with the pen.
 /*
    A point is shown, and can be picked, if its param is not secret, is enabled, the host draws no
-   native handle for it (kOfxParamPropUseHostOverlayHandle), and isPointShown() is true. The
+   native handle for it (kOfxParamPropUseHostOverlayHandle: at describe time, set it only if the
+   descriptor's getHostHasNativeOverlayHandle() is true, or no handle is drawn at all on hosts
+   without native handles), and isPointShown() is true. The
    first point in the list is drawn on top, and picked first.
    A drag sets the point's value with setPointValue(): at each pen motion if it updates while
    dragging, and at pen up. The drag state is reset before setPointValue() is called at the
