@@ -149,9 +149,10 @@ struct PointsInteractPoint
    native handle for it (kOfxParamPropUseHostOverlayHandle), and isPointShown() is true. The
    first point in the list is drawn on top, and picked first.
    A drag sets the point's value with setPointValue(): at each pen motion if it updates while
-   dragging, and at pen up. The drag state is reset before setPointValue() is called, so a
-   host error can't leave the point following the pen. loseFocus abandons the drag (the points
-   that update while dragging keep their last value).
+   dragging, and at pen up. The drag state is reset before setPointValue() is called at the
+   end of a drag, so a host error can't leave the point following the pen. loseFocus, or the
+   point hidden or disabled during the drag, abandons the drag: the point stays where it was
+   last set, and the drag end is delivered if the drag changed its value (see setPointValue).
 
    Subclass it to give the points at run time, and register its V2 descriptor:
 
@@ -204,6 +205,7 @@ public:
             addParamToSlaveTo(_hiDPI);
         }
         _dragPosition.x = _dragPosition.y = 0;
+        _dragLastValue.x = _dragLastValue.y = 0;
     }
 
 protected:
@@ -218,11 +220,23 @@ protected:
         return true;
     }
 
-    /// Set point i to p (already rounded to the pixel) during a drag. firstChange: the first
-    /// value set by this drag; dragEnd: pen up. Override it to add the plug-in's bookkeeping to
-    /// the first and the last change, in an edit block opened and closed here around the
-    /// value change (one undo step per drag; never an edit block over the whole drag, which
-    /// spans several actions). The drag state is already reset when dragEnd is true.
+    /// Set point i to p (already rounded to the pixel) during a drag. It is called:
+    /// - at each pen motion of a point that updates while dragging, with dragEnd false;
+    /// - once at pen up, with dragEnd true and p the pen-up position (update while dragging)
+    ///   or the position of the last pen motion (otherwise);
+    /// - once when the drag is abandoned (loseFocus, or the point hidden or disabled during
+    ///   the drag), with dragEnd true and p the last value set, only if an earlier call of this
+    ///   drag returned normally (so only for points that update while dragging): the point
+    ///   doesn't move, but the drag end is delivered. Otherwise the param was not changed and
+    ///   nothing is called.
+    /// firstChange is true until a call of this drag returns normally (if one throws, the next
+    /// one is a first change again); it is always false for an abandoned drag.
+    /// Override it to add the plug-in's bookkeeping to the first and the last change, in an
+    /// edit block opened and closed here around the value change (one undo step per drag; never
+    /// an edit block over the whole drag, which spans several actions). Don't throw from the
+    /// edit block's end: the Support library's EditBlock throws from its destructor if the
+    /// host fails (see tests/cmake/position.cpp for a non-throwing one). The drag state is
+    /// already reset when dragEnd is true.
     virtual void setPointValue(int i,
                                double /*time*/,
                                const OfxPointD& p,
@@ -272,6 +286,21 @@ private:
         return pos;
     }
 
+    // leave the drag state, then deliver the drag end if the drag changed the value (see
+    // setPointValue): the point stays at the last value set
+    void abandonDrag(double time)
+    {
+        const int i = _dragged;
+        const bool changed = _dragChanged;
+
+        _dragged = -1;
+        _dragChanged = false;
+        requestRedraw();
+        if ( (i >= 0) && changed ) {
+            setPointValue(i, time, _dragLastValue, false, true);
+        }
+    }
+
     // the first shown point within size + 1 screen pixels of the pen in x and y, -1 if none
     int pick(const OFX::PenArgs &args) const;
 
@@ -310,6 +339,7 @@ private:
     OfxPointD _dragPosition; // where it is drawn: the pen position of the last motion
     bool _dragUpdates; // it is set at each pen motion
     bool _dragChanged; // its value was set during this drag
+    OfxPointD _dragLastValue; // the last value set during this drag (if _dragChanged)
     OFX::InteractCursor _cursor;
     OFX::OverlayDrawModeEnum _drawMode; // set by the descriptor that created the interact, see ofxsOverlayDraw.h
 };
@@ -454,14 +484,15 @@ PointsInteract::penMotion(const OFX::PenArgs &args)
 {
     if ( (_dragged >= 0) && !isShown(_dragged, args.time) ) {
         // hidden or disabled while dragged: abandon the drag
-        _dragged = -1;
-        requestRedraw();
+        abandonDrag(args.time);
     }
     if (_dragged >= 0) {
         _dragPosition = args.penPosition;
         if (_dragUpdates) {
-            setPointValue(_dragged, args.time, fround(_dragPosition, args.pixelScale), !_dragChanged, false);
+            const OfxPointD value = fround(_dragPosition, args.pixelScale);
+            setPointValue(_dragged, args.time, value, !_dragChanged, false);
             _dragChanged = true;
+            _dragLastValue = value;
         }
         requestRedraw();
         _cursor.set(this, kOfxsCursorMove);
@@ -515,14 +546,20 @@ PointsInteract::penUp(const OFX::PenArgs &args)
     }
     const int i = _dragged;
     const bool firstChange = !_dragChanged;
+    const OfxPointD lastValue = _dragLastValue;
     // with update while dragging, as the last pen motion would: the pen-up position;
     // otherwise the position of the last pen motion, where the point is drawn
     const OfxPointD pos = fround(_dragUpdates ? args.penPosition : _dragPosition, args.pixelScale);
     // leave the drag state first, so that a host error doesn't leave the overlay
     // dragging; penMotion below then only refreshes the hover state
     _dragged = -1;
+    _dragChanged = false;
     if ( !isShown(i, args.time) ) {
+        // hidden or disabled while dragged: an abandoned drag (see setPointValue)
         requestRedraw();
+        if (!firstChange) {
+            setPointValue(i, args.time, lastValue, false, true);
+        }
 
         return false;
     }
@@ -535,15 +572,17 @@ PointsInteract::penUp(const OFX::PenArgs &args)
 
 /** @brief Called when the interact is loses input focus */
 inline void
-PointsInteract::loseFocus(const OFX::FocusArgs & /*args*/)
+PointsInteract::loseFocus(const OFX::FocusArgs &args)
 {
-    if ( (_dragged >= 0) || (_hovered >= 0) ) {
-        _dragged = -1;
+    if (_hovered >= 0) {
         _hovered = -1;
         requestRedraw();
     }
     // the host restores its own cursor
     _cursor.release(this);
+    if (_dragged >= 0) {
+        abandonDrag(args.time); // interact actions may set param values
+    }
 }
 
 /// V2 descriptor of a PointsInteract subclass INSTANCE: draws with the DrawSuite when the host
