@@ -341,38 +341,6 @@ class ImagePlaneDesc
      **/
     static std::string mapPlaneToOFXComponentsTypeString(const ImagePlaneDesc& plane);
 
-    /**
-     * @brief Find a layer equivalent to this layer in the other layers container.
-     * ITERATOR must be either a std::vector<ImagePlaneDesc>::iterator or std::list<ImagePlaneDesc>::iterator
-     **/
-    template <typename ITERATOR>
-    static ITERATOR findEquivalentLayer(const ImagePlaneDesc& layer, ITERATOR begin, ITERATOR end)
-    {
-        bool isColor = layer.isColorPlane();
-
-        ITERATOR foundExistingColorMatch = end;
-        ITERATOR foundExistingComponents = end;
-
-        for (ITERATOR it = begin; it != end; ++it) {
-            if (it->isColorPlane() && isColor) {
-                foundExistingColorMatch = it;
-            } else {
-                if (*it == layer) {
-                    foundExistingComponents = it;
-                    break;
-                }
-            }
-        } // for each output components
-
-        if (foundExistingComponents != end) {
-            return foundExistingComponents;
-        } else if (foundExistingColorMatch != end) {
-            return foundExistingColorMatch;
-        } else {
-            return end;
-        }
-    } // findEquivalentLayer
-
     /*
      * These are default presets image components
      */
