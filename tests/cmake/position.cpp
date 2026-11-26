@@ -40,20 +40,18 @@ private:
     // point1 is hidden while the showPoint1 checkbox is off
     bool isPointShown(int i, double time) const OVERRIDE { return i != 1 || _showPoint1->getValueAtTime(time); }
 
-    // an edit block that never throws (the Support library's EditBlock throws from its
-    // destructor if the host fails paramEditEnd)
+    // an edit block that never throws (before openfx 45578b69, the Support library's
+    // EditBlock throws from its destructor if the host fails paramEditEnd)
     class NoThrowEditBlock
     {
     public:
-        NoThrowEditBlock(OFX::ParamSet& params, const char* name, bool cond)
-            : _params(cond ? &params : NULL)
+        NoThrowEditBlock(OFX::ParamSet& params, const char* name)
+            : _params(&params)
         {
-            if (_params) {
-                try {
-                    _params->beginEditBlock(name);
-                } catch (...) {
-                    _params = NULL; // no block to end
-                }
+            try {
+                _params->beginEditBlock(name);
+            } catch (...) {
+                _params = NULL; // no block to end
             }
         }
 
@@ -76,8 +74,9 @@ private:
 
     void setPointValue(int i, double time, const OfxPointD& p, bool firstChange, bool dragEnd) OVERRIDE
     {
-        // the bookkeeping shares the value change's edit block
-        NoThrowEditBlock block(*_effect, "Move point", firstChange || dragEnd);
+        // every change gets an edit block, so the host can merge a drag into
+        // one undo step; the bookkeeping shares the block of the first and the last change
+        NoThrowEditBlock block(*_effect, "Move point");
         OFX::PointsInteract::setPointValue(i, time, p, firstChange, dragEnd);
         // ... the plug-in's bookkeeping, if firstChange || dragEnd
     }
