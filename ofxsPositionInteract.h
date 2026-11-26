@@ -247,16 +247,17 @@ protected:
     /// one is a first change again); it is always false for an abandoned drag.
     /// The drag state is already reset when dragEnd is true.
     ///
-    /// Natron puts a write made by an interact action outside an edit block on the undo stack
-    /// as one command per dimension, and the writes inside a block as one command; it can merge
-    /// consecutive edit blocks into one undo step. So for one undo step per
-    /// drag, an override opens an edit block with the same name for every change, opened and
-    /// closed here, and does the plug-in's bookkeeping in it when firstChange or dragEnd.
+    /// Undo: Natron already makes one undo step of a whole drag, so the default needs no edit
+    /// block. To put the plug-in's bookkeeping (other params it sets when firstChange or
+    /// dragEnd) in the same undo step, an override opens an edit block for every change,
+    /// opened and closed here, and sets the bookkeeping params BEFORE the point's value:
+    /// Natron 2.6 ends the grouping at the end of the point's 2D setValue, even inside the
+    /// plug-in's block, so params set after it get undo steps of their own.
     /// Never open an edit block over the whole drag, which spans several actions (the host
     /// closes a plug-in's open blocks when its outermost action returns). The block's end must
     /// not throw (destructors are noexcept):
     /// - openfx from 45578b69 on, whose EditBlock destructor doesn't throw:
-    ///   OFX::ParamSet::EditBlock block(effect, "Move point", true,
+    ///   OFX::ParamSet::EditBlock block(*effect, "Move point", true,
     ///       OFX::ParamSet::EditBlock::eBeginNow, OFX::ParamSet::EditBlock::eHostErrorsIgnore);
     /// - older openfx, whose EditBlock destructor throws if the host fails paramEditEnd: a
     ///   wrapper that catches the errors of beginEditBlock and endEditBlock, such as

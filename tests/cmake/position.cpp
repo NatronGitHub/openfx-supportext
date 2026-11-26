@@ -74,11 +74,12 @@ private:
 
     void setPointValue(int i, double time, const OfxPointD& p, bool firstChange, bool dragEnd) OVERRIDE
     {
-        // every change gets an edit block, so the host can merge a drag into
-        // one undo step; the bookkeeping shares the block of the first and the last change
+        // the bookkeeping shares the undo step of the move: every change gets an edit block,
+        // and the bookkeeping params are set before the point's value (Natron 2.6 ends the
+        // grouping at the end of the point's setValue)
         NoThrowEditBlock block(*_effect, "Move point");
-        OFX::PointsInteract::setPointValue(i, time, p, firstChange, dragEnd);
         // ... the plug-in's bookkeeping, if firstChange || dragEnd
+        OFX::PointsInteract::setPointValue(i, time, p, firstChange, dragEnd);
     }
 
     OFX::ImageEffect* _effect;
