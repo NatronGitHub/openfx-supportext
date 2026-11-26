@@ -227,8 +227,9 @@ protected:
     /// block. To put the plug-in's bookkeeping (other params it sets when firstChange or
     /// dragEnd) in the same undo step, an override opens an edit block for every change,
     /// opened and closed here, and sets the bookkeeping params in it.
-    /// Never open an edit block over the whole drag, which spans several actions (the host
-    /// closes a plug-in's open blocks when its outermost action returns). The block's end must
+    /// Never open an edit block over the whole drag, which spans several actions: the spec would
+    /// allow a block from penDown to penUp, but Natron closes a plug-in's open blocks when its
+    /// outermost action returns. The block's end must
     /// not throw (destructors are noexcept):
     /// - openfx from 45578b69 on, whose EditBlock destructor doesn't throw:
     ///   OFX::ParamSet::EditBlock block(*effect, "Move point", true,
@@ -248,7 +249,10 @@ protected:
 
 private:
     // overridden functions from OFX::Interact to do things
+    // catches the exceptions of drawPoints(): the Support dispatcher would turn them into
+    // kOfxStatFailed, which tells the host to ignore this interact from then on
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
+    bool drawPoints(const OFX::DrawArgs &args);
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penDown(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
@@ -304,10 +308,9 @@ private:
     // the first shown point within size + 1 screen pixels of the pen in x and y, -1 if none
     int pick(const OFX::PenArgs &args) const;
 
-    // round to the closest int, 1/10 int, etc
-    // this make parameter editing easier
-    // pscale is args.pixelScale.x / args.renderScale.x;
-    // pscale10 is the power of 10 below pscale
+    // round to the closest int, 1/10 int, etc, to make parameter editing easier;
+    // pscale is the pen's args.pixelScale (canonical units per screen pixel), and pscale10 the
+    // power of 10 below it
     static double fround(double val,
                          double pscale)
     {
@@ -346,6 +349,16 @@ private:
 
 inline bool
 PointsInteract::draw(const OFX::DrawArgs &args)
+{
+    try {
+        return drawPoints(args);
+    } catch (...) {
+        return false;
+    }
+}
+
+inline bool
+PointsInteract::drawPoints(const OFX::DrawArgs &args)
 {
     std::vector<int> shown;
     for (int i = 0; i < pointCount(); ++i) {
@@ -454,7 +467,7 @@ PointsInteract::draw(const OFX::DrawArgs &args)
     //glPopAttrib();
 
     return true;
-} // draw
+} // drawPoints
 
 inline int
 PointsInteract::pick(const OFX::PenArgs &args) const
