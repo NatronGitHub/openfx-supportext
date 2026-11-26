@@ -64,19 +64,15 @@
  * - openfx also registers V2 overlays as V1, through a separate OpenGL entry (since
  *   ofxsSetOverlayInteractDescriptorV2 passes hasOpenGLDraw = true), so each draw
  *   action decides: one called through the V1 entry
- *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL, and draws nothing
- *   if no OpenGL context is current (that entry exists on DrawSuite hosts, which may
- *   have no OpenGL).
- * - V1 draws use OpenGL only, V2 draws the DrawSuite only ("If this is called via
- *   kOfxImageEffectPluginPropOverlayInteractV2, drawing MUST use DrawSuite. If this is
- *   called via kOfxImageEffectPluginPropOverlayInteractV1, drawing SHOULD use OpenGL"):
- *   a V1 draw never falls back to the DrawSuite.
+ *   (!DrawArgs::calledViaOverlayInteractV2()) draws with OpenGL only, never the
+ *   DrawSuite, and draws nothing if no OpenGL context is current (that entry exists on
+ *   DrawSuite hosts, which may have no OpenGL).
  * - Shadows: the OpenGL overlays draw a one-pixel shadow; with the DrawSuite they don't
  *   (usesDrawSuite()): shadows are the host's job there.
  * Whether the overlay is registered as V2 is the result of
  * ImageEffectDescriptor::setOverlayInteractDescriptorV2(), which
  * ofxsSetOverlayInteractDescriptorV2() records per descriptor class: openfx
- * master also registers it as V1 when the host refuses
+ * (a61684fe and later) also registers it as V1 when the host refuses
  * kOfxImageEffectPluginPropOverlayInteractV2. When nothing was recorded (the
  * overlay was registered with desc.setOverlayInteractDescriptorV2() directly),
  * it is V2 if, and only if, getImageEffectHostDescription()->supportsDrawSuite
@@ -176,8 +172,8 @@
 // The openfx Support library tracks the keyboard modifiers of interacts
 // (OFX::Interact::getKeyModifiers(), ofxNatron.h extension 13, openfx ec562898 and later):
 // SupportExt's overlays then take Shift and Control from it, which also gives the modifiers
-// pressed before the overlay got the focus when the host passes them. Older openfx: the
-// overlays count the modifier keyDown/keyUp themselves, as before.
+// pressed before the overlay got the focus when the host passes them. Without
+// OFX_EXTENSIONS_NATRON, the overlays count the modifier keyDown/keyUp themselves.
 #if defined(OFX_EXTENSIONS_NATRON) && defined(kNatronOfxInteractPropKeyModifiers)
 #define OFXS_HAVE_KEY_MODIFIERS 1
 #endif
@@ -340,8 +336,8 @@ private:
 };
 
 /// Register an overlay as kOfxImageEffectPluginPropOverlayInteractV2 if the
-/// host and the Support library have the DrawSuite (and, with openfx master,
-/// the host accepts the property), else as
+/// host and the Support library have the DrawSuite (and the host accepts the
+/// property), else as
 /// kOfxImageEffectPluginPropOverlayInteractV1. Returns true if it was
 /// registered as V2, and records it for the descriptor class's instances.
 /// Only V2 descriptors are accepted (see above).

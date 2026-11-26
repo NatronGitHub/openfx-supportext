@@ -197,7 +197,7 @@ protected:
     DrawStateEnum _drawState;
     MouseStateEnum _mouseState;
     // the modifier keys that are down: counted from keyDown/keyUp, used for the redraws and the
-    // orientation, and for the state with openfx versions that don't track the modifiers
+    // orientation, and for the state without OFX_EXTENSIONS_NATRON (OFXS_HAVE_KEY_MODIFIERS)
     int _modifierStateCtrl;
     int _modifierStateShift;
     // Control (center mode: always on without a translate param), Shift

@@ -302,7 +302,7 @@ private:
     OfxPointD _innerTopRightDragPos;
     OfxPointD _outerBtmLeftDragPos;
     OfxPointD _outerTopRightDragPos;
-    // counted from keyDown/keyUp: the state with openfx versions that don't track the modifiers
+    // counted from keyDown/keyUp: the state without OFX_EXTENSIONS_NATRON (OFXS_HAVE_KEY_MODIFIERS)
     int _controlDown;
     int _altDown;
     bool ctrlDown() const;

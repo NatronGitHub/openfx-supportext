@@ -785,7 +785,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
-        return false; // registered as V2 but no draw context: OpenGL is not allowed
+        return false; // nothing may be drawn in this action (see OverlayDraw::canDraw())
     }
 
     return drawOverlay(d, args);
