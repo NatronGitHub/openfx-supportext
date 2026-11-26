@@ -197,7 +197,7 @@ protected:
     DrawStateEnum _drawState;
     MouseStateEnum _mouseState;
     // the modifier keys that are down: counted from keyDown/keyUp, used for the redraws and the
-    // orientation, and for the state with openfx versions that don't track the modifiers
+    // orientation, and for the state without OFX_EXTENSIONS_NATRON (OFXS_HAVE_KEY_MODIFIERS)
     int _modifierStateCtrl;
     int _modifierStateShift;
     // Control (center mode: always on without a translate param), Shift
@@ -242,6 +242,10 @@ protected:
 
 private:
     void getTransformParams(double time, TransformParams& tp);
+
+    /// Set the six params of a drag, in one EditBlock: penMotion with Interactive Update,
+    /// penUp without.
+    void setTransformParams(const TransformParams& tp);
 
     /// The cursor for the current drag or hover state, or NULL if the pen is
     /// not over a handle.

@@ -27,20 +27,12 @@
 
 #include "ofxsOGLFunctions.h"
 
-#include "ofxsMultiThread.h"
-#ifndef OFX_USE_MULTITHREAD_MUTEX
-// some OFX hosts do not have mutex handling in the MT-Suite (e.g. Sony Catalyst Edit)
+#include <cstdlib> // std::getenv
 #include <mutex>
-#endif
-#ifdef OFX_USE_MULTITHREAD_MUTEX
-typedef OFX::MultiThread::Mutex Mutex;
-typedef OFX::MultiThread::AutoMutex AutoMutex;
-#else
-typedef std::mutex Mutex;
-typedef OFX::MultiThread::AutoMutexT<std::mutex> AutoMutex;
-#endif
 
-static Mutex g_glLoadOnceMutex;
+// a std::mutex, not the host's multithread suite mutex: some hosts have none (e.g. Sony Catalyst
+// Edit), and this one is created before any suite is fetched
+static std::mutex g_glLoadOnceMutex;
 static bool g_glLoaded = false;
 
 namespace OFX {
@@ -48,7 +40,7 @@ bool
 ofxsLoadOpenGLOnce()
 {
     // Ensure that OpenGL functions loading is thread-safe
-    AutoMutex locker(&g_glLoadOnceMutex);
+    std::lock_guard<std::mutex> locker(g_glLoadOnceMutex);
 
     if (g_glLoaded) {
         // Already loaded, don't do it again
@@ -61,8 +53,8 @@ ofxsLoadOpenGLOnce()
     // Note: It does NOT check that required extensions and functions have actually been found
 #if !defined(_WIN32) && !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
     bool glLoaded = false;
-    const char *onWayland = getenv("WAYLAND_DISPLAY");
-    const char *disableWayland = getenv("NATRON_DISABLE_WAYLAND");
+    const char *onWayland = std::getenv("WAYLAND_DISPLAY");
+    const char *disableWayland = std::getenv("NATRON_DISABLE_WAYLAND");
     if (onWayland && onWayland[0] != '\0' && !disableWayland) {
         glLoaded = gladLoadEGL();
     } else {

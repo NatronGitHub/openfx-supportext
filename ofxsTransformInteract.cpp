@@ -431,6 +431,29 @@ TransformInteractHelper::getTransformParams(double time, TransformParams& tp)
     }
 }
 
+// As in Nuke: a drag sets translate, rotate, scale, skew and center together (so that, with
+// animated params, they all get a key at the current time), not skew order or invert. The scale
+// is the one that renders (ofxsTransformGetScale: with Uniform, the X scale for both).
+void
+TransformInteractHelper::setTransformParams(const TransformParams& tp)
+{
+    OfxPointD scale;
+
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
+    ImageEffect::EditBlock eb(*_effect, "Set Transform");
+    _center->setValue(tp.center.x, tp.center.y);
+    if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
+        _translate->setValue(tp.translate.x, tp.translate.y);
+    }
+    _scale->setValue(scale.x, scale.y);
+    _rotate->setValue(tp.rotate);
+    _skewX->setValue(tp.skewX);
+    _skewY->setValue(tp.skewY);
+}
+
+// how far from a handle (in screen pixels) the pen hovers or picks it: the same for both (#147)
+static const double kHandleTolerance = 5.;
+
 static void
 getTargetCenter(const OfxPointD &center,
                 const OfxPointD &translate,
@@ -765,7 +788,7 @@ TransformInteractHelper::draw(const DrawArgs &args)
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
-        return false; // registered as V2 but no draw context: OpenGL is not allowed
+        return false; // nothing may be drawn in this action (see OverlayDraw::canDraw())
     }
 
     return drawOverlay(d, args);
@@ -1231,12 +1254,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     }
 
     bool redraw = false;
-    bool centerChanged = false;
-    bool translateChanged = false;
-    bool scaleChanged = false;
-    bool rotateChanged = false;
-    bool skewXChanged = false;
-    bool skewYChanged = false;
+    bool valuesChanged = false; // a drag changed a transform value
     OfxPointD targetCenter;
     getTargetCenter(tp.center, tp.translate, &targetCenter);
 
@@ -1307,8 +1325,8 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     if (_mouseState == eReleased) {
         // we are not axis-aligned
         // the same tolerances as penDown, so that a highlighted handle is the one a click grabs
-        const double toleranceX = 5 * pscale.x;
-        const double toleranceY = 5 * pscale.y;
+        const double toleranceX = kHandleTolerance * pscale.x;
+        const double toleranceY = kHandleTolerance * pscale.y;
         DrawStateEnum newState = _drawState;
         if ( squareContains(transformedPos, centerPoint, toleranceX, toleranceY) ) {
             newState = eCenterPointHovered;
@@ -1348,7 +1366,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             scale.x = (std::max)( minX, (std::min)(scale.x * distRatio, maxX) );
             scale.y = (std::max)( minY, (std::min)(scale.y * distRatio, maxY) );
             tp.scale = scale;
-            scaleChanged = true;
+            valuesChanged = true;
         }
     } else if ( (_mouseState == eDraggingLeftPoint) || (_mouseState == eDraggingRightPoint) ) {
         // avoid division by zero
@@ -1361,7 +1379,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             newScale.x = (std::max)( minX, (std::min)(newScale.x, maxX) );
             newScale.y = tp.scaleUniform ? newScale.x : scale.y;
             tp.scale = newScale;
-            scaleChanged = true;
+            valuesChanged = true;
         }
     } else if ( (_mouseState == eDraggingTopPoint) || (_mouseState == eDraggingBottomPoint) ) {
         // avoid division by zero
@@ -1374,7 +1392,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             newScale.y = (std::max)( minY, (std::min)(newScale.y, maxY) );
             newScale.x = tp.scaleUniform ? newScale.y : scale.x;
             tp.scale = newScale;
-            scaleChanged = true;
+            valuesChanged = true;
         }
     } else if (_mouseState == eDraggingTranslation) {
         double dx = args.penPosition.x - _lastMousePos.x;
@@ -1394,7 +1412,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         newy = fround(newy, pscale.y);
         tp.translate.x = newx;
         tp.translate.y = newy;
-        translateChanged = true;
+        valuesChanged = true;
     } else if (_mouseState == eDraggingCenter) {
         OfxPointD currentCenter = tp.center;
         // with a _translate param, the center motion is compensated for the transform; not with
@@ -1443,7 +1461,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         newy = fround(newy, pscale.y);
         tp.center.x = newx;
         tp.center.y = newy;
-        centerChanged = true;
+        valuesChanged = true;
         if (compensate) {
             // recompute dxrot,dyrot after rounding
             Matrix3x3 Rinv;
@@ -1465,7 +1483,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
                 newTranslation.x = tp.translate.x + dx - dxrot;
                 newTranslation.y = tp.translate.y + dy - dyrot;
                 tp.translate = newTranslation;
-                translateChanged = true;
+                valuesChanged = true;
             }
         }
     } else if (_mouseState == eDraggingRotationBar) {
@@ -1482,20 +1500,20 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             angledegrees = closest90;
         }
         tp.rotate = angledegrees;
-        rotateChanged = true;
+        valuesChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero, and by a denormal scale (scale.x / scale.y = inf, then inf*0)
         if ( (std::fabs(scale.y) >= FLT_MIN) && (currentPos.y != targetCenter.y) ) {
             const double addSkew = (scale.x / scale.y) * (currentPos.x - previousPos.x) / (currentPos.y - targetCenter.y);
             tp.skewX = tp.skewX + addSkew;
-            skewXChanged = true;
+            valuesChanged = true;
         }
     } else if (_mouseState == eDraggingSkewYBar) {
         // avoid division by zero, and by a denormal scale (scale.y / scale.x = inf, then inf*0)
         if ( (std::fabs(scale.x) >= FLT_MIN) && (currentPos.x != targetCenter.x) ) {
             const double addSkew = (scale.y / scale.x) * (currentPos.y - previousPos.y) / (currentPos.x - targetCenter.x);
             tp.skewY = tp.skewY + addSkew;
-            skewYChanged = true;
+            valuesChanged = true;
         }
     } else {
         assert(false);
@@ -1503,23 +1521,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     _tpDrag = tp;
 
-    bool valuesChanged = (centerChanged || translateChanged || scaleChanged || rotateChanged || skewXChanged || skewYChanged);
-
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-
-        // As in Nuke, and as penUp does: a drag sets translate, rotate, scale, skew and center
-        // together (so that, with animated params, they all get a key at the current time), not
-        // skew order or invert.
-        ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        _center->setValue(tp.center.x, tp.center.y);
-        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
-            _translate->setValue(tp.translate.x, tp.translate.y);
-        }
-        _scale->setValue(tp.scale.x, tp.scale.y);
-        _rotate->setValue(tp.rotate);
-        _skewX->setValue(tp.skewX);
-        _skewY->setValue(tp.skewY);
+        setTransformParams(tp);
     } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
     }
@@ -1595,8 +1599,8 @@ TransformInteractHelper::penDown(const PenArgs &args)
 
     _orientation = eOrientationAllDirections;
 
-    double pressToleranceX = 5 * pscale.x;
-    double pressToleranceY = 5 * pscale.y;
+    double pressToleranceX = kHandleTolerance * pscale.x;
+    double pressToleranceY = kHandleTolerance * pscale.y;
     bool didSomething = false;
     MouseStateEnum newState = _mouseState;
     if ( squareContains(transformedPos, centerPoint, pressToleranceX, pressToleranceY) ) {
@@ -1654,18 +1658,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
     } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && ret ) {
-        const TransformParams& tp = _tpDrag;
-        OfxPointD scale;
-        ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
-        ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        _center->setValue(tp.center.x, tp.center.y);
-        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
-            _translate->setValue(tp.translate.x, tp.translate.y);
-        }
-        _scale->setValue(scale.x, scale.y);
-        _rotate->setValue(tp.rotate);
-        _skewX->setValue(tp.skewX);
-        _skewY->setValue(tp.skewY);
+        setTransformParams(_tpDrag);
     }
     
     if (ret) {

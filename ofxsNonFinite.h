@@ -20,7 +20,7 @@
 
 /*
  * Comparison-only clamps for non-finite values, shared by the keyers (Keyer, ChromaKeyer, PIK,
- * Despill, Difference; issues #195 and #213).
+ * Despill, Difference; issues #195 and #213), ofxsMaskMix.h and ofxsMerging.h.
  *
  * NaN rule: no behaviour depends on detecting NaN (there is no isnan() test), every operation that
  * could produce NaN is guarded by checks on its inputs, and every finite value in range is
@@ -36,6 +36,11 @@
 #include <cfloat> // FLT_MAX
 
 namespace OFX {
+// The smallest exact value that float rounds to inf: 2^128 - 2^103 (halfway between FLT_MAX and
+// 2^128). An exact product (or sum) of floats computed in double, compared with it, tells whether
+// the same float expression overflows.
+constexpr double kOfxsFloatOverflow = 340282356779733661637539395458142568448.;
+
 // A value in the float range: +-inf (or a double beyond the float range) gives +-FLT_MAX, and NaN
 // gives 0 (every comparison with NaN is false).
 template<typename T>
@@ -43,6 +48,23 @@ inline T
 clampToFloatRange(T v)
 {
     return (v > -FLT_MAX) ? ( (v < FLT_MAX) ? v : T(FLT_MAX) ) : ( (v < 0) ? T(-FLT_MAX) : T(0) );
+}
+
+// A double converted to T (float or double) without leaving the float range: beyond it, +-FLT_MAX
+// (converting such a double to float is undefined). Unlike clampToFloatRange, NaN falls through
+// unchanged; every value in range is converted exactly as T(v).
+template<typename T>
+inline T
+clampBeyondFloatRange(double v)
+{
+    if (v > FLT_MAX) {
+        return T(FLT_MAX);
+    }
+    if (v < -FLT_MAX) {
+        return T(-FLT_MAX);
+    }
+
+    return T(v);
 }
 
 // clamp to [0,1], NaN gives 0

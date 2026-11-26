@@ -115,6 +115,14 @@ rectIntersection(const Rect & r1,
     return true;
 }
 
+/*
+ * Mipmap levels: mipmapLevelFromScale() returns at most 30, the largest level for which a caller's
+ * 1 << level fits an int. The functions that take a level accept any unsigned value without undefined
+ * behaviour, with their own limit, beyond which the result no longer changes:
+ * downscalePowerOfTwoSmallestEnclosing() at 32 (an int shifted by 32 is 0 or -1), and
+ * scaleFromMipmapLevel() at 1100 (2^-level is 0 in double beyond 1074; the limit keeps -(int)level defined).
+ */
+
 /**
  * @brief Scales down the rectangle in pixel coordinates by the given power of 2, and return the smallest *enclosing* rectangle in pixel coordinates
  * Never use this with canonical coordinates, or never round canonical coordinates to use this: use toPixelEnclosing instead.
@@ -128,7 +136,7 @@ downscalePowerOfTwoSmallestEnclosing(const OfxRectI & r,
         return r;
     }
     if (thisLevel > 32) {
-        // a level beyond 32 gives the same result as 32 (any int coordinate >> 32 is 0 or -1)
+        // a level beyond 32 gives the same result as 32 (see "Mipmap levels" above)
         thisLevel = 32;
     }
     OfxRectI ret;
@@ -167,7 +175,7 @@ inline
 double
 scaleFromMipmapLevel(unsigned int level)
 {
-    // 1. / (1 << level) exactly, without the undefined shift for level >= 31
+    // 1. / (1 << level) exactly, without the undefined shift for level >= 31 (see "Mipmap levels" above)
     return std::ldexp( 1., -(int)( (std::min)(level, 1100u) ) );
 }
 
@@ -359,7 +367,7 @@ mipmapLevelFromScale(double s)
     }
     const double level = (std::max)(0., -std::floor(std::log(s) / OFXS_LN2 + 0.5));
 
-    // 30 at most, so that 1 << level stays defined (e.g. in downscalePowerOfTwoSmallestEnclosing)
+    // 30 at most, so that 1 << level stays defined for the callers (see "Mipmap levels" above)
     return (level < 30.) ? (unsigned int)level : 30u;
 }
 } // Coords

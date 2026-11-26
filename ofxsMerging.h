@@ -33,6 +33,7 @@
 
 #include "ofxsImageEffect.h"
 #include "ofxsMacros.h"
+#include "ofxsNonFinite.h"
 
 namespace OFX {
 // References:
@@ -754,16 +755,7 @@ template <typename PIX>
 inline PIX
 mergeFiniteInput(PIX v)
 {
-    if ( !std::numeric_limits<PIX>::is_integer ) {
-        if (v > FLT_MAX) {
-            return PIX(FLT_MAX);
-        }
-        if (v < -FLT_MAX) {
-            return PIX(-FLT_MAX);
-        }
-    }
-
-    return v;
+    return std::numeric_limits<PIX>::is_integer ? v : clampBeyondFloatRange<PIX>(v);
 }
 
 // https://www.w3.org/TR/compositing-1/#porterduffcompositingoperators_plus
@@ -787,16 +779,7 @@ template <typename PIX>
 inline PIX
 mergeDoubleToPIX(double v)
 {
-    if ( !std::numeric_limits<PIX>::is_integer ) {
-        if (v > FLT_MAX) {
-            return PIX(FLT_MAX);
-        }
-        if (v < -FLT_MAX) {
-            return PIX(-FLT_MAX);
-        }
-    }
-
-    return PIX(v);
+    return std::numeric_limits<PIX>::is_integer ? PIX(v) : clampBeyondFloatRange<PIX>(v);
 }
 
 /**
@@ -812,12 +795,10 @@ inline PIX
 mergeAlphaUnion(PIX a,
                 PIX b)
 {
-    // float rounds an exact value to inf from 2^128 - 2^103 (halfway between FLT_MAX and 2^128)
-    const double kOverflow = 340282356779733661637539395458142568448.;
     const double p = std::fabs( (double)a * (double)b ); // exact
     const double s = std::fabs( (double)a + (double)b ); // exact, or correctly rounded far from the threshold
 
-    if ( !( (p >= kOverflow) || (s >= kOverflow) ) ) {
+    if ( !( (p >= kOfxsFloatOverflow) || (s >= kOfxsFloatOverflow) ) ) {
         return mergeDoubleToPIX<PIX>(a + b - a * b / (double)maxValue);
     }
 

@@ -389,6 +389,14 @@ ofxsFilterNotch(double Ip,
 // 1D KERNELS
 /////////////////////////////////////////////////
 
+// The radius of the sinc-based filters, as a constant expression (array sizes); ofxsFilterRadius()
+// gives the same for them.
+constexpr int
+ofxsFilterSincRadius(FilterEnum filter)
+{
+    return (filter == eFilterLanczos6) ? 3 : 2;
+}
+
 // The radius of the 1D kernel of a filter (its support is (-radius, radius)), in pixels, at scale 1.
 // Impulse and Box are not kernel filters (0).
 inline int
@@ -407,11 +415,11 @@ ofxsFilterRadius(FilterEnum filter)
     case eFilterMitchell:
     case eFilterParzen:
     case eFilterNotch:
-    case eFilterLanczos4:
-    case eFilterSinc4:
         return 2;
+    case eFilterLanczos4:
     case eFilterLanczos6:
-        return 3;
+    case eFilterSinc4:
+        return ofxsFilterSincRadius(filter);
     }
 
     return 0;
@@ -485,13 +493,6 @@ ofxsFilterKernel(FilterEnum filter,
     }
 
     return 0.;
-}
-
-// The radius of the sinc-based filters, as a constant expression (array sizes).
-constexpr int
-ofxsFilterSincRadius(FilterEnum filter)
-{
-    return (filter == eFilterLanczos6) ? 3 : 2;
 }
 
 // The 2R weights of a sinc-based filter (R = ofxsFilterSincRadius(filter)) at the taps c-R+1 ... c+R,
@@ -1539,7 +1540,7 @@ ofxsFilterInterpolate2DSuper(double fx,
 } // ofxsFilterInterpolate2DSuper
 
 // The largest widening of the kernel by ofxsFilterInterpolate2DPrefilter() (a scale of 1/16): at most
-// 2 * 3 * 16 + 1 taps in each direction (Lanczos6).
+// 2 * R * 16 + 1 taps in each direction, R = 3 for Lanczos6 (the largest radius).
 constexpr double kOfxsFilterPrefilterMaxWidth = 16.;
 
 // An upper bound of the widths of ofxsFilterInterpolate2DPrefilter() for the inverse transform H (in
@@ -1623,7 +1624,9 @@ ofxsFilterInterpolate2DPrefilter(double fx,
     wx = (wx > 1.) ? (std::min)(wx, kOfxsFilterPrefilterMaxWidth) : 1.;
     wy = (wy > 1.) ? (std::min)(wy, kOfxsFilterPrefilterMaxWidth) : 1.;
 
-    constexpr int kMaxTaps = 2 * 3 * (int)kOfxsFilterPrefilterMaxWidth + 2;
+    // at most 2 * R * width + 1 taps (see kOfxsFilterPrefilterMaxWidth), plus one spare for the
+    // rounding of the tap bounds
+    constexpr int kMaxTaps = 2 * ofxsFilterSincRadius(eFilterLanczos6) * (int)kOfxsFilterPrefilterMaxWidth + 2;
     const double radius = ofxsFilterRadius(filter);
     // the taps: the pixels whose centre (i + 0.5) is within radius * w of the sample position
     const int ix1 = ofxsFloorToPixel(fx - 0.5 - radius * wx) + 1;

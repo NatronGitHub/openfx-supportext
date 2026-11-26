@@ -258,7 +258,7 @@ private:
     OfxPointD _lastMousePos;
     MouseStateEnum _mouseState;
     DrawStateEnum _drawState;
-    // counted from keyDown/keyUp: the state with openfx versions that don't track the modifiers
+    // counted from keyDown/keyUp: the state without OFX_EXTENSIONS_NATRON (OFXS_HAVE_KEY_MODIFIERS)
     int _modifierStateCtrl;
     int _modifierStateShift;
     bool ctrlDown() const;

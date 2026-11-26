@@ -159,11 +159,19 @@ protected:
                                     double* amount,
                                     size_t invtransformsizealloc) const;
 
-    // the inverse transforms of the render, in pixel coordinates (see the .cpp)
-    double getRenderInverseTransforms(double time, int view, const OfxPointD& renderScale, bool fielded,
-                                      double srcpixelAspectRatio, double dstpixelAspectRatio,
-                                      std::vector<OFX::Matrix3x3>* invtransform,
-                                      std::vector<double>* invtransformalpha) const;
+    // the inverse transforms of the render (see getRenderInverseTransforms() in the .cpp)
+    struct RenderInverseTransforms
+    {
+        std::vector<OFX::Matrix3x3> invtransform; // in pixel coordinates, from the output to the source
+        std::vector<double> invtransformalpha; // their weights (empty: uniform)
+        double motionblur; // the motion blur quality (0 for a single transform)
+    };
+
+    RenderInverseTransforms getRenderInverseTransforms(double time, int view, const OfxPointD& renderScale, bool fielded,
+                                                       double srcpixelAspectRatio, double dstpixelAspectRatio) const;
+
+    // how much the prefilter widens the source RoI, in canonical coordinates (see the .cpp)
+    OfxPointD getPrefilterRoIExpansion(double time, int view, const OfxPointD& renderScale, int prefilterRadius) const;
 
 private:
     /* internal render function */

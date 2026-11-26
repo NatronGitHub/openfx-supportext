@@ -20,7 +20,7 @@
 
 /*
  * Scope guards for the analyses of TrackerPM, ImageStatistics, HSVTool, ColorLookup and
- * DenoiseSharpen (issue #237): the "in analysis" property and the progress bar are restored when
+ * DenoiseSharpen (openfx-misc#237): the "in analysis" property and the progress bar are restored when
  * the analysis ends, is cancelled, or throws (C++ Core Guidelines R.1, E.6).
  */
 

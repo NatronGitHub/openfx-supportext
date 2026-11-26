@@ -174,21 +174,20 @@ Transform3x3Plugin::~Transform3x3Plugin()
 // basic plugin render function, just a skelington to instantiate templates from
 
 // The inverse transforms of the render, in pixel coordinates (from the output to the source) at this
-// render scale and field, with their weights (empty: uniform). Returns the motion blur quality (0 for a
-// single transform). setupAndProcess() renders with them, and getRegionsOfInterest() bounds the
+// render scale and field, with their weights (empty: uniform), and the motion blur quality (0 for a
+// single transform). setupAndProcess() renders with them, and getPrefilterRoIExpansion() bounds the
 // prefilter widths with them.
-double
+Transform3x3Plugin::RenderInverseTransforms
 Transform3x3Plugin::getRenderInverseTransforms(double time,
                                                int view,
                                                const OfxPointD& renderScale,
                                                bool fielded,
                                                double srcpixelAspectRatio,
-                                               double dstpixelAspectRatio,
-                                               std::vector<Matrix3x3>* invtransformOut,
-                                               std::vector<double>* invtransformalphaOut) const
+                                               double dstpixelAspectRatio) const
 {
-    std::vector<Matrix3x3>& invtransform = *invtransformOut;
-    std::vector<double>& invtransformalpha = *invtransformalphaOut;
+    RenderInverseTransforms ret;
+    std::vector<Matrix3x3>& invtransform = ret.invtransform;
+    std::vector<double>& invtransformalpha = ret.invtransformalpha;
     size_t invtransformsizealloc = 0;
     size_t invtransformsize = 0;
     double motionblur = 0.;
@@ -284,8 +283,9 @@ Transform3x3Plugin::getRenderInverseTransforms(double time,
     if ( !invtransformalpha.empty() ) {
         invtransformalpha.resize(invtransformsize);
     }
+    ret.motionblur = motionblur;
 
-    return motionblur;
+    return ret;
 } // getRenderInverseTransforms
 
 /* set up and run a processor */
@@ -351,8 +351,11 @@ Transform3x3Plugin::setupAndProcess(Transform3x3ProcessorBase &processor,
 #if defined(OFX_EXTENSIONS_VEGAS) || defined(OFX_EXTENSIONS_NUKE)
         view = args.renderView;
 #endif
-        motionblur = getRenderInverseTransforms(time, view, args.renderScale, fielded, src->getPixelAspectRatio(),
-                                                _dstClip->getPixelAspectRatio(), &invtransform, &invtransformalpha);
+        RenderInverseTransforms transforms = getRenderInverseTransforms(time, view, args.renderScale, fielded, src->getPixelAspectRatio(),
+                                                                        _dstClip->getPixelAspectRatio());
+        motionblur = transforms.motionblur;
+        invtransform.swap(transforms.invtransform);
+        invtransformalpha.swap(transforms.invtransformalpha);
         invtransformsize = invtransform.size();
 #ifdef OFX_EXTENSIONS_NUKE
         // compose with the input transform
@@ -759,6 +762,53 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     return true;
 } // getRegionOfDefinition
 
+// Prefilter Downscaling: the kernel of radius prefilterRadius is widened by the derivative of the
+// transform, up to kOfxsFilterPrefilterMaxWidth (ofxsFilterInterpolate2DPrefilter): the source RoI must
+// be expanded by R * (width - 1) source pixels more, returned here in canonical coordinates (x, y). The
+// widths are bounded over the inverse transforms of the render, in the same pixel coordinates (PAR,
+// render scale), for both an unfielded and a fielded render (the field is not known in
+// getRegionsOfInterest): exact for an affine transform, the cap for a projective one (the largest
+// derivative of a homography over a rectangle is not always at its corners).
+OfxPointD
+Transform3x3Plugin::getPrefilterRoIExpansion(double time,
+                                             int view,
+                                             const OfxPointD& renderScale,
+                                             int prefilterRadius) const
+{
+    const double srcPar = _srcClip->getPixelAspectRatio();
+    const double dstPar = _dstClip->getPixelAspectRatio();
+    double ex = 0.;
+    double ey = 0.;
+    bool useCap = false;
+#if defined(OFX_EXTENSIONS_NUKE) && defined(ENABLE_HOST_TRANSFORM)
+    // A host that concatenates transforms may attach one to the source image (setupAndProcess()
+    // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
+    // CornerPin), the bound below would be too small, so use the cap.
+    useCap = getImageEffectHostDescription()->canTransform;
+#endif
+    if (useCap) {
+        ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / renderScale.x;
+        ey = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * 2. / renderScale.y;
+    }
+    for (int field = 0; field < 2 && !useCap; ++field) {
+        const bool fielded = (field == 1);
+        const RenderInverseTransforms transforms = getRenderInverseTransforms(time, view, renderScale, fielded, srcPar, dstPar);
+        double wx = 1.;
+        double wy = 1.;
+        for (size_t t = 0; t < transforms.invtransform.size(); ++t) {
+            const OfxPointD w = ofxsFilterPrefilterWidthsBound(transforms.invtransform[t]);
+            wx = (std::max)(wx, w.x);
+            wy = (std::max)(wy, w.y);
+        }
+        // source pixels to canonical coordinates (ofxsMatPixelToCanonical: a field line is 2 lines)
+        ex = (std::max)( ex, prefilterRadius * (wx - 1.) * srcPar / renderScale.x );
+        ey = (std::max)( ey, prefilterRadius * (wy - 1.) * (fielded ? 2. : 1.) / renderScale.y );
+    }
+    const OfxPointD e = { ex, ey };
+
+    return e;
+} // getPrefilterRoIExpansion
+
 // override the roi call
 // Transform3x3-GENERIC
 // Required if the plugin requires a region from the inputs which is different from the rendered region of the output.
@@ -836,46 +886,11 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
 
     assert(srcRoI.x1 <= srcRoI.x2 && srcRoI.y1 <= srcRoI.y2);
 
-    // prefilter: the kernel of radius R is widened by the derivative of the transform, up to
-    // kOfxsFilterPrefilterMaxWidth (ofxsFilterInterpolate2DPrefilter): expand srcRoI by R * (width - 1)
-    // source pixels more. The widths are bounded over the inverse transforms of the render, in the same
-    // pixel coordinates (PAR, render scale), for both an unfielded and a fielded render (the field is not
-    // known here): exact for an affine transform, the cap for a projective one (the largest derivative of
-    // a homography over a rectangle is not always at its corners).
+    // prefilter: widen srcRoI by the widened kernel (see getPrefilterRoIExpansion)
     const int prefilterRadius = ofxsFilterRadius(filter);
     if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
-        const double srcPar = _srcClip->getPixelAspectRatio();
-        const double dstPar = _dstClip->getPixelAspectRatio();
-        double ex = 0.;
-        double ey = 0.;
-        bool useCap = false;
-#if defined(OFX_EXTENSIONS_NUKE) && defined(ENABLE_HOST_TRANSFORM)
-        // A host that concatenates transforms may attach one to the source image (setupAndProcess()
-        // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
-        // CornerPin), the bound below would be too small, so use the cap.
-        useCap = getImageEffectHostDescription()->canTransform;
-#endif
-        if (useCap) {
-            ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / args.renderScale.x;
-            ey = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * 2. / args.renderScale.y;
-        }
-        for (int f = 0; f < 2 && !useCap; ++f) {
-            const bool fielded = (f == 1);
-            std::vector<Matrix3x3> invtransforms;
-            std::vector<double> alphas;
-            getRenderInverseTransforms(time, view, args.renderScale, fielded, srcPar, dstPar, &invtransforms, &alphas);
-            double wx = 1.;
-            double wy = 1.;
-            for (size_t t = 0; t < invtransforms.size(); ++t) {
-                const OfxPointD w = ofxsFilterPrefilterWidthsBound(invtransforms[t]);
-                wx = (std::max)(wx, w.x);
-                wy = (std::max)(wy, w.y);
-            }
-            // source pixels to canonical coordinates (ofxsMatPixelToCanonical: a field line is 2 lines)
-            ex = (std::max)( ex, prefilterRadius * (wx - 1.) * srcPar / args.renderScale.x );
-            ey = (std::max)( ey, prefilterRadius * (wy - 1.) * (fielded ? 2. : 1.) / args.renderScale.y );
-        }
-        ofxsFilterExpandRect(ex, ey, &srcRoI);
+        const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius);
+        ofxsFilterExpandRect(e.x, e.y, &srcRoI);
     }
 
     ofxsFilterExpandRoI(roi, _srcClip->getPixelAspectRatio(), args.renderScale, filter, doMasking, mix, &srcRoI);

@@ -248,7 +248,7 @@ PositionInteract<ParamName>::draw(const OFX::DrawArgs &args)
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
-        return false; // registered as V2 but no draw context: OpenGL is not allowed
+        return false; // nothing may be drawn in this action (see OverlayDraw::canDraw())
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
@@ -456,12 +456,17 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
 
     bool didSomething = false;
     if (_state == eMouseStatePicked) {
-        if (!_interactiveDrag) {
-            const OfxPointD& pscale = args.pixelScale;
-            _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
-        }
-        penMotion(args);
+        // leave the drag state first, so that a setValue that throws doesn't leave the overlay
+        // dragging; penMotion below then only refreshes the hover state
         _state = eMouseStateInactive;
+        const OfxPointD& pscale = args.pixelScale;
+        if (_interactiveDrag) {
+            // as the last pen motion would: the pen-up position
+            _penPosition = args.penPosition;
+        }
+        // without Interactive Update, the position of the last pen motion
+        _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
+        penMotion(args);
         didSomething = true;
     }
 

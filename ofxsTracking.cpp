@@ -95,9 +95,12 @@ void
 GenericTrackerPlugin::changedParam(const InstanceChangedArgs &args,
                                    const string &paramName)
 {
-    if ( ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) &&
-         ( (paramName == kParamTrackingBackward) || (paramName == kParamTrackingPrevious) ||
-           (paramName == kParamTrackingNext) || (paramName == kParamTrackingForward) ) ) {
+    const bool isTrackButton = (paramName == kParamTrackingBackward) || (paramName == kParamTrackingPrevious) ||
+                               (paramName == kParamTrackingNext) || (paramName == kParamTrackingForward);
+    if ( !isTrackButton || !_srcClip || !_srcClip->isConnected() ) {
+        return;
+    }
+    if ( (args.renderScale.x != 1.) || (args.renderScale.y != 1.) ) {
         // the images fetched here would be at this scale: track only at full resolution
         sendMessage(Message::eMessageError, "", "Tracking needs full-resolution images: set the viewer or preview to full resolution.");
 
@@ -106,36 +109,27 @@ GenericTrackerPlugin::changedParam(const InstanceChangedArgs &args,
 
     TrackArguments trackArgs;
     trackArgs.renderScale = args.renderScale;
-    if ( (paramName == kParamTrackingBackward) && _srcClip && _srcClip->isConnected() ) {
-        trackArgs.first = args.time;
-        //double first,last; timeLineGetBounds(first, last); trackArgs.last = first + 1;// wrong: we want the srcClip range
-        OfxRangeD range = _srcClip->getFrameRange();
-        trackArgs.last = range.min + 1;
+    trackArgs.first = args.time;
+    trackArgs.reason = args.reason;
+    if (paramName == kParamTrackingBackward) {
+        // to the start of the source clip's range (not the timeline's)
+        trackArgs.last = _srcClip->getFrameRange().min + 1;
+        trackArgs.forward = false;
         if (trackArgs.last <= trackArgs.first) {
-            trackArgs.forward = false;
-            trackArgs.reason = args.reason;
             trackRange(trackArgs);
         }
-    } else if ( (paramName == kParamTrackingPrevious) && _srcClip && _srcClip->isConnected() ) {
-        trackArgs.first = args.time;
+    } else if (paramName == kParamTrackingPrevious) {
         trackArgs.last = trackArgs.first;
         trackArgs.forward = false;
-        trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if ( (paramName == kParamTrackingNext) && _srcClip && _srcClip->isConnected() ) {
-        trackArgs.first = args.time;
+    } else if (paramName == kParamTrackingNext) {
         trackArgs.last = trackArgs.first;
         trackArgs.forward = true;
-        trackArgs.reason = args.reason;
         trackRange(trackArgs);
-    } else if ( (paramName == kParamTrackingForward) && _srcClip && _srcClip->isConnected() ) {
-        trackArgs.first = args.time;
-        //double first,last; timeLineGetBounds(first, last); trackArgs.last = last - 1; // wrong: we want the srcClip range
-        OfxRangeD range = _srcClip->getFrameRange();
-        trackArgs.last = range.max - 1;
+    } else { // kParamTrackingForward: to the end of the source clip's range
+        trackArgs.last = _srcClip->getFrameRange().max - 1;
+        trackArgs.forward = true;
         if (trackArgs.last >= trackArgs.first) {
-            trackArgs.forward = true;
-            trackArgs.reason = args.reason;
             trackRange(trackArgs);
         }
     }
@@ -312,7 +306,7 @@ TrackerRegionInteract::draw(const DrawArgs &args)
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
-        return false; // registered as V2 but no draw context: OpenGL is not allowed
+        return false; // nothing may be drawn in this action (see OverlayDraw::canDraw())
     }
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);

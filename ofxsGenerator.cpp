@@ -31,6 +31,7 @@
 
 #include "ofxsFormatResolution.h"
 #include "ofxsCoords.h"
+#include "ofxsNormalisedDefaults.h"
 
 // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
 #define kParamDefaultsNormalised "defaultsNormalisedGenerator"
@@ -45,8 +46,6 @@
 using namespace OFX;
 
 using std::string;
-
-static bool gHostSupportsDefaultCoordinateSystem = true; // for kParamDefaultsNormalised
 
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
                                  bool useOutputComponentsAndDepth,
@@ -774,11 +773,7 @@ generatorDescribeArea(PageParamDescriptor *page,
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractBtmLeft);
         param->setLabel(kParamRectangleInteractBtmLeftLabel);
         param->setDoubleType(eDoubleTypeXYAbsolute);
-        if ( param->supportsDefaultCoordinateSystem() ) {
-            param->setDefaultCoordinateSystem(eCoordinatesNormalised); // no need of kParamDefaultsNormalised
-        } else {
-            gHostSupportsDefaultCoordinateSystem = false; // no multithread here, see kParamDefaultsNormalised
-        }
+        ofxsSetDefaultCoordinateSystemNormalised(*param); // else kParamDefaultsNormalised converts it
         param->setDefault(0., 0.);
         param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
@@ -799,11 +794,7 @@ generatorDescribeArea(PageParamDescriptor *page,
         Double2DParamDescriptor* param = desc.defineDouble2DParam(kParamRectangleInteractSize);
         param->setLabel(kParamRectangleInteractSizeLabel);
         param->setDoubleType(eDoubleTypeXY);
-        if ( param->supportsDefaultCoordinateSystem() ) {
-            param->setDefaultCoordinateSystem(eCoordinatesNormalised); // no need of kParamDefaultsNormalised
-        } else {
-            gHostSupportsDefaultCoordinateSystem = false; // no multithread here, see kParamDefaultsNormalised
-        }
+        ofxsSetDefaultCoordinateSystemNormalised(*param); // else kParamDefaultsNormalised converts it
         param->setDefault(1., 1.);
         param->setRange(0., 0., DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(0, 0, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
@@ -1058,7 +1049,7 @@ generatorDescribeEnd(PageParamDescriptor *page,
                      ImageEffectDescriptor &desc)
 {
     // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
-    if (!gHostSupportsDefaultCoordinateSystem) {
+    if ( ofxsHostIgnoresNormalisedDefaults() ) {
         BooleanParamDescriptor* param = desc.defineBooleanParam(kParamDefaultsNormalised);
         param->setDefault(true);
         param->setEvaluateOnChange(false);

@@ -30,6 +30,7 @@
 
 #include <ofxsImageEffect.h>
 #include "ofxsCoords.h"
+#include "ofxsNonFinite.h"
 
 #define kParamPremult "premult"
 #define kParamPremultLabel "(Un)premult"
@@ -264,28 +265,6 @@ ofxsToRGBA(const PIX *srcPix,
     unpPix[3] = (nComponents == 4) ? (srcPix[3] / (float)maxValue) : 1.0f;
 }
 
-// c / alpha for an alpha > 0, as the float division c / (float)alpha, except that a quotient
-// beyond the float range gives +-FLT_MAX instead of +-inf (a huge colour with a tiny alpha,
-// which then gave inf * 0 or inf - inf = NaN downstream; an infinite colour also gives
-// +-FLT_MAX). The quotient is computed in double and clamped before the conversion: the double
-// quotient of two floats rounded to float is the float quotient, so every finite result is
-// unchanged. Only comparisons, no NaN or inf test: a NaN colour falls through unchanged.
-inline float
-ofxsUnPremultValue(double c,
-                   double alpha)
-{
-    const double q = c / alpha;
-
-    if (q > FLT_MAX) {
-        return FLT_MAX;
-    }
-    if (q < -FLT_MAX) {
-        return -FLT_MAX;
-    }
-
-    return (float)q;
-}
-
 // normalize in [0,1] and unpremultiply srcPix
 // if premult is false, just normalize
 // unpremult by alpha <= 0 gives identity
@@ -337,9 +316,14 @@ ofxsUnPremult(const PIX *srcPix,
     assert(nComponents == 4);
     PIX alpha = srcPix[3];
     if ( alpha > (PIX)(FLT_EPSILON * maxValue) ) {
-        unpPix[0] = ofxsUnPremultValue(srcPix[0], alpha);
-        unpPix[1] = ofxsUnPremultValue(srcPix[1], alpha);
-        unpPix[2] = ofxsUnPremultValue(srcPix[2], alpha);
+        // c / alpha, as the float division c / (float)alpha, except that a quotient beyond the
+        // float range gives +-FLT_MAX instead of +-inf (a huge colour with a tiny alpha, which then
+        // gave inf * 0 or inf - inf = NaN downstream; an infinite colour also gives +-FLT_MAX). The
+        // double quotient of two floats rounded to float is the float quotient, so every finite
+        // result is unchanged; a NaN colour falls through.
+        unpPix[0] = clampBeyondFloatRange<float>(srcPix[0] / (double)alpha);
+        unpPix[1] = clampBeyondFloatRange<float>(srcPix[1] / (double)alpha);
+        unpPix[2] = clampBeyondFloatRange<float>(srcPix[2] / (double)alpha);
     } else {
         unpPix[0] = srcPix[0] / (float)maxValue;
         unpPix[1] = srcPix[1] / (float)maxValue;
@@ -437,46 +421,26 @@ ofxsPremultPix(const float unpPix[4], //!< interpolated unpremultiplied pixel
 }
 
 
-// A value made finite, with comparisons only: NaN gives 0, beyond the float range gives +-FLT_MAX,
-// every finite float is unchanged.
-inline float
-ofxsFiniteFloat(double v)
-{
-    if ( (v >= -FLT_MAX) && (v <= FLT_MAX) ) {
-        return (float)v;
-    }
-    if (v > 0.) {
-        return FLT_MAX;
-    }
-    if (v < 0.) {
-        return -FLT_MAX;
-    }
-
-    return 0.f; // NaN
-}
-
 // tmp * alpha + (1 - alpha) * src, the mix of ofxsMixPix and ofxsMaskMixPix, kept finite. The original
 // float expression gives the result unless both products round to infinity in float (exact products,
 // tested in double, at least 2^128 - 2^103): only then was the old result inf - inf = NaN or +-inf,
 // whether or not the compiler fuses one product into an FMA, and it is computed in double instead. A
-// result beyond the float range gives +-FLT_MAX, and NaN (from a NaN input) gives 0. So every finite
-// result is unchanged.
+// result beyond the float range gives +-FLT_MAX, and NaN (from a NaN input) gives 0 (clampToFloatRange).
+// So every finite result is unchanged.
 inline float
 ofxsMixValue(float tmp,
              float src,
              float alpha)
 {
-    // float rounds an exact value to inf from 2^128 - 2^103 (halfway between FLT_MAX and 2^128)
-    const double kOverflow = 340282356779733661637539395458142568448.;
     const float beta = 1.f - alpha;
     const double p1 = std::fabs( (double)tmp * (double)alpha ); // exact
     const double p2 = std::fabs( (double)src * (double)beta ); // exact
-    if ( (p1 >= kOverflow) && (p2 >= kOverflow) ) {
-        return ofxsFiniteFloat( (double)tmp * alpha + (double)beta * src );
+    if ( (p1 >= kOfxsFloatOverflow) && (p2 >= kOfxsFloatOverflow) ) {
+        return (float)clampToFloatRange( (double)tmp * alpha + (double)beta * src );
     }
-    float v = tmp * alpha + (1.f - alpha) * src;
+    float v = tmp * alpha + beta * src;
 
-    return ofxsFiniteFloat(v);
+    return clampToFloatRange(v);
 }
 
 // tmpPix is not normalized, it is within [0,maxValue] (but is allowed to be outside of this range)
@@ -514,7 +478,7 @@ ofxsMixPix(const float *tmpPix, //!< interpolated pixel
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // a huge mix value could overflow
+                    float v = clampToFloatRange(tmpPix[c] * alpha); // a huge mix value could overflow
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }
@@ -553,7 +517,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
             } else {
                 // a NaN or infinite mask sample gave inf * 0 or inf - inf = NaN: make it finite
                 // (NaN gives 0, +-inf gives +-FLT_MAX); every finite mask, also outside [0, 1], is unchanged
-                maskScale = ofxsFiniteFloat(*maskPix / float(maxValue));
+                maskScale = clampToFloatRange(*maskPix / float(maxValue));
                 if (maskInvert) {
                     maskScale = 1.f - maskScale;
                 }
@@ -582,7 +546,7 @@ ofxsMaskMixPix(const float *tmpPix, //!< interpolated pixel
                 }
             } else {
                 for (int c = 0; c < nComponents; ++c) {
-                    float v = ofxsFiniteFloat(tmpPix[c] * alpha); // an inf mask gives alpha = +-FLT_MAX
+                    float v = clampToFloatRange(tmpPix[c] * alpha); // an inf mask gives alpha = +-FLT_MAX
                     dstPix[c] = ofxsClampIfInt<PIX, maxValue>(v, 0, maxValue);
                 }
             }

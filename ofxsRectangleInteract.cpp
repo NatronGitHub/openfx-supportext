@@ -201,7 +201,7 @@ RectangleInteract::draw(const DrawArgs &args)
     // all drawing goes through d: OpenGL, or the DrawSuite for V2 overlays
     OverlayDraw d(args, _drawMode);
     if ( !d.canDraw() ) {
-        return false; // registered as V2 but no draw context: OpenGL is not allowed
+        return false; // nothing may be drawn in this action (see OverlayDraw::canDraw())
     }
 
     bool hiDPI = _hiDPI ? _hiDPI->getValue() : false;
@@ -885,40 +885,36 @@ RectangleInteract::getBtmLeft(OfxTime time) const
 
 // Which sides of the rectangle a handle moves: -1 the left (bottom) side, +1 the right (top)
 // side, 0 neither (the width, or height, doesn't change).
-static void
-draggedSides(int mouseState,
-             int* sideX,
-             int* sideY)
+namespace {
+struct DraggedSides
 {
-    *sideX = 0;
-    *sideY = 0;
+    int x;
+    int y;
+};
+} // namespace
+
+static DraggedSides
+draggedSides(RectangleInteract::MouseStateEnum mouseState)
+{
     switch (mouseState) {
     case RectangleInteract::eMouseStateDraggingTopLeft:
-        *sideX = -1; *sideY = +1;
-        break;
+        return {-1, +1};
     case RectangleInteract::eMouseStateDraggingTopRight:
-        *sideX = +1; *sideY = +1;
-        break;
+        return {+1, +1};
     case RectangleInteract::eMouseStateDraggingBtmLeft:
-        *sideX = -1; *sideY = -1;
-        break;
+        return {-1, -1};
     case RectangleInteract::eMouseStateDraggingBtmRight:
-        *sideX = +1; *sideY = -1;
-        break;
+        return {+1, -1};
     case RectangleInteract::eMouseStateDraggingTopMid:
-        *sideY = +1;
-        break;
+        return {0, +1};
     case RectangleInteract::eMouseStateDraggingBtmMid:
-        *sideY = -1;
-        break;
+        return {0, -1};
     case RectangleInteract::eMouseStateDraggingMidRight:
-        *sideX = +1;
-        break;
+        return {+1, 0};
     case RectangleInteract::eMouseStateDraggingMidLeft:
-        *sideX = -1;
-        break;
+        return {-1, 0};
     default:
-        break;
+        return {0, 0};
     }
 }
 
@@ -958,8 +954,9 @@ RectangleInteract::setValue(OfxPointD btmLeft,
                             const OfxPointD &pscale)
 {
     const bool centered = ctrlDown();
-    int sideX, sideY;
-    draggedSides(_mouseState, &sideX, &sideY);
+    const DraggedSides sides = draggedSides(_mouseState);
+    const int sideX = sides.x;
+    const int sideY = sides.y;
     if (_angleDrag != 0.) {
         // Rotated: btmLeft is not an edge position on screen, so rounding it would move the
         // side that must stay fixed. Round the size instead, in the rectangle frame, and move
