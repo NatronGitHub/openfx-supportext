@@ -429,23 +429,22 @@ RampInteractHelper::penUp(const PenArgs &args)
 
     bool didSomething = false;
     const OfxPointD &pscale = args.pixelScale;
+    // leave the drag state first, so that a setValue that throws doesn't leave the overlay dragging
+    const InteractState state = _state;
+    _state = eInteractStateIdle;
 
-    if ( !_interactiveDrag && (_state != eInteractStateIdle) ) {
-        if (_state == eInteractStateDraggingPoint0) {
-            // round newx/y to the closest int, 1/10 int, etc
-            // this make parameter editing easier
-
+    if ( !_interactiveDrag && (state != eInteractStateIdle) ) {
+        // round newx/y to the closest int, 1/10 int, etc: this makes parameter editing easier
+        if (state == eInteractStateDraggingPoint0) {
             _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
             didSomething = true;
-        } else if (_state == eInteractStateDraggingPoint1) {
+        } else if (state == eInteractStateDraggingPoint1) {
             _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
             didSomething = true;
         }
-    } else if (_state != eInteractStateIdle) {
+    } else if (state != eInteractStateIdle) {
         _interact->requestRedraw();
     }
-
-    _state = eInteractStateIdle;
 
     return didSomething;
 }
