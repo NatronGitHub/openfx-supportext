@@ -415,6 +415,12 @@ TrackerRegionInteract::draw(const DrawArgs &args)
         d.glVertex2d(xc, yc);
 
         if ( (xoff != 0) || (yoff != 0) ) {
+            ///draw offset
+            if ( (_ds == eDrawStateHoveringOffset) || (_ms == eMouseStateDraggingOffset) ) {
+                d.glColor3f(0.f * l, 1.f * l, 0.f * l);
+            } else {
+                d.glColor3f( (float)color.r * l, (float)color.g * l, (float)color.b * l );
+            }
             d.glVertex2d(xc + xoff, yc + yoff);
         }
 
@@ -599,6 +605,7 @@ TrackerRegionInteract::updateCursor()
         case eDrawStateInactive:
             break;
         case eDrawStateHoveringCenter:
+        case eDrawStateHoveringOffset:
             name = kOfxsCursorMove;
             break;
         case eDrawStateHoveringInnerTopLeft:
@@ -714,6 +721,9 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
         // test center first
         if ( isNearby(args.penPosition, xc,  yc,  POINT_TOLERANCE, pscale) ) {
             newState = eDrawStateHoveringCenter;
+        } else if ( ( (xoff != 0) || (yoff != 0) ) && isNearby(args.penPosition, xc + xoff, yc + yoff, POINT_TOLERANCE, pscale) ) {
+            // the same test as penDown's
+            newState = eDrawStateHoveringOffset;
         } else if ( isNearby(args.penPosition, xi1, yi1, POINT_TOLERANCE, pscale) ) {
             newState = eDrawStateHoveringInnerBtmLeft;
         } else if ( isNearby(args.penPosition, xi2, yi1, POINT_TOLERANCE, pscale) ) {
