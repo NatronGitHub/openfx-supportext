@@ -142,6 +142,15 @@ struct PointsInteractPoint
     std::string interactiveName; ///< if not empty, a Boolean param read at pen down instead of updateWhileDragging
 };
 
+// PointsInteract::draw() depends on OFXS_OVERLAYDRAW_DS (through OverlayDraw): the interacts
+// live in the same inline namespace as OverlayDraw (see "Enabling the DrawSuite backend" in
+// ofxsOverlayDraw.h), so translation units with different values don't share their definitions.
+#if OFXS_OVERLAYDRAW_DS
+inline namespace OverlayDrawWithDrawSuite {
+#else
+inline namespace OverlayDrawOpenGLOnly {
+#endif
+
 /// Point handles configured at run time: each point is a Double2D param, drawn as a GL point
 /// with a one-pixel shadow on OpenGL (no shadow with the DrawSuite), and dragged with the pen.
 /*
@@ -211,7 +220,12 @@ public:
 protected:
     int pointCount() const { return (int)_points.size(); }
 
-    OFX::Double2DParam* pointParam(int i) const { return _points[i].param; }
+    OFX::Double2DParam* pointParam(int i) const
+    {
+        assert( (0 <= i) && ( i < pointCount() ) );
+
+        return _points[i].param;
+    }
 
     /// A run-time condition for showing point i, tested after its param's (see above).
     virtual bool isPointShown(int /*i*/,
@@ -231,19 +245,29 @@ protected:
     ///   nothing is called.
     /// firstChange is true until a call of this drag returns normally (if one throws, the next
     /// one is a first change again); it is always false for an abandoned drag.
-    /// Override it to add the plug-in's bookkeeping to the first and the last change, in an
-    /// edit block opened and closed here around the value change (one undo step per drag; never
-    /// an edit block over the whole drag, which spans several actions). Don't throw from the
-    /// edit block's end: the Support library's EditBlock throws from its destructor if the
-    /// host fails (see tests/cmake/position.cpp for a non-throwing one). The drag state is
-    /// already reset when dragEnd is true.
+    /// The drag state is already reset when dragEnd is true.
+    ///
+    /// One undo step per drag REQUIRES an override that wraps the value change (and the
+    /// plug-in's bookkeeping, on the first and the last change) in an edit block, opened and
+    /// closed here: Natron puts a write made by an interact action outside an edit block on
+    /// the undo stack as one command per dimension, and a write inside a block as one command.
+    /// Never open an edit block over the whole drag, which spans several actions (the host
+    /// closes a plug-in's open blocks when its outermost action returns). The block's end must
+    /// not throw (destructors are noexcept):
+    /// - openfx from 45578b69 on, whose EditBlock destructor doesn't throw:
+    ///   OFX::ParamSet::EditBlock block(effect, "Move point", firstChange || dragEnd,
+    ///       OFX::ParamSet::EditBlock::eBeginNow, OFX::ParamSet::EditBlock::eHostErrorsIgnore);
+    /// - older openfx, whose EditBlock destructor throws if the host fails paramEditEnd: a
+    ///   wrapper that catches the errors of beginEditBlock and endEditBlock, such as
+    ///   NoThrowEditBlock in tests/cmake/position.cpp.
+    /// The default implementation only sets the value, without an edit block.
     virtual void setPointValue(int i,
                                double /*time*/,
                                const OfxPointD& p,
                                bool /*firstChange*/,
                                bool /*dragEnd*/)
     {
-        _points[i].param->setValue(p.x, p.y);
+        pointParam(i)->setValue(p.x, p.y);
     }
 
 private:
@@ -554,9 +578,9 @@ PointsInteract::penUp(const OFX::PenArgs &args)
     // dragging; penMotion below then only refreshes the hover state
     _dragged = -1;
     _dragChanged = false;
+    requestRedraw(); // before the host calls, which may throw
     if ( !isShown(i, args.time) ) {
         // hidden or disabled while dragged: an abandoned drag (see setPointValue)
-        requestRedraw();
         if (!firstChange) {
             setPointValue(i, args.time, lastValue, false, true);
         }
@@ -565,7 +589,6 @@ PointsInteract::penUp(const OFX::PenArgs &args)
     }
     setPointValue(i, args.time, pos, firstChange, true);
     penMotion(args);
-    requestRedraw();
 
     return true;
 }
@@ -666,6 +689,7 @@ class PositionOverlayDescriptorV2
     : public OFX::DefaultEffectOverlayDescriptorV2<PositionOverlayDescriptorV2<ParamName>, PositionInteract<ParamName> >
 {
 };
+} // inline namespace
 } // namespace OFX
 
 #endif /* defined(openfx_supportext_ofxsPositionInteract_h) */
