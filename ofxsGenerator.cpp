@@ -47,7 +47,6 @@ using namespace OFX;
 
 using std::string;
 
-
 GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
                                  bool useOutputComponentsAndDepth,
                                  bool supportsBitDepthByte,

@@ -113,7 +113,6 @@
 #define OFXS_SUPPORTS_CXX_NULLPTR 1
 #endif
 
-
 #endif
 
 /* COMPILER(RVCT) - ARM RealView Compilation Tools */

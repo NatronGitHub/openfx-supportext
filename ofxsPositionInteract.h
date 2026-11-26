@@ -457,12 +457,15 @@ PositionInteract<ParamName>::penUp(const OFX::PenArgs &args)
     bool didSomething = false;
     if (_state == eMouseStatePicked) {
         // leave the drag state first, so that a setValue that throws doesn't leave the overlay
-        // dragging (and penMotion below only refreshes the hover state, without setting the value)
+        // dragging; penMotion below then only refreshes the hover state
         _state = eMouseStateInactive;
-        if (!_interactiveDrag) {
-            const OfxPointD& pscale = args.pixelScale;
-            _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
+        const OfxPointD& pscale = args.pixelScale;
+        if (_interactiveDrag) {
+            // as the last pen motion would: the pen-up position
+            _penPosition = args.penPosition;
         }
+        // without Interactive Update, the position of the last pen motion
+        _position->setValue( fround(_penPosition.x, pscale.x), fround(_penPosition.y, pscale.y) );
         penMotion(args);
         didSomething = true;
     }

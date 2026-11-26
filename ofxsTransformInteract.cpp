@@ -1521,7 +1521,6 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     _tpDrag = tp;
 
-
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
         setTransformParams(tp);
