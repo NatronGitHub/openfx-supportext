@@ -250,9 +250,7 @@ protected:
     /// Undo: Natron already makes one undo step of a whole drag, so the default needs no edit
     /// block. To put the plug-in's bookkeeping (other params it sets when firstChange or
     /// dragEnd) in the same undo step, an override opens an edit block for every change,
-    /// opened and closed here, and sets the bookkeeping params BEFORE the point's value:
-    /// Natron 2.6 ends the grouping at the end of the point's 2D setValue, even inside the
-    /// plug-in's block, so params set after it get undo steps of their own.
+    /// opened and closed here, and sets the bookkeeping params in it.
     /// Never open an edit block over the whole drag, which spans several actions (the host
     /// closes a plug-in's open blocks when its outermost action returns). The block's end must
     /// not throw (destructors are noexcept):
