@@ -19,6 +19,7 @@ public:
     SxTestPointsInteract(OfxInteractHandle handle, OFX::ImageEffect* effect)
         : OFX::PointsInteract( handle, effect, points() )
         , _effect(effect)
+        , _showPoint1( effect->fetchBooleanParam("showPoint1") )
     {
     }
 
@@ -36,7 +37,8 @@ private:
         return p;
     }
 
-    bool isPointShown(int i, double /*time*/) const OVERRIDE { return i != 1 || pointCount() > 1; }
+    // point1 is hidden while the showPoint1 checkbox is off
+    bool isPointShown(int i, double time) const OVERRIDE { return i != 1 || _showPoint1->getValueAtTime(time); }
 
     // an edit block that never throws (the Support library's EditBlock throws from its
     // destructor if the host fails paramEditEnd)
@@ -81,6 +83,7 @@ private:
     }
 
     OFX::ImageEffect* _effect;
+    OFX::BooleanParam* _showPoint1;
 };
 
 void
