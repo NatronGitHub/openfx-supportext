@@ -349,12 +349,21 @@ struct Matrix3x3
         return ret;
     }
 
-    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
-    /// a non-finite entry (only absurd parameters give these)
+    /// false if the matrix is singular, if an entry is beyond 1e100 (or not finite), or if the
+    /// inverse would overflow (only absurd parameters give the last two)
+    /// No test depends on detecting NaN or inf (see ofxsNonFinite.h): the entries are bounded
+    /// first, so that the determinant and the cofactors are finite (at most 6e300 and 2e200),
+    /// and the overflow of the inverse is tested before dividing.
     bool inverse(Matrix3x3* invOut) const
     {
         double inv[9], det;
         int i;
+
+        for (i = 0; i < 9; ++i) {
+            if ( !(std::fabs(m[i]) <= 1e100) ) {
+                return false;
+            }
+        }
 
         inv[0] = (m[4] * m[8] - m[7] * m[5]);
         inv[3] = (m[5] * m[6] - m[3] * m[8]);
@@ -362,9 +371,8 @@ struct Matrix3x3
 
         det = m[0] * inv[0] + m[1] * inv[3] + m[2] * inv[6];
 
-        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
-            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
+        if (std::fabs(det) < DBL_MIN) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf
             return false;
         }
 
@@ -376,13 +384,21 @@ struct Matrix3x3
         inv[5] = (m[2] * m[3] - m[0] * m[5]);
         inv[8] = (m[0] * m[4] - m[1] * m[3]);
 
+        if (std::fabs(det) < 1.) {
+            // |inv[i] / det| overflows if |inv[i]| > |det| * DBL_MAX (finite here); half of it
+            // leaves room for the rounding of inv[i] * (1 / det)
+            const double maxCofactor = std::fabs(det) * (DBL_MAX / 2);
+            for (i = 0; i < 9; ++i) {
+                if (std::fabs(inv[i]) > maxCofactor) {
+                    return false;
+                }
+            }
+        }
+
         det = 1.0 / det;
 
         for (i = 0; i < 9; ++i) {
             inv[i] *= det;
-            if ( !(std::fabs(inv[i]) <= DBL_MAX) ) {
-                return false; // overflow (or NaN): treated as not invertible
-            }
         }
         for (i = 0; i < 9; ++i) {
             invOut->m[i] = inv[i];
@@ -671,12 +687,21 @@ struct Matrix4x4
         return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
     }
 
-    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
-    /// a non-finite entry (only absurd parameters give these)
+    /// false if the matrix is singular, if an entry is beyond 1e75 (or not finite), or if the
+    /// inverse would overflow (only absurd parameters give the last two)
+    /// No test depends on detecting NaN or inf (see ofxsNonFinite.h): the entries are bounded
+    /// first, so that the determinant and the cofactors are finite (at most 2.4e301 and 6e225),
+    /// and the overflow of the inverse is tested before dividing.
     bool inverse(Matrix4x4* invOut) const
     {
         double inv[16], det;
         int i;
+
+        for (i = 0; i < 16; ++i) {
+            if ( !(std::fabs(m[i]) <= 1e75) ) {
+                return false;
+            }
+        }
 
         inv[0] = (m[5]  * m[10] * m[15] -
                   m[5]  * m[11] * m[14] -
@@ -708,9 +733,8 @@ struct Matrix4x4
 
         det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
-        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
-            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
+        if (std::fabs(det) < DBL_MIN) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf
             return false;
         }
 
@@ -798,13 +822,21 @@ struct Matrix4x4
                    m[8] * m[1] * m[6] -
                    m[8] * m[2] * m[5]);
 
+        if (std::fabs(det) < 1.) {
+            // |inv[i] / det| overflows if |inv[i]| > |det| * DBL_MAX (finite here); half of it
+            // leaves room for the rounding of inv[i] * (1 / det)
+            const double maxCofactor = std::fabs(det) * (DBL_MAX / 2);
+            for (i = 0; i < 16; ++i) {
+                if (std::fabs(inv[i]) > maxCofactor) {
+                    return false;
+                }
+            }
+        }
+
         det = 1.0 / det;
 
         for (i = 0; i < 16; ++i) {
             inv[i] *= det;
-            if ( !(std::fabs(inv[i]) <= DBL_MAX) ) {
-                return false; // overflow (or NaN): treated as not invertible
-            }
         }
         for (i = 0; i < 16; ++i) {
             invOut->m[i] = inv[i];
