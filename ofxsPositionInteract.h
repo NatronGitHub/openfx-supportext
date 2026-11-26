@@ -53,27 +53,32 @@
 
 namespace OFX {
 
-// Before calling this function: make sure the OpenGL props are correctly set.
-// Try to draw one point per frame, but no more than kDrawPointTrajectoryMaxPoints
-// in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
-// Draws with OpenGL or the DrawSuite.
-inline void
-drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
+/// The points of a Double2D param's animation curve, read from the host before any drawing:
+/// its keyframes, and the curve between them.
+struct PointTrajectory
 {
+    std::vector<OfxPointD> keys;
+    std::vector<OfxPointD> curve;
+};
+
+// Try to sample one point per frame, but no more than kDrawPointTrajectoryMaxPoints
+// in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
+// Reads the param from the host, so it may throw.
+inline void
+getPointTrajectory(Double2DParam* p, PointTrajectory* t)
+{
+    t->keys.clear();
+    t->curve.clear();
     int numKeys = p->getNumKeys();
 
     if (numKeys > 0) {
         int maxStepsPerKey = int(kDrawPointTrajectoryMaxPoints / numKeys);
-        d.glBegin(GL_POINTS);
         for (int i=0; i < numKeys; ++i) {
             double time = p->getKeyTime(i);
             OfxPointD pt;
             p->getValueAtTime(time, pt.x, pt.y);
-            d.glVertex2d(pt.x, pt.y);
-
+            t->keys.push_back(pt);
         }
-        d.glEnd();
-        d.glBegin(GL_LINE_STRIP);
         double time = p->getKeyTime(0);
         for (int i = 1; i < numKeys; ++i) {
             double timeNext = p->getKeyTime(i);
@@ -83,12 +88,41 @@ drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
 
                 OfxPointD pt;
                 p->getValueAtTime(timeStep, pt.x, pt.y);
-                d.glVertex2d(pt.x, pt.y);
+                t->curve.push_back(pt);
             }
             time = timeNext;
         }
-        d.glEnd();
     }
+}
+
+// Before calling this function: make sure the OpenGL props are correctly set.
+// Draws with OpenGL or the DrawSuite, and makes no host call.
+inline void
+drawPointTrajectory(OverlayDraw& d, const PointTrajectory& t)
+{
+    if ( t.keys.empty() ) {
+        return;
+    }
+    d.glBegin(GL_POINTS);
+    for (size_t i = 0; i < t.keys.size(); ++i) {
+        d.glVertex2d(t.keys[i].x, t.keys[i].y);
+    }
+    d.glEnd();
+    d.glBegin(GL_LINE_STRIP);
+    for (size_t i = 0; i < t.curve.size(); ++i) {
+        d.glVertex2d(t.curve[i].x, t.curve[i].y);
+    }
+    d.glEnd();
+}
+
+// Reads the trajectory from the host (which may throw) before the first GL call, then draws it.
+inline void
+drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
+{
+    PointTrajectory t;
+
+    getPointTrajectory(p, &t);
+    drawPointTrajectory(d, t);
 }
 
 
@@ -258,8 +292,9 @@ protected:
 
 private:
     // overridden functions from OFX::Interact to do things
-    // catches the exceptions of drawPoints(): the Support dispatcher would turn them into
-    // kOfxStatFailed, which tells the host to ignore this interact from then on
+    // catches the exceptions of drawPoints(): the Support dispatcher would turn them into an
+    // error status, kOfxStatFailed for most, which tells the host to ignore this interact from
+    // then on (drawPoints() reads everything from the host before its first GL call)
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
     bool drawPoints(const OFX::DrawArgs &args);
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
@@ -397,6 +432,9 @@ PointsInteract::drawPoints(const OFX::DrawArgs &args)
     // the colour and position of each shown point
     std::vector<OfxRGBColourD> colours( shown.size() );
     std::vector<OfxPointD> positions( shown.size() );
+    std::vector<PointTrajectory> trajectories( shown.size() );
+    // every host call before the first GL call, so that an exception (caught by draw()) can't
+    // leave a glBegin open or the projection shifted for the shadow
     for (size_t k = 0; k < shown.size(); ++k) {
         const PointsInteractPoint& p = _points[shown[k]].config;
         colours[k] = p.colour;
@@ -404,6 +442,7 @@ PointsInteract::drawPoints(const OFX::DrawArgs &args)
             getSuggestedColour(colours[k]);
         }
         positions[k] = position(shown[k], args.time);
+        getPointTrajectory(_points[shown[k]].param, &trajectories[k]);
     }
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
@@ -452,7 +491,7 @@ PointsInteract::drawPoints(const OFX::DrawArgs &args)
             d.glEnable(GL_POINT_SMOOTH);
             const double darken = 0.5;
             d.glColor3f(static_cast<GLfloat>(color.r * l * darken), static_cast<GLfloat>(color.g * l * darken), static_cast<GLfloat>(color.b * l * darken));
-            drawPointTrajectory(d, _points[i].param);
+            drawPointTrajectory(d, trajectories[k]);
 
             d.glDisable(GL_POINT_SMOOTH);
             if (active) {
