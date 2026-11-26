@@ -181,236 +181,6 @@ struct Point4D
     }
 };
 
-// A double with a separate int exponent (value = m * 2^e, m in [0.5, 1) or 0), whose products
-// and sums neither overflow nor underflow: used for the inverse of matrices whose cofactors or
-// determinant may overflow in double.
-struct OfxsWideDouble
-{
-    double m;
-    int e;
-};
-
-inline OfxsWideDouble
-ofxsWideNormalize(double m,
-                  int e)
-{
-    OfxsWideDouble r;
-    int de = 0;
-
-    r.m = std::frexp(m, &de);
-    // the exponent is unspecified for inf and NaN: keep it bounded (no int overflow)
-    de = (std::min)( (std::max)(de, -1100), 1100 );
-    r.e = (r.m == 0.) ? 0 : (std::min)( (std::max)(e + de, -1000000), 1000000 );
-
-    return r;
-}
-
-inline OfxsWideDouble
-ofxsWideFromDouble(double v)
-{
-    return ofxsWideNormalize(v, 0);
-}
-
-inline OfxsWideDouble
-ofxsWideMul(const OfxsWideDouble &a,
-            const OfxsWideDouble &b)
-{
-    return ofxsWideNormalize(a.m * b.m, a.e + b.e);
-}
-
-inline OfxsWideDouble
-ofxsWideAdd(const OfxsWideDouble &a,
-            const OfxsWideDouble &b)
-{
-    if (a.m == 0.) {
-        return b;
-    }
-    if (b.m == 0.) {
-        return a;
-    }
-    const OfxsWideDouble &hi = (a.e >= b.e) ? a : b;
-    const OfxsWideDouble &lo = (a.e >= b.e) ? b : a;
-    const int d = hi.e - lo.e;
-    if (d > 1100) {
-        return hi; // lo is below half an ulp of hi (not "small": a macro in <windows.h>)
-    }
-
-    return ofxsWideNormalize(hi.m + std::ldexp(lo.m, -d), hi.e);
-}
-
-// determinant of the k x k submatrix of the N x N matrix a made of the rows rows[0..k-1] and
-// the columns cols[0..k-1] (Laplace expansion along its first row)
-template <int N>
-OfxsWideDouble
-ofxsWideDeterminant(const OfxsWideDouble* a,
-                    const int* rows,
-                    const int* cols,
-                    int k)
-{
-    if (k == 1) {
-        return a[rows[0] * N + cols[0]];
-    }
-    OfxsWideDouble det = ofxsWideFromDouble(0.);
-    int subCols[N];
-    for (int j = 0; j < k; ++j) {
-        const OfxsWideDouble &x = a[rows[0] * N + cols[j]];
-        if (x.m == 0.) {
-            continue;
-        }
-        int n = 0;
-        for (int q = 0; q < k; ++q) {
-            if (q != j) {
-                subCols[n++] = cols[q];
-            }
-        }
-        OfxsWideDouble t = ofxsWideMul( x, ofxsWideDeterminant<N>(a, rows + 1, subCols, k - 1) );
-        if (j % 2) {
-            t.m = -t.m;
-        }
-        det = ofxsWideAdd(det, t);
-    }
-
-    return det;
-}
-
-// Inverse of an N x N matrix whose cofactors or determinant may overflow in double (inf * 0 =
-// NaN entries; see ofxsMatrixProductsMayOverflow, only tested beyond 2^300 for 3x3, 2^250 for
-// 4x4): the same cofactors / determinant, computed with OfxsWideDouble so that no intermediate
-// value overflows or underflows; only the final entries are rounded to double. False if the
-// determinant is 0, or if an entry of the inverse is beyond the double range (as the direct
-// inverse returns false for a determinant below DBL_MIN). Matrices whose
-// direct inverse cannot overflow never come here, so their inverse is unchanged.
-template <int N, class MAT>
-bool
-ofxsInverseWideExponent(const MAT &mat,
-                        MAT* invOut)
-{
-    OfxsWideDouble a[N * N];
-
-    for (int i = 0; i < N * N; ++i) {
-        a[i] = ofxsWideFromDouble(mat.m[i]);
-    }
-    int all[N];
-    for (int i = 0; i < N; ++i) {
-        all[i] = i;
-    }
-    const OfxsWideDouble det = ofxsWideDeterminant<N>(a, all, all, N);
-    if (det.m == 0.) {
-        return false; // singular
-    }
-    int rows[N], cols[N];
-    double inv[N * N];
-    for (int i = 0; i < N; ++i) {
-        for (int j = 0; j < N; ++j) {
-            // inv[i][j] = (-1)^(i+j) det(minor without row j and column i) / det
-            int n = 0;
-            for (int q = 0; q < N; ++q) {
-                if (q != j) {
-                    rows[n++] = q;
-                }
-            }
-            n = 0;
-            for (int q = 0; q < N; ++q) {
-                if (q != i) {
-                    cols[n++] = q;
-                }
-            }
-            const OfxsWideDouble cof = ofxsWideDeterminant<N>(a, rows, cols, N - 1);
-            int qe = 0;
-            const double q = std::frexp(cof.m / det.m, &qe); // in [0.5, 1) or 0
-            const int e = cof.e - det.e + ( (q == 0.) ? 0 : (std::min)( (std::max)(qe, -1100), 1100 ) );
-            if ( (q != 0.) && (e > 1024) ) {
-                return false; // an entry of the inverse is beyond the double range (invOut unchanged)
-            }
-            const double v = std::ldexp( q, (std::max)(e, -3000) );
-            inv[i * N + j] = ( (i + j) % 2 ) ? -v : v;
-        }
-    }
-    for (int i = 0; i < N * N; ++i) {
-        invOut->m[i] = inv[i];
-    }
-
-    return true;
-}
-
-// Can the direct inverse of the N x N matrix m overflow? Its cofactor and determinant terms
-// (and their partial products, whatever the evaluation order) are products of entries in
-// distinct rows and distinct columns: each is below 2^(sum of the entries' frexp exponents).
-// True if such a sum exceeds 1018, so that a sum of up to 24 terms may not stay below
-// DBL_MAX. Integer exponents only (clamped for inf and NaN, whose exponent is unspecified).
-template <int N>
-bool
-ofxsMatrixProductsMayOverflow(const double* m)
-{
-    const int kZero = -100000; // a zero entry: its products are 0
-    int ex[N * N];
-
-    for (int i = 0; i < N * N; ++i) {
-        ex[i] = kZero;
-        if (m[i] != 0.) {
-            int e = 0;
-            std::frexp(m[i], &e);
-            ex[i] = (std::min)( (std::max)(e, -1100), 1100 );
-        }
-    }
-    // depth-first over the rows: each row contributes no entry, or one in an unused column
-    int col[N + 1]; // col[r]: the column used by row r, -1 if none; col[N]: unused
-    int sum[N + 1]; // sum[r]: the exponent sum of rows 0..r-1
-    int count[N + 1]; // count[r]: the number of entries in rows 0..r-1
-    int r = 0;
-    col[0] = -2;
-    sum[0] = 0;
-    count[0] = 0;
-    while (r >= 0) {
-        // next choice for row r: -1 (no entry), then the columns 0..N-1
-        int c = col[r] + 1;
-        for (; c < N; ++c) {
-            bool used = false;
-            for (int q = 0; q < r; ++q) {
-                if (col[q] == c) {
-                    used = true;
-                }
-            }
-            if ( (c == -1) || ( !used && (ex[r * N + c] != kZero) ) ) {
-                break;
-            }
-        }
-        if (c >= N) {
-            --r; // no more choices for row r: backtrack
-            continue;
-        }
-        col[r] = c;
-        sum[r + 1] = sum[r] + ( (c >= 0) ? ex[r * N + c] : 0 );
-        count[r + 1] = count[r] + ( (c >= 0) ? 1 : 0 );
-        if ( (count[r + 1] >= 2) && (sum[r + 1] > 1018) ) {
-            return true;
-        }
-        if (r + 1 < N) {
-            ++r;
-            col[r] = -2;
-        }
-    }
-
-    return false;
-}
-
-// true if some entry of the N*N array m is above 2^e (NaN entries are ignored)
-inline bool
-ofxsMatrixHasEntryAbove(const double* m,
-                        int n,
-                        int e)
-{
-    const double big = std::ldexp(1., e);
-
-    for (int i = 0; i < n; ++i) {
-        if (std::fabs(m[i]) > big) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 /**
  * @brief A simple 3 * 3 matrix class laid out as such:
  *  a b c
@@ -579,19 +349,9 @@ struct Matrix3x3
         return ret;
     }
 
+    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
+    /// a non-finite entry (only absurd parameters give these)
     bool inverse(Matrix3x3* invOut) const
-    {
-        // entries beyond 2^300: the cofactors or the determinant may overflow
-        // (the product test is only run for large entries, to keep the common case fast)
-        if ( ofxsMatrixHasEntryAbove(m, 9, 300) && ofxsMatrixProductsMayOverflow<3>(m) ) {
-            return ofxsInverseWideExponent<3>(*this, invOut);
-        }
-
-        return inverseDirect(invOut);
-    }
-
-    /// the inverse, computed directly (see inverse())
-    bool inverseDirect(Matrix3x3* invOut) const
     {
         double inv[9], det;
         int i;
@@ -602,8 +362,9 @@ struct Matrix3x3
 
         det = m[0] * inv[0] + m[1] * inv[3] + m[2] * inv[6];
 
-        if (std::fabs(det) < DBL_MIN) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
+        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
+            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
             return false;
         }
 
@@ -618,8 +379,15 @@ struct Matrix3x3
         det = 1.0 / det;
 
         for (i = 0; i < 9; ++i) {
-            invOut->m[i] = inv[i] * det;
+            inv[i] *= det;
+            if ( !(std::fabs(inv[i]) <= DBL_MAX) ) {
+                return false; // overflow (or NaN): treated as not invertible
+            }
         }
+        for (i = 0; i < 9; ++i) {
+            invOut->m[i] = inv[i];
+        }
+
         return true;
 
         /* old version
@@ -903,19 +671,9 @@ struct Matrix4x4
         return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
     }
 
+    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
+    /// a non-finite entry (only absurd parameters give these)
     bool inverse(Matrix4x4* invOut) const
-    {
-        // entries beyond 2^250: the cofactors or the determinant may overflow
-        // (the product test is only run for large entries, to keep the common case fast)
-        if ( ofxsMatrixHasEntryAbove(m, 16, 250) && ofxsMatrixProductsMayOverflow<4>(m) ) {
-            return ofxsInverseWideExponent<4>(*this, invOut);
-        }
-
-        return inverseDirect(invOut);
-    }
-
-    /// the inverse, computed directly (see inverse())
-    bool inverseDirect(Matrix4x4* invOut) const
     {
         double inv[16], det;
         int i;
@@ -950,8 +708,9 @@ struct Matrix4x4
 
         det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
-        if (std::fabs(det) < DBL_MIN) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
+        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
+            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
             return false;
         }
 
@@ -1041,8 +800,14 @@ struct Matrix4x4
 
         det = 1.0 / det;
 
-        for (i = 0; i < 16; i++) {
-            invOut->m[i] = inv[i] * det;
+        for (i = 0; i < 16; ++i) {
+            inv[i] *= det;
+            if ( !(std::fabs(inv[i]) <= DBL_MAX) ) {
+                return false; // overflow (or NaN): treated as not invertible
+            }
+        }
+        for (i = 0; i < 16; ++i) {
+            invOut->m[i] = inv[i];
         }
 
         return true;
