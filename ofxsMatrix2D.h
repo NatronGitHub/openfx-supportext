@@ -349,8 +349,8 @@ struct Matrix3x3
         return ret;
     }
 
-    /// false if the matrix is singular, or if the inverse overflows (entries beyond about
-    /// 2^300, which only absurd parameters give)
+    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
+    /// a non-finite entry (only absurd parameters give these)
     bool inverse(Matrix3x3* invOut) const
     {
         double inv[9], det;
@@ -362,8 +362,9 @@ struct Matrix3x3
 
         det = m[0] * inv[0] + m[1] * inv[3] + m[2] * inv[6];
 
-        if (std::fabs(det) < DBL_MIN) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
+        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
+            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
             return false;
         }
 
@@ -670,8 +671,8 @@ struct Matrix4x4
         return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
     }
 
-    /// false if the matrix is singular, or if the inverse overflows (entries beyond about
-    /// 2^250, which only absurd parameters give)
+    /// false if the matrix is singular, if its determinant or inverse overflows, or if it has
+    /// a non-finite entry (only absurd parameters give these)
     bool inverse(Matrix4x4* invOut) const
     {
         double inv[16], det;
@@ -707,8 +708,9 @@ struct Matrix4x4
 
         det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
 
-        if (std::fabs(det) < DBL_MIN) {
-            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below)
+        if ( !(std::fabs(det) >= DBL_MIN && std::fabs(det) <= DBL_MAX) ) {
+            // singular, or subnormal: 1/det would be huge or overflow to inf (then 0*inf = NaN below);
+            // infinite or NaN: 1/det would be 0 or NaN, giving a wrong inverse
             return false;
         }
 
