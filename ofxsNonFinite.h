@@ -20,7 +20,8 @@
 
 /*
  * Comparison-only clamps for non-finite values, shared by the keyers (Keyer, ChromaKeyer, PIK,
- * Despill, Difference; issues #195 and #213), ofxsMaskMix.h and ofxsMerging.h.
+ * Despill, Difference; issues #195 and #213), ofxsMaskMix.h and ofxsMerging.h, and the pixel sample
+ * conversions of Keyer, ChromaKeyer, PIK, HueCorrect and Despill.
  *
  * NaN rule: no behaviour depends on detecting NaN (there is no isnan() test), every operation that
  * could produce NaN is guarded by checks on its inputs, and every finite value in range is
@@ -82,6 +83,24 @@ inline PIX
 finiteSample(PIX v)
 {
     return (maxValue == 1) ? PIX( clampToFloatRange<float>(v) ) : v;
+}
+
+// A pixel sample as a float, normalized to [0,1] for an integer sample (divided by maxValue); a
+// float sample (maxValue == 1) is unchanged, NaN and +-inf included.
+template<class PIX, int maxValue>
+inline float
+sampleToFloat(PIX value)
+{
+    return (maxValue == 1) ? value : (value / (float)maxValue);
+}
+
+// sampleToFloat, made finite (see clampToFloatRange): NaN gives 0, +-inf gives +-FLT_MAX, so that
+// the computations on the samples never see inf * 0 or inf - inf (issues #195, #213).
+template<class PIX, int maxValue>
+inline float
+finiteSampleToFloat(PIX value)
+{
+    return clampToFloatRange( sampleToFloat<PIX, maxValue>(value) );
 }
 } // namespace OFX
 
