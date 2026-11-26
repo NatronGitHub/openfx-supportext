@@ -38,11 +38,46 @@ private:
 
     bool isPointShown(int i, double /*time*/) const OVERRIDE { return i != 1 || pointCount() > 1; }
 
+    // an edit block that never throws (the Support library's EditBlock throws from its
+    // destructor if the host fails paramEditEnd)
+    class NoThrowEditBlock
+    {
+    public:
+        NoThrowEditBlock(OFX::ParamSet& params, const char* name, bool cond)
+            : _params(cond ? &params : NULL)
+        {
+            if (_params) {
+                try {
+                    _params->beginEditBlock(name);
+                } catch (...) {
+                    _params = NULL; // no block to end
+                }
+            }
+        }
+
+        ~NoThrowEditBlock()
+        {
+            if (_params) {
+                try {
+                    _params->endEditBlock();
+                } catch (...) {
+                }
+            }
+        }
+
+        NoThrowEditBlock(const NoThrowEditBlock&) = delete;
+        NoThrowEditBlock& operator=(const NoThrowEditBlock&) = delete;
+
+    private:
+        OFX::ParamSet* _params;
+    };
+
     void setPointValue(int i, double time, const OfxPointD& p, bool firstChange, bool dragEnd) OVERRIDE
     {
         // the bookkeeping shares the value change's edit block
-        OFX::ParamSet::EditBlock block(*_effect, "Move point", firstChange || dragEnd);
+        NoThrowEditBlock block(*_effect, "Move point", firstChange || dragEnd);
         OFX::PointsInteract::setPointValue(i, time, p, firstChange, dragEnd);
+        // ... the plug-in's bookkeeping, if firstChange || dragEnd
     }
 
     OFX::ImageEffect* _effect;
