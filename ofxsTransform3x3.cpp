@@ -58,6 +58,12 @@
 #include "ofxsTransform3x3Processor.h"
 #include "ofxsCoords.h"
 #include "ofxsShutter.h"
+#include "ofxsRGBAProcessing.h" // ofxsMaskRoDExcludesRenderWindow
+
+// the parameter ranges and default coordinate systems left to Support (DaVinci Resolve clamps params without a range)
+#ifndef OFXS_SUPPORT_HAS_SPEC_PARAM_DEFAULTS
+#error "SupportExt needs NatronGitHub openfx 96a53ac4 (2026-11-26, openfx #354) or later, whose Support library sets the spec param defaults"
+#endif
 
 
 #ifndef ENABLE_HOST_TRANSFORM
@@ -1160,26 +1166,11 @@ Transform3x3Plugin::isIdentity(const IsIdentityArguments &args,
             return true;
         }
 
-        bool doMasking = ( ( !_maskApply || _maskApply->getValueAtTime(args.time) ) && _maskClip && _maskClip->isConnected() );
-        if (doMasking) {
-            bool maskInvert = false;
-            if (_maskInvert) {
-                _maskInvert->getValueAtTime(args.time, maskInvert);
-            }
-            if (!maskInvert) {
-                OfxRectI maskRoD;
-                if (getImageEffectHostDescription()->supportsMultiResolution) {
-                    // In Sony Catalyst Edit, clipGetRegionOfDefinition returns the RoD in pixels instead of canonical coordinates.
-                    // In hosts that do not support multiResolution (e.g. Sony Catalyst Edit), all inputs have the same RoD anyway.
-                    Coords::toPixelEnclosing(_maskClip->getRegionOfDefinition(args.time), args.renderScale, _maskClip->getPixelAspectRatio(), &maskRoD);
-                    // effect is identity if the renderWindow doesn't intersect the mask RoD
-                    if ( !Coords::rectIntersection<OfxRectI>(args.renderWindow, maskRoD, 0) ) {
-                        identityClip = _srcClip;
+        // effect is identity if the render window doesn't intersect the (non-inverted) mask RoD
+        if ( ofxsMaskRoDExcludesRenderWindow(args, _maskClip, _maskApply, _maskInvert) ) {
+            identityClip = _srcClip;
 
-                        return true;
-                    }
-                }
-            }
+            return true;
         }
     }
 
@@ -1540,7 +1531,6 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
             DoubleParamDescriptor *param = desc.defineDoubleParam(kParamTransform3x3DirBlurAmount);
             param->setLabel(kParamTransform3x3DirBlurAmountLabel);
             param->setHint(kParamTransform3x3DirBlurAmountHint);
-            param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
             param->setDisplayRange(-1, 2.);
             param->setDefault(1);
             param->setAnimates(true); // can animate

@@ -25,6 +25,7 @@
 #ifndef IO_ofxsCopier_h
 #define IO_ofxsCopier_h
 
+#include <cstddef> // std::ptrdiff_t
 #include <cstring>
 #include <algorithm>
 
@@ -781,7 +782,8 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     unused(renderScale);
     assert(dstPixelData);
     // do the rendering
-    int dstRowElements = dstRowBytes / sizeof(PIX);
+    // signed division: rowBytes may be negative (bottom-up rows), and int / sizeof would convert it to unsigned
+    const int dstRowElements = dstRowBytes / static_cast<int>( sizeof(PIX) );
     int x1 = (std::max)(renderWindow.x1, dstBounds.x1);
     int x2 = (std::min)(renderWindow.x2, dstBounds.x2);
     int y1 = (std::max)(renderWindow.y1, dstBounds.y1);
@@ -789,7 +791,7 @@ fillBlackNTForDepth(const OfxRectI & renderWindow,
     if ( (x2 <= x1) || (y2 <= y1) ) {
         return;
     }
-    PIX* dstPixels = (PIX*)dstPixelData + (size_t)(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * dstPixelComponentCount;
+    PIX* dstPixels = (PIX*)dstPixelData + static_cast<std::ptrdiff_t>(y1 - dstBounds.y1) * dstRowElements + (x1 - dstBounds.x1) * dstPixelComponentCount;
     int rowElements = dstPixelComponentCount * (x2 - x1);
 
     for (int y = y1; y < y2; ++y, dstPixels += dstRowElements) {

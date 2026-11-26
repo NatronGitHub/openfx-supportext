@@ -51,6 +51,11 @@
 #include "ofxsTransform3x3.h"
 #include "ofxsPositionInteract.h"
 
+// the parameter ranges and default coordinate systems left to Support (DaVinci Resolve clamps params without a range)
+#ifndef OFXS_SUPPORT_HAS_SPEC_PARAM_DEFAULTS
+#error "SupportExt needs NatronGitHub openfx 96a53ac4 (2026-11-26, openfx #354) or later, whose Support library sets the spec param defaults"
+#endif
+
 using namespace OFX;
 
 #define SCALE_MAX 10000.
@@ -82,7 +87,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         ofxsSetDefaultCoordinateSystemNormalised(*param); // OFX 1.1 hosts: see ofxsTransformDenormaliseDefaults()
         //param->setDimensionLabels("x","y");
         param->setDefault(0, 0);
-        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(10.);
         if (group) {
@@ -100,7 +104,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         param->setHint(kParamTransformRotateHint);
         param->setDoubleType(eDoubleTypeAngle);
         param->setDefault(0);
-        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-180, 180);
         param->setIncrement(0.1);
         if (group) {
@@ -153,7 +156,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         param->setLabel(kParamTransformSkewXLabel);
         param->setHint(kParamTransformSkewXHint);
         param->setDefault(0);
-        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-1., 1.);
         param->setIncrement(0.01);
         if (group) {
@@ -170,7 +172,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         param->setLabel(kParamTransformSkewYLabel);
         param->setHint(kParamTransformSkewYHint);
         param->setDefault(0);
-        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-1., 1.);
         param->setIncrement(0.01);
         if (group) {
@@ -205,7 +206,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         param->setHint(kParamTransformAmountHint);
         param->setDoubleType(eDoubleTypeScale);
         param->setDefault(1.);
-        param->setRange(-DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(0., 1.);
         param->setIncrement(0.01);
         if (group) {
@@ -226,7 +226,6 @@ ofxsTransformDescribeParams(ImageEffectDescriptor &desc,
         param->setDoubleType(eDoubleTypeXYAbsolute);
         ofxsSetDefaultCoordinateSystemNormalised(*param); // OFX 1.1 hosts: see ofxsTransformDenormaliseDefaults()
         param->setDefault(0.5, 0.5);
-        param->setRange(-DBL_MAX, -DBL_MAX, DBL_MAX, DBL_MAX); // Resolve requires range and display range or values are clamped to (-1,1)
         param->setDisplayRange(-10000, -10000, 10000, 10000); // Resolve requires display range or values are clamped to (-1,1)
         param->setIncrement(1.);
         param->setLayoutHint(eLayoutHintNoNewLine, 1);

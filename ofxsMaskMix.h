@@ -124,7 +124,7 @@ ofxsMaskGetRoDPixel(OFX::Clip* maskClip,
                     OFX::FieldEnum fieldToRender = OFX::eFieldNone)
 {
     bool doMasking = ( ( !maskApply || maskApply->getValueAtTime(time) ) && maskClip && maskClip->isConnected() );
-    if ( !doMasking || maskInvert->getValueAtTime(time) ) {
+    if ( !doMasking || ( maskInvert && maskInvert->getValueAtTime(time) ) ) {
         return false;
     }
     OfxPointD scale = renderScale;
