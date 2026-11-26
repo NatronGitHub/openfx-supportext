@@ -35,7 +35,7 @@
 
 // the parameter ranges and default coordinate systems left to Support (DaVinci Resolve clamps params without a range)
 #ifndef OFXS_SUPPORT_HAS_SPEC_PARAM_DEFAULTS
-#error "SupportExt needs the NatronGitHub openfx Support library that sets the spec param defaults (openfx #354)"
+#error "SupportExt needs NatronGitHub openfx 96a53ac4 (2026-11-26, openfx #354) or later, whose Support library sets the spec param defaults"
 #endif
 
 // Some hosts (e.g. Resolve) may not support normalized defaults (setDefaultCoordinateSystem(eCoordinatesNormalised))
