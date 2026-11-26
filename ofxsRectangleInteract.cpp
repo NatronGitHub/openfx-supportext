@@ -885,11 +885,13 @@ RectangleInteract::getBtmLeft(OfxTime time) const
 
 // Which sides of the rectangle a handle moves: -1 the left (bottom) side, +1 the right (top)
 // side, 0 neither (the width, or height, doesn't change).
+namespace {
 struct DraggedSides
 {
     int x;
     int y;
 };
+} // namespace
 
 static DraggedSides
 draggedSides(RectangleInteract::MouseStateEnum mouseState)

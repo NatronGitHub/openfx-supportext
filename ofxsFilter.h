@@ -71,7 +71,8 @@ enum FilterEnum
 };
 
 // Which filters a Filter parameter lists (ofxsFilterDescribeParamsInterpolate2D): the sinc-based ones
-// are appended to the list of the plug-ins that render them.
+// are appended to the list of the plug-ins that render them. With Transform3x3DescribeInContextEnd(),
+// eFilterSetSinc also adds the Prefilter Downscaling checkbox.
 enum FilterSetEnum
 {
     eFilterSetCubic = 0, // Impulse to Notch

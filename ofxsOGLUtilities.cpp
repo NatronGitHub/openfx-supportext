@@ -27,6 +27,7 @@
 
 #include "ofxsOGLFunctions.h"
 
+#include <cstdlib> // std::getenv
 #include <mutex>
 
 // a std::mutex, not the host's multithread suite mutex: some hosts have none (e.g. Sony Catalyst
@@ -52,8 +53,8 @@ ofxsLoadOpenGLOnce()
     // Note: It does NOT check that required extensions and functions have actually been found
 #if !defined(_WIN32) && !defined(__CYGWIN__) && !defined(__APPLE__) && !defined(__HAIKU__)
     bool glLoaded = false;
-    const char *onWayland = getenv("WAYLAND_DISPLAY");
-    const char *disableWayland = getenv("NATRON_DISABLE_WAYLAND");
+    const char *onWayland = std::getenv("WAYLAND_DISPLAY");
+    const char *disableWayland = std::getenv("NATRON_DISABLE_WAYLAND");
     if (onWayland && onWayland[0] != '\0' && !disableWayland) {
         glLoaded = gladLoadEGL();
     } else {
