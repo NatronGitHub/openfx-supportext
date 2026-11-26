@@ -27,6 +27,7 @@
 #                       header-only overlay code (OverlayDraw::bitmapString,
 #                       ofxsPositionInteract.h): links OpenGL::GL (+ TEXT)
 #   POSITION_INTERACT   same as OVERLAY, for plug-ins using ofxsPositionInteract.h
+#                       (PositionInteract, PointsInteract)
 #   TRANSFORM_INTERACT  ofxsTransformInteract.cpp
 #   RECTANGLE_INTERACT  ofxsRectangleInteract.cpp
 #   GENERATOR           ofxsGenerator.cpp (+ RECTANGLE_INTERACT)

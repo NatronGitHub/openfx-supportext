@@ -121,7 +121,7 @@
  * every translation unit (the plugins and the SupportExt sources), never a
  * #define in a source file: this rule is what guarantees correct drawing.
  * Mixing values is an ODR violation, and some inline functions that depend on
- * the value (e.g. the draw() of template interacts such as PositionInteract,
+ * the value (e.g. PointsInteract::draw(), the draw() of PositionInteract,
  * or the V2 descriptor classes of the SupportExt headers) may then be linked
  * with either variant. The rest only limits the damage: the macro-dependent
  * helpers and OverlayDraw live in an inline namespace named after the value
