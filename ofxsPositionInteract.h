@@ -181,7 +181,16 @@ public:
                 h.interactive = effect->fetchBooleanParam(it->interactiveName);
                 assert(h.interactive);
             }
+#ifdef OFXS_SUPPORT_HAS_PARAM_USE_HOST_OVERLAY_HANDLE
+            // the host draws the handle if the plug-in asked for it at describe time: OFX 1.5.1
+            // defines kOfxParamPropUseHostOverlayHandle on instances (read only), and
+            // kOfxParamPropHasHostOverlayHandle on descriptors only
+            h.hostHandle = h.param->getUseHostNativeOverlayHandle();
+#else
+            // older openfx Support has no instance getter for kOfxParamPropUseHostOverlayHandle;
+            // this reads kOfxParamPropHasHostOverlayHandle, which Natron also sets on instances
             h.hostHandle = h.param->getHostHasNativeOverlayHandle();
+#endif
             _points.push_back(h);
         }
         if ( effect->paramExists(kParamHiDPI) ) {
