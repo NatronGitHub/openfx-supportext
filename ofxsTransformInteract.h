@@ -243,6 +243,10 @@ protected:
 private:
     void getTransformParams(double time, TransformParams& tp);
 
+    /// Set the six params of a drag, in one EditBlock: penMotion with Interactive Update,
+    /// penUp without.
+    void setTransformParams(const TransformParams& tp);
+
     /// The cursor for the current drag or hover state, or NULL if the pen is
     /// not over a handle.
     const char* cursorName(const TransformParams& tp, const OfxPointD& targetCenter, const OfxPointD& penPos, const OfxPointD& pscale) const;

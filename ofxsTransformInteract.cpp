@@ -431,6 +431,26 @@ TransformInteractHelper::getTransformParams(double time, TransformParams& tp)
     }
 }
 
+// As in Nuke: a drag sets translate, rotate, scale, skew and center together (so that, with
+// animated params, they all get a key at the current time), not skew order or invert. The scale
+// is the one that renders (ofxsTransformGetScale: with Uniform, the X scale for both).
+void
+TransformInteractHelper::setTransformParams(const TransformParams& tp)
+{
+    OfxPointD scale;
+
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
+    ImageEffect::EditBlock eb(*_effect, "Set Transform");
+    _center->setValue(tp.center.x, tp.center.y);
+    if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
+        _translate->setValue(tp.translate.x, tp.translate.y);
+    }
+    _scale->setValue(scale.x, scale.y);
+    _rotate->setValue(tp.rotate);
+    _skewX->setValue(tp.skewX);
+    _skewY->setValue(tp.skewY);
+}
+
 static void
 getTargetCenter(const OfxPointD &center,
                 const OfxPointD &translate,
@@ -1507,19 +1527,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-
-        // As in Nuke, and as penUp does: a drag sets translate, rotate, scale, skew and center
-        // together (so that, with animated params, they all get a key at the current time), not
-        // skew order or invert.
-        ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        _center->setValue(tp.center.x, tp.center.y);
-        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
-            _translate->setValue(tp.translate.x, tp.translate.y);
-        }
-        _scale->setValue(tp.scale.x, tp.scale.y);
-        _rotate->setValue(tp.rotate);
-        _skewX->setValue(tp.skewX);
-        _skewY->setValue(tp.skewY);
+        setTransformParams(tp);
     } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
     }
@@ -1654,18 +1662,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
     } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && ret ) {
-        const TransformParams& tp = _tpDrag;
-        OfxPointD scale;
-        ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
-        ImageEffect::EditBlock eb(*_effect, "Set Transform");
-        _center->setValue(tp.center.x, tp.center.y);
-        if (_translate) { // optional: absent with noTranslate (e.g. GodRays, openfx-arena Text)
-            _translate->setValue(tp.translate.x, tp.translate.y);
-        }
-        _scale->setValue(scale.x, scale.y);
-        _rotate->setValue(tp.rotate);
-        _skewX->setValue(tp.skewX);
-        _skewY->setValue(tp.skewY);
+        setTransformParams(_tpDrag);
     }
     
     if (ret) {
