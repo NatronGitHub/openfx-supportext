@@ -27,20 +27,11 @@
 
 #include "ofxsOGLFunctions.h"
 
-#include "ofxsMultiThread.h"
-#ifndef OFX_USE_MULTITHREAD_MUTEX
-// some OFX hosts do not have mutex handling in the MT-Suite (e.g. Sony Catalyst Edit)
 #include <mutex>
-#endif
-#ifdef OFX_USE_MULTITHREAD_MUTEX
-typedef OFX::MultiThread::Mutex Mutex;
-typedef OFX::MultiThread::AutoMutex AutoMutex;
-#else
-typedef std::mutex Mutex;
-typedef OFX::MultiThread::AutoMutexT<std::mutex> AutoMutex;
-#endif
 
-static Mutex g_glLoadOnceMutex;
+// a std::mutex, not the host's multithread suite mutex: some hosts have none (e.g. Sony Catalyst
+// Edit), and this one is created before any suite is fetched
+static std::mutex g_glLoadOnceMutex;
 static bool g_glLoaded = false;
 
 namespace OFX {
@@ -48,7 +39,7 @@ bool
 ofxsLoadOpenGLOnce()
 {
     // Ensure that OpenGL functions loading is thread-safe
-    AutoMutex locker(&g_glLoadOnceMutex);
+    std::lock_guard<std::mutex> locker(g_glLoadOnceMutex);
 
     if (g_glLoaded) {
         // Already loaded, don't do it again
