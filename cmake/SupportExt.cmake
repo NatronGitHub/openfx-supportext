@@ -35,6 +35,8 @@
 #   OGL_FUNCTIONS       ofxsOGLFunctions_gl.cpp (the GL_GPU function table, + glad)
 #   EGL                 glad/gladegl.cpp, the EGL loader (links ${CMAKE_DL_LIBS}); it is
 #                       an empty file on Windows, Cygwin, macOS and Haiku
+#   OPENMP              ofxsOpenMP.cpp, OFX::ofxsPinOpenMPRuntime() (links ${CMAKE_DL_LIBS});
+#                       compiled with <target>'s OpenMP flags, a no-op without OpenMP
 # Options:
 #   ALL     every component above, plus OPENGL (not OSMESA)
 #   OPENGL  the OpenGL loader: glad/glad.cpp ofxsOGLUtilities.cpp, plus EGL, which
@@ -51,7 +53,7 @@
 # Linking:
 # - the components that call OpenGL (TEXT, the overlays and interacts, OPENGL,
 #   OGL_FUNCTIONS) link OpenGL::GL (find_package(OpenGL));
-# - glad and EGL link ${CMAKE_DL_LIBS}, THREADS links Threads::Threads;
+# - glad, EGL and OPENMP link ${CMAKE_DL_LIBS}, THREADS links Threads::Threads;
 # - if the target openfx::Support exists when supportext_add_sources() is called
 #   (openfx's CMake: add_subdirectory(openfx) or find_package(openfx) before the
 #   call), <target> is linked with it, which also brings the openfx include
@@ -209,7 +211,7 @@ function(supportext_add_sources TARGET)
   # (see above for the imported targets it links).
   set(_components THREADS FILEOPEN LUT MULTIPLANE SHUTTER TRANSFORM3X3 TEXT OVERLAY
       POSITION_INTERACT TRANSFORM_INTERACT RECTANGLE_INTERACT GENERATOR RAMP TRACKING
-      OGL_FUNCTIONS EGL)
+      OGL_FUNCTIONS EGL OPENMP)
   set(_internal GLAD OPENGL OSMESA)
   set(_THREADS_SOURCES            ofxsThreadSuite.cpp)
   set(_FILEOPEN_SOURCES           ofxsFileOpen.cpp)
@@ -236,10 +238,11 @@ function(supportext_add_sources TARGET)
   set(_OPENGL_DEPENDS             GLAD EGL)
   set(_EGL_SOURCES                glad/gladegl.cpp)
   set(_OSMESA_SOURCES             ofxsOGLFunctions_mesa.cpp)
+  set(_OPENMP_SOURCES             ofxsOpenMP.cpp)
   # components that call OpenGL, or use dlopen (glad, EGL)
   set(_gl_components TEXT OVERLAY POSITION_INTERACT TRANSFORM_INTERACT RECTANGLE_INTERACT
       GENERATOR RAMP TRACKING GLAD OGL_FUNCTIONS OPENGL)
-  set(_dl_components GLAD EGL)
+  set(_dl_components GLAD EGL OPENMP)
 
   if(SX_ALL)
     list(APPEND _todo ${_components} OPENGL)
