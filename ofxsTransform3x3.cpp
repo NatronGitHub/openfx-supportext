@@ -748,10 +748,11 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
-    // We want the RoD to be the same as the src RoD when we are identity. With motion blur, the
-    // RoD is the blurred one (transformRegion), which the render fills like any other transform.
-    const bool hasmotionblur = ( (shutter != 0. || directionalBlur) && motionblur != 0. ); // as transformRegion
-    if (!identity || hasmotionblur) {
+    // We want the RoD to be the same as the src RoD when we are identity. With a shutter motion
+    // blur, transformRegion returns the blurred RoD even then, which the render fills like any other
+    // transform (with directional blur, it returns the source RoD at identity).
+    const bool shutterBlurred = (shutter != 0. && !directionalBlur && motionblur != 0.);
+    if (!identity || shutterBlurred) {
         bool blackOutside = false;
         if (_blackOutside) {
             _blackOutside->getValueAtTime(time, blackOutside);
