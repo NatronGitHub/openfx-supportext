@@ -839,7 +839,10 @@ divideFunc(PIX A,
         return 0;
     }
 
-    return A / B;
+    // in double, converted by mergeDoubleToPIX: the float quotient of a tiny B (e.g. a denormal)
+    // overflowed to +-inf. The double quotient of two floats rounded to float is the float
+    // quotient, so every finite result is unchanged (and an integer quotient is truncated as before).
+    return mergeDoubleToPIX<PIX>(A / (double)B);
 }
 
 // https://www.w3.org/TR/compositing-1/#blendingexclusion
@@ -848,7 +851,19 @@ PIX
 exclusionFunc(PIX A,
               PIX B)
 {
-    return mergeDoubleToPIX<PIX>(A + B - 2 * A * B / (double)maxValue);
+    // In float, A + B, 2 * A or 2 * A * B overflows for huge inputs (mergePixel clamps an infinite
+    // input to FLT_MAX), which gave +-inf or NaN (A = FLT_MAX, B = 0: 2 * A * B = inf * 0). Only then
+    // (tested on the exact double values against the float overflow threshold, with comparisons
+    // only, as in mergeAlphaUnion) is it computed in double; otherwise the original expression is
+    // used, so every result that was finite is unchanged. A NaN falls through.
+    const double s = std::fabs( (double)A + (double)B ); // exact, or correctly rounded far from the threshold
+    const double a2 = std::fabs( 2. * (double)A ); // exact
+    const double p = std::fabs( 2. * (double)A * (double)B ); // exact
+    if ( !( (s >= kOfxsFloatOverflow) || (a2 >= kOfxsFloatOverflow) || (p >= kOfxsFloatOverflow) ) ) {
+        return mergeDoubleToPIX<PIX>(A + B - 2 * A * B / (double)maxValue);
+    }
+
+    return mergeDoubleToPIX<PIX>( (double)A + (double)B - 2. * (double)A * (double)B / maxValue );
 }
 
 template <typename PIX>
@@ -911,7 +926,10 @@ hardLightFunc(PIX A,
     if ( 2 * A < maxValue ) {
         return multiplyFunc<PIX,maxValue>(2*A, B);
     } else {
-        return screenFunc<PIX,maxValue>(2*A-maxValue, B);
+        // 2 * A overflows to +inf for A >= FLT_MAX / 2 (mergePixel clamps an infinite input to
+        // FLT_MAX), and screen gave inf + B - inf * B = NaN for B in [0, 1]: make it finite
+        // (+FLT_MAX, comparisons only). Every finite 2 * A - maxValue is unchanged.
+        return screenFunc<PIX,maxValue>(mergeFiniteInput<PIX>(2*A-maxValue), B);
     }
 }
 
