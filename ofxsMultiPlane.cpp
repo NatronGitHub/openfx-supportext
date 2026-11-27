@@ -983,7 +983,7 @@ MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 
     // By default set the clip preferences according to what is selected with the output plane selector.
     for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
-        if (!it->second.isOutput) {
+        if (!it->second.isOutput || it->second.clips.empty()) {
             continue;
         }
         MultiPlane::ImagePlaneDesc dstPlane;
@@ -1030,12 +1030,19 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedAllPlanes) {
             continue;
         }
-        std::set<std::string>& availablePlanes = clipMap[clip];
+        if (!clip) {
+            // The "None" option of a plane selector returns no clip
+            continue;
+        }
+        // A plane without components (e.g. "None") is not a plane the host can fetch
+        if (plane.getNumComponents() > 0) {
+            std::set<std::string>& availablePlanes = clipMap[clip];
 
-        std::string ofxComponentsStr = MultiPlane::ImagePlaneDesc::mapPlaneToOFXPlaneString(plane);
-        std::pair<std::set<std::string>::iterator, bool> ret = availablePlanes.insert(ofxComponentsStr);
-        if (ret.second) {
-            clipComponents.addClipPlane(*clip, ofxComponentsStr);
+            std::string ofxComponentsStr = MultiPlane::ImagePlaneDesc::mapPlaneToOFXPlaneString(plane);
+            std::pair<std::set<std::string>::iterator, bool> ret = availablePlanes.insert(ofxComponentsStr);
+            if (ret.second) {
+                clipComponents.addClipPlane(*clip, ofxComponentsStr);
+            }
         }
 
         // Set the pass-through clip to the first encountered source clip
