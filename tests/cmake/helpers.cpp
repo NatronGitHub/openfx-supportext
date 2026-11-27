@@ -23,3 +23,11 @@ void sxTestDenormalise(OFX::ImageEffect& effect, OFX::BooleanParam* centerChange
 {
     OFX::ofxsTransformDenormaliseDefaults(effect, true, centerChanged);
 }
+
+#include "ofxsCurves.h"
+
+double sxTestSoftEdge(double t)
+{
+    return OFX::ofxsCurve(OFX::OfxsCurveEnum::eSmooth, t) + OFX::ofxsFalloff(OFX::OfxsCurveEnum::eSmooth0, t)
+           + OFX::ofxsSoftEdgeWeight(OFX::OfxsCurveEnum::eQuadratic, t, 1., 0.5);
+}

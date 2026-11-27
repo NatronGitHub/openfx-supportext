@@ -35,6 +35,7 @@
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
 #include "ofxsOverlayDraw.h"
+#include "ofxsCurves.h"
 
 #define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
@@ -252,65 +253,28 @@ class RampOverlayDescriptorOldParamsV2
 };
 
 
+// the curve of a ramp type (eRampTypeNone has none: its value is always 1)
+constexpr OfxsCurveEnum
+ofxsRampCurve(RampTypeEnum type)
+{
+    return (type == eRampTypePLinear) ? OfxsCurveEnum::ePLinear :
+           (type == eRampTypeEaseIn) ? OfxsCurveEnum::eSmooth0 :
+           (type == eRampTypeEaseOut) ? OfxsCurveEnum::eSmooth1 :
+           (type == eRampTypeSmooth) ? OfxsCurveEnum::eSmooth :
+           OfxsCurveEnum::eLinear;
+}
+
+// the ramp curves are those of http://www.comp-fu.com/2012/01/nukes-smooth-ramp-functions/
+// (see OfxsCurveEnum); t is clamped to [0, 1], and a NaN t stays NaN
 template<RampTypeEnum type>
 double
 ofxsRampFunc(double t)
 {
-    if ( (t >= 1.) || (type == eRampTypeNone) ) {
-        t = 1.;
-    } else if (t <= 0) {
-        t = 0.;
-    } else {
-        // from http://www.comp-fu.com/2012/01/nukes-smooth-ramp-functions/
-        // linear
-        //y = x
-        // plinear: perceptually linear in rec709
-        //y = pow(x, 3)
-        // smooth: traditional smoothstep
-        //y = x*x*(3 - 2*x)
-        // smooth0: Catmull-Rom spline, smooth start, linear end
-        //y = x*x*(2 - x)
-        // smooth1: Catmull-Rom spline, linear start, smooth end
-        //y = x*(1 + x*(1 - x))
-        switch (type) {
-        case eRampTypeLinear:
-            break;
-        case eRampTypePLinear:
-            // plinear: perceptually linear in rec709
-            t = t * t * t;
-            break;
-        case eRampTypeEaseIn:
-            //t *= t; // old version, end of curve is too sharp
-            // smooth0: Catmull-Rom spline, smooth start, linear end
-            t = t * t * (2 - t);
-            break;
-        case eRampTypeEaseOut:
-            //t = - t * (t - 2); // old version, start of curve is too sharp
-            // smooth1: Catmull-Rom spline, linear start, smooth end
-            t = t * ( 1 + t * (1 - t) );
-            break;
-        case eRampTypeSmooth:
-            /*
-               t *= 2.;
-               if (t < 1) {
-               t = t * t / (2.);
-               } else {
-               --t;
-               t =  -0.5 * (t * (t - 2) - 1);
-               }
-             */
-            // smooth: traditional smoothstep
-            t = t * t * (3 - 2 * t);
-            break;
-        case eRampTypeNone:
-            t = 1.;
-            break;
-        default:
-            break;
-        }
+    if (type == eRampTypeNone) {
+        return 1.;
     }
 
-    return t;
+    return ofxsCurve(ofxsRampCurve(type), t);
 } // ofxsRampFunc
 
 template<RampTypeEnum type>
