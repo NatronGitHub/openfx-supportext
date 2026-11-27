@@ -418,7 +418,8 @@ public:
     PixelCopierUnPremult(OFX::ImageEffect &instance)
         : OFX::PixelProcessorFilterBase(instance)
     {
-        assert( (srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 3 || dstNComponents == 4) );
+        // Alpha (1 component) is also supported: its alpha is copied
+        assert( (srcNComponents == 1 || srcNComponents == 3 || srcNComponents == 4) && (dstNComponents == 1 || dstNComponents == 3 || dstNComponents == 4) );
     }
 
     // and do some processing
@@ -494,7 +495,9 @@ public:
                 } else {
                     ofxsUnPremult<SRCPIX, srcNComponents, srcMaxValue>(srcPix, unpPix, _premult, _premultChannel);
                     for (int c = 0; c < dstNComponents; ++c) {
-                        float v = unpPix[c] * dstMaxValue;
+                        // the only component of an Alpha image is the alpha, in unpPix[3]
+                        // (unpPix[0] is 0 for an Alpha source)
+                        float v = unpPix[(dstNComponents == 1) ? 3 : c] * dstMaxValue;
                         dstPix[c] = ofxsClampIfInt<DSTPIX, dstMaxValue>(v, 0, dstMaxValue);
                     }
                 }
