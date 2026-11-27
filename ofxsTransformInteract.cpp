@@ -1232,6 +1232,71 @@ TransformInteractHelper::updateCursor(const TransformParams& tp,
     _cursor.set(_interact, name);
 }
 
+// A center drag with a translate param (Transform, DirBlur; not GodRays) moves the translate
+// too, so that the image stays in place: the overlay is drawn on the transformed image. R maps
+// a pen motion to the center motion. Not with a zero (or denormal) scale, which collapses the
+// transformed image (1/0, then inf*0 = NaN in R); FLT_MIN is the limit used by
+// ofxsMatInverseTransformCanonical.
+static bool
+centerDragCompensation(const TransformParams& tp,
+                       bool hasTranslate,
+                       Matrix3x3* R)
+{
+    OfxPointD scale;
+
+    ofxsTransformGetScale(tp.scale, tp.scaleUniform, &scale);
+    if ( !hasTranslate || (std::fabs(scale.x) < FLT_MIN) || (std::fabs(scale.y) < FLT_MIN) ) {
+        return false;
+    }
+    *R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-tp.skewX, -tp.skewY, !tp.skewOrder) * ofxsMatRotation( ofxsToRadians(tp.rotate) );
+
+    return true;
+}
+
+// The translate change that keeps the image in place when the center moves by (dxrot, dyrot):
+// translate += Rinv * (dxrot, dyrot) - (dxrot, dyrot)
+static void
+compensateCenterMove(const Matrix3x3& Rinv,
+                     double dxrot,
+                     double dyrot,
+                     OfxPointD* translate)
+{
+    Point3D dRot;
+
+    dRot.x = dxrot;
+    dRot.y = dyrot;
+    dRot.z = 1;
+    dRot = Rinv * dRot;
+    if (dRot.z != 0) {
+        dRot.x /= dRot.z;
+        dRot.y /= dRot.z;
+    }
+    translate->x += dRot.x - dxrot;
+    translate->y += dRot.y - dyrot;
+}
+
+TransformParams
+TransformInteractHelper::roundedDragParams(const OfxPointD& pscale) const
+{
+    TransformParams tp = _tpDrag;
+
+    // round to the closest int, 1/10 int, etc: this makes parameter editing easier
+    if (_mouseState == eDraggingTranslation) {
+        tp.translate.x = fround(tp.translate.x, pscale.x);
+        tp.translate.y = fround(tp.translate.y, pscale.y);
+    } else if (_mouseState == eDraggingCenter) {
+        tp.center.x = fround(tp.center.x, pscale.x);
+        tp.center.y = fround(tp.center.y, pscale.y);
+        // the translate compensates the rounded center move, so that the image stays in place
+        Matrix3x3 R, Rinv;
+        if ( centerDragCompensation(tp, _translate != NULL, &R) && R.inverse(&Rinv) ) {
+            compensateCenterMove(Rinv, tp.center.x - _tpDrag.center.x, tp.center.y - _tpDrag.center.y, &tp.translate);
+        }
+    }
+
+    return tp;
+}
+
 bool
 TransformInteractHelper::penMotion(const PenArgs &args)
 {
@@ -1403,25 +1468,13 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
         dx = _orientation == eOrientationVertical ? 0 : dx;
         dy = _orientation == eOrientationHorizontal ? 0 : dy;
-        double newx = tp.translate.x + dx;
-        double newy = tp.translate.y + dy;
-        // round newx/y to the closest int, 1/10 int, etc
-        // this make parameter editing easier
-        newx = fround(newx, pscale.x);
-        newy = fround(newy, pscale.y);
-        tp.translate.x = newx;
-        tp.translate.y = newy;
+        // unrounded: only the copy written to the params is rounded (roundedDragParams)
+        tp.translate.x += dx;
+        tp.translate.y += dy;
         valuesChanged = true;
     } else if (_mouseState == eDraggingCenter) {
-        OfxPointD currentCenter = tp.center;
-        // with a _translate param, the center motion is compensated for the transform; not with
-        // a zero (or denormal) scale, which collapses the transformed image (1/0, then inf*0 = NaN
-        // in R); FLT_MIN is the limit used by ofxsMatInverseTransformCanonical
-        const bool compensate = _translate && (std::fabs(scale.x) >= FLT_MIN) && (std::fabs(scale.y) >= FLT_MIN);
         Matrix3x3 R;
-        if (compensate) {
-            R = ofxsMatScale(1. / scale.x, 1. / scale.y) * ofxsMatSkewXY(-tp.skewX, -tp.skewY, !tp.skewOrder) * ofxsMatRotation(rot);
-        }
+        const bool compensate = centerDragCompensation(tp, _translate != NULL, &R);
         double dx = args.penPosition.x - _lastMousePos.x;
         double dy = args.penPosition.y - _lastMousePos.y;
 
@@ -1452,37 +1505,14 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             dxrot = dRot.x;
             dyrot = dRot.y;
         }
-        double newx = currentCenter.x + dxrot;
-        double newy = currentCenter.y + dyrot;
-        // round newx/y to the closest int, 1/10 int, etc
-        // this make parameter editing easier
-        newx = fround(newx, pscale.x);
-        newy = fround(newy, pscale.y);
-        tp.center.x = newx;
-        tp.center.y = newy;
+        // unrounded: only the copy written to the params is rounded (roundedDragParams)
+        tp.center.x += dxrot;
+        tp.center.y += dyrot;
         valuesChanged = true;
         if (compensate) {
-            // recompute dxrot,dyrot after rounding
             Matrix3x3 Rinv;
             if ( R.inverse(&Rinv) ) {
-                dxrot = newx - currentCenter.x;
-                dyrot = newy - currentCenter.y;
-                Point3D dRot;
-                dRot.x = dxrot;
-                dRot.y = dyrot;
-                dRot.z = 1;
-                dRot = Rinv * dRot;
-                if (dRot.z != 0) {
-                    dRot.x /= dRot.z;
-                    dRot.y /= dRot.z;
-                }
-                dx = dRot.x;
-                dy = dRot.y;
-                OfxPointD newTranslation;
-                newTranslation.x = tp.translate.x + dx - dxrot;
-                newTranslation.y = tp.translate.y + dy - dyrot;
-                tp.translate = newTranslation;
-                valuesChanged = true;
+                compensateCenterMove(Rinv, dxrot, dyrot, &tp.translate);
             }
         }
     } else if (_mouseState == eDraggingRotationBar) {
@@ -1522,7 +1552,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
         // no need to redraw overlay since it is slave to the paramaters
-        setTransformParams(tp);
+        setTransformParams( roundedDragParams(pscale) );
     } else if (redraw || valuesChanged) {
         _interact->requestRedraw();
     }
@@ -1657,7 +1687,7 @@ TransformInteractHelper::penUp(const PenArgs &args)
     } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && ret ) {
-        setTransformParams(_tpDrag);
+        setTransformParams( roundedDragParams(args.pixelScale) );
     }
     
     if (ret) {

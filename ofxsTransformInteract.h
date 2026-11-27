@@ -213,7 +213,7 @@ protected:
     ImageEffect* _effect;
     Interact* _interact;
     OfxPointD _lastMousePos;
-    TransformParams _tpDrag;
+    TransformParams _tpDrag; // the dragged values, unrounded (see roundedDragParams)
     bool _interactiveDrag;
 
 public:
@@ -252,6 +252,12 @@ private:
     /// Set the six params of a drag, in one EditBlock: penMotion with Interactive Update,
     /// penUp without.
     void setTransformParams(const TransformParams& tp);
+
+    /// The copy of the drag values (_tpDrag) that a drag writes to the params: the translate of
+    /// a translate drag, or the center of a center drag (with the translate that compensates
+    /// it), rounded to the pixel scale's power of 10. The drag keeps the unrounded values, so
+    /// that the rounding errors don't add up over the pen motions, as in RectangleInteract.
+    TransformParams roundedDragParams(const OfxPointD& pscale) const;
 
     /// The cursor for the current drag or hover state, or NULL if the pen is
     /// not over a handle.
