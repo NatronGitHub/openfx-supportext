@@ -34,18 +34,27 @@
 #include "ofxsMacros.h" // OFXS_PI
 
 namespace OFX {
-// 2^n for 0 <= n < max_exponent, at compile time (std::ldexp is constexpr only from C++23);
-// exact, since doubling is exact in that range
+// 2^n for 0 <= n < max_exponent, at compile time (std::ldexp is constexpr only from C++23), by
+// squaring; exact, since every factor is a power of 2 in that range (b is squared only while a
+// higher bit of n remains, so it never overflows)
 constexpr double
 ofxsPow2(int n)
 {
     double r = 1.;
-    for (int i = 0; i < n; ++i) {
-        r *= 2.;
+    double b = 2.;
+    for (; n > 0; n >>= 1) {
+        if (n & 1) {
+            r *= b;
+        }
+        if (n > 1) {
+            b *= b;
+        }
     }
 
     return r;
 }
+static_assert(ofxsPow2(0) == 1. && ofxsPow2(1) == 2. && ofxsPow2(10) == 1024. && ofxsPow2(53) == 9007199254740992.,
+              "ofxsPow2 must give exact powers of 2");
 
 // pi (OFXS_PI), as a function for the existing callers
 constexpr double
