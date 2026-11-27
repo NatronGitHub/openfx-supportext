@@ -172,18 +172,20 @@ ofxsFilterDescribeParamsInterpolate2D(OFX::ImageEffectDescriptor &desc,
     }
 } // ofxsFilterDescribeParamsInterpolate2D
 
-// The Prefilter Downscaling checkbox (kParamFilterPrefilter), off by default, for the plug-ins whose render
-// uses ofxsFilterInterpolate2DPrefilter(): define it right after ofxsFilterDescribeParamsInterpolate2D()
-// (after Black Outside), so that the parameters that Nuke also has keep its order (Nuke has no such knob).
+// The Prefilter Downscaling checkbox (kParamFilterPrefilter), off by default unless defaultValue, for the
+// plug-ins whose render uses ofxsFilterInterpolate2DPrefilter(): define it right after
+// ofxsFilterDescribeParamsInterpolate2D() (after Black Outside), so that the parameters that Nuke also has
+// keep its order (Nuke has no such knob).
 inline
 void
 ofxsFilterDescribeParamPrefilter(OFX::ImageEffectDescriptor &desc,
-                                 OFX::PageParamDescriptor *page)
+                                 OFX::PageParamDescriptor *page,
+                                 bool defaultValue = false)
 {
     OFX::BooleanParamDescriptor* param = desc.defineBooleanParam(kParamFilterPrefilter);
     param->setLabel(kParamFilterPrefilterLabel);
     param->setHint(kParamFilterPrefilterHint);
-    param->setDefault(false);
+    param->setDefault(defaultValue);
     param->setAnimates(true);
     if (page) {
         page->addChild(*param);
