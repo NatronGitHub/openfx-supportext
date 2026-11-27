@@ -35,6 +35,7 @@
 #include "ofxsOGLHiDPI.h"
 #include "ofxsInteractCursor.h"
 #include "ofxsOverlayDraw.h"
+#include "ofxsSoftEdge.h"
 
 #define kParamRampPoint0 "rampPoint0"
 #define kParamRampPoint0Label "Point 0"
@@ -282,12 +283,12 @@ ofxsRampFunc(double t)
         case eRampTypeEaseIn:
             //t *= t; // old version, end of curve is too sharp
             // smooth0: Catmull-Rom spline, smooth start, linear end
-            t = t * t * (2 - t);
+            t = ofxsSmooth0InUnit(t);
             break;
         case eRampTypeEaseOut:
             //t = - t * (t - 2); // old version, start of curve is too sharp
             // smooth1: Catmull-Rom spline, linear start, smooth end
-            t = t * ( 1 + t * (1 - t) );
+            t = ofxsSmooth1InUnit(t);
             break;
         case eRampTypeSmooth:
             /*
@@ -300,7 +301,7 @@ ofxsRampFunc(double t)
                }
              */
             // smooth: traditional smoothstep
-            t = t * t * (3 - 2 * t);
+            t = ofxsSmoothstepInUnit(t);
             break;
         case eRampTypeNone:
             t = 1.;
