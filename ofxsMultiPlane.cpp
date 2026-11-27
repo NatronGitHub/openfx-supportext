@@ -32,6 +32,7 @@
 #include "ofxsMultiPlane.h"
 
 #include <algorithm>
+#include <mutex>
 #include <set>
 
 using namespace OFX;
@@ -656,7 +657,10 @@ struct MultiPlaneEffectPrivate
     // Stores for each clip its available planes
     // This is to avoid a recursion when calling getPlanesPresent
     // on the output clip.
+    // Written by buildChannelMenus on the main thread, read by getPlaneNeeded on render threads:
+    // only access it under perClipPlanesAvailableMutex.
     std::map<Clip*, std::list<ImagePlaneDesc> > perClipPlanesAvailable;
+    std::mutex perClipPlanesAvailableMutex;
 
     MultiPlaneEffectPrivate(MultiPlaneEffect* publicInterface)
     : _publicInterface(publicInterface)
@@ -664,6 +668,7 @@ struct MultiPlaneEffectPrivate
     , allPlanesCheckbox(NULL)
     , dstClip(publicInterface->fetchClip(kOfxImageEffectOutputClipName))
     , perClipPlanesAvailable()
+    , perClipPlanesAvailableMutex()
     {
     }
 
@@ -733,7 +738,9 @@ MultiPlaneEffect::fetchDynamicMultiplaneChoiceParameter(const string& paramName,
 void
 MultiPlaneEffectPrivate::buildChannelMenus()
 {
-    perClipPlanesAvailable.clear();
+    // Build the planes map in a local and swap it in under the lock: render threads may be reading
+    // the current one in getPlaneNeeded. The lock is not held while calling the host.
+    std::map<Clip*, std::list<ImagePlaneDesc> > planesAvailable;
 
     // If no dynamic choices support, only add built-in planes.
     if (!gHostSupportsDynamicChoices) {
@@ -746,17 +753,19 @@ MultiPlaneEffectPrivate::buildChannelMenus()
                 // For the output plane selector, map the clip planes against the output clip even though the user provided a
                 // source clip as pass-through clip
                 Clip* clip = it->second.isOutput ? dstClip : it->second.clips[c];
-                map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clip);
-                if (foundClip != perClipPlanesAvailable.end()) {
+                map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = planesAvailable.find(clip);
+                if (foundClip != planesAvailable.end()) {
                     continue;
                 } else {
-                    std::list<ImagePlaneDesc>& clipPlanes = perClipPlanesAvailable[clip];
+                    std::list<ImagePlaneDesc>& clipPlanes = planesAvailable[clip];
                     for (vector<const MultiPlane::ImagePlaneDesc*>::const_iterator it2 = planesToAdd.begin(); it2 != planesToAdd.end(); ++it2) {
                         clipPlanes.push_back(**it2);
                     }
                 }
             }
         }
+        std::lock_guard<std::mutex> lock(perClipPlanesAvailableMutex);
+        perClipPlanesAvailable.swap(planesAvailable);
         return;
     }
     
@@ -798,12 +807,12 @@ MultiPlaneEffectPrivate::buildChannelMenus()
             // the available planes on the source clip
             Clip* clipToMap = it->second.isOutput ? dstClip : clip;
 
-            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = perClipPlanesAvailable.find(clipToMap);
-            if (foundClip != perClipPlanesAvailable.end()) {
+            map<Clip*,  std::list<ImagePlaneDesc> >::iterator foundClip = planesAvailable.find(clipToMap);
+            if (foundClip != planesAvailable.end()) {
                 availableClipPlanes = &foundClip->second;
             } else {
 
-                availableClipPlanes = &(perClipPlanesAvailable)[clipToMap];
+                availableClipPlanes = &planesAvailable[clipToMap];
 
                 // Fetch planes presents from the clip and map them to ImagePlaneDesc
                 // Note that the clip cannot bethe output clip: the host may call recursively the getClipComponents() action during the call to getPlanesPresent()
@@ -889,6 +898,10 @@ MultiPlaneEffectPrivate::buildChannelMenus()
 
     // Reset all choice options in the same pass, once the perClipPlanesAvailable is full, because the resetOptions call may recursively call
     // getClipComponents and thus getPlaneNeeded which relies on it.
+    {
+        std::lock_guard<std::mutex> lock(perClipPlanesAvailableMutex);
+        perClipPlanesAvailable.swap(planesAvailable);
+    }
     for (std::vector<std::pair<ChoiceParam*,std::vector<ChoiceOption> > >::const_iterator it = perParamOptions.begin(); it != perParamOptions.end(); ++it) {
         vector<string> labels(it->second.size()), hints(it->second.size()), enums(it->second.size());
         for (std::size_t i = 0; i < it->second.size(); ++i) {
@@ -970,7 +983,7 @@ MultiPlaneEffect::getClipPreferences(ClipPreferencesSetter &clipPreferences)
 
     // By default set the clip preferences according to what is selected with the output plane selector.
     for (map<string, ChoiceParamClips>::iterator it = _imp->params.begin(); it != _imp->params.end(); ++it) {
-        if (!it->second.isOutput) {
+        if (!it->second.isOutput || it->second.clips.empty()) {
             continue;
         }
         MultiPlane::ImagePlaneDesc dstPlane;
@@ -1017,12 +1030,19 @@ MultiPlaneEffect::getClipComponents(const ClipComponentsArguments& args, ClipCom
             stat == MultiPlane::MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedAllPlanes) {
             continue;
         }
-        std::set<std::string>& availablePlanes = clipMap[clip];
+        if (!clip) {
+            // The "None" option of a plane selector returns no clip
+            continue;
+        }
+        // A plane without components (e.g. "None") is not a plane the host can fetch
+        if (plane.getNumComponents() > 0) {
+            std::set<std::string>& availablePlanes = clipMap[clip];
 
-        std::string ofxComponentsStr = MultiPlane::ImagePlaneDesc::mapPlaneToOFXPlaneString(plane);
-        std::pair<std::set<std::string>::iterator, bool> ret = availablePlanes.insert(ofxComponentsStr);
-        if (ret.second) {
-            clipComponents.addClipPlane(*clip, ofxComponentsStr);
+            std::string ofxComponentsStr = MultiPlane::ImagePlaneDesc::mapPlaneToOFXPlaneString(plane);
+            std::pair<std::set<std::string>::iterator, bool> ret = availablePlanes.insert(ofxComponentsStr);
+            if (ret.second) {
+                clipComponents.addClipPlane(*clip, ofxComponentsStr);
+            }
         }
 
         // Set the pass-through clip to the first encountered source clip
@@ -1298,8 +1318,18 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
     // the available planes on the source clip
     retClip = found->second.isOutput ? _imp->dstClip : retClip;
 
-    std::map<Clip*, std::list<ImagePlaneDesc> >::iterator foundPlanesPresentForClip = _imp->perClipPlanesAvailable.find(retClip);
-    if (foundPlanesPresentForClip == _imp->perClipPlanesAvailable.end()) {
+    // Copy the planes under the lock: buildChannelMenus may replace the map on the main thread.
+    std::list<ImagePlaneDesc> planesPresentForClip;
+    bool foundPlanesPresentForClip;
+    {
+        std::lock_guard<std::mutex> lock(_imp->perClipPlanesAvailableMutex);
+        std::map<Clip*, std::list<ImagePlaneDesc> >::const_iterator foundPlanes = _imp->perClipPlanesAvailable.find(retClip);
+        foundPlanesPresentForClip = (foundPlanes != _imp->perClipPlanesAvailable.end());
+        if (foundPlanesPresentForClip) {
+            planesPresentForClip = foundPlanes->second;
+        }
+    }
+    if (!foundPlanesPresentForClip) {
         // No components available for this clip...
         if (clip) {
             *clip = retClip;
@@ -1314,7 +1344,7 @@ MultiPlaneEffect::getPlaneNeeded(const std::string& paramName,
         return MultiPlaneEffect::eGetPlaneNeededRetCodeFailed;
     }
 
-    for (std::list<ImagePlaneDesc>::const_iterator it = foundPlanesPresentForClip->second.begin(); it != foundPlanesPresentForClip->second.end(); ++it) {
+    for (std::list<ImagePlaneDesc>::const_iterator it = planesPresentForClip.begin(); it != planesPresentForClip.end(); ++it) {
         if (found->second.splitPlanesIntoChannels) {
             // User wants per-channel options
             int nChannels = it->getNumComponents();
