@@ -24,7 +24,8 @@
  *
  * Two NaN behaviours, so that each caller keeps its output:
  * - ofxsSmoothstep(t) clamps t and keeps a NaN t as NaN;
- * - ofxsFalloff() and ofxsSoftEdgeWeight() give 0 for a NaN t (and for a NaN distance).
+ * - ofxsFalloff() gives 0 for a NaN t with every curve but Quadratic (ofxsQuadraticFalloff(), not
+ *   clamped, keeps it), and ofxsSoftEdgeWeight() gives 0 for a NaN t with every curve.
  * OfxsFalloffEnum has no numeric meaning: a plug-in maps its own Falloff choice options to it, so
  * their order and number stay the plug-in's.
  */
@@ -71,10 +72,11 @@ ofxsSmoothstep(double t)
     return ofxsSmoothstepInUnit(t);
 }
 
-/// Two parabolas, 2t^2 for t < 1/2 then 1 - 2(1 - t)^2; not clamped. The softness of openfx-misc's
-/// older shape versions, written as they had it so that their output is unchanged.
+/// The Quadratic falloff: two parabolas, 2t^2 for t < 1/2 then 1 - 2(1 - t)^2; not clamped (not
+/// ofxsRamp's Smooth, which is the smoothstep). The softness of openfx-misc's older shape versions,
+/// written as they had it so that their output is unchanged.
 inline double
-ofxsRampSmooth(double t)
+ofxsQuadraticFalloff(double t)
 {
     t *= 2.;
     if (t < 1.) {
@@ -85,14 +87,15 @@ ofxsRampSmooth(double t)
     return -0.5 * (t * (t - 2.) - 1.);
 }
 
-/// The falloff curve of a soft edge.
+/// The falloff curve of a soft edge. Its values have no numeric meaning: never cast a choice
+/// param's value to it, map each option to a curve.
 enum class OfxsFalloffEnum
 {
     eLinear,
     eSmooth0,
     eSmooth1,
     eSmooth,
-    eQuadratic, // ofxsRampSmooth()
+    eQuadratic, // ofxsQuadraticFalloff()
 };
 
 /// The clamped curves (all but Quadratic) for t in (0, 1).
@@ -114,14 +117,14 @@ ofxsClampedFalloffInUnit(OfxsFalloffEnum curve,
 }
 
 /// The weight at the distance t across the soft edge (0 at the outer edge, 1 at the inner one):
-/// Quadratic is ofxsRampSmooth(), not clamped; the other curves are clamped to [0, 1], and a NaN t
-/// gives 0.
+/// Quadratic is ofxsQuadraticFalloff(), not clamped (a NaN t stays NaN); the other curves are
+/// clamped to [0, 1], and a NaN t gives 0.
 inline double
 ofxsFalloff(OfxsFalloffEnum curve,
             double t)
 {
     if (curve == OfxsFalloffEnum::eQuadratic) {
-        return ofxsRampSmooth(t);
+        return ofxsQuadraticFalloff(t);
     }
     if ( !(t > 0.) ) {
         return 0.;
@@ -153,7 +156,7 @@ ofxsSoftEdgeWeight(OfxsFalloffEnum curve,
         return 1.;
     }
     if (curve == OfxsFalloffEnum::eQuadratic) {
-        return ofxsRampSmooth(t);
+        return ofxsQuadraticFalloff(t);
     }
 
     return ofxsClampedFalloffInUnit(curve, t);
