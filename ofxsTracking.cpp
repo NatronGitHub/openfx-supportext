@@ -1172,6 +1172,8 @@ TrackerRegionInteract::penDown(const PenArgs &args)
     _lastMousePos = args.penPosition;
 
     if (didSomething) {
+        // the cursor of the grabbed handle, even if no hover preceded the press (tablets)
+        updateCursor();
         requestRedraw();
     }
 

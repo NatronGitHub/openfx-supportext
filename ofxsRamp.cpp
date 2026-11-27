@@ -427,12 +427,14 @@ RampInteractHelper::penUp(const PenArgs &args)
 {
     const double time = args.time;
 
-    if ( !_interactOpen->getValueAtTime(time) ) {
-        return false;
-    }
-    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
-    bool noramp = (type == eRampTypeNone);
-    if (noramp) {
+    if ( !_interactOpen->getValueAtTime(time) ||
+         ( (RampTypeEnum)_type->getValueAtTime(time) == eRampTypeNone ) ) {
+        // the overlay was hidden during the drag (if any): abandon it without setting the params,
+        // as RectangleInteract::abandonDrag(), so that the next hover does not drag a point
+        _state = eInteractStateIdle;
+        _interactiveDrag = false;
+        _cursor.release(_interact);
+
         return false;
     }
 

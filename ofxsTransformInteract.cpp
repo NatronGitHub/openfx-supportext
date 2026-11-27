@@ -1691,6 +1691,13 @@ bool
 TransformInteractHelper::penUp(const PenArgs &args)
 {
     if ( !_interactOpen->getValueAtTime(args.time) ) {
+        // the overlay was hidden during the drag (if any): abandon it without setting the params,
+        // as RectangleInteract::abandonDrag(), so that the next hover does not drag a handle
+        _mouseState = eReleased;
+        _drawState = eInActive;
+        _interactiveDrag = false;
+        _cursor.release(_interact);
+
         return false;
     }
     bool ret = _mouseState != eReleased;

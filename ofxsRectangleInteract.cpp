@@ -793,12 +793,6 @@ RectangleInteract::shiftDown() const
 bool
 RectangleInteract::keyDown(const KeyArgs &args)
 {
-    if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
-         !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
-         ( _enable && !_enable->getValueAtTime(args.time) ) ) {
-        return false;
-    }
-
     // Note that on the Mac:
     // cmd/apple/cloverleaf is kOfxKey_Control_L
     // ctrl is kOfxKey_Meta_L
@@ -822,6 +816,13 @@ RectangleInteract::keyDown(const KeyArgs &args)
         mustRedraw = true;
     }
 #endif
+    // count the modifiers even if the rectangle is disabled (e.g. by an undo that disables the
+    // size), so that no release is missed (OFX 1.4 hosts); only the redraw is skipped
+    if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
+         !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+         ( _enable && !_enable->getValueAtTime(args.time) ) ) {
+        return false;
+    }
     if (mustRedraw) {
         requestRedraw();
     }
@@ -835,12 +836,6 @@ RectangleInteract::keyDown(const KeyArgs &args)
 bool
 RectangleInteract::keyUp(const KeyArgs &args)
 {
-    if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
-         !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
-         ( _enable && !_enable->getValueAtTime(args.time) ) ) {
-        return false;
-    }
-
     bool mustRedraw = false;
 
     if ( (args.keySymbol == kOfxKey_Control_L) || (args.keySymbol == kOfxKey_Control_R) ) {
@@ -864,6 +859,13 @@ RectangleInteract::keyUp(const KeyArgs &args)
         mustRedraw = true;
     }
 #endif
+    // count the modifiers even if the rectangle is disabled (e.g. by an undo that disables the
+    // size), so that no release is missed (OFX 1.4 hosts); only the redraw is skipped
+    if ( _btmLeft->getIsSecret() || _size->getIsSecret() ||
+         !_btmLeft->getIsEnable() || !_size->getIsEnable() ||
+         ( _enable && !_enable->getValueAtTime(args.time) ) ) {
+        return false;
+    }
     if (mustRedraw) {
         requestRedraw();
     }
