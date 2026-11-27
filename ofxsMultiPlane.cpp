@@ -1127,9 +1127,16 @@ static bool findBuiltInSelectedChannel(const std::string& selectedOptionID,
                 if (planesToAdd[p]->isColorPlane()) {
                     int clipComponentsCount = (*clip)->getPixelComponentCount();
 
-                    // For the color plane, Color.A is channel index 0 when the plane is Color.Alpha
-                    if (clipComponentsCount == 1 && chanIndex == 3) {
-                        chanIndex = 0;
+                    // For the color plane, Color.A is channel index 0 when the plane is Color.Alpha,
+                    // and R, G and B don't exist (0)
+                    if (clipComponentsCount == 1) {
+                        if (chanIndex == 3) {
+                            chanIndex = 0;
+                        } else {
+                            *retCode = MultiPlaneEffect::eGetPlaneNeededRetCodeReturnedConstant0;
+
+                            return true;
+                        }
                     }
                     if ((int)chanIndex >= clipComponentsCount) {
                         if (chanIndex == 3) {
