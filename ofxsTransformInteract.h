@@ -247,18 +247,20 @@ protected:
     /// and with OpenGL only in V1 draws, and draws no shadow if d.usesDrawSuite().
     virtual bool drawOverlay(OFX::OverlayDraw &d, const OFX::DrawArgs &args);
 
+    /// The copy of the drag values (_tpDrag) that a drag writes to the params: the translate of
+    /// a translate drag, or the center of a center drag (with the translate that compensates
+    /// it), rounded to the pixel scale's power of 10. The drag keeps the unrounded values, so
+    /// that the rounding errors don't add up over the pen motions, as in RectangleInteract.
+    /// A subclass that writes the params of a drag itself (e.g. openfx-arena's Text, for a
+    /// relative Center) writes this copy, and only if _dragMoved.
+    TransformParams roundedDragParams(const OfxPointD& pscale) const;
+
 private:
     void getTransformParams(double time, TransformParams& tp);
 
     /// Set the six params of a drag, in one EditBlock: penMotion with Interactive Update,
     /// penUp without.
     void setTransformParams(const TransformParams& tp);
-
-    /// The copy of the drag values (_tpDrag) that a drag writes to the params: the translate of
-    /// a translate drag, or the center of a center drag (with the translate that compensates
-    /// it), rounded to the pixel scale's power of 10. The drag keeps the unrounded values, so
-    /// that the rounding errors don't add up over the pen motions, as in RectangleInteract.
-    TransformParams roundedDragParams(const OfxPointD& pscale) const;
 
     /// The cursor for the current drag or hover state, or NULL if the pen is
     /// not over a handle.
