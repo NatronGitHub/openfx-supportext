@@ -773,13 +773,24 @@ plusFunc(PIX A,
  * range gives +-FLT_MAX: converting it to float was undefined behaviour (inf in practice), e.g.
  * HSL modes on a huge colour with a tiny alpha. An infinite result (from an infinite input, or
  * a float overflow in the expression) also gives +-FLT_MAX. Only comparisons: a NaN falls
- * through, and every value in range is converted exactly as before. Integer PIX are unchanged.
+ * through, and every value in range is converted exactly as before.
+ * For an integer PIX, a value outside its range gives the nearest bound: converting it to PIX
+ * was undefined behaviour (it wrapped in practice), e.g. an unpremultiplied 8-bit over giving
+ * 382. Every value that was converted (truncated) before, i.e. above lowest - 1 and below
+ * max + 1, gives the same result; NaN gives the lowest value (comparisons only).
  **/
 template <typename PIX>
 inline PIX
 mergeDoubleToPIX(double v)
 {
-    return std::numeric_limits<PIX>::is_integer ? PIX(v) : clampBeyondFloatRange<PIX>(v);
+    if (std::numeric_limits<PIX>::is_integer) {
+        const PIX lo = std::numeric_limits<PIX>::lowest();
+        const PIX hi = (std::numeric_limits<PIX>::max)();
+
+        return (v > lo) ? ( (v < hi) ? PIX(v) : hi ) : lo;
+    }
+
+    return clampBeyondFloatRange<PIX>(v);
 }
 
 /**
