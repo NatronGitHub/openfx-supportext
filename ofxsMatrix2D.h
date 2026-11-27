@@ -34,6 +34,19 @@
 #include "ofxsMacros.h" // OFXS_PI
 
 namespace OFX {
+// 2^n for 0 <= n < max_exponent, at compile time (std::ldexp is constexpr only from C++23);
+// exact, since doubling is exact in that range
+constexpr double
+ofxsPow2(int n)
+{
+    double r = 1.;
+    for (int i = 0; i < n; ++i) {
+        r *= 2.;
+    }
+
+    return r;
+}
+
 // pi (OFXS_PI), as a function for the existing callers
 constexpr double
 ofxsPi()
@@ -360,7 +373,7 @@ struct Matrix3x3
     /// leaves room for rounding.
     bool inverse(Matrix3x3* invOut) const
     {
-        static const double kMaxEntry = std::ldexp(1., (std::numeric_limits<double>::max_exponent - 4) / 3);
+        constexpr double kMaxEntry = ofxsPow2( (std::numeric_limits<double>::max_exponent - 4) / 3 );
         double inv[9], det;
         int i;
 
@@ -702,7 +715,7 @@ struct Matrix4x4
     /// double range, which leaves room for rounding.
     bool inverse(Matrix4x4* invOut) const
     {
-        static const double kMaxEntry = std::ldexp(1., (std::numeric_limits<double>::max_exponent - 6) / 4);
+        constexpr double kMaxEntry = ofxsPow2( (std::numeric_limits<double>::max_exponent - 6) / 4 );
         double inv[16], det;
         int i;
 
