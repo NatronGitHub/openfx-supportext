@@ -214,6 +214,7 @@ protected:
     Interact* _interact;
     OfxPointD _lastMousePos;
     TransformParams _tpDrag; // the dragged values, unrounded (see roundedDragParams)
+    bool _dragMoved; // a pen motion of this drag changed a value: penUp sets the params
     bool _interactiveDrag;
 
 public:

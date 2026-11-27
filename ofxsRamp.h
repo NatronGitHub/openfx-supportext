@@ -100,6 +100,7 @@ class RampInteractHelper
     BooleanParam* _interactive;
     BooleanParam* _hiDPI;
     OfxPointD _point0DragPos, _point1DragPos;
+    bool _dragMoved; // a pen motion of this drag moved the point: penUp sets the param
     bool _interactiveDrag;
     OfxPointD _lastMousePos;
     InteractState _state;
@@ -121,6 +122,7 @@ public:
         , _hiDPI(NULL)
         , _point0DragPos()
         , _point1DragPos()
+        , _dragMoved(false)
         , _interactiveDrag(false)
         , _lastMousePos()
         , _state(eInteractStateIdle)

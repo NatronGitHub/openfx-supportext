@@ -672,6 +672,14 @@ TrackerRegionInteract::updateCursor()
     _cursor.set(this, name);
 }
 
+static bool
+samePoint(const OfxPointD& p,
+          double x,
+          double y)
+{
+    return (p.x == x) && (p.y == y);
+}
+
 bool
 TrackerRegionInteract::penMotion(const PenArgs &args)
 {
@@ -1039,6 +1047,12 @@ TrackerRegionInteract::penMotion(const PenArgs &args)
     }
 
     if (valuesChanged) {
+        if ( (_ms != eMouseStateIdle) &&
+             !( samePoint(_innerBtmLeftDragPos, xi1, yi1) && samePoint(_innerTopRightDragPos, xi2, yi2) &&
+                samePoint(_outerBtmLeftDragPos, xo1, yo1) && samePoint(_outerTopRightDragPos, xo2, yo2) &&
+                samePoint(_centerDragPos, xc, yc) && samePoint(_offsetDragPos, xoff, yoff) ) ) {
+            _dragMoved = true;
+        }
         ///Keep the points in absolute coordinates
         _innerBtmLeftDragPos.x  = xi1;
         _innerBtmLeftDragPos.y  = yi1;
@@ -1153,6 +1167,7 @@ TrackerRegionInteract::penDown(const PenArgs &args)
     _centerDragPos.y        = yc;
     _offsetDragPos.x        = xoff;
     _offsetDragPos.y        = yoff;
+    _dragMoved = false;
 
     _lastMousePos = args.penPosition;
 
@@ -1202,6 +1217,14 @@ TrackerRegionInteract::penUp(const PenArgs &args)
         MouseStateEnum& state;
         ~ResetMouseState() { state = eMouseStateIdle; }
     } resetMouseState = { _ms };
+
+    if (!_dragMoved) {
+        // a click without a motion sets nothing (no keyframe on the center, no undo step)
+        _ms = eMouseStateIdle;
+        requestRedraw();
+
+        return true;
+    }
 
     const OfxPointD &center = _centerDragPos;
     const OfxPointD &offset = _offsetDragPos;

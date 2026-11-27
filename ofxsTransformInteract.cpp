@@ -315,6 +315,7 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     , _interact(interact)
     , _lastMousePos()
     , _tpDrag()
+    , _dragMoved(false)
     , _interactiveDrag(false)
     , _translate(NULL)
     , _rotate(NULL)
@@ -1275,6 +1276,17 @@ compensateCenterMove(const Matrix3x3& Rinv,
     translate->y += dRot.y - dyrot;
 }
 
+// Whether a drag changed one of the values that setTransformParams sets.
+static bool
+dragValuesDiffer(const TransformParams& a,
+                 const TransformParams& b)
+{
+    return (a.center.x != b.center.x) || (a.center.y != b.center.y) ||
+           (a.translate.x != b.translate.x) || (a.translate.y != b.translate.y) ||
+           (a.scale.x != b.scale.x) || (a.scale.y != b.scale.y) ||
+           (a.rotate != b.rotate) || (a.skewX != b.skewX) || (a.skewY != b.skewY);
+}
+
 TransformParams
 TransformInteractHelper::roundedDragParams(const OfxPointD& pscale) const
 {
@@ -1548,6 +1560,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
         assert(false);
     }
 
+    if ( (_mouseState != eReleased) && dragValuesDiffer(tp, _tpDrag) ) {
+        _dragMoved = true;
+    }
     _tpDrag = tp;
 
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
@@ -1582,6 +1597,7 @@ TransformInteractHelper::penDown(const PenArgs &args)
         if (_interactive) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         }
+        _dragMoved = false; // a new drag (otherwise, this continues the drag of _tpDrag)
     } else {
         tp = _tpDrag;
     }
@@ -1686,7 +1702,8 @@ TransformInteractHelper::penUp(const PenArgs &args)
         ~ResetMouseState() { state = eReleased; }
     } resetMouseState = { _mouseState };
 
-    if ( !_interactiveDrag && ret ) {
+    if ( !_interactiveDrag && ret && _dragMoved ) {
+        // a click without a motion sets nothing (no keyframe, no undo step)
         setTransformParams( roundedDragParams(args.pixelScale) );
     }
     

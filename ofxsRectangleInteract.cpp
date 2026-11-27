@@ -429,6 +429,9 @@ RectangleInteract::penMotion(const PenArgs &args)
     bool redraw = _drawState != newState;
     _drawState = newState;
 
+    // the dragged rectangle before this motion, to tell whether the motion changed it
+    const OfxPointD btmLeftBefore = _btmLeftDragPos;
+    const OfxPointD sizeBefore = _sizeDrag;
     const bool keepAR = shiftDown();
     const bool centered = ctrlDown();
     if ( keepAR && (_sizeDrag.x > 0.) && (_sizeDrag.y > 0.) &&
@@ -598,6 +601,11 @@ RectangleInteract::penMotion(const PenArgs &args)
             _sizeDrag.y = 1;
             valuesChanged = true;
         }
+
+        if ( (_btmLeftDragPos.x != btmLeftBefore.x) || (_btmLeftDragPos.y != btmLeftBefore.y) ||
+             (_sizeDrag.x != sizeBefore.x) || (_sizeDrag.y != sizeBefore.y) ) {
+            _dragMoved = true;
+        }
     }
 
     if ( (_mouseState != eMouseStateIdle) && _interactiveDrag && valuesChanged ) {
@@ -681,6 +689,7 @@ RectangleInteract::penDown(const PenArgs &args)
     _sizeDrag.y = h;
     _centerDrag = center;
     _angleDrag = angle;
+    _dragMoved = false;
     _lastMousePos = penPosition;
     if (didSomething) {
         // the pen is over the pressed handle: _drawState is otherwise only set by
@@ -745,11 +754,15 @@ RectangleInteract::penUp(const PenArgs &args)
         ~ResetMouseState() { state = eMouseStateIdle; }
     } resetMouseState = { _mouseState };
 
-    if ( !_interactiveDrag && (_mouseState != eMouseStateIdle) ) {
-        // no need to redraw overlay since it is slave to the paramaters
-        setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
-        didSmthing = true;
-    } else if (_mouseState != eMouseStateIdle) {
+    if (_mouseState != eMouseStateIdle) {
+        if (!_interactiveDrag) {
+            // a click without a motion sets nothing (no keyframe, no undo step)
+            if (_dragMoved) {
+                setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
+            }
+            didSmthing = true;
+        }
+        // the overlay draws the params again, not the dragged rectangle
         requestRedraw();
     }
 

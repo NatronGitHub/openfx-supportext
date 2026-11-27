@@ -139,6 +139,7 @@ public:
         _sizeDrag.x = _sizeDrag.y = 0;
         _centerDrag.x = _centerDrag.y = 0;
         _interactiveDrag = false;
+        _dragMoved = false;
     }
 
     // overridden functions from OFX::Interact to do things
@@ -278,6 +279,7 @@ private:
     OfxPointD _centerDrag;
     double _angleDrag;
     bool _interactiveDrag;
+    bool _dragMoved; // a pen motion of this drag changed the rectangle: penUp sets the params
 };
 
 class RectangleOverlayDescriptor
