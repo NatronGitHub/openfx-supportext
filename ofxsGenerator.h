@@ -111,6 +111,11 @@ protected:
     OFX::PushButtonParam *_recenter;
     bool _useOutputComponentsAndDepth;
 
+    // whether the plug-in may set the components of the output clip: only in the general context
+    // (ofxImageEffectContexts.rst, The Generator Context: "a plugin cannot change the component type
+    // of the *Output* clip"); elsewhere the host chooses them and Output Components is hidden
+    bool setsOutputComponents() const { return getContext() == OFX::eContextGeneral; }
+
 public:
 
     GeneratorPlugin(OfxImageEffectHandle handle,

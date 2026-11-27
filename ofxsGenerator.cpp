@@ -105,6 +105,10 @@ GeneratorPlugin::GeneratorPlugin(OfxImageEffectHandle handle,
 
     if (_useOutputComponentsAndDepth) {
         _outputComponents = fetchChoiceParam(kParamGeneratorOutputComponents);
+        if ( !setsOutputComponents() ) {
+            // the host chooses the output components (see setsOutputComponents())
+            _outputComponents->setIsSecretAndDisabled(true);
+        }
 
         if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
             _outputBitDepth = fetchChoiceParam(kParamGeneratorOutputBitDepth);
@@ -221,7 +225,7 @@ GeneratorPlugin::checkComponents(BitDepthEnum dstBitDepth,
 
     // get the components of _dstClip
     PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
-    if (dstComponents != outputComponents) {
+    if ( setsOutputComponents() && (dstComponents != outputComponents) ) {
         setPersistentMessage(Message::eMessageError, "", "OFX Host dit not take into account output components");
         throwSuiteStatusException(kOfxStatErrImageFormat);
 
@@ -412,9 +416,11 @@ GeneratorPlugin::getClipPreferences(ClipPreferencesSetter &clipPreferences)
     }
 
     if (_useOutputComponentsAndDepth) {
-        // set the components of _dstClip
-        PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
-        clipPreferences.setClipComponents(*_dstClip, outputComponents);
+        if ( setsOutputComponents() ) {
+            // set the components of _dstClip
+            PixelComponentEnum outputComponents = _outputComponentsMap[_outputComponents->getValue()];
+            clipPreferences.setClipComponents(*_dstClip, outputComponents);
+        }
 
         if (getImageEffectHostDescription()->supportsMultipleClipDepths) {
             // set the bitDepth of _dstClip
