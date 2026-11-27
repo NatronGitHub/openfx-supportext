@@ -27,6 +27,7 @@
 
 #include <cmath>
 #include <cfloat>
+#include <limits>
 #include <cassert>
 #include <algorithm> // std::fill
 
@@ -349,18 +350,22 @@ struct Matrix3x3
         return ret;
     }
 
-    /// false if the matrix is singular, if an entry is beyond 1e100 (or not finite), or if the
-    /// inverse would overflow (only absurd parameters give the last two)
+    /// false if the matrix is singular, if an entry is beyond 2^340 (about 2.2e102, or not finite),
+    /// or if the inverse would overflow (only absurd parameters give the last two)
     /// No test depends on detecting NaN or inf (see ofxsNonFinite.h): the entries are bounded
-    /// first, so that the determinant and the cofactors are finite (at most 6e300 and 2e200),
-    /// and the overflow of the inverse is tested before dividing.
+    /// first, so that the determinant and the cofactors are finite, and the overflow of the
+    /// inverse is tested before dividing.
+    /// With entries at most M, a cofactor is at most 2M^2 and the determinant at most 6M^3 < 8M^3;
+    /// M = 2^((max_exponent - 4) / 3) makes 8M^3 at most 2^1023, half of the double range, which
+    /// leaves room for rounding.
     bool inverse(Matrix3x3* invOut) const
     {
+        static const double kMaxEntry = std::ldexp(1., (std::numeric_limits<double>::max_exponent - 4) / 3);
         double inv[9], det;
         int i;
 
         for (i = 0; i < 9; ++i) {
-            if ( !(std::fabs(m[i]) <= 1e100) ) {
+            if ( !(std::fabs(m[i]) <= kMaxEntry) ) {
                 return false;
             }
         }
@@ -687,18 +692,22 @@ struct Matrix4x4
         return m[0] * inv0 + m[1] * inv4 + m[2] * inv8 + m[3] * inv12;
     }
 
-    /// false if the matrix is singular, if an entry is beyond 1e75 (or not finite), or if the
-    /// inverse would overflow (only absurd parameters give the last two)
+    /// false if the matrix is singular, if an entry is beyond 2^254 (about 2.9e76, or not finite),
+    /// or if the inverse would overflow (only absurd parameters give the last two)
     /// No test depends on detecting NaN or inf (see ofxsNonFinite.h): the entries are bounded
-    /// first, so that the determinant and the cofactors are finite (at most 2.4e301 and 6e225),
-    /// and the overflow of the inverse is tested before dividing.
+    /// first, so that the determinant and the cofactors are finite, and the overflow of the
+    /// inverse is tested before dividing.
+    /// With entries at most M, a cofactor is at most 6M^3 and the determinant at most
+    /// 24M^4 < 32M^4; M = 2^((max_exponent - 6) / 4) makes 32M^4 at most 2^1023, half of the
+    /// double range, which leaves room for rounding.
     bool inverse(Matrix4x4* invOut) const
     {
+        static const double kMaxEntry = std::ldexp(1., (std::numeric_limits<double>::max_exponent - 6) / 4);
         double inv[16], det;
         int i;
 
         for (i = 0; i < 16; ++i) {
-            if ( !(std::fabs(m[i]) <= 1e75) ) {
+            if ( !(std::fabs(m[i]) <= kMaxEntry) ) {
                 return false;
             }
         }
