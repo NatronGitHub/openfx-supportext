@@ -370,6 +370,39 @@ mipmapLevelFromScale(double s)
     // 30 at most, so that 1 << level stays defined for the callers (see "Mipmap levels" above)
     return (level < 30.) ? (unsigned int)level : 30u;
 }
+
+/// The format of clip, in canonical coordinates: its kOfxImageClipPropFormat (a Natron extension, in
+/// pixels at render scale 1) if the clip is connected and the format is not empty; otherwise (no
+/// clip, a disconnected clip, or a host without the format extension, such as OFX 1.4 hosts) the
+/// project, from (0, 0) to the project extent (kOfxImageEffectPropProjectExtent: "the extent is
+/// always rooted at 0,0"). clip may be NULL.
+inline OfxRectD
+clipFormatCanonical(const OFX::Clip* clip,
+                    const OFX::ImageEffect & effect)
+{
+    OfxRectD format;
+#ifdef OFX_EXTENSIONS_NATRON
+    if ( clip && clip->isConnected() ) {
+        OfxRectI formatPixel;
+        clip->getFormat(formatPixel); // 0 if the host does not have the property
+        if ( !rectIsEmpty(formatPixel) ) {
+            const OfxPointD rs1 = {1., 1.};
+            toCanonical(formatPixel, rs1, clip->getPixelAspectRatio(), &format);
+
+            return format;
+        }
+    }
+#else
+    (void)clip;
+#endif
+    const OfxPointD extent = effect.getProjectExtent();
+    format.x1 = 0.;
+    format.y1 = 0.;
+    format.x2 = extent.x;
+    format.y2 = extent.y;
+
+    return format;
+}
 } // Coords
 } // OFX
 

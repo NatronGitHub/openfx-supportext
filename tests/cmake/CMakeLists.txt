@@ -39,7 +39,7 @@ endfunction()
 
 # 1. called from the parent of add_subdirectory(SupportExt); header-only overlay
 #    (ofxsPositionInteract.h needs TEXT through OverlayDraw::bitmapString)
-sx_test_module(sx_parent position.cpp)
+sx_test_module(sx_parent position.cpp helpers.cpp)
 supportext_add_sources(sx_parent COMPONENTS POSITION_INTERACT THREADS TRANSFORM3X3
                        TRANSFORM_INTERACT GENERATOR RAMP TRACKING)
 # calling it again adds nothing twice

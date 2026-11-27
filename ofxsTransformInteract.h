@@ -138,18 +138,24 @@ void ofxsTransformDescribeParams(OFX::ImageEffectDescriptor &desc, OFX::PagePara
 ///   openfx-arena ReadSVG's (0, 0)).
 /// - The conversion uses setValue(), and the host may send instanceChanged for it (a plug-in
 ///   edit): a plug-in whose changedParam() records that the user moved the center (e.g. Transform's
-///   "center changed" flag, which stops the re-centring on a new source) saves that flag before
-///   the call and restores it after.
+///   "center changed" flag, which stops the re-centring on a new source) passes that flag as
+///   centerChanged, which keeps the value it had before the call. This works only if the host
+///   sends instanceChanged synchronously, from setValue(). NULL (the default) changes nothing.
 inline void
 ofxsTransformDenormaliseDefaults(OFX::ImageEffect &effect,
-                                 bool oldParams = false)
+                                 bool oldParams = false,
+                                 OFX::BooleanParam* centerChanged = NULL)
 {
+    const bool changed = centerChanged ? centerChanged->getValue() : false;
     const char* name = oldParams ? kParamTransformCenterOld : kParamTransformCenter;
     if ( effect.paramExists(name) ) {
         OFX::Double2DParam* center = effect.fetchDouble2DParam(name);
         if (center) {
             OFX::ofxsDenormaliseUntouchedDefault(effect, *center, /*isPosition=*/true);
         }
+    }
+    if ( centerChanged && (centerChanged->getValue() != changed) ) {
+        centerChanged->setValue(changed);
     }
 }
 
