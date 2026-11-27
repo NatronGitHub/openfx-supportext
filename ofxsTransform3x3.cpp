@@ -1488,7 +1488,8 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
                                  PageParamDescriptor* page,
                                  bool masked,
                                  Transform3x3Plugin::Transform3x3ParamsTypeEnum paramsType,
-                                 Transform3x3FilteringEnum filtering)
+                                 Transform3x3FilteringEnum filtering,
+                                 bool prefilterDefault)
 {
     // invert
     {
@@ -1509,7 +1510,7 @@ Transform3x3DescribeInContextEnd(ImageEffectDescriptor &desc,
     if (filtering == eTransform3x3FilteringSincPrefilter) {
         // with the filtering parameters, after Black Outside: the other parameters keep Nuke's order
         // (Nuke has no such knob)
-        ofxsFilterDescribeParamPrefilter(desc, page);
+        ofxsFilterDescribeParamPrefilter(desc, page, prefilterDefault);
     }
 
     // motionBlur
