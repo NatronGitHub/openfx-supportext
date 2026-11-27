@@ -53,27 +53,32 @@
 
 namespace OFX {
 
-// Before calling this function: make sure the OpenGL props are correctly set.
-// Try to draw one point per frame, but no more than kDrawPointTrajectoryMaxPoints
-// in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
-// Draws with OpenGL or the DrawSuite.
-inline void
-drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
+/// The points of a Double2D param's animation curve, read from the host before any drawing:
+/// its keyframes, and the curve between them.
+struct PointTrajectory
 {
+    std::vector<OfxPointD> keys;
+    std::vector<OfxPointD> curve;
+};
+
+// Try to sample one point per frame, but no more than kDrawPointTrajectoryMaxPoints
+// in total, and at least kDrawPointTrajectoryMinStepsPerKey between two keys.
+// Reads the param from the host, so it may throw.
+inline void
+getPointTrajectory(Double2DParam* p, PointTrajectory* t)
+{
+    t->keys.clear();
+    t->curve.clear();
     int numKeys = p->getNumKeys();
 
     if (numKeys > 0) {
         int maxStepsPerKey = int(kDrawPointTrajectoryMaxPoints / numKeys);
-        d.glBegin(GL_POINTS);
         for (int i=0; i < numKeys; ++i) {
             double time = p->getKeyTime(i);
             OfxPointD pt;
             p->getValueAtTime(time, pt.x, pt.y);
-            d.glVertex2d(pt.x, pt.y);
-
+            t->keys.push_back(pt);
         }
-        d.glEnd();
-        d.glBegin(GL_LINE_STRIP);
         double time = p->getKeyTime(0);
         for (int i = 1; i < numKeys; ++i) {
             double timeNext = p->getKeyTime(i);
@@ -83,12 +88,41 @@ drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
 
                 OfxPointD pt;
                 p->getValueAtTime(timeStep, pt.x, pt.y);
-                d.glVertex2d(pt.x, pt.y);
+                t->curve.push_back(pt);
             }
             time = timeNext;
         }
-        d.glEnd();
     }
+}
+
+// Before calling this function: make sure the OpenGL props are correctly set.
+// Draws with OpenGL or the DrawSuite, and makes no host call.
+inline void
+drawPointTrajectory(OverlayDraw& d, const PointTrajectory& t)
+{
+    if ( t.keys.empty() ) {
+        return;
+    }
+    d.glBegin(GL_POINTS);
+    for (size_t i = 0; i < t.keys.size(); ++i) {
+        d.glVertex2d(t.keys[i].x, t.keys[i].y);
+    }
+    d.glEnd();
+    d.glBegin(GL_LINE_STRIP);
+    for (size_t i = 0; i < t.curve.size(); ++i) {
+        d.glVertex2d(t.curve[i].x, t.curve[i].y);
+    }
+    d.glEnd();
+}
+
+// Reads the trajectory from the host (which may throw) before the first GL call, then draws it.
+inline void
+drawPointTrajectory(OverlayDraw& d, Double2DParam* p)
+{
+    PointTrajectory t;
+
+    getPointTrajectory(p, &t);
+    drawPointTrajectory(d, t);
 }
 
 
@@ -131,7 +165,9 @@ inline namespace OverlayDrawOpenGLOnly {
 /// with a one-pixel shadow on OpenGL (no shadow with the DrawSuite), and dragged with the pen.
 /*
    A point is shown, and can be picked, if its param is not secret, is enabled, the host draws no
-   native handle for it (kOfxParamPropUseHostOverlayHandle), and isPointShown() is true. The
+   native handle for it (kOfxParamPropUseHostOverlayHandle: at describe time, set it only if the
+   descriptor's getHostHasNativeOverlayHandle() is true, or no handle is drawn at all on hosts
+   without native handles), and isPointShown() is true. The
    first point in the list is drawn on top, and picked first.
    A drag sets the point's value with setPointValue(): at each pen motion if it updates while
    dragging, and at pen up. The drag state is reset before setPointValue() is called at the
@@ -181,7 +217,16 @@ public:
                 h.interactive = effect->fetchBooleanParam(it->interactiveName);
                 assert(h.interactive);
             }
+#ifdef OFXS_SUPPORT_HAS_PARAM_USE_HOST_OVERLAY_HANDLE
+            // the host draws the handle if the plug-in asked for it at describe time: OFX 1.5.1
+            // defines kOfxParamPropUseHostOverlayHandle on instances (read only), and
+            // kOfxParamPropHasHostOverlayHandle on descriptors only
+            h.hostHandle = h.param->getUseHostNativeOverlayHandle();
+#else
+            // older openfx Support has no instance getter for kOfxParamPropUseHostOverlayHandle;
+            // this reads kOfxParamPropHasHostOverlayHandle, which Natron also sets on instances
             h.hostHandle = h.param->getHostHasNativeOverlayHandle();
+#endif
             _points.push_back(h);
         }
         if ( effect->paramExists(kParamHiDPI) ) {
@@ -227,8 +272,9 @@ protected:
     /// block. To put the plug-in's bookkeeping (other params it sets when firstChange or
     /// dragEnd) in the same undo step, an override opens an edit block for every change,
     /// opened and closed here, and sets the bookkeeping params in it.
-    /// Never open an edit block over the whole drag, which spans several actions (the host
-    /// closes a plug-in's open blocks when its outermost action returns). The block's end must
+    /// Never open an edit block over the whole drag, which spans several actions: the spec would
+    /// allow a block from penDown to penUp, but Natron closes a plug-in's open blocks when its
+    /// outermost action returns. The block's end must
     /// not throw (destructors are noexcept):
     /// - openfx from 45578b69 on, whose EditBlock destructor doesn't throw:
     ///   OFX::ParamSet::EditBlock block(*effect, "Move point", true,
@@ -248,7 +294,11 @@ protected:
 
 private:
     // overridden functions from OFX::Interact to do things
+    // catches the exceptions of drawPoints(): the Support dispatcher would turn them into an
+    // error status, kOfxStatFailed for most, which tells the host to ignore this interact from
+    // then on (drawPoints() reads everything from the host before its first GL call)
     virtual bool draw(const OFX::DrawArgs &args) OVERRIDE FINAL;
+    bool drawPoints(const OFX::DrawArgs &args);
     virtual bool penMotion(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penDown(const OFX::PenArgs &args) OVERRIDE FINAL;
     virtual bool penUp(const OFX::PenArgs &args) OVERRIDE FINAL;
@@ -304,10 +354,9 @@ private:
     // the first shown point within size + 1 screen pixels of the pen in x and y, -1 if none
     int pick(const OFX::PenArgs &args) const;
 
-    // round to the closest int, 1/10 int, etc
-    // this make parameter editing easier
-    // pscale is args.pixelScale.x / args.renderScale.x;
-    // pscale10 is the power of 10 below pscale
+    // round to the closest int, 1/10 int, etc, to make parameter editing easier;
+    // pscale is the pen's args.pixelScale (canonical units per screen pixel), and pscale10 the
+    // power of 10 below it
     static double fround(double val,
                          double pscale)
     {
@@ -347,6 +396,16 @@ private:
 inline bool
 PointsInteract::draw(const OFX::DrawArgs &args)
 {
+    try {
+        return drawPoints(args);
+    } catch (...) {
+        return false;
+    }
+}
+
+inline bool
+PointsInteract::drawPoints(const OFX::DrawArgs &args)
+{
     std::vector<int> shown;
     for (int i = 0; i < pointCount(); ++i) {
         if ( isShown(i, args.time) ) {
@@ -375,6 +434,9 @@ PointsInteract::draw(const OFX::DrawArgs &args)
     // the colour and position of each shown point
     std::vector<OfxRGBColourD> colours( shown.size() );
     std::vector<OfxPointD> positions( shown.size() );
+    std::vector<PointTrajectory> trajectories( shown.size() );
+    // every host call before the first GL call, so that an exception (caught by draw()) can't
+    // leave a glBegin open or the projection shifted for the shadow
     for (size_t k = 0; k < shown.size(); ++k) {
         const PointsInteractPoint& p = _points[shown[k]].config;
         colours[k] = p.colour;
@@ -382,6 +444,7 @@ PointsInteract::draw(const OFX::DrawArgs &args)
             getSuggestedColour(colours[k]);
         }
         positions[k] = position(shown[k], args.time);
+        getPointTrajectory(_points[shown[k]].param, &trajectories[k]);
     }
     GLdouble projection[16];
     d.glGetDoublev( GL_PROJECTION_MATRIX, projection);
@@ -430,7 +493,7 @@ PointsInteract::draw(const OFX::DrawArgs &args)
             d.glEnable(GL_POINT_SMOOTH);
             const double darken = 0.5;
             d.glColor3f(static_cast<GLfloat>(color.r * l * darken), static_cast<GLfloat>(color.g * l * darken), static_cast<GLfloat>(color.b * l * darken));
-            drawPointTrajectory(d, _points[i].param);
+            drawPointTrajectory(d, trajectories[k]);
 
             d.glDisable(GL_POINT_SMOOTH);
             if (active) {
@@ -454,7 +517,7 @@ PointsInteract::draw(const OFX::DrawArgs &args)
     //glPopAttrib();
 
     return true;
-} // draw
+} // drawPoints
 
 inline int
 PointsInteract::pick(const OFX::PenArgs &args) const
