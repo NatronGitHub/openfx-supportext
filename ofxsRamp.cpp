@@ -342,6 +342,9 @@ RampInteractHelper::penMotion(const PenArgs &args)
         _point1DragPos.y += delta.y;
         valuesChanged = true;
     }
+    if ( (_state != eInteractStateIdle) && ( (delta.x != 0.) || (delta.y != 0.) ) ) {
+        _dragMoved = true;
+    }
 
     if ( (_state != eInteractStateIdle) && _interactiveDrag && valuesChanged ) {
         if (_state == eInteractStateDraggingPoint0) {
@@ -393,6 +396,7 @@ RampInteractHelper::penDown(const PenArgs &args)
         _point0->getValueAtTime(time, p0.x, p0.y);
         _point1->getValueAtTime(time, p1.x, p1.y);
         _interactive->getValueAtTime(time, _interactiveDrag);
+        _dragMoved = false; // a new drag (otherwise, this continues the drag of _point0DragPos, _point1DragPos)
     }
 
     bool didSomething = false;
@@ -423,12 +427,14 @@ RampInteractHelper::penUp(const PenArgs &args)
 {
     const double time = args.time;
 
-    if ( !_interactOpen->getValueAtTime(time) ) {
-        return false;
-    }
-    RampTypeEnum type = (RampTypeEnum)_type->getValueAtTime(time);
-    bool noramp = (type == eRampTypeNone);
-    if (noramp) {
+    if ( !_interactOpen->getValueAtTime(time) ||
+         ( (RampTypeEnum)_type->getValueAtTime(time) == eRampTypeNone ) ) {
+        // the overlay was hidden during the drag (if any): abandon it without setting the params,
+        // as RectangleInteract::abandonDrag(), so that the next hover does not drag a point
+        _state = eInteractStateIdle;
+        _interactiveDrag = false;
+        _cursor.release(_interact);
+
         return false;
     }
 
@@ -439,15 +445,22 @@ RampInteractHelper::penUp(const PenArgs &args)
     _state = eInteractStateIdle;
 
     if ( !_interactiveDrag && (state != eInteractStateIdle) ) {
+        // a click without a motion sets nothing (no keyframe, no undo step);
         // round newx/y to the closest int, 1/10 int, etc: this makes parameter editing easier
         if (state == eInteractStateDraggingPoint0) {
-            _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
+            if (_dragMoved) {
+                _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
+            }
             didSomething = true;
         } else if (state == eInteractStateDraggingPoint1) {
-            _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
+            if (_dragMoved) {
+                _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
+            }
             didSomething = true;
         }
-    } else if (state != eInteractStateIdle) {
+    }
+    if (state != eInteractStateIdle) {
+        // the overlay draws the params again, not the dragged points
         _interact->requestRedraw();
     }
 

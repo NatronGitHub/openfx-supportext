@@ -556,24 +556,16 @@ GeneratorInteract::loseFocus(const FocusArgs &args)
 bool
 GeneratorInteract::keyDown(const KeyArgs &args)
 {
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
-
-    if (extent != eGeneratorExtentSize) {
-        return false;
-    }
-
+    // always: RectangleInteract counts the modifiers even when the rectangle is not used, so that
+    // a release is not missed (OFX 1.4 hosts), and redraws only if the rectangle is enabled
     return RectangleInteract::keyDown(args);
 }
 
 bool
 GeneratorInteract::keyUp(const KeyArgs & args)
 {
-    GeneratorExtentEnum extent = (GeneratorExtentEnum)_extent->getValue();
-
-    if (extent != eGeneratorExtentSize) {
-        return false;
-    }
-
+    // always: RectangleInteract counts the modifiers even when the rectangle is not used, so that
+    // a release is not missed (OFX 1.4 hosts), and redraws only if the rectangle is enabled
     return RectangleInteract::keyUp(args);
 }
 
