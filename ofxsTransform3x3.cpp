@@ -611,6 +611,8 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
             // the homogeneous coordinates of a homography have an arbitrary scale (#259). A corner
             // behind the camera (z <= 0) has no image position and gives no margin (a quadrilateral
             // that crosses the horizon already gives an infinite region, see ofxsTransformRegionFromPoints).
+            // Known gap, kept from the off path: if every corner crosses z = 0 between two samples (a fast
+            // Card3D move), the region between them is unbounded but the RoD stays finite.
             for (int k = 0; k < 4; ++k) {
                 if ( (p_prev[k].z > 0.) && (p[k].z > 0.) ) {
                     expand = (std::max)( expand, std::fabs(p_prev[k].x / p_prev[k].z - p[k].x / p[k].z) );
