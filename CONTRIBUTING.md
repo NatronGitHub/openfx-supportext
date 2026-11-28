@@ -62,9 +62,9 @@ cmake -S . -B /tmp/sx-check -DOPENFX_DIR=$O -DCMAKE_CXX_STANDARD=17 \
   -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wno-unused-parameter" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
 cmake --build /tmp/sx-check -j4
 cmake -S tests/cmake -B /tmp/sx-tests -DOPENFX_DIR=$O && cmake --build /tmp/sx-tests -j4
-# each regression project is configured on its own (oldpolicy needs CMake < 4):
+# the regression projects are only configured, each on its own (oldpolicy needs CMake < 4):
 for t in visibility visibility_late visibility_twice; do
-  cmake -S tests/cmake/regression/$t -B /tmp/sx-reg-$t -DOPENFX_DIR=$O && cmake --build /tmp/sx-reg-$t -j4
+  cmake -S tests/cmake/regression/$t -B /tmp/sx-reg-$t
 done
 ```
 
@@ -78,13 +78,17 @@ done
   ```
 - Search the consumers (openfx-misc, openfx-io and openfx-arena, at a fresh
   `origin/master`) for every symbol you change.
-- CI (`ci.yml`) runs Linux and MSVC when a pull request is marked ready or
-  on demand (drafts run none), and macOS on ready pull requests. MSVC is a
-  compile check; Linux and macOS also build openfx-misc with the branch and
-  render its plug-ins;
-  `extended.yml` runs weekly. To check rendered output and OFX 1.4 hosts
-  locally, run openfx-misc's `.github/tools/smoketest.sh --supportext <this
-  checkout>` (add `--ofx14` for an OFX 1.4 host).
+- CI (`ci.yml`) runs Linux and MSVC on ready pull requests (drafts run
+  none; maintainers can also start it on demand), and macOS on ready pull
+  requests. MSVC is a compile check; Linux and macOS also build openfx-misc
+  with the branch and render its plug-ins. `extended.yml` runs weekly. To
+  check rendered output and OFX 1.4 hosts locally, from an openfx-misc clone
+  with its submodules:
+
+  ```sh
+  .github/tools/smoketest.sh --supportext <this checkout> --build <build dir> <install dir>
+  .github/tools/smoketest.sh --ofx14 <install dir>
+  ```
 - Check the OpenFX specification before writing or reviewing code that uses
   the OFX API: the `include/` headers and `Documentation/sources/Reference/`
   of [AcademySoftwareFoundation/openfx](https://github.com/AcademySoftwareFoundation/openfx),
