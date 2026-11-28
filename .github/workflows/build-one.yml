@@ -81,7 +81,8 @@ jobs:
         run: |
           set -o pipefail
           # (the compile check of every source is the "Compile" step above)
-          # every part runs, so that a failure reports both kinds; the step fails if any did
+          # every part runs, so that a failure reports both kinds; the step fails if any did. The
+          # step runs under bash -e: a command added here needs its own "|| { ...; fail=1; }"
           fail=0
           echo "::group::functional tests (tests/cmake/functional)"
           { cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx" &&
