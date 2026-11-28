@@ -774,6 +774,7 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     // the source RoD expanded by it (in source pixels at this render scale, as ofxsFilterExpandRoI),
     // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258)
     OfxRectD srcRoDFiltered = srcRoD;
+    int prefilterOutputPixels = 0;
     if (_exactRoDMargins && blackOutside && expandForBlackOutside) {
         FilterEnum filter = eFilterCubic;
         if (_filter) {
@@ -781,21 +782,24 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         }
         const double support = ofxsFilterSupport(filter);
         const double srcPar = _srcClip->getPixelAspectRatio();
-        double ex = support * srcPar / args.renderScale.x;
         // a field line is 2 canonical units (ofxsMatPixelToCanonical), and the field is not known here
-        double ey = support * 2. / args.renderScale.y;
-        // the prefilter widens the kernel when scaling down (see getRegionsOfInterest), by this
-        // effect's own scale-down (not the cap for a host transform, which would inflate the RoD)
-        const int prefilterRadius = ofxsFilterRadius(filter);
-        if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
-            const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius, false);
-            ex += e.x;
-            ey += e.y;
+        ofxsFilterExpandRect(support * srcPar / args.renderScale.x, support * 2. / args.renderScale.y, &srcRoDFiltered);
+        // Prefilter Downscaling widens the kernel by the local scale-down w > 1: it reads up to R * w - 0.5
+        // source pixels beyond the edge, less than R output pixels, since an output pixel spans w source
+        // pixels there. Added in output pixels, because a bound in source pixels is the 16x cap of
+        // getPrefilterRoIExpansion() for a homography.
+        if ( _prefilter && _prefilter->getValueAtTime(time) ) {
+            prefilterOutputPixels = ofxsFilterRadius(filter);
         }
-        ofxsFilterExpandRect(ex, ey, &srcRoDFiltered);
     }
 
     transformRegion(srcRoDFiltered, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
+
+    if (prefilterOutputPixels > 0) {
+        // output pixels (a field line in y) to canonical coordinates
+        ofxsFilterExpandRect(prefilterOutputPixels * _dstClip->getPixelAspectRatio() / args.renderScale.x,
+                             prefilterOutputPixels * 2. / args.renderScale.y, &rod);
+    }
 
     if (expandForBlackOutside) {
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
@@ -817,15 +821,12 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
 // widths are bounded over the inverse transforms of the render, in the same pixel coordinates (PAR,
 // render scale), for both an unfielded and a fielded render (the field is not known in
 // getRegionsOfInterest): exact for an affine transform, the cap for a projective one (the largest
-// derivative of a homography over a rectangle is not always at its corners). With hostTransformCap,
-// also the cap on a host that may attach a transform to the source image (the RoI); without it, only
-// this effect's own transforms count (the RoD: an upstream transform's margin is in the source RoD).
+// derivative of a homography over a rectangle is not always at its corners).
 OfxPointD
 Transform3x3Plugin::getPrefilterRoIExpansion(double time,
                                              int view,
                                              const OfxPointD& renderScale,
-                                             int prefilterRadius,
-                                             bool hostTransformCap) const
+                                             int prefilterRadius) const
 {
     const double srcPar = _srcClip->getPixelAspectRatio();
     const double dstPar = _dstClip->getPixelAspectRatio();
@@ -836,9 +837,7 @@ Transform3x3Plugin::getPrefilterRoIExpansion(double time,
     // A host that concatenates transforms may attach one to the source image (setupAndProcess()
     // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
     // CornerPin), the bound below would be too small, so use the cap.
-    useCap = hostTransformCap && getImageEffectHostDescription()->canTransform;
-#else
-    (void)hostTransformCap;
+    useCap = getImageEffectHostDescription()->canTransform;
 #endif
     if (useCap) {
         ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / renderScale.x;
@@ -943,7 +942,7 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
     // prefilter: widen srcRoI by the widened kernel (see getPrefilterRoIExpansion)
     const int prefilterRadius = ofxsFilterRadius(filter);
     if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
-        const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius, true);
+        const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius);
         ofxsFilterExpandRect(e.x, e.y, &srcRoI);
     }
 
