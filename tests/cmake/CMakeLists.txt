@@ -1,7 +1,19 @@
-# Consumer tests for cmake/SupportExt.cmake, run by the CI:
+# Consumer tests of cmake/SupportExt.cmake (supportext_add_sources), run by the CI
+# (.github/workflows/build-one.yml, "CMake helper (consumer tests)"):
 #   cmake -S tests/cmake -B build -DOPENFX_DIR=<openfx checkout> && cmake --build build
-# Each case links a MODULE with undefined symbols forbidden, so that a missing
+# Each test target is a MODULE linked with undefined symbols forbidden, so that a missing
 # SupportExt component or library (OpenGL, dl, threads, TEXT...) fails the build.
+#
+#   common/      shared code: sx_test_module() and sx_expect_components()
+#                (SxTest.cmake), and the sources used by several tests
+#   functional/  this build: the helper's contracts that the plug-in repositories rely
+#                on, and compile and link checks of SupportExt's header APIs
+#                (targets functional_*)
+#   regression/  contrived layouts that reproduced a specific failure of a past version
+#                of the helper (each names the commit it failed with): separate projects,
+#                each configured on its own by the CI (cmake -S tests/cmake/regression/<name>)
+#
+# The compile check of every SupportExt source is the top-level CMakeLists.txt.
 cmake_minimum_required(VERSION 3.16)
 # macOS 14.0 deployment target, as the plug-in repositories (VFX Reference Platform CY2027,
 # openfx#160); a toolchain file, a cross build or MACOSX_DEPLOYMENT_TARGET take precedence
@@ -18,85 +30,7 @@ endif()
 
 # openfx first, so that supportext_add_sources() links openfx::Support
 add_subdirectory("${OPENFX_DIR}" openfx EXCLUDE_FROM_ALL)
-# SupportExt with add_subdirectory; the helper is then called from this directory
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../.." supportext)
 
-# forbid undefined symbols in the modules
-if(APPLE)
-  set(SX_NO_UNDEFINED "") # undefined symbols are an error in macOS bundles
-elseif(UNIX)
-  set(SX_NO_UNDEFINED "-Wl,--no-undefined")
-else()
-  set(SX_NO_UNDEFINED "") # Windows DLLs cannot have undefined symbols
-endif()
+include("${CMAKE_CURRENT_SOURCE_DIR}/common/SxTest.cmake")
 
-function(sx_test_module NAME)
-  add_library(${NAME} MODULE ${ARGN})
-  # Support/Plugins/include (ofxsProcessing.H...) is not in openfx::Support's usage requirements
-  target_include_directories(${NAME} PRIVATE "${OPENFX_DIR}/Support/Plugins/include")
-  target_link_options(${NAME} PRIVATE ${SX_NO_UNDEFINED})
-endfunction()
-
-# 1. called from the parent of add_subdirectory(SupportExt); header-only overlay
-#    (ofxsPositionInteract.h needs TEXT through OverlayDraw::bitmapString)
-sx_test_module(sx_parent position.cpp helpers.cpp)
-supportext_add_sources(sx_parent COMPONENTS POSITION_INTERACT THREADS TRANSFORM3X3
-                       TRANSFORM_INTERACT GENERATOR RAMP TRACKING)
-# calling it again adds nothing twice
-get_property(_sources_before TARGET sx_parent PROPERTY SOURCES)
-get_property(_libs_before TARGET sx_parent PROPERTY LINK_LIBRARIES)
-supportext_add_sources(sx_parent COMPONENTS THREADS POSITION_INTERACT)
-get_property(_sources_after TARGET sx_parent PROPERTY SOURCES)
-get_property(_libs_after TARGET sx_parent PROPERTY LINK_LIBRARIES)
-if(NOT _sources_after STREQUAL _sources_before OR NOT _libs_after STREQUAL _libs_before)
-  message(FATAL_ERROR "a second supportext_add_sources() call added sources or links again")
-endif()
-
-# 1b. the header-only overlay alone must pull in TEXT
-sx_test_module(sx_position position.cpp)
-supportext_add_sources(sx_position COMPONENTS POSITION_INTERACT)
-
-# 2. OPENGL (glad, EGL on Linux, dl), every component
-sx_test_module(sx_all opengl.cpp)
-supportext_add_sources(sx_all ALL)
-
-# 2b. options among the COMPONENTS, in any order (OPENGL and EGL must not end the
-#     list: FILEOPEN after them must still be added)
-sx_test_module(sx_mixed opengl.cpp text.cpp)
-supportext_add_sources(sx_mixed COMPONENTS THREADS OPENGL EGL TEXT FILEOPEN)
-get_property(_sx_mixed TARGET sx_mixed PROPERTY SUPPORTEXT_COMPONENTS)
-foreach(_c THREADS OPENGL EGL TEXT FILEOPEN GLAD)
-  if(NOT _c IN_LIST _sx_mixed)
-    message(FATAL_ERROR "sx_mixed: component ${_c} missing (got ${_sx_mixed})")
-  endif()
-endforeach()
-# OPENMP: ofxsOpenMP.cpp (a no-op without OpenMP), recorded as a component
-sx_test_module(sx_openmp openmp.cpp)
-supportext_add_sources(sx_openmp COMPONENTS OPENMP)
-get_property(_sx_openmp TARGET sx_openmp PROPERTY SUPPORTEXT_COMPONENTS)
-if(NOT "OPENMP" IN_LIST _sx_openmp)
-  message(FATAL_ERROR "sx_openmp: component OPENMP missing (got ${_sx_openmp})")
-endif()
-sx_test_module(sx_mixed2 opengl.cpp)
-supportext_add_sources(sx_mixed2 OPENGL COMPONENTS LUT)
-supportext_add_sources(sx_mixed2 COMPONENTS MULTIPLANE EGL)
-
-# 3. a STATIC library with TEXT, linked into a MODULE: OpenGL must propagate
-add_library(sx_static STATIC text.cpp)
-set_target_properties(sx_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
-supportext_add_sources(sx_static COMPONENTS TEXT)
-sx_test_module(sx_uses_static empty.cpp)
-target_link_libraries(sx_uses_static PRIVATE sx_static)
-
-# 4. the helper included from two sibling directories
-add_subdirectory(sibling_a)
-add_subdirectory(sibling_b)
-
-# 5. a target defined here, the helper called from another directory
-sx_test_module(sx_otherdir text.cpp)
-add_subdirectory(otherdir)
-
-# 6. separate projects, configured by the CI:
-#    - tests/cmake/visibility, visibility_late and visibility_twice: calls from
-#      another directory with consumer-created imported targets
-#    - tests/cmake/oldpolicy: a consumer with 3.1 policies (with CMake < 4)
+add_subdirectory(functional)
