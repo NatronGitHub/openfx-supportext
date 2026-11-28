@@ -79,8 +79,9 @@ done
 - Search the consumers (openfx-misc, openfx-io and openfx-arena, at a fresh
   `origin/master`) for every symbol you change.
 - CI (`ci.yml`) runs Linux and MSVC when a pull request is marked ready or
-  on demand (drafts run none), and macOS on ready pull requests. It also
-  builds openfx-misc with the branch and renders its plug-ins;
+  on demand (drafts run none), and macOS on ready pull requests. MSVC is a
+  compile check; Linux and macOS also build openfx-misc with the branch and
+  render its plug-ins;
   `extended.yml` runs weekly. To check rendered output and OFX 1.4 hosts
   locally, run openfx-misc's `.github/tools/smoketest.sh --supportext <this
   checkout>` (add `--ofx14` for an OFX 1.4 host).
