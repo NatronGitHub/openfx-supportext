@@ -1717,6 +1717,13 @@ mergePixel(bool doAlphaMasking,
             assert(false);
             break;
         }
+        if (nComponents == 1) {
+            // an Alpha image: its only component is the alpha, a + b - ab as in RGBA (the colour
+            // formula below gave a + b - 2ab, e.g. 0 for two opaque inputs)
+            dst[0] = mergeAlphaUnion<PIX, maxValue>(a, b);
+
+            return;
+        }
         pixman_float_t R[3] = { res.r, res.g, res.b };
         for (int i = 0; i < (std::min)(nComponents, 3); ++i) {
             dst[i] = mergeDoubleToPIX<PIX>( (1 - sa) * B[i] + (1 - da) * A[i] + R[i] * maxValue );
