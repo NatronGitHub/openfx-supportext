@@ -173,6 +173,23 @@ protected:
     // how much the prefilter widens the source RoI, in canonical coordinates (see the .cpp)
     OfxPointD getPrefilterRoIExpansion(double time, int view, const OfxPointD& renderScale, int prefilterRadius) const;
 
+    // The exact RoD margins, off by default (the RoD of the released plug-in versions). Call it only
+    // from the subclass's constructor, according to its plug-in version, since it changes the rendered
+    // output (the RoD and RoI actions read it from other threads, so a later write is a data race):
+    // - with Black Outside, the RoD contains the filter's soft edge beyond the transformed source
+    //   (the source RoD, enclosed in pixels, is expanded by the filter's support; exact with Prefilter
+    //   Downscaling too, by a rule of the render, see the .cpp), in addition to the one pixel, which
+    //   cuts the soft edge where support * scale exceeds it: scaling up above 2x for Bilinear and Cubic,
+    //   above 2/3x for the 4-tap filters, above 0.4x for Lanczos6, and also rotations at scale 1
+    //   (SupportExt#258);
+    // - with motion blur or directional blur, the margin between the sampled transforms of the RoD
+    //   and RoI is measured in the image plane (x/z, y/z), not in homogeneous coordinates, whose
+    //   arbitrary scale made it too large or too small for projective transforms (SupportExt#259).
+    void setExactRoDMargins(bool exact)
+    {
+        _exactRoDMargins = exact;
+    }
+
 private:
     /* internal render function */
     template <class PIX, int nComponents, int maxValue, bool masked>
@@ -221,6 +238,9 @@ protected:
     OFX::DoubleParam* _mix;
     OFX::BooleanParam* _maskApply;
     OFX::BooleanParam* _maskInvert;
+
+private:
+    bool _exactRoDMargins; // see setExactRoDMargins()
 };
 
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);

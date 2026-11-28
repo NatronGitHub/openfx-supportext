@@ -201,6 +201,7 @@ private:
                     } else {
                         bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
                         bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
+                        // the exact RoD of Transform3x3Plugin relies on this (no Jacobian, so no prefilter widening)
                         if ( _blackOutside && !(xinside && yinside) ) {
                             xinside = yinside = false;
                         }
@@ -297,6 +298,7 @@ private:
                             } else {
                                 bool xinside = (x1 <= fx + 0.5 && fx - 0.5 < x2);
                                 bool yinside = (y1 <= fy + 0.5 && fy - 0.5 < y2);
+                                // the exact RoD of Transform3x3Plugin relies on this (no Jacobian, so no prefilter widening)
                                 if ( _blackOutside && !(xinside && yinside) ) {
                                     xinside = yinside = false;
                                 }

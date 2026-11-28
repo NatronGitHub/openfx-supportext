@@ -117,6 +117,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _mix(NULL)
     , _maskApply(NULL)
     , _maskInvert(NULL)
+    , _exactRoDMargins(false)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
@@ -605,6 +606,19 @@ Transform3x3Plugin::transformRegion(const OfxRectD &rectFrom,
         // if first iteration, continue
         if (first) {
             first = false;
+        } else if (_exactRoDMargins) {
+            // the L-infinity distance between consecutive tested points, in the image plane (x/z, y/z):
+            // the homogeneous coordinates of a homography have an arbitrary scale (#259). A corner
+            // behind the camera (z <= 0) has no image position and gives no margin (a quadrilateral
+            // that crosses the horizon already gives an infinite region, see ofxsTransformRegionFromPoints).
+            // Known gap, kept from the off path: if every corner crosses z = 0 between two samples (a fast
+            // Card3D move), the region between them is unbounded but the RoD stays finite.
+            for (int k = 0; k < 4; ++k) {
+                if ( (p_prev[k].z > 0.) && (p[k].z > 0.) ) {
+                    expand = (std::max)( expand, std::fabs(p_prev[k].x / p_prev[k].z - p[k].x / p[k].z) );
+                    expand = (std::max)( expand, std::fabs(p_prev[k].y / p_prev[k].z - p[k].y / p[k].z) );
+                }
+            }
         } else {
             // compute the L-infinity distance between consecutive tested points
             expand = (std::max)( expand, std::fabs(p_prev[0].x - p[0].x) );
@@ -745,19 +759,47 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     const int view = 0;
 #endif
 
-    transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
-
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity. With a shutter motion
     // blur, transformRegion returns the blurred RoD even then, which the render fills like any other
     // transform (with directional blur, it returns the source RoD at identity).
     const bool shutterBlurred = (shutter != 0. && !directionalBlur && motionblur != 0.);
-    if (!identity || shutterBlurred) {
-        bool blackOutside = false;
-        if (_blackOutside) {
-            _blackOutside->getValueAtTime(time, blackOutside);
-        }
+    const bool expandForBlackOutside = (!identity || shutterBlurred);
+    bool blackOutside = false;
+    if (_blackOutside) {
+        _blackOutside->getValueAtTime(time, blackOutside);
+    }
 
+    // with Black Outside, the filter is non-zero up to its support beyond the edge of the source image:
+    // transform the source RoD, enclosed in pixels at this render scale (the image holds a partly
+    // covered edge pixel whole), expanded by the support (in source pixels, as ofxsFilterExpandRoI),
+    // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258).
+    // This is exact with Prefilter Downscaling and supersampling too, because it relies on a rule of the
+    // render (ofxsTransform3x3Processor.h): with Black Outside, a sample more than half a source pixel
+    // outside the source image has no Jacobian, so it gets the plain filter, whose reach is the support.
+    // It assumes that the bounds of the source image are the source RoD enclosed in pixels, as hosts
+    // give it (the spec allows larger bounds, black beyond the RoD, where the prefilter reaches further).
+    // The source RoD is finite here (an infinite one returned above).
+    OfxRectD srcRoDFiltered = srcRoD;
+    if (_exactRoDMargins && blackOutside && expandForBlackOutside) {
+        FilterEnum filter = eFilterCubic;
+        if (_filter) {
+            filter = (FilterEnum)_filter->getValueAtTime(time);
+        }
+        const double support = ofxsFilterSupport(filter);
+        const double srcPar = _srcClip->getPixelAspectRatio();
+        // in y, field lines of 2 canonical rows (ofxsMatPixelToCanonical), since the field is not known
+        // here: their grid contains the unfielded one
+        const OfxPointD fieldScale = { args.renderScale.x, args.renderScale.y * 0.5 };
+        OfxRectI srcPixels;
+        Coords::toPixelEnclosing(srcRoD, fieldScale, srcPar, &srcPixels);
+        Coords::toCanonical(srcPixels, fieldScale, srcPar, &srcRoDFiltered);
+        ofxsFilterExpandRect(support * srcPar / args.renderScale.x, support * 2. / args.renderScale.y, &srcRoDFiltered);
+    }
+
+    transformRegion(srcRoDFiltered, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
+
+    if (expandForBlackOutside) {
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
