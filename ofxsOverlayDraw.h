@@ -166,6 +166,7 @@
 #endif
 
 #include "ofxsInteract.h"
+#include "ofxsMultiThread.h" // OFXS_SUPPORT_HAS_THREAD_SCOPE
 #include "ofxsImageEffect.h"
 #include "ofxsOGLTextRenderer.h"
 
@@ -205,6 +206,43 @@ enum OverlayDrawModeEnum
     eOverlayDrawSuite //< V2 descriptor registered as V2: DrawSuite only
 };
 
+#ifdef OFXS_SUPPORT_HAS_THREAD_SCOPE
+/// Sets the draw mode of the interacts created on this thread while it lives (in
+/// DefaultEffectOverlayDescriptorV2::createInstance); scopes nest.
+/// The mode is per thread without a thread-local variable (OFX::MultiThread::ThreadScope, a
+/// pthread key on POSIX), because macOS never unloads a binary that has thread-local variables.
+/// The key is per plug-in binary as long as the plug-in exports only the OFX entry points
+/// (hidden visibility), as add_ofx_plugin and Makefile.master do: the type can't be in an
+/// anonymous namespace, since the scope and the interact constructor may be in different files.
+class OverlayDrawConstructionScope
+{
+public:
+    explicit OverlayDrawConstructionScope(OverlayDrawModeEnum mode)
+        : _mode(mode)
+        , _scope(this)
+    {
+    }
+
+    /// The mode of the innermost scope of this thread, OpenGL outside any scope.
+    static OverlayDrawModeEnum current()
+    {
+        const OverlayDrawConstructionScope* s = OFX::MultiThread::ThreadScope<OverlayDrawConstructionScope>::current();
+
+        return s ? s->_mode : eOverlayDrawOpenGL;
+    }
+
+private:
+    OverlayDrawModeEnum _mode;
+    OFX::MultiThread::ThreadScope<OverlayDrawConstructionScope> _scope; // last: pushed once _mode is set
+};
+
+/// Read it in the interact (or helper) constructor, and pass it to OverlayDraw.
+inline OverlayDrawModeEnum
+ofxsOverlayDrawModeForNewInteract()
+{
+    return OverlayDrawConstructionScope::current();
+}
+#else // older openfx Support: a thread-local variable
 /// The draw mode of the interact being created, on the creating thread (set by
 /// DefaultEffectOverlayDescriptorV2::createInstance).
 inline OverlayDrawModeEnum&
@@ -236,9 +274,13 @@ public:
         ofxsOverlayDrawConstructionMode() = _previous;
     }
 
+    OverlayDrawConstructionScope(const OverlayDrawConstructionScope&) = delete;
+    OverlayDrawConstructionScope& operator=(const OverlayDrawConstructionScope&) = delete;
+
 private:
     OverlayDrawModeEnum _previous;
 };
+#endif
 
 // Everything below depends on OFXS_OVERLAYDRAW_DS: put it in an inline namespace
 // named after the value, and let MSVC check that all the object files
