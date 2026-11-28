@@ -1168,6 +1168,12 @@ TrackerRegionInteract::penDown(const PenArgs &args)
     _offsetDragPos.x        = xoff;
     _offsetDragPos.y        = yoff;
     _dragMoved = false;
+    _centerDownPos = _centerDragPos;
+    _offsetDownPos = _offsetDragPos;
+    _innerBtmLeftDownPos = _innerBtmLeftDragPos;
+    _innerTopRightDownPos = _innerTopRightDragPos;
+    _outerBtmLeftDownPos = _outerBtmLeftDragPos;
+    _outerTopRightDownPos = _outerTopRightDragPos;
 
     _lastMousePos = args.penPosition;
 
@@ -1220,8 +1226,15 @@ TrackerRegionInteract::penUp(const PenArgs &args)
         ~ResetMouseState() { state = eMouseStateIdle; }
     } resetMouseState = { _ms };
 
-    if (!_dragMoved) {
-        // a click without a motion sets nothing (no keyframe on the center, no undo step)
+    if ( !_dragMoved ||
+         ( samePoint(_centerDragPos, _centerDownPos.x, _centerDownPos.y) &&
+           samePoint(_offsetDragPos, _offsetDownPos.x, _offsetDownPos.y) &&
+           samePoint(_innerBtmLeftDragPos, _innerBtmLeftDownPos.x, _innerBtmLeftDownPos.y) &&
+           samePoint(_innerTopRightDragPos, _innerTopRightDownPos.x, _innerTopRightDownPos.y) &&
+           samePoint(_outerBtmLeftDragPos, _outerBtmLeftDownPos.x, _outerBtmLeftDownPos.y) &&
+           samePoint(_outerTopRightDragPos, _outerTopRightDownPos.x, _outerTopRightDownPos.y) ) ) {
+        // a click, or a drag back to the values at penDown, sets nothing (no keyframe on the
+        // center, no undo step)
         _ms = eMouseStateIdle;
         requestRedraw();
 

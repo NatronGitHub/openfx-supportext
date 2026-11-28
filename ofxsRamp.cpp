@@ -347,11 +347,7 @@ RampInteractHelper::penMotion(const PenArgs &args)
     }
 
     if ( (_state != eInteractStateIdle) && _interactiveDrag && valuesChanged ) {
-        if (_state == eInteractStateDraggingPoint0) {
-            _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
-        } else if (_state == eInteractStateDraggingPoint1) {
-            _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
-        }
+        setDragValue(_state, pscale);
     }
 
     if (valuesChanged) {
@@ -396,6 +392,8 @@ RampInteractHelper::penDown(const PenArgs &args)
         _point0->getValueAtTime(time, p0.x, p0.y);
         _point1->getValueAtTime(time, p1.x, p1.y);
         _interactive->getValueAtTime(time, _interactiveDrag);
+        _point0Written = p0;
+        _point1Written = p1;
         _dragMoved = false; // a new drag (otherwise, this continues the drag of _point0DragPos, _point1DragPos)
     }
 
@@ -445,19 +443,12 @@ RampInteractHelper::penUp(const PenArgs &args)
     _state = eInteractStateIdle;
 
     if ( !_interactiveDrag && (state != eInteractStateIdle) ) {
-        // a click without a motion sets nothing (no keyframe, no undo step);
-        // round newx/y to the closest int, 1/10 int, etc: this makes parameter editing easier
-        if (state == eInteractStateDraggingPoint0) {
-            if (_dragMoved) {
-                _point0->setValue( fround(_point0DragPos.x, pscale.x), fround(_point0DragPos.y, pscale.y) );
-            }
-            didSomething = true;
-        } else if (state == eInteractStateDraggingPoint1) {
-            if (_dragMoved) {
-                _point1->setValue( fround(_point1DragPos.x, pscale.x), fround(_point1DragPos.y, pscale.y) );
-            }
-            didSomething = true;
+        // a click, or a motion that leaves the rounded point that of the param, sets nothing (no
+        // keyframe, no undo step)
+        if (_dragMoved) {
+            setDragValue(state, pscale);
         }
+        didSomething = true;
     }
     if (state != eInteractStateIdle) {
         // the overlay draws the params again, not the dragged points
@@ -465,6 +456,26 @@ RampInteractHelper::penUp(const PenArgs &args)
     }
 
     return didSomething;
+}
+
+void
+RampInteractHelper::setDragValue(InteractState state,
+                                 const OfxPointD& pscale)
+{
+    assert( (state == eInteractStateDraggingPoint0) || (state == eInteractStateDraggingPoint1) );
+    const bool first = (state == eInteractStateDraggingPoint0);
+    const OfxPointD& drag = first ? _point0DragPos : _point1DragPos;
+    OfxPointD& written = first ? _point0Written : _point1Written;
+    // round newx/y to the closest int, 1/10 int, etc: this makes parameter editing easier
+    OfxPointD p;
+    p.x = fround(drag.x, pscale.x);
+    p.y = fround(drag.y, pscale.y);
+    if ( (p.x == written.x) && (p.y == written.y) ) {
+        // the param already has this value: no keyframe, no undo step
+        return;
+    }
+    (first ? _point0 : _point1)->setValue(p.x, p.y);
+    written = p;
 }
 
 /** @brief Called when the interact is loses input focus */

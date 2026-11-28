@@ -100,7 +100,12 @@ class RampInteractHelper
     BooleanParam* _interactive;
     BooleanParam* _hiDPI;
     OfxPointD _point0DragPos, _point1DragPos;
-    bool _dragMoved; // a pen motion of this drag moved the point: penUp sets the param
+    // the params' values: read at penDown, then the last values that this drag set, so that a
+    // sub-pixel or pressure-only motion sets nothing
+    OfxPointD _point0Written, _point1Written;
+    // a pen motion of this drag moved the point; its param is set only if, in addition, the
+    // rounded point differs from _point0Written or _point1Written
+    bool _dragMoved;
     bool _interactiveDrag;
     OfxPointD _lastMousePos;
     InteractState _state;
@@ -122,6 +127,8 @@ public:
         , _hiDPI(NULL)
         , _point0DragPos()
         , _point1DragPos()
+        , _point0Written()
+        , _point1Written()
         , _dragMoved(false)
         , _interactiveDrag(false)
         , _lastMousePos()
@@ -215,6 +222,11 @@ public:
 
     /** @brief Called when the interact is loses input focus */
     virtual void loseFocus(const FocusArgs &args) OVERRIDE;
+
+private:
+    /// Set the param of the dragged point (state) to the rounded drag position, unless it already
+    /// has it.
+    void setDragValue(InteractState state, const OfxPointD& pscale);
 };
 
 typedef OverlayInteractFromHelper<RampInteractHelper> RampInteract;

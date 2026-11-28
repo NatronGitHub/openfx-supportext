@@ -244,6 +244,12 @@ public:
         , _controlDown(0)
         , _altDown(0)
         , _dragMoved(false)
+        , _centerDownPos()
+        , _offsetDownPos()
+        , _innerBtmLeftDownPos()
+        , _innerTopRightDownPos()
+        , _outerBtmLeftDownPos()
+        , _outerTopRightDownPos()
     {
         _center = effect->fetchDouble2DParam(kParamTrackingCenterPoint);
         _offset = effect->fetchDouble2DParam(kParamTrackingOffset);
@@ -309,7 +315,16 @@ private:
     int _controlDown;
     int _altDown;
     bool ctrlDown() const;
-    bool _dragMoved; // a pen motion of this drag changed a value: penUp sets the params
+    // a pen motion of this drag changed a value; penUp sets the params only if, in addition,
+    // the values differ from those at penDown (the _...DownPos)
+    bool _dragMoved;
+    // the _...DragPos at penDown (from the params), so that a drag that comes back sets nothing
+    OfxPointD _centerDownPos;
+    OfxPointD _offsetDownPos;
+    OfxPointD _innerBtmLeftDownPos;
+    OfxPointD _innerTopRightDownPos;
+    OfxPointD _outerBtmLeftDownPos;
+    OfxPointD _outerTopRightDownPos;
 };
 
 class TrackerRegionOverlayDescriptor
