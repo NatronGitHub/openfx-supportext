@@ -748,8 +748,11 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
 
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
-    // We want the RoD to be the same as the src RoD when we are identity.
-    if (!identity) {
+    // We want the RoD to be the same as the src RoD when we are identity. With a shutter motion
+    // blur, transformRegion returns the blurred RoD even then, which the render fills like any other
+    // transform (with directional blur, it returns the source RoD at identity).
+    const bool shutterBlurred = (shutter != 0. && !directionalBlur && motionblur != 0.);
+    if (!identity || shutterBlurred) {
         bool blackOutside = false;
         if (_blackOutside) {
             _blackOutside->getValueAtTime(time, blackOutside);
@@ -915,6 +918,20 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
         projectRoD.x2 = offset.x + size.x;
         projectRoD.y2 = offset.y + size.y;
         Coords::rectBoundingBox(srcRoI, projectRoD, &srcRoI);
+        // an infinite source RoD leaves infinite sides: clamp them to the project ("Plug-ins need to
+        // check for infinite RoDs when asking input clips for them", ofxProcessingArch.rst)
+        if (srcRoI.x1 <= kOfxFlagInfiniteMin) {
+            srcRoI.x1 = projectRoD.x1;
+        }
+        if (srcRoI.y1 <= kOfxFlagInfiniteMin) {
+            srcRoI.y1 = projectRoD.y1;
+        }
+        if (srcRoI.x2 >= kOfxFlagInfiniteMax) {
+            srcRoI.x2 = projectRoD.x2;
+        }
+        if (srcRoI.y2 >= kOfxFlagInfiniteMax) {
+            srcRoI.y2 = projectRoD.y2;
+        }
     }
 
     if ( _masked && ( doMasking || (mix != 1.) ) ) {

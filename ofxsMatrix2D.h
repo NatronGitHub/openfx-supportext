@@ -276,12 +276,13 @@ struct Matrix3x3
         return !(*this == o);
     }
 
-    /// Set to the degenerate transform that maps every point to the origin
-    /// (all coefficients are zero, except m(2,2) = 1).
+    /// Set to the degenerate transform that maps every point to the point at infinity (all
+    /// coefficients are zero, so z = 0): the transform of a render whose transform can't be
+    /// computed, which the Transform3x3 processor renders black (z <= 0), as for points behind the
+    /// camera. (With m(2,2) = 1, as before, every pixel sampled the source at the origin.)
     void setNullTransform()
     {
         std::fill(m, m + 3*3, 0.);
-        m[8] = 1.;
     }
 
     double & operator()(int row,
