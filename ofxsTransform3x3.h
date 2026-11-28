@@ -173,6 +173,16 @@ protected:
     // how much the prefilter widens the source RoI, in canonical coordinates (see the .cpp)
     OfxPointD getPrefilterRoIExpansion(double time, int view, const OfxPointD& renderScale, int prefilterRadius) const;
 
+    // The exact RoD margins, off by default (the RoD of the released plug-in versions). The subclass's
+    // constructor sets it according to its plug-in version, since it changes the rendered output:
+    // - with Black Outside, the RoD contains the filter's soft edge beyond the transformed source
+    //   (the source RoD is expanded by the filter's support, and by the prefilter widening), instead
+    //   of one pixel only, which cuts it when scaling up by more than 2x (SupportExt#258).
+    void setExactRoDMargins(bool exact)
+    {
+        _exactRoDMargins = exact;
+    }
+
 private:
     /* internal render function */
     template <class PIX, int nComponents, int maxValue, bool masked>
@@ -221,6 +231,9 @@ protected:
     OFX::DoubleParam* _mix;
     OFX::BooleanParam* _maskApply;
     OFX::BooleanParam* _maskInvert;
+
+private:
+    bool _exactRoDMargins; // see setExactRoDMargins()
 };
 
 void Transform3x3Describe(OFX::ImageEffectDescriptor &desc, bool masked);

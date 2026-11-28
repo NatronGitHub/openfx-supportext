@@ -427,6 +427,18 @@ ofxsFilterRadius(FilterEnum filter)
     return 0;
 }
 
+// How far a filter reads beyond the sample position, in source pixels: it is non-zero up to this
+// distance beyond the edge of a source image surrounded by black. 0 for Impulse and Box, 0.5 for
+// Bilinear and Cubic (2 taps), 1.5 for the bicubic filters (4 taps), R - 0.5 for the sinc filters
+// (2R taps), as ofxsFilterExpandRoI expands the source RoI. Used by the Black Outside RoD of Transform3x3.
+inline double
+ofxsFilterSupport(FilterEnum filter)
+{
+    const int radius = ofxsFilterRadius(filter);
+
+    return (radius > 0) ? (radius - 0.5) : 0.;
+}
+
 // sin(pi x) / (pi x)
 inline double
 ofxsFilterSinc(double x)

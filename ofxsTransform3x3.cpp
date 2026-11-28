@@ -117,6 +117,7 @@ Transform3x3Plugin::Transform3x3Plugin(OfxImageEffectHandle handle,
     , _mix(NULL)
     , _maskApply(NULL)
     , _maskInvert(NULL)
+    , _exactRoDMargins(false)
 {
     _dstClip = fetchClip(kOfxImageEffectOutputClipName);
     assert(1 <= _dstClip->getPixelComponentCount() && _dstClip->getPixelComponentCount() <= 4);
@@ -745,19 +746,43 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
     const int view = 0;
 #endif
 
-    transformRegion(srcRoD, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
-
     // If identity do not expand for black outside, otherwise we would never be able to have identity.
     // We want the RoD to be the same as the src RoD when we are identity. With a shutter motion
     // blur, transformRegion returns the blurred RoD even then, which the render fills like any other
     // transform (with directional blur, it returns the source RoD at identity).
     const bool shutterBlurred = (shutter != 0. && !directionalBlur && motionblur != 0.);
-    if (!identity || shutterBlurred) {
-        bool blackOutside = false;
-        if (_blackOutside) {
-            _blackOutside->getValueAtTime(time, blackOutside);
-        }
+    const bool expandForBlackOutside = (!identity || shutterBlurred);
+    bool blackOutside = false;
+    if (_blackOutside) {
+        _blackOutside->getValueAtTime(time, blackOutside);
+    }
 
+    // with Black Outside, the filter is non-zero up to its support beyond the source edge: transform
+    // the source RoD expanded by it (in source pixels at this render scale, as ofxsFilterExpandRoI),
+    // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258)
+    OfxRectD srcRoDFiltered = srcRoD;
+    if (_exactRoDMargins && blackOutside && expandForBlackOutside) {
+        FilterEnum filter = eFilterCubic;
+        if (_filter) {
+            filter = (FilterEnum)_filter->getValueAtTime(time);
+        }
+        const double support = ofxsFilterSupport(filter);
+        const double srcPar = _srcClip->getPixelAspectRatio();
+        double ex = support * srcPar / args.renderScale.x;
+        double ey = support / args.renderScale.y;
+        // the prefilter widens the kernel when scaling down (see getRegionsOfInterest)
+        const int prefilterRadius = ofxsFilterRadius(filter);
+        if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
+            const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius);
+            ex += e.x;
+            ey += e.y;
+        }
+        ofxsFilterExpandRect(ex, ey, &srcRoDFiltered);
+    }
+
+    transformRegion(srcRoDFiltered, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
+
+    if (expandForBlackOutside) {
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
     }
 
