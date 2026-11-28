@@ -79,16 +79,19 @@ jobs:
         # another directory, modules linked without undefined symbols); regression/,
         # past failures with consumer-created imported targets and old (3.1) policies
         run: |
-          set -eo pipefail
+          set -o pipefail
           # (the compile check of every source is the "Compile" step above)
+          # every part runs, so that a failure reports both kinds; the step fails if any did
+          fail=0
           echo "::group::functional tests (tests/cmake/functional)"
-          cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx"
-          cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel
+          { cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx" &&
+            cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel; } || { echo "::error::functional tests failed"; fail=1; }
           echo "::endgroup::"
           # regression tests: separate projects, configured and generated only
           for t in visibility visibility_late visibility_twice; do
             echo "::group::regression test tests/cmake/regression/$t"
-            cmake -S "tests/cmake/regression/$t" -B "$RUNNER_TEMP/supportext-cmake-regression-$t"
+            cmake -S "tests/cmake/regression/$t" -B "$RUNNER_TEMP/supportext-cmake-regression-$t" ||
+              { echo "::error::regression test $t failed"; fail=1; }
             echo "::endgroup::"
           done
           # a consumer with cmake_minimum_required(VERSION 3.1) policies: CMake 4
@@ -96,11 +99,13 @@ jobs:
           case "$(cmake --version)" in
             "cmake version "[0-3].*)
               echo "::group::regression test tests/cmake/regression/oldpolicy"
-              cmake -S tests/cmake/regression/oldpolicy -B "$RUNNER_TEMP/supportext-cmake-regression-oldpolicy"
+              cmake -S tests/cmake/regression/oldpolicy -B "$RUNNER_TEMP/supportext-cmake-regression-oldpolicy" ||
+                { echo "::error::regression test oldpolicy failed"; fail=1; }
               echo "::endgroup::" ;;
             *)
               echo "::notice::tests/cmake/regression/oldpolicy skipped: CMake >= 4 rejects 3.1 policies" ;;
           esac
+          exit "$fail"
       - name: Build openfx-misc with this SupportExt, and render all its plug-ins
         # openfx-misc's own smoke test (.github/tools/smoketest.sh --supportext):
         # builds openfx-misc with CMake (Release, hostDemo, tests) using THIS

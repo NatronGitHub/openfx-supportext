@@ -10,8 +10,9 @@ add_subdirectory("${SX_SUPPORTEXT_DIR}" supportext)
 
 # 1. A call from the parent of add_subdirectory(SupportExt) (it failed with "unknown
 #    component THREADS", #46), with the components of openfx-misc's Misc module;
-#    helpers.cpp instantiates the helpers shared with openfx-misc (#238, #239, #231).
-sx_test_module(functional_parent helpers.cpp)
+#    helpers.cpp instantiates the helpers shared with openfx-misc (#238, #239, #231), and
+#    position.cpp the header-only overlays, in one binary with those components.
+sx_test_module(functional_parent helpers.cpp position.cpp)
 supportext_add_sources(functional_parent COMPONENTS POSITION_INTERACT THREADS TRANSFORM3X3
                        TRANSFORM_INTERACT GENERATOR RAMP TRACKING)
 # 2. Calling it again adds no source or link twice (#46).

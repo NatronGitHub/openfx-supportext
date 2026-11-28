@@ -4,6 +4,9 @@
 # cases see what earlier ones made global, in this order. Configure and generate only:
 #   cmake -S tests/cmake/regression/visibility -B build
 # A missing link target is an error at generate time.
+# It also covers a contract that README.md and cmake/SupportExt.cmake promise (calls from
+# another directory, consumer-created imported targets, any consumer policies): never remove it
+# as a bug that can't come back.
 cmake_minimum_required(VERSION 3.16)
 project(SupportExtVisibilityTest CXX)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/SupportExt.cmake")

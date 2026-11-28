@@ -5,6 +5,9 @@
 # A separate project, so that no other case has already made the target global.
 # Configure and generate only:
 #   cmake -S tests/cmake/regression/visibility_late -B build
+# It also covers a contract that README.md and cmake/SupportExt.cmake promise (calls from
+# another directory, consumer-created imported targets, any consumer policies): never remove it
+# as a bug that can't come back.
 cmake_minimum_required(VERSION 3.16)
 project(SupportExtVisibilityLateTest CXX)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/SupportExt.cmake")
