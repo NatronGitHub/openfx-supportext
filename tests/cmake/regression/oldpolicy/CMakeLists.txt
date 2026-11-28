@@ -4,9 +4,9 @@
 # and VERSION 3.16...3.31 make it work under any consumer policies.
 # Configure only, with CMake < 4 (CMake 4 rejects policy versions below 3.5):
 #   cmake -S tests/cmake/regression/oldpolicy -B build
-# It also covers a contract that README.md and cmake/SupportExt.cmake promise (calls from
-# another directory, consumer-created imported targets, any consumer policies): never remove it
-# as a bug that can't come back.
+# It also covers a contract that README.md and cmake/SupportExt.cmake promise (the helper works
+# whatever the consumer's cmake_minimum_required policies): never remove it as a bug that can't
+# come back.
 cmake_minimum_required(VERSION 3.1)
 project(SupportExtOldPolicyTest CXX)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/SupportExt.cmake")

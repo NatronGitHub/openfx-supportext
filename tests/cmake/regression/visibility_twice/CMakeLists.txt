@@ -5,8 +5,8 @@
 # (CMake 3.21 or later). Configure and generate only:
 #   cmake -S tests/cmake/regression/visibility_twice -B build
 # It also covers a contract that README.md and cmake/SupportExt.cmake promise (calls from
-# another directory, consumer-created imported targets, any consumer policies): never remove it
-# as a bug that can't come back.
+# another directory, with imported targets the consumer created): never remove it as a bug that
+# can't come back.
 cmake_minimum_required(VERSION 3.16)
 project(SupportExtVisibilityTwiceTest CXX)
 include("${CMAKE_CURRENT_SOURCE_DIR}/../../../../cmake/SupportExt.cmake")
