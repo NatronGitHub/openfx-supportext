@@ -1545,8 +1545,9 @@ TransformInteractHelper::penMotion(const PenArgs &args)
                 angledegrees = closest90;
             }
             tp.rotate = angledegrees;
-            valuesChanged = true;
         }
+        // handled even if the pen didn't turn, as the other drags (nothing is written then)
+        valuesChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero, and by a denormal scale (scale.x / scale.y = inf, then inf*0)
         if ( (std::fabs(scale.y) >= FLT_MIN) && (currentPos.y != targetCenter.y) ) {
@@ -1679,8 +1680,11 @@ TransformInteractHelper::penDown(const PenArgs &args)
         newState = eDraggingCircle;
     } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, pressToleranceY) ) {
         newState = eDraggingRotationBar;
-        _rotationBarAngle = std::atan2(args.penPosition.y - targetCenter.y, args.penPosition.x - targetCenter.x);
-        _rotationBarRotate = tp.rotate;
+        if (_mouseState != eDraggingRotationBar) {
+            // a new drag (a penDown during the drag, e.g. from a tablet, keeps the unsnapped rotate)
+            _rotationBarAngle = std::atan2(args.penPosition.y - targetCenter.y, args.penPosition.x - targetCenter.x);
+            _rotationBarRotate = tp.rotate;
+        }
     } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, pressToleranceY) ) {
         newState = eDraggingSkewXBar;
     } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, pressToleranceX) ) {
