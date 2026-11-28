@@ -99,7 +99,7 @@ endif()
 
 # The functions below use if(IN_LIST) (policy CMP0057) and keep the policy settings in
 # force where they are defined: use CMake 3.16+ policies here, whatever the consumer's
-# cmake_minimum_required (openfx-io and openfx-arena still declare 3.1). Note that the
+# cmake_minimum_required (tests/cmake/regression/oldpolicy checks a 3.1 consumer). Note that the
 # helper's own find_package(OpenGL) then uses CMP0072 NEW (GLVND on Linux).
 cmake_policy(PUSH)
 cmake_policy(VERSION 3.16...3.31)

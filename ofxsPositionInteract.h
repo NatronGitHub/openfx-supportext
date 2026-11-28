@@ -281,7 +281,7 @@ protected:
     ///       OFX::ParamSet::EditBlock::eBeginNow, OFX::ParamSet::EditBlock::eHostErrorsIgnore);
     /// - older openfx, whose EditBlock destructor throws if the host fails paramEditEnd: a
     ///   wrapper that catches the errors of beginEditBlock and endEditBlock, such as
-    ///   NoThrowEditBlock in tests/cmake/position.cpp.
+    ///   NoThrowEditBlock in tests/cmake/functional/position.cpp.
     /// The default implementation only sets the value, without an edit block.
     virtual void setPointValue(int i,
                                double /*time*/,

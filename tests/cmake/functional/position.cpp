@@ -1,4 +1,5 @@
-// a plug-in using the header-only PositionInteract and PointsInteract overlays
+// a plug-in using the header-only PositionInteract and PointsInteract overlays (#228, #223);
+// its NoThrowEditBlock is the example that ofxsPositionInteract.h's setPointValue doc names
 #include "ofxsPositionInteract.h"
 struct SxTestPositionParam
 {

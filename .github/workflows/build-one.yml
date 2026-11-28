@@ -73,27 +73,40 @@ jobs:
             -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_EXTENSIONS=OFF -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wno-unused-parameter" -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
           cmake --build "$RUNNER_TEMP/supportext-check" --parallel
       - name: CMake helper (consumer tests)
-        # tests/cmake: add_subdirectory(SupportExt) then a call from the parent,
-        # sibling includes, a STATIC library linked into a module, OPENGL modules
-        # linked without undefined symbols, options inside COMPONENTS, calls from other
-        # directories with consumer-created imported targets, old (3.1) policies
+        # tests/cmake (see its CMakeLists.txt): functional/, the helper's contracts
+        # (add_subdirectory(SupportExt) then a call from the parent, components and
+        # options, sibling includes, a STATIC library linked into a module, calls from
+        # another directory, modules linked without undefined symbols); regression/,
+        # past failures with consumer-created imported targets and old (3.1) policies
         run: |
-          set -eo pipefail
+          set -o pipefail
           # (the compile check of every source is the "Compile" step above)
-          cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx"
-          cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel
-          # calls from another directory with consumer-created imported targets
-          cmake -S tests/cmake/visibility -B "$RUNNER_TEMP/supportext-cmake-visibility"
-          cmake -S tests/cmake/visibility_late -B "$RUNNER_TEMP/supportext-cmake-visibility-late"
-          cmake -S tests/cmake/visibility_twice -B "$RUNNER_TEMP/supportext-cmake-visibility-twice"
-          # a consumer with cmake_minimum_required(VERSION 3.1) policies (configure
-          # only): CMake 4 rejects policy versions below 3.5
+          # every part runs, so that a failure reports both kinds; the step fails if any did. The
+          # step runs under bash -e: a command added here needs its own "|| { ...; fail=1; }"
+          fail=0
+          echo "::group::functional tests (tests/cmake/functional)"
+          { cmake -S tests/cmake -B "$RUNNER_TEMP/supportext-cmake-tests" -DOPENFX_DIR="$PWD/openfx" &&
+            cmake --build "$RUNNER_TEMP/supportext-cmake-tests" --parallel; } || { echo "::error::functional tests failed"; fail=1; }
+          echo "::endgroup::"
+          # regression tests: separate projects, configured and generated only
+          for t in visibility visibility_late visibility_twice; do
+            echo "::group::regression test tests/cmake/regression/$t"
+            cmake -S "tests/cmake/regression/$t" -B "$RUNNER_TEMP/supportext-cmake-regression-$t" ||
+              { echo "::error::regression test $t failed"; fail=1; }
+            echo "::endgroup::"
+          done
+          # a consumer with cmake_minimum_required(VERSION 3.1) policies: CMake 4
+          # rejects policy versions below 3.5
           case "$(cmake --version)" in
             "cmake version "[0-3].*)
-              cmake -S tests/cmake/oldpolicy -B "$RUNNER_TEMP/supportext-cmake-oldpolicy" ;;
+              echo "::group::regression test tests/cmake/regression/oldpolicy"
+              cmake -S tests/cmake/regression/oldpolicy -B "$RUNNER_TEMP/supportext-cmake-regression-oldpolicy" ||
+                { echo "::error::regression test oldpolicy failed"; fail=1; }
+              echo "::endgroup::" ;;
             *)
-              echo "::notice::tests/cmake/oldpolicy skipped: CMake >= 4 rejects 3.1 policies" ;;
+              echo "::notice::tests/cmake/regression/oldpolicy skipped: CMake >= 4 rejects 3.1 policies" ;;
           esac
+          exit "$fail"
       - name: Build openfx-misc with this SupportExt, and render all its plug-ins
         # openfx-misc's own smoke test (.github/tools/smoketest.sh --supportext):
         # builds openfx-misc with CMake (Release, hostDemo, tests) using THIS

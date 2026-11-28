@@ -64,10 +64,11 @@ For example, the Natron plug-in repositories use:
 
 Configured as a top-level project (`cmake -S . -B build -DOPENFX_DIR=<openfx>`),
 SupportExt builds a compile check of every source (with OpenGL and the OSMesa
-function table, without linking OSMesa). `tests/cmake` is a consumer project
-that checks the uses above: calls from another directory, sibling includes, a
-STATIC library linked into a module, and modules linked without undefined
-symbols.
+function table, without linking OSMesa). `tests/cmake` is a consumer project:
+`tests/cmake/functional` checks the uses above (calls from another directory,
+sibling includes, a STATIC library linked into a module, and modules linked
+without undefined symbols), and `tests/cmake/regression` holds separate projects
+for layouts that broke a past version of the helper.
 
 License
 -------
