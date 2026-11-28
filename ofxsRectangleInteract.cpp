@@ -608,10 +608,10 @@ RectangleInteract::penMotion(const PenArgs &args)
         }
     }
 
-    if ( (_mouseState != eMouseStateIdle) && _interactiveDrag && valuesChanged ) {
-        setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
-        // no need to redraw overlay since it is slave to the paramaters
-    } else if (redraw || valuesChanged) {
+    // no need to redraw overlay if setValue sets the params, since it is slave to them
+    const bool wrote = (_mouseState != eMouseStateIdle) && _interactiveDrag && valuesChanged &&
+                       setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
+    if ( !wrote && (redraw || valuesChanged) ) {
         requestRedraw();
     }
 
@@ -646,6 +646,12 @@ RectangleInteract::penDown(const PenArgs &args)
         } else {
             _interactiveDrag = false;
         }
+        // a new drag (otherwise, getRectangle gave the rectangle of the drag, which continues)
+        _btmLeftWritten.x = x1;
+        _btmLeftWritten.y = y1;
+        _sizeWritten.x = w;
+        _sizeWritten.y = h;
+        _dragMoved = false;
     }
     double x2 = x1 + w;
     double y2 = y1 + h;
@@ -689,7 +695,6 @@ RectangleInteract::penDown(const PenArgs &args)
     _sizeDrag.y = h;
     _centerDrag = center;
     _angleDrag = angle;
-    _dragMoved = false;
     _lastMousePos = penPosition;
     if (didSomething) {
         // the pen is over the pressed handle: _drawState is otherwise only set by
@@ -756,7 +761,8 @@ RectangleInteract::penUp(const PenArgs &args)
 
     if (_mouseState != eMouseStateIdle) {
         if (!_interactiveDrag) {
-            // a click without a motion sets nothing (no keyframe, no undo step)
+            // a click, or a motion that leaves the rounded rectangle that of the params, sets
+            // nothing (no keyframe, no undo step)
             if (_dragMoved) {
                 setValue(_btmLeftDragPos, _sizeDrag, args.pixelScale);
             }
@@ -965,7 +971,7 @@ roundMovingSide(double* origin,
     }
 }
 
-void
+bool
 RectangleInteract::setValue(OfxPointD btmLeft,
                             OfxPointD size,
                             const OfxPointD &pscale)
@@ -1008,9 +1014,20 @@ RectangleInteract::setValue(OfxPointD btmLeft,
         roundMovingSide(&btmLeft.x, &size.x, sideX, centered, pscale.x);
         roundMovingSide(&btmLeft.y, &size.y, sideY, centered, pscale.y);
     }
-    // both params are set (some plug-ins, e.g. ImageStatistics, react to the size, set last), in
-    // one undo step
-    ImageEffect::EditBlock eb(*_effect, "setRectangle");
-    _btmLeft->setValue(btmLeft.x, btmLeft.y);
-    _size->setValue(size.x, size.y);
+    if ( (btmLeft.x == _btmLeftWritten.x) && (btmLeft.y == _btmLeftWritten.y) &&
+         (size.x == _sizeWritten.x) && (size.y == _sizeWritten.y) ) {
+        // the params already have these values: no keyframe, no undo step
+        return false;
+    }
+    {
+        // both params are set (some plug-ins, e.g. ImageStatistics, react to the size, set last),
+        // in one undo step
+        ImageEffect::EditBlock eb(*_effect, "setRectangle");
+        _btmLeft->setValue(btmLeft.x, btmLeft.y);
+        _size->setValue(size.x, size.y);
+    }
+    _btmLeftWritten = btmLeft;
+    _sizeWritten = size;
+
+    return true;
 } // setValue

@@ -214,7 +214,12 @@ protected:
     Interact* _interact;
     OfxPointD _lastMousePos;
     TransformParams _tpDrag; // the dragged values, unrounded (see roundedDragParams)
-    bool _dragMoved; // a pen motion of this drag changed a value: penUp sets the params
+    // the params' values: read at penDown, then the last copy that this drag wrote; a drag writes
+    // only a copy that differs from it, so that a sub-pixel or pressure-only motion sets nothing
+    TransformParams _tpWritten;
+    // a pen motion of this drag changed the unrounded values; the params are set only if, in
+    // addition, roundedDragParams() differs from _tpWritten
+    bool _dragMoved;
     bool _interactiveDrag;
 
 public:
@@ -252,7 +257,8 @@ protected:
     /// it), rounded to the pixel scale's power of 10. The drag keeps the unrounded values, so
     /// that the rounding errors don't add up over the pen motions, as in RectangleInteract.
     /// A subclass that writes the params of a drag itself (e.g. openfx-arena's Text, for a
-    /// relative Center) writes this copy, and only if _dragMoved.
+    /// relative Center) writes this copy only if _dragMoved and if the values it writes differ
+    /// from the params' values at penDown (_tpWritten, without Interactive Update).
     TransformParams roundedDragParams(const OfxPointD& pscale) const;
 
 private:

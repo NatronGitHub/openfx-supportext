@@ -315,6 +315,7 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     , _interact(interact)
     , _lastMousePos()
     , _tpDrag()
+    , _tpWritten()
     , _dragMoved(false)
     , _interactiveDrag(false)
     , _translate(NULL)
@@ -1565,10 +1566,18 @@ TransformInteractHelper::penMotion(const PenArgs &args)
     }
     _tpDrag = tp;
 
+    bool wrote = false;
     if ( (_mouseState != eReleased) && _interactiveDrag && valuesChanged ) {
-        // no need to redraw overlay since it is slave to the paramaters
-        setTransformParams( roundedDragParams(pscale) );
-    } else if (redraw || valuesChanged) {
+        // not if the rounded values are those of the params (a sub-pixel or pressure-only motion)
+        const TransformParams written = roundedDragParams(pscale);
+        if ( dragValuesDiffer(written, _tpWritten) ) {
+            setTransformParams(written);
+            _tpWritten = written;
+            // no need to redraw overlay since it is slave to the paramaters
+            wrote = true;
+        }
+    }
+    if ( !wrote && (redraw || valuesChanged) ) {
         _interact->requestRedraw();
     }
 
@@ -1597,6 +1606,7 @@ TransformInteractHelper::penDown(const PenArgs &args)
         if (_interactive) {
             _interactive->getValueAtTime(args.time, _interactiveDrag);
         }
+        _tpWritten = tp;
         _dragMoved = false; // a new drag (otherwise, this continues the drag of _tpDrag)
     } else {
         tp = _tpDrag;
@@ -1710,8 +1720,12 @@ TransformInteractHelper::penUp(const PenArgs &args)
     } resetMouseState = { _mouseState };
 
     if ( !_interactiveDrag && ret && _dragMoved ) {
-        // a click without a motion sets nothing (no keyframe, no undo step)
-        setTransformParams( roundedDragParams(args.pixelScale) );
+        // a click, or a motion that leaves the rounded values those of the params, sets nothing
+        // (no keyframe, no undo step)
+        const TransformParams written = roundedDragParams(args.pixelScale);
+        if ( dragValuesDiffer(written, _tpWritten) ) {
+            setTransformParams(written);
+        }
     }
     
     if (ret) {

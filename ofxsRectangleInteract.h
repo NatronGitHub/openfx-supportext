@@ -140,6 +140,8 @@ public:
         _centerDrag.x = _centerDrag.y = 0;
         _interactiveDrag = false;
         _dragMoved = false;
+        _btmLeftWritten = _btmLeftDragPos;
+        _sizeWritten = _sizeDrag;
     }
 
     // overridden functions from OFX::Interact to do things
@@ -244,7 +246,9 @@ protected:
     }
 
 private:
-    void setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
+    /// Set the params to the rounded rectangle, unless they already have it (_btmLeftWritten,
+    /// _sizeWritten): return whether it set them.
+    bool setValue(OfxPointD btmLeft, OfxPointD size, const OfxPointD &pscale);
 
     // get the current rectangle, the rotation center and the rotation angle (in degrees)
     void getRectangle(OfxTime time, double* x1, double* y1, double* w, double* h, OfxPointD* center, double* angle) const;
@@ -279,7 +283,13 @@ private:
     OfxPointD _centerDrag;
     double _angleDrag;
     bool _interactiveDrag;
-    bool _dragMoved; // a pen motion of this drag changed the rectangle: penUp sets the params
+    // a pen motion of this drag changed the unrounded rectangle; the params are set only if, in
+    // addition, the rounded rectangle differs from _btmLeftWritten, _sizeWritten
+    bool _dragMoved;
+    // the params' values: read at penDown, then the last values that this drag set, so that a
+    // sub-pixel or pressure-only motion sets nothing
+    OfxPointD _btmLeftWritten;
+    OfxPointD _sizeWritten;
 };
 
 class RectangleOverlayDescriptor
