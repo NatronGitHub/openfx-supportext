@@ -774,10 +774,11 @@ plusFunc(PIX A,
  * HSL modes on a huge colour with a tiny alpha. An infinite result (from an infinite input, or
  * a float overflow in the expression) also gives +-FLT_MAX. Only comparisons: a NaN falls
  * through, and every value in range is converted exactly as before.
- * For an integer PIX, a value outside its range gives the nearest bound: converting it to PIX
- * was undefined behaviour (it wrapped in practice), e.g. an unpremultiplied 8-bit over giving
- * 382. Every value that was converted (truncated) before, i.e. above lowest - 1 and below
- * max + 1, gives the same result; NaN gives the lowest value (comparisons only).
+ * For an integer PIX, the value is rounded to the nearest integer (halves away from zero, which
+ * is up for the non-negative pixel values; it was truncated, a bias of -0.5 level), and a value
+ * outside the range of PIX gives the nearest bound: converting it to PIX was undefined behaviour
+ * (it wrapped in practice), e.g. an unpremultiplied 8-bit over giving 382. NaN gives the lowest
+ * value (comparisons only).
  **/
 template <typename PIX>
 inline PIX
@@ -787,7 +788,8 @@ mergeDoubleToPIX(double v)
         const PIX lo = std::numeric_limits<PIX>::lowest();
         const PIX hi = (std::numeric_limits<PIX>::max)();
 
-        return (v > lo) ? ( (v < hi) ? PIX(v) : hi ) : lo;
+        // std::round, not PIX(v + 0.5): v + 0.5 rounds up in double for v just below 0.5
+        return (v > lo) ? ( (v < hi) ? PIX( std::round(v) ) : hi ) : lo;
     }
 
     return clampBeyondFloatRange<PIX>(v);
@@ -852,7 +854,7 @@ divideFunc(PIX A,
 
     // in double, converted by mergeDoubleToPIX: the float quotient of a tiny B (e.g. a denormal)
     // overflowed to +-inf. The double quotient of two floats rounded to float is the float
-    // quotient, so every finite result is unchanged (and an integer quotient is truncated as before).
+    // quotient, so every finite result is unchanged (and an integer quotient is rounded to nearest).
     return mergeDoubleToPIX<PIX>(A / (double)B);
 }
 
@@ -1716,6 +1718,13 @@ mergePixel(bool doAlphaMasking,
             res.r = res.g = res.b = 0;
             assert(false);
             break;
+        }
+        if (nComponents == 1) {
+            // an Alpha image: its only component is the alpha, a + b - ab as in RGBA (the colour
+            // formula below gave a + b - 2ab, e.g. 0 for two opaque inputs)
+            dst[0] = mergeAlphaUnion<PIX, maxValue>(a, b);
+
+            return;
         }
         pixman_float_t R[3] = { res.r, res.g, res.b };
         for (int i = 0; i < (std::min)(nComponents, 3); ++i) {

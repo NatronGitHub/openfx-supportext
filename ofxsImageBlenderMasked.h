@@ -70,11 +70,18 @@ public:
     {
     }
 
+    // For an integer PIX, the mix of ofxsMaskMixPix (the same expression, rounded and clamped), so
+    // that the result does not depend on whether a mask is connected (it was truncated, 1 level
+    // lower for half of the values). A float PIX is unchanged.
     static PIX Lerp(const PIX &v1,
                     const PIX &v2,
                     float blend)
     {
-        return PIX( (v2 - v1) * blend + v1 );
+        if (maxValue == 1) {
+            return PIX( (v2 - v1) * blend + v1 );
+        }
+
+        return ofxsClampIfInt<PIX, maxValue>(ofxsMixValue(v2, v1, blend), 0, maxValue);
     }
 
     // and do some processing
@@ -110,12 +117,12 @@ public:
                 } else if (fromPix) {
                     assert(!masked);
                     for (int c = 0; c < nComponents; ++c) {
-                        dstPix[c] = PIX(fromPix[c] * blendComp);
+                        dstPix[c] = ofxsClampIfInt<PIX, maxValue>(fromPix[c] * blendComp, 0, maxValue); // rounded, as Lerp
                     }
                 } else if (toPix) {
                     assert(!masked);
                     for (int c = 0; c < nComponents; ++c) {
-                        dstPix[c] = PIX(toPix[c] * blend);
+                        dstPix[c] = ofxsClampIfInt<PIX, maxValue>(toPix[c] * blend, 0, maxValue); // rounded, as Lerp
                     }
                 } else {
                     // everything is black and transparent
