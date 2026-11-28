@@ -772,9 +772,11 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
 
     // with Black Outside, the filter is non-zero up to its support beyond the source edge: transform
     // the source RoD expanded by it (in source pixels at this render scale, as ofxsFilterExpandRoI),
-    // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258)
+    // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258).
+    // This is exact with Prefilter Downscaling and supersampling too, because it relies on a rule of the
+    // render (Transform3x3Processor.h): with Black Outside, a sample more than half a source pixel
+    // outside the source image has no Jacobian, so it gets the plain filter, whose reach is the support.
     OfxRectD srcRoDFiltered = srcRoD;
-    int prefilterOutputPixels = 0;
     if (_exactRoDMargins && blackOutside && expandForBlackOutside) {
         FilterEnum filter = eFilterCubic;
         if (_filter) {
@@ -784,22 +786,9 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         const double srcPar = _srcClip->getPixelAspectRatio();
         // a field line is 2 canonical units (ofxsMatPixelToCanonical), and the field is not known here
         ofxsFilterExpandRect(support * srcPar / args.renderScale.x, support * 2. / args.renderScale.y, &srcRoDFiltered);
-        // Prefilter Downscaling widens the kernel by the local scale-down w > 1: it reads up to R * w - 0.5
-        // source pixels beyond the edge, less than R output pixels, since an output pixel spans w source
-        // pixels there. Added in output pixels, because a bound in source pixels is the 16x cap of
-        // getPrefilterRoIExpansion() for a homography.
-        if ( _prefilter && _prefilter->getValueAtTime(time) ) {
-            prefilterOutputPixels = ofxsFilterRadius(filter);
-        }
     }
 
     transformRegion(srcRoDFiltered, time, view, invert, motionblur, directionalBlur, amountFrom, amountTo, shutter, shutteroffset, shuttercustomoffset, identity, &rod);
-
-    if (prefilterOutputPixels > 0) {
-        // output pixels (a field line in y) to canonical coordinates
-        ofxsFilterExpandRect(prefilterOutputPixels * _dstClip->getPixelAspectRatio() / args.renderScale.x,
-                             prefilterOutputPixels * 2. / args.renderScale.y, &rod);
-    }
 
     if (expandForBlackOutside) {
         ofxsFilterExpandRoD(this, _dstClip->getPixelAspectRatio(), args.renderScale, blackOutside, &rod);
