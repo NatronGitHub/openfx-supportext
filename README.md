@@ -70,6 +70,11 @@ sibling includes, a STATIC library linked into a module, and modules linked
 without undefined symbols), and `tests/cmake/regression` holds separate projects
 for layouts that broke a past version of the helper.
 
+Contributing
+------------
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 License
 -------
 
