@@ -781,10 +781,11 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         const double srcPar = _srcClip->getPixelAspectRatio();
         double ex = support * srcPar / args.renderScale.x;
         double ey = support / args.renderScale.y;
-        // the prefilter widens the kernel when scaling down (see getRegionsOfInterest)
+        // the prefilter widens the kernel when scaling down (see getRegionsOfInterest), by this
+        // effect's own scale-down (not the cap for a host transform, which would inflate the RoD)
         const int prefilterRadius = ofxsFilterRadius(filter);
         if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
-            const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius);
+            const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius, false);
             ex += e.x;
             ey += e.y;
         }
@@ -813,12 +814,15 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
 // widths are bounded over the inverse transforms of the render, in the same pixel coordinates (PAR,
 // render scale), for both an unfielded and a fielded render (the field is not known in
 // getRegionsOfInterest): exact for an affine transform, the cap for a projective one (the largest
-// derivative of a homography over a rectangle is not always at its corners).
+// derivative of a homography over a rectangle is not always at its corners). With hostTransformCap,
+// also the cap on a host that may attach a transform to the source image (the RoI); without it, only
+// this effect's own transforms count (the RoD: an upstream transform's margin is in the source RoD).
 OfxPointD
 Transform3x3Plugin::getPrefilterRoIExpansion(double time,
                                              int view,
                                              const OfxPointD& renderScale,
-                                             int prefilterRadius) const
+                                             int prefilterRadius,
+                                             bool hostTransformCap) const
 {
     const double srcPar = _srcClip->getPixelAspectRatio();
     const double dstPar = _dstClip->getPixelAspectRatio();
@@ -829,7 +833,9 @@ Transform3x3Plugin::getPrefilterRoIExpansion(double time,
     // A host that concatenates transforms may attach one to the source image (setupAndProcess()
     // composes it with ours), and it is not known here: if it is projective (e.g. an upstream
     // CornerPin), the bound below would be too small, so use the cap.
-    useCap = getImageEffectHostDescription()->canTransform;
+    useCap = hostTransformCap && getImageEffectHostDescription()->canTransform;
+#else
+    (void)hostTransformCap;
 #endif
     if (useCap) {
         ex = prefilterRadius * (kOfxsFilterPrefilterMaxWidth - 1.) * srcPar / renderScale.x;
@@ -934,7 +940,7 @@ Transform3x3Plugin::getRegionsOfInterest(const RegionsOfInterestArguments &args,
     // prefilter: widen srcRoI by the widened kernel (see getPrefilterRoIExpansion)
     const int prefilterRadius = ofxsFilterRadius(filter);
     if ( _prefilter && (prefilterRadius > 0) && _prefilter->getValueAtTime(time) ) {
-        const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius);
+        const OfxPointD e = getPrefilterRoIExpansion(time, view, args.renderScale, prefilterRadius, true);
         ofxsFilterExpandRect(e.x, e.y, &srcRoI);
     }
 

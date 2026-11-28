@@ -170,8 +170,9 @@ protected:
     RenderInverseTransforms getRenderInverseTransforms(double time, int view, const OfxPointD& renderScale, bool fielded,
                                                        double srcpixelAspectRatio, double dstpixelAspectRatio) const;
 
-    // how much the prefilter widens the source RoI, in canonical coordinates (see the .cpp)
-    OfxPointD getPrefilterRoIExpansion(double time, int view, const OfxPointD& renderScale, int prefilterRadius) const;
+    // how much the prefilter widens the source RoI (hostTransformCap) or RoD, in canonical coordinates (see the .cpp)
+    OfxPointD getPrefilterRoIExpansion(double time, int view, const OfxPointD& renderScale, int prefilterRadius,
+                                       bool hostTransformCap) const;
 
     // The exact RoD margins, off by default (the RoD of the released plug-in versions). The subclass's
     // constructor sets it according to its plug-in version, since it changes the rendered output:
