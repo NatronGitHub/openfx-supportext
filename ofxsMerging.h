@@ -854,7 +854,7 @@ divideFunc(PIX A,
 
     // in double, converted by mergeDoubleToPIX: the float quotient of a tiny B (e.g. a denormal)
     // overflowed to +-inf. The double quotient of two floats rounded to float is the float
-    // quotient, so every finite result is unchanged (and an integer quotient is truncated as before).
+    // quotient, so every finite result is unchanged (and an integer quotient is rounded to nearest).
     return mergeDoubleToPIX<PIX>(A / (double)B);
 }
 
