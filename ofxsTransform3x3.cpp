@@ -780,7 +780,8 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         const double support = ofxsFilterSupport(filter);
         const double srcPar = _srcClip->getPixelAspectRatio();
         double ex = support * srcPar / args.renderScale.x;
-        double ey = support / args.renderScale.y;
+        // a field line is 2 canonical units (ofxsMatPixelToCanonical), and the field is not known here
+        double ey = support * 2. / args.renderScale.y;
         // the prefilter widens the kernel when scaling down (see getRegionsOfInterest), by this
         // effect's own scale-down (not the cap for a host transform, which would inflate the RoD)
         const int prefilterRadius = ofxsFilterRadius(filter);
