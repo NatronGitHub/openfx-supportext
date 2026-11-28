@@ -177,10 +177,11 @@ protected:
     // from the subclass's constructor, according to its plug-in version, since it changes the rendered
     // output (the RoD and RoI actions read it from other threads, so a later write is a data race):
     // - with Black Outside, the RoD contains the filter's soft edge beyond the transformed source
-    //   (the source RoD is expanded by the filter's support; exact with Prefilter Downscaling too, by a
-    //   rule of the render, see the .cpp), in addition to the one pixel, which cuts the soft edge where
-    //   support * scale exceeds it: scaling up above 2x for Bilinear and Cubic, above 2/3x for the
-    //   4-tap filters, above 0.4x for Lanczos6, and also rotations at scale 1 (SupportExt#258);
+    //   (the source RoD, enclosed in pixels, is expanded by the filter's support; exact with Prefilter
+    //   Downscaling too, by a rule of the render, see the .cpp), in addition to the one pixel, which
+    //   cuts the soft edge where support * scale exceeds it: scaling up above 2x for Bilinear and Cubic,
+    //   above 2/3x for the 4-tap filters, above 0.4x for Lanczos6, and also rotations at scale 1
+    //   (SupportExt#258);
     // - with motion blur or directional blur, the margin between the sampled transforms of the RoD
     //   and RoI is measured in the image plane (x/z, y/z), not in homogeneous coordinates, whose
     //   arbitrary scale made it too large or too small for projective transforms (SupportExt#259).

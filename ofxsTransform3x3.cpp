@@ -770,12 +770,16 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         _blackOutside->getValueAtTime(time, blackOutside);
     }
 
-    // with Black Outside, the filter is non-zero up to its support beyond the source edge: transform
-    // the source RoD expanded by it (in source pixels at this render scale, as ofxsFilterExpandRoI),
+    // with Black Outside, the filter is non-zero up to its support beyond the edge of the source image:
+    // transform the source RoD, enclosed in pixels at this render scale (the image holds a partly
+    // covered edge pixel whole), expanded by the support (in source pixels, as ofxsFilterExpandRoI),
     // so that the RoD contains the soft edge, which is wider than a pixel when scaling up (#258).
     // This is exact with Prefilter Downscaling and supersampling too, because it relies on a rule of the
-    // render (Transform3x3Processor.h): with Black Outside, a sample more than half a source pixel
+    // render (ofxsTransform3x3Processor.h): with Black Outside, a sample more than half a source pixel
     // outside the source image has no Jacobian, so it gets the plain filter, whose reach is the support.
+    // It assumes that the bounds of the source image are the source RoD enclosed in pixels, as hosts
+    // give it (the spec allows larger bounds, black beyond the RoD, where the prefilter reaches further).
+    // The source RoD is finite here (an infinite one returned above).
     OfxRectD srcRoDFiltered = srcRoD;
     if (_exactRoDMargins && blackOutside && expandForBlackOutside) {
         FilterEnum filter = eFilterCubic;
@@ -784,7 +788,12 @@ Transform3x3Plugin::getRegionOfDefinition(const RegionOfDefinitionArguments &arg
         }
         const double support = ofxsFilterSupport(filter);
         const double srcPar = _srcClip->getPixelAspectRatio();
-        // a field line is 2 canonical units (ofxsMatPixelToCanonical), and the field is not known here
+        // in y, field lines of 2 canonical rows (ofxsMatPixelToCanonical), since the field is not known
+        // here: their grid contains the unfielded one
+        const OfxPointD fieldScale = { args.renderScale.x, args.renderScale.y * 0.5 };
+        OfxRectI srcPixels;
+        Coords::toPixelEnclosing(srcRoD, fieldScale, srcPar, &srcPixels);
+        Coords::toCanonical(srcPixels, fieldScale, srcPar, &srcRoDFiltered);
         ofxsFilterExpandRect(support * srcPar / args.renderScale.x, support * 2. / args.renderScale.y, &srcRoDFiltered);
     }
 
