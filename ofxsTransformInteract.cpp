@@ -1546,7 +1546,7 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             }
             tp.rotate = angledegrees;
         }
-        // handled even if the pen didn't turn, as the other drags (nothing is written then)
+        // handled even if the pen didn't turn, as the translation drag (nothing is written then)
         valuesChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero, and by a denormal scale (scale.x / scale.y = inf, then inf*0)
