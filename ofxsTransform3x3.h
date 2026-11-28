@@ -177,7 +177,10 @@ protected:
     // constructor sets it according to its plug-in version, since it changes the rendered output:
     // - with Black Outside, the RoD contains the filter's soft edge beyond the transformed source
     //   (the source RoD is expanded by the filter's support, and by the prefilter widening), instead
-    //   of one pixel only, which cuts it when scaling up by more than 2x (SupportExt#258).
+    //   of one pixel only, which cuts it when scaling up by more than 2x (SupportExt#258);
+    // - with motion blur or directional blur, the margin between the sampled transforms of the RoD
+    //   and RoI is measured in the image plane (x/z, y/z), not in homogeneous coordinates, whose
+    //   arbitrary scale made it too large or too small for projective transforms (SupportExt#259).
     void setExactRoDMargins(bool exact)
     {
         _exactRoDMargins = exact;
