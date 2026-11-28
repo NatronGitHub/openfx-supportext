@@ -318,6 +318,8 @@ TransformInteractHelper::TransformInteractHelper(ImageEffect* effect,
     , _tpWritten()
     , _dragMoved(false)
     , _interactiveDrag(false)
+    , _rotationBarAngle(0.)
+    , _rotationBarRotate(0.)
     , _translate(NULL)
     , _rotate(NULL)
     , _scale(NULL)
@@ -1529,19 +1531,22 @@ TransformInteractHelper::penMotion(const PenArgs &args)
             }
         }
     } else if (_mouseState == eDraggingRotationBar) {
-        OfxPointD diffToCenter;
-        ///the current mouse position (untransformed) is doing has a certain angle relative to the X axis
-        ///which can be computed by : angle = arctan(opposite / adjacent)
-        diffToCenter.y = rotationPos.y - targetCenter.y;
-        diffToCenter.x = rotationPos.x - targetCenter.x;
-        double angle = std::atan2(diffToCenter.y, diffToCenter.x);
-        double angledegrees = tp.rotate + ofxsToDegrees(angle);
-        double closest90 = 90. * std::floor( (angledegrees + 45.) / 90. );
-        if (std::fabs(angledegrees - closest90) < 5.) {
-            // snap to closest multiple of 90.
-            angledegrees = closest90;
+        // add the change of the pen's angle around the center since the last event, wrapped to
+        // [-180, 180] degrees: a tap or a pressure-only event leaves rotate exactly unchanged (#270)
+        const double angle = std::atan2(penPos.y - targetCenter.y, penPos.x - targetCenter.x);
+        const double dDegrees = std::remainder(ofxsToDegrees(angle - _rotationBarAngle), 360.);
+        if (dDegrees != 0.) {
+            _rotationBarAngle = angle;
+            _rotationBarRotate += dDegrees;
+            double angledegrees = _rotationBarRotate;
+            double closest90 = 90. * std::floor( (angledegrees + 45.) / 90. );
+            if (std::fabs(angledegrees - closest90) < 5.) {
+                // snap to closest multiple of 90.
+                angledegrees = closest90;
+            }
+            tp.rotate = angledegrees;
         }
-        tp.rotate = angledegrees;
+        // handled even if the pen didn't turn, as the translation drag (nothing is written then)
         valuesChanged = true;
     } else if (_mouseState == eDraggingSkewXBar) {
         // avoid division by zero, and by a denormal scale (scale.x / scale.y = inf, then inf*0)
@@ -1675,6 +1680,11 @@ TransformInteractHelper::penDown(const PenArgs &args)
         newState = eDraggingCircle;
     } else if ( isOnRotationBar(rotationPos, targetRadius.x, targetCenter, pscale, pressToleranceY) ) {
         newState = eDraggingRotationBar;
+        if (_mouseState != eDraggingRotationBar) {
+            // a new drag (a penDown during the drag, e.g. from a tablet, keeps the unsnapped rotate)
+            _rotationBarAngle = std::atan2(args.penPosition.y - targetCenter.y, args.penPosition.x - targetCenter.x);
+            _rotationBarRotate = tp.rotate;
+        }
     } else if ( isOnSkewXBar(transformedPos, targetRadius.y, targetCenter, pscale, pressToleranceY) ) {
         newState = eDraggingSkewXBar;
     } else if ( isOnSkewYBar(transformedPos, targetRadius.x, targetCenter, pscale, pressToleranceX) ) {

@@ -221,6 +221,11 @@ protected:
     // addition, roundedDragParams() differs from _tpWritten
     bool _dragMoved;
     bool _interactiveDrag;
+    // rotation bar drag: the pen's angle around the center at the last event (radians, canonical
+    // coordinates), and the rotate it gives before the 90-degree snap. The drag adds the change of
+    // the pen's angle, so that an event that doesn't move the pen leaves rotate unchanged.
+    double _rotationBarAngle;
+    double _rotationBarRotate;
 
 public:
     TransformInteractHelper(OFX::ImageEffect* effect, OFX::Interact* interact, bool oldParams = false);
